@@ -2,6 +2,15 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // Scraper / admin: events/{platform}/{eventId}/cover.jpg
+    match /events/{platform}/{eventId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Dashboard event uploads (legacy path)
     match /events/{eventId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null

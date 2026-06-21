@@ -4,6 +4,10 @@ import { dedupeEventsWithAi } from '@/lib/scraper/ai/dedupe-events';
 import { isScraperAiReady } from '@/lib/scraper/ai/config';
 import { isPlaceholderImage } from '@/lib/scraper/image-utils';
 import {
+  downloadAndUploadEventCover,
+  isFirebaseStorageUploadConfigured
+} from '@/lib/firebase/admin-storage';
+import {
   buildDedupeHash,
   normalizeVenue,
   shouldReplaceExternalSource,
@@ -162,6 +166,39 @@ async function promoteUpcomingExternalEvents() {
   }
 }
 
+async function resolveCoverImage(
+  raw: ScrapedEventRaw,
+  eventKey: string
+): Promise<{ coverImage: string; tags: string[] }> {
+  const tags = [...(raw.tags || [])];
+  const coverImage = raw.coverImage;
+
+  if (isPlaceholderImage(coverImage)) {
+    if (!tags.includes('eksik-gorsel')) tags.push('eksik-gorsel');
+    return { coverImage: '/brand/favicon.png', tags };
+  }
+
+  if (isFirebaseStorageUploadConfigured() && coverImage?.startsWith('http')) {
+    const uploaded = await downloadAndUploadEventCover(
+      raw.platform,
+      eventKey,
+      coverImage
+    );
+    if (uploaded) {
+      return { coverImage: uploaded, tags };
+    }
+    if (!tags.includes('eksik-gorsel')) tags.push('eksik-gorsel');
+  }
+
+  return {
+    coverImage:
+      coverImage && !isPlaceholderImage(coverImage)
+        ? coverImage
+        : '/brand/favicon.png',
+    tags
+  };
+}
+
 async function upsertScrapedEvent(
   raw: ScrapedEventRaw,
   organizerId: string,
@@ -213,14 +250,8 @@ async function upsertScrapedEvent(
   const now = new Date();
   const shortDescription =
     raw.shortDescription || raw.description.slice(0, 160);
-  const tags = [...(raw.tags || [])];
-  if (isPlaceholderImage(raw.coverImage)) {
-    if (!tags.includes('eksik-gorsel')) tags.push('eksik-gorsel');
-  }
-  const coverImage =
-    raw.coverImage && !isPlaceholderImage(raw.coverImage)
-      ? raw.coverImage
-      : '/brand/favicon.png';
+  const eventKey = existingExternal?.id ?? `${raw.platform}-${raw.externalId}`;
+  const { coverImage, tags } = await resolveCoverImage(raw, eventKey);
 
   if (existingExternal) {
     const replaceSource = shouldReplaceExternalSource(

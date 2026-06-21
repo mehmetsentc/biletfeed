@@ -11,6 +11,11 @@ import {
   fetchHtml,
   parseTurkishDate
 } from '@/lib/scraper/normalize';
+import {
+  biletixListingUrls,
+  bubiletListingUrls,
+  biletimoListingUrls
+} from '@/lib/scraper/listing-urls';
 import type { ScrapedEventRaw, ScraperAdapter, ScraperResult } from '@/lib/scraper/types';
 import { PLATFORM_LABELS } from '@/lib/scraper/types';
 
@@ -31,7 +36,9 @@ function isEventDetailUrl(url: string, platform: ExternalPlatform): boolean {
 
     if (platform === 'BILETIX') {
       return (
-        path.includes('/performance/') &&
+        (path.includes('/performance/') ||
+          path.includes('/etkinlik/') ||
+          path.includes('/etkinlik-grup/')) &&
         !path.includes('/search/') &&
         !path.includes('/category/') &&
         !path.includes('/static/')
@@ -47,16 +54,23 @@ function isEventDetailUrl(url: string, platform: ExternalPlatform): boolean {
         'bursa',
         'eskisehir'
       ]);
+      if (path.includes('/mekan/') || path.includes('/etiket/') || path.includes('/sayfa/')) {
+        return false;
+      }
       return parts.length >= 2 && !cities.has(parts[parts.length - 1]!);
     }
     if (platform === 'BILETIMO') {
       const parts = path.split('/').filter(Boolean);
-      return (
-        parts.length >= 2 &&
-        !['etkinlikler', 'istanbul-etkinlikleri', 'ankara-etkinlikleri'].includes(
-          parts[parts.length - 1]!
-        )
-      );
+      const blocked = new Set([
+        'etkinlikler',
+        'istanbul-etkinlikleri',
+        'ankara-etkinlikleri',
+        'izmir-etkinlikleri',
+        'antalya-etkinlikleri',
+        'bursa-etkinlikleri'
+      ]);
+      if (path.includes('/sayfa/') || path.includes('/blog/')) return false;
+      return parts.length >= 2 && !blocked.has(parts[parts.length - 1]!);
     }
     return false;
   } catch {
@@ -253,15 +267,9 @@ export const biletixAdapter: ScraperAdapter = {
   scrapeNewEvents: () =>
     scrapePlatformWithDetails(
       'BILETIX',
-      [
-        'https://www.biletix.com/search/TURKIYE/tr',
-        'https://www.biletix.com/search/ISTANBUL/tr',
-        'https://www.biletix.com/search/ANKARA/tr',
-        'https://www.biletix.com/search/IZMIR/tr',
-        'https://www.biletix.com/search/ANTALYA/tr'
-      ],
+      biletixListingUrls(),
       /biletix\.com/i,
-      { aiFirst: true, maxDetails: 60 }
+      { aiFirst: true, maxDetails: 80 }
     )
 };
 
@@ -271,15 +279,9 @@ export const bubiletAdapter: ScraperAdapter = {
   scrapeNewEvents: () =>
     scrapePlatformWithDetails(
       'BUBILET',
-      [
-        'https://www.bubilet.com.tr/',
-        'https://www.bubilet.com.tr/istanbul',
-        'https://www.bubilet.com.tr/ankara',
-        'https://www.bubilet.com.tr/izmir',
-        'https://www.bubilet.com.tr/antalya'
-      ],
+      bubiletListingUrls(),
       /bubilet\.com\.tr/i,
-      { maxDetails: 80 }
+      { maxDetails: 100 }
     )
 };
 
@@ -289,15 +291,9 @@ export const biletimoAdapter: ScraperAdapter = {
   scrapeNewEvents: () =>
     scrapePlatformWithDetails(
       'BILETIMO',
-      [
-        'https://www.biletimo.com/',
-        'https://www.biletimo.com/etkinlikler',
-        'https://www.biletimo.com/istanbul-etkinlikleri',
-        'https://www.biletimo.com/ankara-etkinlikleri',
-        'https://www.biletimo.com/izmir-etkinlikleri'
-      ],
+      biletimoListingUrls(),
       /biletimo\.com/i,
-      { aiFirst: true, maxDetails: 60 }
+      { aiFirst: true, maxDetails: 80 }
     )
 };
 

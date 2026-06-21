@@ -1,12 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { Calendar, MapPin, Download, Share2 } from 'lucide-react';
+import { notFound, redirect } from 'next/navigation';
+import { Calendar, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { getTicketById } from '@/lib/data/mock-user';
+import { getTicketById } from '@/lib/services/tickets';
 import { formatEventDate, formatEventTime } from '@/lib/data/mock-events';
 import { TicketQR } from '@/components/tickets/ticket-qr';
+import { verifySessionCookie } from '@/lib/auth/session';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
 interface Props {
@@ -15,7 +15,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
-  const ticket = getTicketById(id);
+  const session = await verifySessionCookie();
+  const ticket = session ? await getTicketById(id, session.uid) : undefined;
   return createPageMetadata({
     title: ticket?.eventTitle || 'Bilet',
     path: `/biletlerim/${id}`
@@ -23,21 +24,33 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function TicketDetailPage({ params }: Props) {
+  const session = await verifySessionCookie();
+  if (!session) redirect(`/giris?redirect=/biletlerim`);
+
   const { id } = await params;
-  const ticket = getTicketById(id);
+  const ticket = await getTicketById(id, session.uid);
   if (!ticket) notFound();
+
+  const statusLabel =
+    ticket.status === 'VALID'
+      ? 'Geçerli Bilet'
+      : ticket.status === 'USED'
+        ? 'Kullanılmış'
+        : ticket.status;
 
   return (
     <div className="container mx-auto max-w-lg px-4 py-10">
       <div className="overflow-hidden rounded-3xl border bg-card shadow-xl">
         <div className="relative h-40">
-          <Image src={ticket.eventImage} alt={ticket.eventTitle} fill className="object-cover" />
+          <Image src={ticket.eventImage} alt={ticket.eventTitle} fill className="object-cover" unoptimized />
           <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
         </div>
         <div className="p-6">
           <div className="flex items-start justify-between">
             <div>
-              <Badge variant="success">Geçerli Bilet</Badge>
+              <Badge variant={ticket.status === 'VALID' ? 'success' : 'secondary'}>
+                {statusLabel}
+              </Badge>
               <h1 className="mt-2 text-xl font-bold">{ticket.eventTitle}</h1>
             </div>
             <p className="text-lg font-bold text-primary">{ticket.price} ₺</p>
@@ -54,9 +67,11 @@ export default async function TicketDetailPage({ params }: Props) {
             </p>
           </div>
 
-          <div className="my-6 flex justify-center rounded-2xl bg-muted/50 p-6">
-            <TicketQR data={ticket.qrData} />
-          </div>
+          {ticket.status === 'VALID' && (
+            <div className="my-6 flex justify-center rounded-2xl bg-muted/50 p-6">
+              <TicketQR data={ticket.qrData} />
+            </div>
+          )}
 
           <p className="text-center font-mono text-sm text-muted-foreground">
             {ticket.code}
@@ -64,17 +79,6 @@ export default async function TicketDetailPage({ params }: Props) {
           <p className="mt-1 text-center text-xs text-muted-foreground">
             {ticket.ticketType}
           </p>
-
-          <div className="mt-6 flex gap-2">
-            <Button variant="outline" className="flex-1 gap-2">
-              <Download className="size-4" />
-              İndir
-            </Button>
-            <Button variant="outline" className="flex-1 gap-2">
-              <Share2 className="size-4" />
-              Paylaş
-            </Button>
-          </div>
         </div>
       </div>
       <Link href="/biletlerim" className="mt-6 block text-center text-sm text-primary">

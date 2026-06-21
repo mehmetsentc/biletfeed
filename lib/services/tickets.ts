@@ -1,10 +1,46 @@
 import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+import { buildTicketQrPayload } from '@/lib/tickets/sign';
 import {
   mockPurchasedTickets,
   mockNotifications,
   getTicketById as getMockTicketById,
   type MockPurchasedTicket
 } from '@/lib/data/mock-user';
+
+function mapTicket(t: {
+  id: string;
+  ticketCode: string;
+  validationToken: string;
+  status: string;
+  event: {
+    slug: string;
+    title: string;
+    coverImage: string;
+    startDate: Date;
+    venue: { name: string } | null;
+    city: { name: string };
+  };
+  ticketType: { name: string; price: number };
+}): MockPurchasedTicket {
+  return {
+    id: t.id,
+    code: t.ticketCode,
+    eventSlug: t.event.slug,
+    eventTitle: t.event.title,
+    eventImage: t.event.coverImage,
+    eventDate: t.event.startDate.toISOString(),
+    venue: t.event.venue?.name || 'Online',
+    city: t.event.city.name,
+    ticketType: t.ticketType.name,
+    price: t.ticketType.price,
+    status: t.status as MockPurchasedTicket['status'],
+    qrData: buildTicketQrPayload({
+      ticketId: t.id,
+      ticketCode: t.ticketCode,
+      validationToken: t.validationToken
+    })
+  };
+}
 
 export async function getPurchasedTicketsByUser(
   firebaseUid: string
@@ -26,20 +62,7 @@ export async function getPurchasedTicketsByUser(
     orderBy: { createdAt: 'desc' }
   });
 
-  return tickets.map((t) => ({
-    id: t.id,
-    code: t.ticketCode,
-    eventSlug: t.event.slug,
-    eventTitle: t.event.title,
-    eventImage: t.event.coverImage,
-    eventDate: t.event.startDate.toISOString(),
-    venue: t.event.venue?.name || 'Online',
-    city: t.event.city.name,
-    ticketType: t.ticketType.name,
-    price: t.ticketType.price,
-    status: t.status as MockPurchasedTicket['status'],
-    qrData: t.validationToken
-  }));
+  return tickets.map(mapTicket);
 }
 
 export async function getTicketById(
@@ -60,20 +83,7 @@ export async function getTicketById(
   if (!ticket) return undefined;
   if (firebaseUid && ticket.user.firebaseUid !== firebaseUid) return undefined;
 
-  return {
-    id: ticket.id,
-    code: ticket.ticketCode,
-    eventSlug: ticket.event.slug,
-    eventTitle: ticket.event.title,
-    eventImage: ticket.event.coverImage,
-    eventDate: ticket.event.startDate.toISOString(),
-    venue: ticket.event.venue?.name || 'Online',
-    city: ticket.event.city.name,
-    ticketType: ticket.ticketType.name,
-    price: ticket.ticketType.price,
-    status: ticket.status as MockPurchasedTicket['status'],
-    qrData: ticket.validationToken
-  };
+  return mapTicket(ticket);
 }
 
 export async function getNotificationsByUser(firebaseUid: string) {

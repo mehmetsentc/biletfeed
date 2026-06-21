@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, MapPin, QrCode, Download } from 'lucide-react';
+import { Calendar, MapPin, QrCode } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { mockPurchasedTickets } from '@/lib/data/mock-user';
 import { formatEventDate } from '@/lib/data/mock-events';
+import { getPurchasedTicketsByUser } from '@/lib/services/tickets';
+import { verifySessionCookie } from '@/lib/auth/session';
+import { redirect } from 'next/navigation';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata = createPageMetadata({
@@ -12,7 +14,12 @@ export const metadata = createPageMetadata({
   path: '/biletlerim'
 });
 
-export default function MyTicketsPage() {
+export default async function MyTicketsPage() {
+  const session = await verifySessionCookie();
+  if (!session) redirect('/giris?redirect=/biletlerim');
+
+  const tickets = await getPurchasedTicketsByUser(session.uid);
+
   return (
     <div className="space-y-6">
       <div>
@@ -20,7 +27,7 @@ export default function MyTicketsPage() {
         <p className="text-muted-foreground">Satın aldığınız biletler</p>
       </div>
       <div className="max-w-3xl space-y-4">
-        {mockPurchasedTickets.length === 0 ? (
+        {tickets.length === 0 ? (
           <div className="py-20 text-center">
             <p className="text-muted-foreground">Henüz biletiniz yok.</p>
             <Link href="/etkinlikler">
@@ -28,7 +35,7 @@ export default function MyTicketsPage() {
             </Link>
           </div>
         ) : (
-          mockPurchasedTickets.map((ticket) => (
+          tickets.map((ticket) => (
             <Link
               key={ticket.id}
               href={`/biletlerim/${ticket.id}`}
@@ -40,6 +47,7 @@ export default function MyTicketsPage() {
                   alt={ticket.eventTitle}
                   fill
                   className="object-cover"
+                  unoptimized
                 />
               </div>
               <div className="min-w-0 flex-1">

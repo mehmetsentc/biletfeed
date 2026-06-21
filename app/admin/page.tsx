@@ -1,18 +1,21 @@
 import { getTranslations } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getAdminStats } from '@/lib/services/admin-dashboard';
 
 const t = getTranslations();
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const stats = await getAdminStats();
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">{t.admin.title}</h1>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Toplam Kullanıcı', value: '0' },
-          { label: 'Organizatör', value: '0' },
-          { label: 'Aktif Etkinlik', value: '0' },
-          { label: 'Toplam Gelir', value: '₺0' }
+          { label: 'Toplam Kullanıcı', value: String(stats.users) },
+          { label: 'Organizatör', value: String(stats.organizers) },
+          { label: 'Yaklaşan Etkinlik', value: String(stats.activeEvents) },
+          { label: 'Toplam Gelir', value: `₺${stats.revenue.toLocaleString('tr-TR')}` }
         ].map((stat) => (
           <Card key={stat.label}>
             <CardHeader className="pb-2">
@@ -26,6 +29,9 @@ export default function AdminPage() {
           </Card>
         ))}
       </div>
+      <p className="text-sm text-muted-foreground">
+        {stats.orderCount} ödenmiş sipariş
+      </p>
     </div>
   );
 }
