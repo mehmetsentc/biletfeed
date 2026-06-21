@@ -1,0 +1,167 @@
+import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
+import type { Prisma } from '@prisma/client';
+import {
+  categories as mockCategories,
+  cities as mockCities,
+  type MockEvent
+} from '@/lib/data/mock-events';
+import { eventInclude, toMockEvent } from '@/lib/mappers/event';
+
+const publishedFilter = {
+  status: 'published' as const,
+  deletedAt: null
+};
+
+const upcomingFilter = {
+  ...publishedFilter,
+  startDate: { gte: new Date() }
+};
+
+async function fetchPublishedEvents(
+  where?: Prisma.EventWhereInput,
+  options?: { upcomingOnly?: boolean }
+) {
+  if (!isDatabaseConfigured()) return [];
+  await ensureDbConnection();
+  const baseWhere = options?.upcomingOnly ? upcomingFilter : publishedFilter;
+  const events = await prisma.event.findMany({
+    where: { ...baseWhere, ...where },
+    include: eventInclude,
+    orderBy: { startDate: 'asc' }
+  });
+  return events.map(toMockEvent);
+}
+
+export async function getAllEvents(): Promise<MockEvent[]> {
+  return fetchPublishedEvents(undefined, { upcomingOnly: true });
+}
+
+export async function getEventBySlug(
+  slug: string
+): Promise<MockEvent | undefined> {
+  if (!isDatabaseConfigured()) return undefined;
+  await ensureDbConnection();
+  const event = await prisma.event.findFirst({
+    where: { slug, ...publishedFilter },
+    include: eventInclude
+  });
+  return event ? toMockEvent(event) : undefined;
+}
+
+async function fetchUpcomingExternal(limit = 12): Promise<MockEvent[]> {
+  if (!isDatabaseConfigured()) return [];
+  await ensureDbConnection();
+  const events = await prisma.event.findMany({
+    where: {
+      ...upcomingFilter,
+      listingType: 'external'
+    },
+    include: eventInclude,
+    orderBy: [{ lastScrapedAt: 'desc' }, { startDate: 'asc' }],
+    take: limit
+  });
+  return events.map(toMockEvent);
+}
+
+export async function getFeaturedEvents(): Promise<MockEvent[]> {
+  const featured = await fetchPublishedEvents(
+    { isFeatured: true },
+    { upcomingOnly: true }
+  );
+  if (featured.length >= 3) return featured;
+  return fetchUpcomingExternal(12);
+}
+
+export async function getTrendingEvents(): Promise<MockEvent[]> {
+  const trending = await fetchPublishedEvents(
+    { isTrending: true },
+    { upcomingOnly: true }
+  );
+  if (trending.length >= 3) return trending;
+  return fetchUpcomingExternal(12);
+}
+
+export async function getDiscountedEvents(): Promise<MockEvent[]> {
+  return fetchPublishedEvents({
+    discountPercent: { gt: 0 }
+  });
+}
+
+export async function getOnlineEvents(): Promise<MockEvent[]> {
+  return fetchPublishedEvents(
+    {
+      OR: [{ isOnline: true }, { category: { slug: 'online' } }]
+    },
+    { upcomingOnly: true }
+  );
+}
+
+export async function getEventsByCategory(
+  categorySlug: string
+): Promise<MockEvent[]> {
+  return fetchPublishedEvents(
+    { category: { slug: categorySlug } },
+    { upcomingOnly: true }
+  );
+}
+
+export async function getEventsByCity(citySlug: string): Promise<MockEvent[]> {
+  return fetchPublishedEvents(
+    { city: { slug: citySlug } },
+    { upcomingOnly: true }
+  );
+}
+
+export async function getEventsByOrganizer(
+  organizerSlug: string
+): Promise<MockEvent[]> {
+  return fetchPublishedEvents({ organizer: { slug: organizerSlug } });
+}
+
+export async function getCategories() {
+  if (!isDatabaseConfigured()) return mockCategories;
+  const rows = await prisma.category.findMany({
+    where: { deletedAt: null },
+    orderBy: { name: 'asc' }
+  });
+  return rows.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    icon: c.icon || '',
+    count: c.eventCount,
+    image: c.image || ''
+  }));
+}
+
+export async function getCities() {
+  if (!isDatabaseConfigured()) return mockCities;
+  const rows = await prisma.city.findMany({
+    where: { deletedAt: null },
+    orderBy: { name: 'asc' }
+  });
+  const counts = await prisma.event.groupBy({
+    by: ['cityId'],
+    where: {
+      ...upcomingFilter
+    },
+    _count: true
+  });
+  const countMap = new Map(counts.map((c) => [c.cityId, c._count]));
+  return rows.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    image: c.image || '',
+    count: countMap.get(c.id) ?? c.eventCount
+  }));
+}
+
+export async function getFavoriteEvents(userId: string): Promise<MockEvent[]> {
+  if (!isDatabaseConfigured()) return [];
+  const favorites = await prisma.favorite.findMany({
+    where: { userId },
+    include: { event: { include: eventInclude } }
+  });
+  return favorites
+    .filter((f) => f.event.deletedAt === null && f.event.status === 'published')
+    .map((f) => toMockEvent(f.event));
+}

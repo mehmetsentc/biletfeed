@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: biletfeed-db
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: biletfeed
+      POSTGRES_PASSWORD: biletfeed_dev
+      POSTGRES_DB: biletfeed
+    volumes:
+      - biletfeed_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U biletfeed -d biletfeed']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  biletfeed_pgdata:

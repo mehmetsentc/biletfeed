@@ -1,0 +1,487 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ROLE_USER
+  ROLE_ORGANIZER
+  ROLE_ADMIN
+  ROLE_SUPER_ADMIN
+}
+
+enum OrganizerStatus {
+  pending
+  approved
+  suspended
+}
+
+enum EventStatus {
+  draft
+  pending
+  published
+  cancelled
+  completed
+}
+
+enum EventType {
+  concert
+  festival
+  theatre
+  sports
+  workshop
+  online
+  other
+}
+
+enum TicketTypeEnum {
+  general
+  vip
+  early_bird
+  backstage
+  student
+  custom
+}
+
+enum TicketStatus {
+  active
+  paused
+  sold_out
+}
+
+enum OrderStatus {
+  pending
+  paid
+  cancelled
+  refunded
+}
+
+enum PurchasedTicketStatus {
+  VALID
+  USED
+  CANCELLED
+  REFUNDED
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum Currency {
+  TRY
+  USD
+  EUR
+}
+
+enum ListingType {
+  internal
+  external
+}
+
+enum ExternalPlatform {
+  BILETIX
+  BUBILET
+  BILETINO
+  BILETIMO
+  PASSO
+  GECCE
+}
+
+enum ScrapeRunStatus {
+  running
+  success
+  partial
+  failed
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  firebaseUid  String    @unique @map("firebase_uid")
+  email        String    @unique
+  displayName  String    @map("display_name")
+  photoURL     String?   @map("photo_url")
+  role         UserRole  @default(ROLE_USER)
+  deletedAt    DateTime? @map("deleted_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  ownedOrganizer   Organizer?        @relation("UserOrganizer")
+  favorites        Favorite[]
+  followers        Follower[]        @relation("FollowerUser")
+  notifications    Notification[]
+  orders           Order[]
+  purchasedTickets PurchasedTicket[]
+  reviews          Review[]
+
+  @@index([role])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Organizer {
+  id             String          @id @default(uuid()) @db.Uuid
+  slug           String          @unique
+  name           String
+  description    String
+  logo           String?
+  coverImage     String?         @map("cover_image")
+  status         OrganizerStatus @default(pending)
+  ownerId        String          @unique @map("owner_id") @db.Uuid
+  followerCount  Int             @default(0) @map("follower_count")
+  commissionRate Float           @default(0.1) @map("commission_rate")
+  socialLinks    Json            @default("{}") @map("social_links")
+  verified       Boolean         @default(false)
+  deletedAt      DateTime?       @map("deleted_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  owner        User          @relation("UserOrganizer", fields: [ownerId], references: [id])
+  events       Event[]
+  followers    Follower[]    @relation("FollowerOrganizer")
+  orders       Order[]
+  transactions Transaction[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("organizers")
+}
+
+model City {
+  id         String    @id @default(uuid()) @db.Uuid
+  slug       String    @unique
+  name       String
+  country    String    @default("Türkiye")
+  image      String?
+  eventCount Int       @default(0) @map("event_count")
+  deletedAt  DateTime? @map("deleted_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  events Event[]
+  venues Venue[]
+
+  @@index([deletedAt])
+  @@map("cities")
+}
+
+model Category {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique
+  name        String
+  description String?
+  icon        String?
+  image       String?
+  eventCount  Int       @default(0) @map("event_count")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  events Event[]
+
+  @@index([deletedAt])
+  @@map("categories")
+}
+
+model Venue {
+  id         String    @id @default(uuid()) @db.Uuid
+  slug       String    @unique
+  name       String
+  address    String
+  cityId     String    @map("city_id") @db.Uuid
+  latitude   Float?
+  longitude  Float?
+  capacity   Int?
+  image      String?
+  description String?
+  eventCount Int       @default(0) @map("event_count")
+  deletedAt  DateTime? @map("deleted_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  city   City    @relation(fields: [cityId], references: [id])
+  events Event[]
+
+  @@index([cityId])
+  @@index([deletedAt])
+  @@map("venues")
+}
+
+model Event {
+  id           String      @id @default(uuid()) @db.Uuid
+  slug         String      @unique
+  title        String
+  description  String
+  shortDescription String? @map("short_description")
+  organizerId  String      @map("organizer_id") @db.Uuid
+  venueId      String?     @map("venue_id") @db.Uuid
+  cityId       String      @map("city_id") @db.Uuid
+  categoryId   String      @map("category_id") @db.Uuid
+  coverImage   String      @map("cover_image")
+  gallery      String[]    @default([])
+  startDate    DateTime    @map("start_date")
+  endDate      DateTime    @map("end_date")
+  status       EventStatus @default(draft)
+  eventType    EventType   @default(other) @map("event_type")
+  isOnline     Boolean     @default(false) @map("is_online")
+  onlineUrl    String?     @map("online_url")
+  isFeatured   Boolean     @default(false) @map("is_featured")
+  isTrending   Boolean     @default(false) @map("is_trending")
+  isFree       Boolean     @default(false) @map("is_free")
+  discountPercent Int?     @map("discount_percent")
+  basePrice    Float       @default(0) @map("base_price")
+  currency     Currency    @default(TRY)
+  attendees    Int         @default(0)
+  capacity     Int         @default(0)
+  tags         String[]    @default([])
+  rules        String      @default("")
+  faqs         Json        @default("[]")
+  seo          Json        @default("{}")
+  stats        Json        @default("{\"views\":0,\"favorites\":0,\"ticketSales\":0}")
+  listingType      ListingType       @default(internal) @map("listing_type")
+  externalPlatform ExternalPlatform? @map("external_platform")
+  externalUrl      String?           @map("external_url")
+  externalEventId  String?           @map("external_event_id")
+  dedupeHash       String?           @unique @map("dedupe_hash")
+  lastScrapedAt    DateTime?         @map("last_scraped_at")
+  deletedAt    DateTime?   @map("deleted_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  organizer        Organizer         @relation(fields: [organizerId], references: [id])
+  venue            Venue?            @relation(fields: [venueId], references: [id])
+  city             City              @relation(fields: [cityId], references: [id])
+  category         Category          @relation(fields: [categoryId], references: [id])
+  ticketTypes      TicketType[]
+  orders           Order[]
+  purchasedTickets PurchasedTicket[]
+  favorites        Favorite[]
+  reviews          Review[]
+
+  @@index([status])
+  @@index([organizerId])
+  @@index([cityId])
+  @@index([categoryId])
+  @@index([startDate])
+  @@index([isFeatured])
+  @@index([isTrending])
+  @@index([listingType])
+  @@index([externalPlatform])
+  @@index([lastScrapedAt])
+  @@unique([externalPlatform, externalEventId])
+  @@index([deletedAt])
+  @@map("events")
+}
+
+model ScrapeRun {
+  id           String           @id @default(uuid()) @db.Uuid
+  status       ScrapeRunStatus  @default(running)
+  startedAt    DateTime         @default(now()) @map("started_at")
+  finishedAt   DateTime?        @map("finished_at")
+  totalFetched Int              @default(0) @map("total_fetched")
+  totalCreated Int              @default(0) @map("total_created")
+  totalUpdated Int              @default(0) @map("total_updated")
+  totalSkipped Int              @default(0) @map("total_skipped")
+  totalDeduped Int              @default(0) @map("total_deduped")
+  errors       Json             @default("[]")
+  platformStats Json            @default("{}") @map("platform_stats")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  @@index([startedAt])
+  @@map("scrape_runs")
+}
+
+model TicketType {
+  id            String         @id @default(uuid()) @db.Uuid
+  eventId       String         @map("event_id") @db.Uuid
+  name          String
+  type          TicketTypeEnum @default(general)
+  price         Float
+  currency      Currency       @default(TRY)
+  quantity      Int
+  sold          Int            @default(0)
+  capacity      Int
+  saleStartDate DateTime       @map("sale_start_date")
+  saleEndDate   DateTime       @map("sale_end_date")
+  status        TicketStatus   @default(active)
+  deletedAt     DateTime?      @map("deleted_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  event            Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  purchasedTickets PurchasedTicket[]
+  orderItems       OrderItem[]
+
+  @@index([eventId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("ticket_types")
+}
+
+model Order {
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @map("user_id") @db.Uuid
+  eventId         String      @map("event_id") @db.Uuid
+  organizerId     String      @map("organizer_id") @db.Uuid
+  subtotal        Float
+  discount        Float       @default(0)
+  commission      Float       @default(0)
+  total           Float
+  status          OrderStatus @default(pending)
+  paymentProvider String      @map("payment_provider")
+  paymentId       String?     @map("payment_id")
+  couponCode      String?     @map("coupon_code")
+  deletedAt       DateTime?   @map("deleted_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  user             User              @relation(fields: [userId], references: [id])
+  event            Event             @relation(fields: [eventId], references: [id])
+  organizer        Organizer         @relation(fields: [organizerId], references: [id])
+  items            OrderItem[]
+  purchasedTickets PurchasedTicket[]
+  transactions     Transaction[]
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String @id @default(uuid()) @db.Uuid
+  orderId    String @map("order_id") @db.Uuid
+  ticketTypeId String @map("ticket_type_id") @db.Uuid
+  quantity   Int
+  unitPrice  Float  @map("unit_price")
+
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model PurchasedTicket {
+  id              String                @id @default(uuid()) @db.Uuid
+  orderId         String                @map("order_id") @db.Uuid
+  ticketTypeId    String                @map("ticket_type_id") @db.Uuid
+  ticketCode      String                @unique @map("ticket_code")
+  userId          String                @map("user_id") @db.Uuid
+  eventId         String                @map("event_id") @db.Uuid
+  validationToken String                @map("validation_token")
+  status          PurchasedTicketStatus @default(VALID)
+  scannedAt       DateTime?             @map("scanned_at")
+  scannedBy       String?               @map("scanned_by")
+  deletedAt       DateTime?             @map("deleted_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  order      Order      @relation(fields: [orderId], references: [id])
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+  event      Event      @relation(fields: [eventId], references: [id])
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("purchased_tickets")
+}
+
+model Transaction {
+  id          String            @id @default(uuid()) @db.Uuid
+  orderId     String            @map("order_id") @db.Uuid
+  organizerId String            @map("organizer_id") @db.Uuid
+  amount      Float
+  currency    Currency          @default(TRY)
+  status      TransactionStatus @default(pending)
+  provider    String
+  providerRef String?           @map("provider_ref")
+  deletedAt   DateTime?         @map("deleted_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  order     Order     @relation(fields: [orderId], references: [id])
+  organizer Organizer @relation(fields: [organizerId], references: [id])
+
+  @@index([orderId])
+  @@index([organizerId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("transactions")
+}
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  eventId   String   @map("event_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+  @@map("favorites")
+}
+
+model Follower {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  organizerId String   @map("organizer_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user      User      @relation("FollowerUser", fields: [userId], references: [id], onDelete: Cascade)
+  organizer Organizer @relation("FollowerOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizerId])
+  @@index([userId])
+  @@index([organizerId])
+  @@map("followers")
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String
+  body      String
+  type      String
+  read      Boolean  @default(false)
+  data      Json?
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([deletedAt])
+  @@map("notifications")
+}
+
+model Review {
+  id        String    @id @default(uuid()) @db.Uuid
+  eventId   String    @map("event_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  rating    Int
+  comment   String
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([userId])
+  @@map("reviews")
+}
