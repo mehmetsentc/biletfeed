@@ -2,10 +2,11 @@ import * as cheerio from 'cheerio';
 import type { ExternalPlatform, EventType } from '@prisma/client';
 import { scraperAiChat } from '@/lib/scraper/ai/client';
 import { getScraperAiConfig, isScraperAiReady } from '@/lib/scraper/ai/config';
+import { inferEventEndDate, parseScraperDateTime } from '@/lib/scraper/dates';
+import { isPlaceholderImage } from '@/lib/scraper/image-utils';
 import {
   mapCategory,
   parsePrice,
-  parseTurkishDate,
   resolveCitySlug
 } from '@/lib/scraper/normalize';
 import { PLATFORM_LABELS } from '@/lib/scraper/types';
@@ -117,17 +118,12 @@ function mapAiRow(
     externalUrl.split('/').filter(Boolean).pop() ||
     title.slice(0, 40).replace(/\s+/g, '-');
 
-  const startDate =
-    parseTurkishDate(row.startDate) ||
-    (row.startDate ? new Date(row.startDate) : null);
+  const startDate = parseScraperDateTime(row.startDate);
   if (!startDate || Number.isNaN(startDate.getTime())) {
     return null;
   }
 
-  const endDate =
-    parseTurkishDate(row.endDate) ||
-    (row.endDate ? new Date(row.endDate) : null) ||
-    new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
+  const endDate = inferEventEndDate(startDate, row.endDate);
 
   const { slug: citySlug, name: cityName } = resolveCitySlug(
     row.cityName || 'İstanbul'
@@ -145,6 +141,10 @@ function mapAiRow(
   const hints = [row.categoryHint || '', title, description];
   const { categorySlug, eventType } = mapCategory(title, description, hints);
 
+  const tags = [PLATFORM_LABELS[platform], 'ai-extracted'];
+  const coverImage = row.coverImage?.startsWith('http') ? row.coverImage : '';
+  if (isPlaceholderImage(coverImage)) tags.push('eksik-gorsel');
+
   return {
     platform,
     externalId,
@@ -152,10 +152,7 @@ function mapAiRow(
     title,
     description,
     shortDescription: description.slice(0, 160),
-    coverImage:
-      row.coverImage?.startsWith('http')
-        ? row.coverImage
-        : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80',
+    coverImage,
     citySlug,
     cityName: row.cityName || cityName,
     venue: row.venue || '',
@@ -167,7 +164,7 @@ function mapAiRow(
     price,
     isFree,
     isOnline: row.isOnline ?? /online|canlı/i.test(`${title} ${description}`),
-    tags: [PLATFORM_LABELS[platform], 'ai-extracted']
+    tags
   };
 }
 

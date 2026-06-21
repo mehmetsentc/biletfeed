@@ -2,6 +2,7 @@ import type { ScrapeRunStatus } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { dedupeEventsWithAi } from '@/lib/scraper/ai/dedupe-events';
 import { isScraperAiReady } from '@/lib/scraper/ai/config';
+import { isPlaceholderImage } from '@/lib/scraper/image-utils';
 import {
   buildDedupeHash,
   normalizeVenue,
@@ -212,6 +213,14 @@ async function upsertScrapedEvent(
   const now = new Date();
   const shortDescription =
     raw.shortDescription || raw.description.slice(0, 160);
+  const tags = [...(raw.tags || [])];
+  if (isPlaceholderImage(raw.coverImage)) {
+    if (!tags.includes('eksik-gorsel')) tags.push('eksik-gorsel');
+  }
+  const coverImage =
+    raw.coverImage && !isPlaceholderImage(raw.coverImage)
+      ? raw.coverImage
+      : '/brand/favicon.png';
 
   if (existingExternal) {
     const replaceSource = shouldReplaceExternalSource(
@@ -235,12 +244,13 @@ async function upsertScrapedEvent(
         title: raw.title,
         description: raw.description,
         shortDescription,
-        coverImage: raw.coverImage,
+        coverImage,
         gallery: raw.gallery || [],
         startDate: raw.startDate,
         endDate: raw.endDate,
         basePrice: raw.price,
         isFree: raw.isFree,
+        tags,
         externalPlatform: raw.platform,
         externalUrl: raw.externalUrl,
         externalEventId: raw.externalId,
@@ -272,7 +282,7 @@ async function upsertScrapedEvent(
       cityId,
       categoryId,
       venueId,
-      coverImage: raw.coverImage,
+      coverImage,
       gallery: raw.gallery || [],
       startDate: raw.startDate,
       endDate: raw.endDate,
@@ -284,7 +294,7 @@ async function upsertScrapedEvent(
       isFree: raw.isFree,
       basePrice: raw.price,
       currency: 'TRY',
-      tags: raw.tags || [],
+      tags,
       listingType: 'external',
       externalPlatform: raw.platform,
       externalUrl: raw.externalUrl,

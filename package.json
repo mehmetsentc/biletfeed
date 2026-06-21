@@ -25,6 +25,8 @@
     "cron:trigger": "dotenv -e .env.local -- tsx scripts/trigger-cron.ts",
     "event-stats": "dotenv -e .env.local -- tsx scripts/event-stats.ts",
     "events:remove-mocks": "dotenv -e .env.local -- tsx scripts/remove-mock-events.ts",
+    "events:purge-scraped": "dotenv -e .env.local -- tsx scripts/purge-scraped-events.ts",
+    "events:rescrape": "dotenv -e .env.local -- tsx scripts/purge-scraped-events.ts && dotenv -e .env.local -- tsx scripts/scrape-events.ts",
     "db:scrape-push": "dotenv -e .env.local -- prisma db push"
   },
   "dependencies": {

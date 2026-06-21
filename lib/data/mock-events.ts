@@ -69,7 +69,8 @@ export function formatEventDate(dateStr: string): string {
 export function formatEventTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString('tr-TR', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'Europe/Istanbul'
   });
 }
 
@@ -107,6 +108,10 @@ export function formatEventDateLine(event: MockEvent): string {
 export function formatEventTimeRange(event: MockEvent): string {
   const start = formatEventTime(event.startDate);
   const end = formatEventTime(event.endDate);
+  const startMs = new Date(event.startDate).getTime();
+  const endMs = new Date(event.endDate).getTime();
+  const diffH = (endMs - startMs) / (60 * 60 * 1000);
+  if (diffH <= 0 || diffH > 8) return start;
   return `${start} - ${end}`;
 }
 
