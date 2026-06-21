@@ -151,6 +151,7 @@ function extractJsonLd(html: string): unknown[] {
   return items;
 }
 
+async function scrapePlatformWithDetails(
   platform: ExternalPlatform,
   listingUrls: string[],
   hostPattern: RegExp,
