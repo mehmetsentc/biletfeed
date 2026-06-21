@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { DEFAULT_CITY_SLUG, getCityBySlug, SUPPORTED_CITIES } from './cities';
-import { CITY_COOKIE_NAME } from './city-preference';
+import { CITY_COOKIE_NAME } from './city-preference.constants';
 
 export async function getPreferredCitySlug(): Promise<string> {
   const cookieStore = await cookies();

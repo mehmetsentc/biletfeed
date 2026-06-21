@@ -1,7 +1,9 @@
 import { SUPPORTED_CITIES } from './cities';
+import {
+  CITY_COOKIE_NAME,
+  CITY_STORAGE_KEY
+} from './city-preference.constants';
 
-export const CITY_COOKIE_NAME = 'bf_city';
-export const CITY_STORAGE_KEY = 'bf_city_v1';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 /** Client-side: persist city choice for SSR + subsequent visits */
@@ -21,3 +23,5 @@ export function readStoredCitySlug(): string | null {
 export function hasStoredCityChoice(): boolean {
   return readStoredCitySlug() !== null;
 }
+
+export { CITY_COOKIE_NAME, CITY_STORAGE_KEY } from './city-preference.constants';
