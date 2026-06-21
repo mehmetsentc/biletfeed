@@ -9,7 +9,7 @@ import {
 } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { getCityName } from '@/lib/location/cities';
-import { getPreferredCitySlug } from '@/lib/location/city-preference';
+import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
 import {
   getAllEvents,
   getEventsByCity,

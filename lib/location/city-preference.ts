@@ -1,21 +1,8 @@
-import { cookies } from 'next/headers';
-import { DEFAULT_CITY_SLUG, getCityBySlug, SUPPORTED_CITIES } from './cities';
+import { SUPPORTED_CITIES } from './cities';
 
 export const CITY_COOKIE_NAME = 'bf_city';
 export const CITY_STORAGE_KEY = 'bf_city_v1';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-
-export async function getPreferredCitySlug(): Promise<string> {
-  const cookieStore = await cookies();
-  const slug = cookieStore.get(CITY_COOKIE_NAME)?.value;
-  if (slug && SUPPORTED_CITIES.some((c) => c.slug === slug)) return slug;
-  return DEFAULT_CITY_SLUG;
-}
-
-export async function getPreferredCityName(): Promise<string> {
-  const slug = await getPreferredCitySlug();
-  return getCityBySlug(slug).name;
-}
 
 /** Client-side: persist city choice for SSR + subsequent visits */
 export function persistCityChoice(slug: string) {
