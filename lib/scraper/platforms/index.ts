@@ -54,7 +54,12 @@ function isEventDetailUrl(url: string, platform: ExternalPlatform): boolean {
         'bursa',
         'eskisehir'
       ]);
-      if (path.includes('/mekan/') || path.includes('/etiket/') || path.includes('/sayfa/')) {
+      if (
+        path.includes('/mekan/') ||
+        path.includes('/etiket/') ||
+        path.includes('/sayfa/') ||
+        path.includes('/profil/')
+      ) {
         return false;
       }
       return parts.length >= 2 && !cities.has(parts[parts.length - 1]!);

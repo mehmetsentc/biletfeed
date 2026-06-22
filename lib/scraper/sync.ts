@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import type { ScrapeRunStatus } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { dedupeEventsWithAi } from '@/lib/scraper/ai/dedupe-events';
@@ -199,6 +200,34 @@ async function resolveCoverImage(
   };
 }
 
+async function resolveUniqueSlug(
+  baseSlug: string,
+  externalId: string,
+  title: string
+): Promise<string> {
+  const taken = await prisma.event.findFirst({ where: { slug: baseSlug } });
+  if (!taken) return baseSlug;
+
+  const idSuffix = externalId.replace(/[^\w-]/g, '').slice(0, 24);
+  if (idSuffix) {
+    const withId = `${baseSlug}-${idSuffix}`.slice(0, 120);
+    const idTaken = await prisma.event.findFirst({ where: { slug: withId } });
+    if (!idTaken) return withId;
+  }
+
+  for (let n = 2; n <= 50; n++) {
+    const candidate = `${baseSlug}-${n}`.slice(0, 120);
+    const exists = await prisma.event.findFirst({ where: { slug: candidate } });
+    if (!exists) return candidate;
+  }
+
+  const hash = createHash('sha256')
+    .update(`${baseSlug}|${externalId}|${title}`)
+    .digest('hex')
+    .slice(0, 8);
+  return `${baseSlug.slice(0, 108)}-${hash}`.slice(0, 120);
+}
+
 async function upsertScrapedEvent(
   raw: ScrapedEventRaw,
   organizerId: string,
@@ -296,12 +325,11 @@ async function upsertScrapedEvent(
     return;
   }
 
-  const slug = slugifyExternal(raw.platform, raw.externalId, raw.title);
-
-  const slugTaken = await prisma.event.findUnique({ where: { slug } });
-  const finalSlug = slugTaken
-    ? `${slug}-${raw.externalId}`.slice(0, 120)
-    : slug;
+  const finalSlug = await resolveUniqueSlug(
+    slugifyExternal(raw.platform, raw.externalId, raw.title),
+    raw.externalId,
+    raw.title
+  );
 
   const event = await prisma.event.create({
     data: {
