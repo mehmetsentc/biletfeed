@@ -20,12 +20,14 @@ import {
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 
 async function onGoogleSignedIn(user: FirebaseUser) {
-  redirectFromAuthPagesIfNeeded();
+  // Session cookie ÖNCE kurulmalı; yönlendirme sonra.
+  // Aksi hâlde protected sayfaya session'sız gidilir → middleware /giris'e atar → döngü.
   try {
     await establishClientSessionWithRetry(user);
   } catch {
-    // Yönlendirme oturumdan bağımsız — session arka planda
+    // Session kurulamazsa da yönlendir; kullanıcı /giris'te tekrar dener
   }
+  redirectFromAuthPagesIfNeeded();
 }
 
 /**

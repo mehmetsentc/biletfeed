@@ -47,22 +47,27 @@ export async function getPurchasedTicketsByUser(
 ): Promise<MockPurchasedTicket[]> {
   if (!isDatabaseConfigured()) return mockPurchasedTickets;
 
-  const user = await prisma.user.findFirst({
-    where: { firebaseUid, deletedAt: null },
-    select: { id: true }
-  });
-  if (!user) return [];
+  try {
+    const user = await prisma.user.findFirst({
+      where: { firebaseUid, deletedAt: null },
+      select: { id: true }
+    });
+    if (!user) return [];
 
-  const tickets = await prisma.purchasedTicket.findMany({
-    where: { userId: user.id, deletedAt: null },
-    include: {
-      event: { include: { city: true, venue: true } },
-      ticketType: true
-    },
-    orderBy: { createdAt: 'desc' }
-  });
+    const tickets = await prisma.purchasedTicket.findMany({
+      where: { userId: user.id, deletedAt: null },
+      include: {
+        event: { include: { city: true, venue: true } },
+        ticketType: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
-  return tickets.map(mapTicket);
+    return tickets.map(mapTicket);
+  } catch {
+    // DB şeması henüz migrate edilmemiş olabilir; 500 yerine boş liste dön
+    return [];
+  }
 }
 
 export async function getTicketById(

@@ -70,8 +70,9 @@ export function LoginForm() {
       await signInWithGoogle();
       const auth = await ensureAuthReady();
       if (auth.currentUser) {
+        // Session cookie kurulduktan SONRA yönlendir — aksi hâlde redirect döngüsü
+        await establishClientSessionWithRetry(auth.currentUser);
         redirectFromAuthPagesIfNeeded();
-        void establishClientSessionWithRetry(auth.currentUser);
         window.location.replace(getRedirectTarget('/giris', searchParams.toString()));
       }
     } catch (err) {
