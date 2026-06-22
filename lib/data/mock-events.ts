@@ -39,14 +39,12 @@ export interface MockEvent {
 export const mockEvents: MockEvent[] = [];
 
 export const categories = [
-  { slug: 'muzik', name: 'Eğlence', icon: '🎵', count: 124, image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80' },
-  { slug: 'teknoloji', name: 'Eğitim & İş', icon: '💻', count: 42, image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&q=80' },
-  { slug: 'sanat', name: 'Kültür & Sanat', icon: '🎨', count: 56, image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&q=80' },
-  { slug: 'spor', name: 'Spor & Fitness', icon: '⚽', count: 89, image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80' },
-  { slug: 'festival', name: 'Festival', icon: '🎪', count: 48, image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80' },
-  { slug: 'yemek', name: 'Yemek & İçecek', icon: '🍽️', count: 35, image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80' },
-  { slug: 'tiyatro', name: 'Tiyatro', icon: '🎭', count: 67, image: 'https://images.unsplash.com/photo-1507676184292-0b9a1a7eee41?w=400&q=80' },
-  { slug: 'online', name: 'Online', icon: '🌐', count: 28, image: 'https://images.unsplash.com/photo-1516280440614-379379bb8731?w=400&q=80' }
+  { slug: 'muzik',     name: 'Konser',    icon: '🎵', count: 124, image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=400&q=80' },
+  { slug: 'tiyatro',   name: 'Tiyatro',   icon: '🎭', count: 67,  image: 'https://images.unsplash.com/photo-1507676184292-0b9a1a7eee41?w=400&q=80' },
+  { slug: 'festival',  name: 'Festival',  icon: '🎪', count: 48,  image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80' },
+  { slug: 'spor',      name: 'Spor',      icon: '⚽', count: 89,  image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80' },
+  { slug: 'sanat',     name: 'Sanat',     icon: '🎨', count: 56,  image: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=400&q=80' },
+  { slug: 'teknoloji', name: 'Workshop',  icon: '💻', count: 42,  image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&q=80' },
 ];
 
 export const cities = [
