@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import type { Element } from 'domhandler';
 import type { EventStub } from '@/lib/scraper/detail-page';
 import { parseTurkishDate } from '@/lib/scraper/normalize';
 
@@ -50,7 +51,7 @@ function parseProductData(raw: string): BiletinoProductData | null {
 
 function findEventLinkInCard(
   $: cheerio.CheerioAPI,
-  el: cheerio.Element
+  el: Element
 ): string | null {
   const card = $(el).closest('.product, article, li, .event, .event-card, .card');
   const scope = card.length > 0 ? card : $(el).parent();
@@ -97,7 +98,7 @@ function parseBiletinoCardDate(text?: string | null): Date | undefined {
   return new Date(year, month, day, 20, 0, 0);
 }
 
-function parseCardDateText($: cheerio.CheerioAPI, el: cheerio.Element): Date | undefined {
+function parseCardDateText($: cheerio.CheerioAPI, el: Element): Date | undefined {
   const card = $(el).closest('.product, article, li, .event, .event-card, .card');
   const scope = card.length > 0 ? card : $(el).parent();
 
