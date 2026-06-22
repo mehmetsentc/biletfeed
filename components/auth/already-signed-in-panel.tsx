@@ -68,7 +68,7 @@ export function AlreadySignedInPanel() {
         <Button
           className="w-full"
           onClick={() => void continueToTarget()}
-          disabled={syncing || Boolean(sessionError)}
+          disabled={syncing}
         >
           {syncing
             ? 'Oturum hazırlanıyor...'
