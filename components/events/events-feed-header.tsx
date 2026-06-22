@@ -6,20 +6,24 @@ import { cn } from '@/lib/utils';
 export type FeedCategoryPill =
   | 'all'
   | 'konser'
-  | 'festival'
-  | 'parti'
-  | 'sergi'
   | 'tiyatro'
-  | 'diger';
+  | 'festival'
+  | 'elektronik'
+  | 'standup'
+  | 'cocuk'
+  | 'spor'
+  | 'workshop';
 
 const PILLS: { id: FeedCategoryPill; label: string }[] = [
-  { id: 'all', label: 'Tümü' },
-  { id: 'konser', label: 'Konser' },
-  { id: 'festival', label: 'Festival' },
-  { id: 'parti', label: 'Parti' },
-  { id: 'sergi', label: 'Sergi' },
-  { id: 'tiyatro', label: 'Tiyatro' },
-  { id: 'diger', label: 'Diğer' }
+  { id: 'all',       label: 'Tümü' },
+  { id: 'konser',    label: 'Konser' },
+  { id: 'tiyatro',   label: 'Tiyatro' },
+  { id: 'festival',  label: 'Festival' },
+  { id: 'elektronik',label: 'Elektronik Müzik' },
+  { id: 'standup',   label: 'Stand Up' },
+  { id: 'cocuk',     label: 'Çocuk Aktiviteleri' },
+  { id: 'spor',      label: 'Spor' },
+  { id: 'workshop',  label: 'Workshop' },
 ];
 
 interface EventsFeedHeaderProps {
@@ -90,7 +94,7 @@ export function EventsFeedHeader({
           />
         </div>
 
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-5 flex gap-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-white/10">
           {PILLS.map((pill) => {
             const active = activePill === pill.id;
             return (
@@ -99,10 +103,10 @@ export function EventsFeedHeader({
                 type="button"
                 onClick={() => onPillChange(pill.id)}
                 className={cn(
-                  'shrink-0 rounded-full px-4 py-2 text-sm font-medium transition',
+                  'shrink-0 px-4 pb-3 pt-1 text-xs font-bold uppercase tracking-wide transition whitespace-nowrap border-b-2',
                   active
-                    ? 'bg-white text-[#0c1017]'
-                    : 'border border-white/15 bg-transparent text-white/75 hover:border-white/25 hover:text-white'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-white/50 hover:text-white/80'
                 )}
               >
                 {pill.label}
@@ -123,30 +127,29 @@ export function matchesFeedCategoryPill(
 ): boolean {
   if (pill === 'all') return true;
 
-  const isKonser =
-    event.categorySlug === 'muzik' || event.eventType === 'concert';
-  const isFestival =
-    event.categorySlug === 'festival' || event.eventType === 'festival';
-  const isParti =
-    event.tags.some((tag) => /parti|club|gece|dj/i.test(tag));
-  const isSergi =
-    event.categorySlug === 'sanat' || event.eventType === 'workshop';
-  const isTiyatro =
-    event.categorySlug === 'tiyatro' || event.eventType === 'theatre';
+  const slug = event.categorySlug;
+  const type = event.eventType;
+  const tags = event.tags.join(' ').toLowerCase();
 
   switch (pill) {
     case 'konser':
-      return isKonser;
-    case 'festival':
-      return isFestival;
-    case 'parti':
-      return isParti;
-    case 'sergi':
-      return isSergi;
+      return slug === 'muzik' || type === 'concert';
     case 'tiyatro':
-      return isTiyatro;
-    case 'diger':
-      return !(isKonser || isFestival || isParti || isSergi || isTiyatro);
+      return slug === 'tiyatro' || type === 'theatre';
+    case 'festival':
+      return slug === 'festival' || type === 'festival';
+    case 'elektronik':
+      return /elektronik|techno|house|edm|dj/i.test(tags) ||
+             (slug === 'muzik' && /elektronik|techno|house|edm|dj/i.test(event.eventType));
+    case 'standup':
+      return /stand.?up|komedi|comedy/i.test(tags) || slug === 'komedi';
+    case 'cocuk':
+      return /çocuk|cocuk|kids|aile|family/i.test(tags) || slug === 'cocuk';
+    case 'spor':
+      return slug === 'spor' || type === 'sport';
+    case 'workshop':
+      return slug === 'workshop' || type === 'workshop' ||
+             /workshop|atölye|atolye|eğitim|egitim/i.test(tags);
     default:
       return true;
   }

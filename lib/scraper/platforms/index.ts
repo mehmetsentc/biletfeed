@@ -14,7 +14,6 @@ import {
 import {
   biletixListingUrls,
   bubiletListingUrls,
-  biletimoListingUrls,
   biletinoListingUrls
 } from '@/lib/scraper/listing-urls';
 import {
@@ -342,7 +341,7 @@ async function scrapeBiletix(): Promise<ScraperResult> {
     /biletix\.com/i,
     {
       aiFirst: false,
-      maxDetails: 600,
+      maxDetails: 50,
       extractStubs: (html, url) =>
         extractBiletixListingStubs(html, url).filter((s) => isFutureBiletixStub(s))
     }
@@ -381,32 +380,12 @@ export const bubiletAdapter: ScraperAdapter = {
     )
 };
 
-async function scrapeBiletimo(): Promise<ScraperResult> {
-  try {
-    const probe = await fetchHtml('https://www.biletimo.com/', 12000);
-    if (/hugedomains|is for sale|domain_profile/i.test(probe)) {
-      return result('BILETIMO', [], [
-        'BILETIMO: biletimo.com alan adı satışta — etkinlik kaynağı şu an kullanılamıyor'
-      ]);
-    }
-  } catch (e) {
-    return result('BILETIMO', [], [
-      `BILETIMO: site erişilemedi — ${e instanceof Error ? e.message : String(e)}`
-    ]);
-  }
-
-  return scrapePlatformWithDetails(
-    'BILETIMO',
-    biletimoListingUrls(),
-    /biletimo\.com/i,
-    { aiFirst: true, maxDetails: 80 }
-  );
-}
-
+/** Biletimo domain satışta (HugeDomains) — devre dışı */
 export const biletimoAdapter: ScraperAdapter = {
   platform: 'BILETIMO',
   label: PLATFORM_LABELS.BILETIMO,
-  scrapeNewEvents: scrapeBiletimo
+  scrapeNewEvents: () =>
+    Promise.resolve(result('BILETIMO', [], ['BILETIMO: biletimo.com alan adı satışta, scraper devre dışı']))
 };
 
 export const passoAdapter: ScraperAdapter = {
@@ -445,11 +424,10 @@ export const biletinoAdapter: ScraperAdapter = {
   scrapeNewEvents: scrapeBiletino
 };
 
-/** Aktif scraper kaynakları */
+/** Aktif scraper kaynakları — Biletimo domain satışta, devre dışı */
 export const scraperAdapters: ScraperAdapter[] = [
   bubiletAdapter,
   biletixAdapter,
-  biletimoAdapter,
   passoAdapter,
   biletinoAdapter
 ];
