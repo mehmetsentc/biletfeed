@@ -81,16 +81,27 @@ async function resolveCityId(citySlug: string, cityName: string) {
   return city.id;
 }
 
+/** Scraper slug'larına karşılık gelen Türkçe kategori adları */
+const CATEGORY_NAMES: Record<string, string> = {
+  muzik: 'Konser',
+  festival: 'Festival',
+  tiyatro: 'Tiyatro',
+  spor: 'Spor',
+  teknoloji: 'Workshop',
+  online: 'Online',
+  sanat: 'Sanat',
+  komedi: 'Komedi',
+  cocuk: 'Çocuk',
+};
+
 async function resolveCategoryId(categorySlug: string) {
   const slug = categorySlug.toLowerCase();
-  let category = await prisma.category.findUnique({ where: { slug } });
-  if (category) return category.id;
-
-  category = await prisma.category.create({
-    data: {
-      slug,
-      name: slug.charAt(0).toUpperCase() + slug.slice(1)
-    }
+  const name = CATEGORY_NAMES[slug] ?? (slug.charAt(0).toUpperCase() + slug.slice(1));
+  // upsert: varsa adını düzelt (DB'de yanlış isim olabilir), yoksa oluştur
+  const category = await prisma.category.upsert({
+    where: { slug },
+    update: { name },
+    create: { slug, name }
   });
   return category.id;
 }
@@ -393,12 +404,20 @@ function mergeScraperResult(stats: SyncStats, scraperResult: ScraperResult) {
   stats.errors.push(...scraperResult.errors);
 }
 
+/** DB'deki kategori adlarını doğru Türkçe adlarla güncelle (her scrape'te çalışır) */
+async function fixCategoryNames() {
+  for (const [slug, name] of Object.entries(CATEGORY_NAMES)) {
+    await prisma.category.updateMany({ where: { slug }, data: { name } });
+  }
+}
+
 export async function runEventScrapeJob(): Promise<{
   runId: string;
   status: ScrapeRunStatus;
   stats: SyncStats;
 }> {
   await ensureDbConnection();
+  await fixCategoryNames(); // mevcut yanlış isimleri düzelt
 
   const run = await prisma.scrapeRun.create({
     data: { status: 'running' }

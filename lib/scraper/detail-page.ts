@@ -143,10 +143,14 @@ export function parseDetailPageHtml(
     .trim()
     .replace(/\s+/g, ' ');
 
-  const offers = ld?.offers as Record<string, unknown> | undefined;
-  const priceText = String(
-    offers?.price || offers?.lowPrice || offers?.highPrice || ''
-  );
+  // offers hem nesne hem dizi olabilir; diziyse ilk elemanı al
+  const offersRaw = ld?.offers;
+  const offers = (
+    Array.isArray(offersRaw) ? offersRaw[0] : offersRaw
+  ) as Record<string, unknown> | undefined;
+  // || yerine ?? kullan: 0 değeri geçerli fiyattır, falsy değil
+  const priceVal = offers?.price ?? offers?.lowPrice ?? offers?.highPrice;
+  const priceText = priceVal != null ? String(priceVal) : '';
   const { price, isFree } = parsePrice(priceText);
   const { categorySlug, eventType } = mapCategory(title, description);
 
@@ -210,7 +214,7 @@ export async function enrichEventFromDetailPage(
       startDate: stub.startDate,
       endDate: inferEventEndDate(stub.startDate),
       price: 0,
-      isFree: true,
+      isFree: false,  // bilinmiyor, ücretsiz saymıyoruz
       tags: [PLATFORM_LABELS[stub.platform], 'eksik-gorsel', 'eksik-aciklama']
     };
   }

@@ -69,7 +69,7 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     endDate: event.endDate.toISOString(),
     price: minPrice,
     currency: event.currency,
-    isFree: event.isFree || minPrice === 0,
+    isFree: event.isFree,
     isFeatured: event.isFeatured,
     isTrending: event.isTrending,
     isOnline: event.isOnline,

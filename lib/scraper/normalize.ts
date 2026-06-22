@@ -99,14 +99,17 @@ export function parsePrice(text?: string | null): {
   price: number;
   isFree: boolean;
 } {
-  if (!text) return { price: 0, isFree: true };
+  // No price text → fiyat bilinmiyor, ücretsiz değil
+  if (!text) return { price: 0, isFree: false };
   const lower = text.toLowerCase();
+  // Açıkça "ücretsiz" veya "0 TL" yazıyorsa ücretsiz
   if (/ücretsiz|free|0\s*₺|0\s*tl/i.test(lower)) {
     return { price: 0, isFree: true };
   }
   const match = text.replace(/\./g, '').match(/(\d[\d\s]*)/);
   const price = match ? parseInt(match[1].replace(/\s/g, ''), 10) : 0;
-  return { price: Number.isFinite(price) ? price : 0, isFree: price === 0 };
+  // Sayı bulunamazsa yine bilinmiyor, ücretsiz değil
+  return { price: Number.isFinite(price) && price > 0 ? price : 0, isFree: false };
 }
 
 export function parseTurkishDate(text?: string | null): Date | null {

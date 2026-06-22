@@ -150,7 +150,7 @@ function filterEvents(
     if (!matchesFeedCategoryPill(event, feedPill)) return false;
 
     if (filters.price.length > 0) {
-      const isFree = event.isFree || event.price === 0;
+      const isFree = event.isFree;
       const priceMatch =
         (filters.price.includes('free') && isFree) ||
         (filters.price.includes('paid') && !isFree);
