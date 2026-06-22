@@ -1,17 +1,11 @@
 import { createHmac } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { isFirebaseAdminConfigured, getAdminAuth } from '@/lib/firebase/admin';
-import {
-  syncUserFromFirebase,
-  syncFirebaseCustomClaims,
-  getUserByFirebaseUid
-} from '@/lib/services/users';
 import { SESSION_COOKIE_NAME } from '@/lib/auth/session';
+import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
 
 const SESSION_EXPIRES_MS = 60 * 60 * 24 * 5 * 1000; // 5 gün
 
-// Firebase Admin olmadığında imzalı JSON session için gizli anahtar
 const SIMPLE_SESSION_SECRET =
   process.env.NEXTAUTH_SECRET ??
   process.env.TICKET_SECRET_KEY ??
@@ -29,7 +23,7 @@ function buildSimpleSession(
   return `${b64}.${sig}`;
 }
 
-/** Firebase REST API ile ID token'ı doğrular — Admin SDK gerekmez */
+/** Firebase REST API ile ID token doğrular — Admin SDK gerekmez */
 async function verifyIdTokenViaRestApi(
   idToken: string
 ): Promise<{ uid: string; email: string }> {
@@ -56,77 +50,47 @@ async function verifyIdTokenViaRestApi(
   return { uid: user.localId, email: user.email ?? '' };
 }
 
+/** Kullanıcıyı DB'ye kaydet — hata olursa sessizce geç */
+async function syncUserToDB(uid: string, email: string): Promise<string> {
+  if (!isDatabaseConfigured()) return 'USER';
+  try {
+    const existing = await prisma.user.findFirst({
+      where: { firebaseUid: uid, deletedAt: null },
+      select: { role: true }
+    });
+    if (existing) return existing.role;
+
+    await prisma.user.create({
+      data: {
+        firebaseUid: uid,
+        email,
+        displayName: email.split('@')[0] || 'Kullanıcı',
+        role: 'USER'
+      }
+    });
+    return 'USER';
+  } catch {
+    return 'USER';
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
     }
 
-    const { idToken } = await request.json();
+    const body = await request.json() as { idToken?: string };
+    const { idToken } = body;
     if (!idToken) {
       return NextResponse.json({ error: 'Token gerekli' }, { status: 400 });
     }
 
-    // ── Firebase Admin SDK varsa: tam oturum cookie oluştur ──────────────────
-    if (isFirebaseAdminConfigured()) {
-      try {
-        const adminAuth = getAdminAuth();
-        const decoded = await adminAuth.verifyIdToken(idToken);
-
-        try {
-          await syncUserFromFirebase({
-            firebaseUid: decoded.uid,
-            email: decoded.email || '',
-            displayName:
-              decoded.name || decoded.email?.split('@')[0] || 'Kullanıcı',
-            photoURL: decoded.picture
-          });
-        } catch {
-          // DB hatası oturumu engellemesin
-        }
-
-        const dbUser = await getUserByFirebaseUid(decoded.uid);
-        if (dbUser) {
-          await syncFirebaseCustomClaims(decoded.uid, dbUser.role);
-        }
-
-        const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-          expiresIn: SESSION_EXPIRES_MS
-        });
-
-        const response = NextResponse.json({
-          success: true,
-          role: dbUser?.role ?? null
-        });
-        response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
-          maxAge: SESSION_EXPIRES_MS / 1000,
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          path: '/'
-        });
-        return response;
-      } catch {
-        // Admin SDK başarısız — REST API fallback'e geç
-      }
-    }
-
-    // ── Admin yoksa veya başarısızsa: REST API ile doğrula + imzalı JSON ─────
     const { uid, email } = await verifyIdTokenViaRestApi(idToken);
+    const role = await syncUserToDB(uid, email);
+    const sessionCookie = buildSimpleSession(uid, email, role, SESSION_EXPIRES_MS);
 
-    try {
-      await syncUserFromFirebase({
-        firebaseUid: uid,
-        email,
-        displayName: email.split('@')[0] || 'Kullanıcı'
-      });
-    } catch {
-      // DB hatası oturumu engellemesin
-    }
-
-    const sessionCookie = buildSimpleSession(uid, email, 'USER', SESSION_EXPIRES_MS);
-
-    const response = NextResponse.json({ success: true, role: 'USER' });
+    const response = NextResponse.json({ success: true, role });
     response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
       maxAge: SESSION_EXPIRES_MS / 1000,
       httpOnly: true,
