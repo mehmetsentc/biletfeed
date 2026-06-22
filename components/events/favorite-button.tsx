@@ -33,7 +33,7 @@ export function FavoriteButton({
       aria-label={active ? 'İlgilenmeyi kaldır' : 'Favorilere ekle'}
     >
       <Icon
-        className={cn('size-4', active && 'fill-foreground')}
+        className={cn('size-4', active && 'fill-gray-700')}
         strokeWidth={icon === 'star' ? 1.75 : 2}
       />
     </button>

@@ -1,9 +1,10 @@
 import { createHmac } from 'crypto';
 import { cookies } from 'next/headers';
 import type { UserRole } from '@/types';
-import { isFirebaseAdminConfigured, getAdminAuth } from '@/lib/firebase/admin';
-import { getUserRoleByFirebaseUid } from '@/lib/services/users';
 import { hasRole, ROLES } from '@/lib/auth/roles';
+
+// firebase-admin import YOK — ESM uyumsuzluğunu önlemek için
+// Tüm session doğrulama HMAC tabanlı yapılıyor
 
 const SESSION_COOKIE_NAME = 'session';
 
@@ -13,16 +14,11 @@ export interface SessionUser {
   role: UserRole;
 }
 
-// Firebase Admin olmadığında kullanılan imzalı JSON session için gizli anahtar
 const SIMPLE_SESSION_SECRET =
   process.env.NEXTAUTH_SECRET ??
   process.env.TICKET_SECRET_KEY ??
   'biletfeed-simple-session-fallback-key';
 
-/**
- * Admin SDK olmadan oluşturulan imzalı JSON session'ı doğrular.
- * Format: base64url(payload).hmac_hex
- */
 function verifySimpleSession(token: string): SessionUser | null {
   try {
     const dotIdx = token.lastIndexOf('.');
@@ -61,26 +57,6 @@ export async function verifySessionCookie(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!session) return null;
-
-  // ── Firebase Admin varsa: tam doğrulama ──────────────────────────────────
-  if (isFirebaseAdminConfigured()) {
-    try {
-      const adminAuth = getAdminAuth();
-      const decoded = await adminAuth.verifySessionCookie(session, true);
-
-      const dbRole = await getUserRoleByFirebaseUid(decoded.uid);
-      const role =
-        dbRole ??
-        (decoded.role as UserRole | undefined) ??
-        ROLES.USER;
-
-      return { uid: decoded.uid, email: decoded.email, role };
-    } catch {
-      // Firebase session cookie geçersizse, basit JSON session dene
-    }
-  }
-
-  // ── Admin yoksa veya Firebase session cookie değilse: imzalı JSON session ─
   return verifySimpleSession(session);
 }
 
