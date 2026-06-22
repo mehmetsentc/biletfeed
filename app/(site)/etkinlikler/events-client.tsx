@@ -308,7 +308,7 @@ export default function EventsPageClient({
         {filteredEvents.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:gap-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredEvents.map((event) => (
               <NahaberEventCard key={event.id} event={event} />
             ))}

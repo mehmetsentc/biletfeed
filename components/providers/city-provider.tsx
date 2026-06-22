@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   CityPickerDialog,
   type CityOption
@@ -54,6 +54,8 @@ export function CityProvider({
   initialCitySlug
 }: CityProviderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [hasChosenCity, setHasChosenCity] = useState(Boolean(initialCitySlug));
@@ -84,9 +86,13 @@ export function CityProvider({
       setCitySlug(city.slug);
       setHasChosenCity(true);
       setPickerOpen(false);
-      router.refresh();
+      // Navigate to etkinlikler with the selected city in the URL
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('sehir', city.slug);
+      const targetPath = pathname.startsWith('/etkinlikler') ? pathname : '/etkinlikler';
+      router.push(`${targetPath}?${params.toString()}`);
     },
-    [router]
+    [router, pathname, searchParams]
   );
 
   const openCityPicker = useCallback(() => setPickerOpen(true), []);

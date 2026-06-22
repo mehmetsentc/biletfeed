@@ -39,18 +39,16 @@ export function NahaberEventCard({ event }: { event: MockEvent }) {
 
   return (
     <article className="overflow-hidden rounded-xl border border-white/10 bg-[#151b24] shadow-lg shadow-black/25 transition hover:border-white/20">
-      <p className="truncate px-4 pt-4 text-sm text-white/55">{locationLine}</p>
-
       <Link
         href={`/etkinlik/${event.slug}`}
-        className="group relative mx-4 mt-3 block aspect-[16/10] overflow-hidden rounded-lg"
+        className="group relative block aspect-[16/9] overflow-hidden"
       >
         <Image
           src={event.coverImage}
           alt={event.title}
           fill
           className="object-cover transition duration-300 group-hover:scale-[1.02]"
-          sizes="(max-width: 768px) 100vw, 50vw"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
 
@@ -77,25 +75,21 @@ export function NahaberEventCard({ event }: { event: MockEvent }) {
         )}
       </Link>
 
-      <div className="p-4 pt-3">
-        <p className="text-sm text-white/45">
-          {formatEventDate(event.startDate)}, {formatEventTimeRange(event)}
-        </p>
+      <div className="p-3">
+        <p className="truncate text-xs text-white/45">{locationLine}</p>
 
         <Link href={`/etkinlik/${event.slug}`}>
-          <h3 className="mt-2 line-clamp-2 text-lg font-bold leading-snug text-white transition hover:text-primary">
+          <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-white transition hover:text-primary">
             {event.title}
           </h3>
         </Link>
 
-        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-white/65">
-          {event.shortDescription || event.description}
+        <p className="mt-1 text-xs text-white/45">
+          {formatEventDate(event.startDate)}, {formatEventTimeRange(event)}
         </p>
 
-        <p className="mt-2 truncate text-sm text-white/45">{locationLine}</p>
-
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <span className="shrink-0 rounded-full border border-white/15 px-3 py-1 text-sm text-white/80">
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className="shrink-0 rounded-full border border-white/15 px-2.5 py-0.5 text-xs text-white/70">
             {event.city}
           </span>
 
@@ -104,15 +98,15 @@ export function NahaberEventCard({ event }: { event: MockEvent }) {
               href={ticketUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#2563eb] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#2563eb] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1d4ed8]"
             >
               {getTicketButtonShortLabel(event)}
-              <ExternalLink className="size-3.5 opacity-80" />
+              <ExternalLink className="size-3 opacity-80" />
             </a>
           ) : (
             <Link
               href={ticketUrl}
-              className="inline-flex shrink-0 items-center rounded-lg bg-[#2563eb] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex shrink-0 items-center rounded-lg bg-[#2563eb] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1d4ed8]"
             >
               {getTicketButtonShortLabel(event)}
             </Link>
