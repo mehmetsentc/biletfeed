@@ -1,3 +1,5 @@
+import { sanitizeRedirectPath } from '@/lib/auth/safe-redirect';
+
 const AUTH_PATHS = ['/giris', '/kayit', '/sifremi-unuttum'];
 
 let redirectDone = false;
@@ -9,7 +11,7 @@ export function isAuthPath(pathname: string): boolean {
 export function getPostLoginPath(pathname: string, search: string): string {
   const params = new URLSearchParams(search);
   const fallback = pathname === '/kayit' ? '/ilgi-alanlari' : '/';
-  return params.get('redirect') || fallback;
+  return sanitizeRedirectPath(params.get('redirect'), fallback);
 }
 
 /** Giriş/kayıt sayfasındaysa ana sayfaya yönlendir (tek sefer). */

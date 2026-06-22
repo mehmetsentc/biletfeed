@@ -1,6 +1,7 @@
 import type { UserRole } from '@/types';
 import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
 import { ROLES } from '@/lib/auth/roles';
+import { bootstrapRoleForEmail, isBootstrapSuperAdminEmail } from '@/lib/auth/bootstrap-admins';
 import { getAdminAuth, isFirebaseAdminConfigured } from '@/lib/firebase/admin';
 
 export interface DbUser {
@@ -37,7 +38,7 @@ export async function syncUserFromFirebase(
       email: input.email,
       displayName: input.displayName,
       photoURL: input.photoURL,
-      role: ROLES.USER
+      role: bootstrapRoleForEmail(input.email)
     },
     update: {
       email: input.email,
@@ -51,7 +52,26 @@ export async function syncUserFromFirebase(
     }
   });
 
-  await syncFirebaseCustomClaims(input.firebaseUid, user.role);
+  let effectiveRole = user.role;
+  if (
+    isBootstrapSuperAdminEmail(input.email) &&
+    user.role !== ROLES.SUPER_ADMIN
+  ) {
+    const upgraded = await prisma.user.update({
+      where: { firebaseUid: input.firebaseUid },
+      data: { role: ROLES.SUPER_ADMIN },
+      include: {
+        favorites: { select: { eventId: true } },
+        followers: { select: { organizerId: true } },
+        ownedOrganizer: { select: { id: true } }
+      }
+    });
+    effectiveRole = upgraded.role;
+    await syncFirebaseCustomClaims(input.firebaseUid, ROLES.SUPER_ADMIN);
+    return mapDbUser(upgraded);
+  }
+
+  await syncFirebaseCustomClaims(input.firebaseUid, effectiveRole);
 
   return mapDbUser(user);
 }

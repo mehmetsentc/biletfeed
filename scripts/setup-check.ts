@@ -5,6 +5,7 @@
  */
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
+import { isPaymentProviderConfigured } from '../lib/payments/config';
 
 const root = process.cwd();
 
@@ -112,14 +113,19 @@ row(
     : 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET eksik'
 );
 
-// Payment
+// Payment — docs/PAYMENTS-TR.md
 const paymentProvider = process.env.PAYMENT_PROVIDER || 'mock';
+const configured = isPaymentProviderConfigured(
+  paymentProvider as 'mock' | 'iyzico' | 'paytr' | 'stripe' | 'free'
+);
 row(
   'Ödeme',
-  paymentProvider === 'mock' ? 'warn' : 'ok',
+  paymentProvider === 'mock' ? 'warn' : configured ? 'ok' : 'fail',
   paymentProvider === 'mock'
-    ? 'mock modu (Phase 4: iyzico/Stripe)'
-    : `${paymentProvider} yapılandırıldı`
+    ? 'mock modu — geliştirme için uygun'
+    : configured
+      ? `${paymentProvider} anahtarları tanımlı`
+      : `${paymentProvider} seçili ama API anahtarları eksik`
 );
 
 // Vercel / domain hints

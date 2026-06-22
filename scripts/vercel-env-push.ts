@@ -135,6 +135,7 @@ function main() {
     console.log('  → Yeni CRON_SECRET üretildi');
   }
   addEnv('CRON_SECRET', cronSecret);
+  addEnv('SUPER_ADMIN_EMAILS', env.SUPER_ADMIN_EMAILS || 'mehmetsentc@gmail.com');
 
   console.log('\n✅ Env yüklendi. Deploy: npm run deploy\n');
 }

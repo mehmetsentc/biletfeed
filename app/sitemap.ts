@@ -1,7 +1,9 @@
 import type { MetadataRoute } from 'next';
+import { SUPPORTED_CITIES } from '@/lib/location/cities';
 import { siteConfig } from '@/lib/config/site';
 import { isDatabaseConfigured } from '@/lib/db/prisma';
 import { prisma } from '@/lib/db/prisma';
+import { getCategories, getCities } from '@/lib/services/events';
 
 const staticRoutes = [
   '',
@@ -10,12 +12,14 @@ const staticRoutes = [
   '/sehirler',
   '/mekanlar',
   '/organizatorler',
-  '/ara',
   '/hakkimizda',
   '/iletisim',
   '/sss',
   '/kosullar',
   '/gizlilik',
+  '/cerezler',
+  '/iade-iptal',
+  '/mesafeli-satis',
   '/yardim',
   '/kariyer'
 ];
@@ -31,8 +35,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: path === '' ? 1 : 0.8
   }));
 
+  const cityEventPages: MetadataRoute.Sitemap = SUPPORTED_CITIES.map((city) => ({
+    url: `${baseUrl}/${city.slug}-etkinlikleri`,
+    lastModified: now,
+    changeFrequency: 'daily' as const,
+    priority: 0.85
+  }));
+
+  const [categories, cities] = await Promise.all([
+    getCategories(),
+    getCities()
+  ]);
+
+  const categoryEntries: MetadataRoute.Sitemap = categories.map((category) => ({
+    url: `${baseUrl}/kategoriler/${category.slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.75
+  }));
+
+  const cityEntries: MetadataRoute.Sitemap = cities.map((city) => ({
+    url: `${baseUrl}/sehirler/${city.slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.75
+  }));
+
+  const catalogEntries = [
+    ...cityEventPages,
+    ...categoryEntries,
+    ...cityEntries
+  ];
+
   if (!isDatabaseConfigured()) {
-    return staticEntries;
+    return [...staticEntries, ...catalogEntries];
   }
 
   try {
@@ -49,6 +85,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     return [
       ...staticEntries,
+      ...catalogEntries,
       ...events.map((e) => ({
         url: `${baseUrl}/etkinlik/${e.slug}`,
         lastModified: e.updatedAt,
@@ -63,6 +100,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }))
     ];
   } catch {
-    return staticEntries;
+    return [...staticEntries, ...catalogEntries];
   }
 }

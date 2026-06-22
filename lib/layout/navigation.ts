@@ -4,6 +4,7 @@ export const hideBottomNavPrefixes = [
   '/kayit',
   '/odeme',
   '/dashboard',
+  '/organizator-panel',
   '/eventjoy',
   '/profil/ilgi-alanlari'
 ];

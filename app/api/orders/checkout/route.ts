@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { isSameOriginRequest } from '@/lib/auth/csrf';
+import { isAllowedAppRedirectUrl } from '@/lib/auth/safe-redirect';
 import { verifySessionCookie } from '@/lib/auth/session';
-import { checkoutEvent } from '@/lib/services/orders';
+import { createCheckout } from '@/lib/services/orders';
+import { getAppBaseUrl } from '@/lib/payments/config';
 
 const bodySchema = z.object({
   eventSlug: z.string().min(1),
@@ -10,6 +13,10 @@ const bodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isSameOriginRequest(request)) {
+      return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
+    }
+
     const session = await verifySessionCookie();
     if (!session) {
       return NextResponse.json({ error: 'Giriş gerekli' }, { status: 401 });
@@ -21,16 +28,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Geçersiz istek' }, { status: 400 });
     }
 
-    const result = await checkoutEvent({
+    const result = await createCheckout({
       firebaseUid: session.uid,
       eventSlug: parsed.data.eventSlug,
       quantity: parsed.data.quantity
     });
 
+    const allowedOrigins = [getAppBaseUrl()];
+    if (
+      result.redirectUrl &&
+      !isAllowedAppRedirectUrl(result.redirectUrl, allowedOrigins)
+    ) {
+      return NextResponse.json({ error: 'Geçersiz ödeme yönlendirmesi' }, { status: 500 });
+    }
+
     return NextResponse.json({ success: true, ...result });
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Sipariş oluşturulamadı';
-    return NextResponse.json({ error: message }, { status: 400 });
+  } catch {
+    return NextResponse.json({ error: 'Sipariş oluşturulamadı' }, { status: 400 });
   }
 }

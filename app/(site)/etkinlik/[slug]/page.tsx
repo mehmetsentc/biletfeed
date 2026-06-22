@@ -16,7 +16,13 @@ import { EventTabletTicketBar } from '@/components/events/event-tablet-ticket-ba
 import { ExternalEventBadge } from '@/components/events/external-event-badge';
 import { EventifyCard } from '@/components/events/eventify-card';
 import { Badge } from '@/components/ui/badge';
-import { createPageMetadata } from '@/lib/seo/metadata';
+import { JsonLd } from '@/lib/seo/json-ld';
+import { createEventMetadata } from '@/lib/seo/metadata';
+import {
+  buildBreadcrumbSchema,
+  buildEventSchema
+} from '@/lib/seo/schemas';
+import { siteConfig } from '@/lib/config/site';
 
 interface EventDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -27,11 +33,17 @@ export async function generateMetadata({ params }: EventDetailPageProps) {
   const event = await getEventBySlug(slug);
   if (!event) return { title: 'Etkinlik Bulunamadı' };
 
-  return createPageMetadata({
+  return createEventMetadata({
     title: event.title,
+    slug,
     description: event.shortDescription,
-    path: `/etkinlik/${slug}`,
-    image: event.coverImage
+    image: event.coverImage,
+    city: event.city,
+    venue: event.venue,
+    startDate: event.startDate,
+    category: event.category,
+    isFree: event.isFree,
+    price: event.price
   });
 }
 
@@ -48,8 +60,20 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     .slice(0, 3);
 
   const isOnline = event.isOnline || event.citySlug === 'online';
+  const eventUrl = `${siteConfig.url}/etkinlik/${event.slug}`;
 
   return (
+    <>
+      <JsonLd
+        data={[
+          buildEventSchema(event),
+          buildBreadcrumbSchema([
+            { name: 'Ana Sayfa', url: siteConfig.url },
+            { name: 'Etkinlikler', url: `${siteConfig.url}/etkinlikler` },
+            { name: event.title, url: eventUrl }
+          ])
+        ]}
+      />
     <div className="bg-background pb-28 md:pb-16">
       <div className="container mx-auto px-4 py-8 md:py-10">
         {/* Hero banner — Figma */}
@@ -159,5 +183,6 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
         </section>
       )}
     </div>
+    </>
   );
 }

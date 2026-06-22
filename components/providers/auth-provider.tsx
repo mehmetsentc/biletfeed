@@ -22,9 +22,9 @@ import {
   isFirebaseConfigured,
   ensureAuthReady
 } from '@/lib/firebase/client';
-import { redirectFromAuthPagesIfNeeded } from '@/lib/firebase/auth-redirect';
 import {
-  establishClientSessionWithRetry
+  establishClientSessionWithRetry,
+  SessionEstablishError
 } from '@/lib/auth/client-session';
 import type { User } from '@/types';
 import { ROLES } from '@/lib/auth/roles';
@@ -33,12 +33,15 @@ interface AuthContextValue {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
+  sessionReady: boolean;
+  sessionError: string | null;
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  syncSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -73,13 +76,26 @@ function buildFallbackUser(firebaseUser: FirebaseUser): User {
   };
 }
 
-async function handleSignedInUser(fbUser: FirebaseUser) {
-  redirectFromAuthPagesIfNeeded();
+async function handleSignedInUser(
+  fbUser: FirebaseUser
+): Promise<{ profile: User; sessionReady: boolean; sessionError?: string }> {
   try {
     await establishClientSessionWithRetry(fbUser);
-    return await fetchUserProfile(fbUser);
-  } catch {
-    return buildFallbackUser(fbUser);
+    const profile = await fetchUserProfile(fbUser);
+    return { profile, sessionReady: true };
+  } catch (err) {
+    try {
+      await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
+    } catch {
+      // ignore
+    }
+    const sessionError =
+      err instanceof SessionEstablishError
+        ? err.code === 'firebase_admin_missing'
+          ? 'Sunucuda Firebase Admin yapılandırması eksik. Vercel ortam değişkenlerini kontrol edin.'
+          : err.message
+        : 'Oturum oluşturulamadı';
+    return { profile: buildFallbackUser(fbUser), sessionReady: false, sessionError };
   }
 }
 
@@ -87,6 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const isConfigured = isFirebaseConfigured();
 
   useEffect(() => {
@@ -103,10 +121,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (fbUser) {
           setUser(buildFallbackUser(fbUser));
+          setSessionReady(false);
+          setSessionError(null);
           setLoading(false);
-          void handleSignedInUser(fbUser).then(setUser);
+          void handleSignedInUser(fbUser).then(({ profile, sessionReady: ready, sessionError: err }) => {
+            setUser(profile);
+            setSessionReady(ready);
+            setSessionError(err ?? null);
+          });
         } else {
           setUser(null);
+          setSessionReady(false);
+          setSessionError(null);
           setLoading(false);
         }
       });
@@ -141,7 +167,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await googleSignIn(auth);
   }, []);
 
+  const syncSession = useCallback(async (): Promise<boolean> => {
+    const auth = await ensureAuthReady();
+    const fbUser = auth.currentUser;
+    if (!fbUser) return false;
+
+    setSessionReady(false);
+    setSessionError(null);
+    const { profile, sessionReady: ready, sessionError: err } =
+      await handleSignedInUser(fbUser);
+    setUser(profile);
+    setSessionReady(ready);
+    setSessionError(err ?? null);
+    return ready;
+  }, []);
+
   const signOut = useCallback(async () => {
+    setSessionReady(false);
     try {
       await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
     } catch {
@@ -162,12 +204,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         firebaseUser,
         loading,
+        sessionReady,
+        sessionError,
         isConfigured,
         signIn,
         signUp,
         signInWithGoogle,
         signOut,
-        resetPassword
+        resetPassword,
+        syncSession
       }}
     >
       {children}

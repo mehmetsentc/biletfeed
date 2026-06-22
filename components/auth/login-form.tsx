@@ -3,13 +3,12 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { getRedirectTarget } from '@/components/auth/auth-session-redirect';
 import { ensureAuthReady } from '@/lib/firebase/client';
 import { establishClientSessionWithRetry } from '@/lib/auth/client-session';
-import { redirectFromAuthPagesIfNeeded } from '@/lib/firebase/auth-redirect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,11 +26,13 @@ import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 const t = getTranslations();
 
 export function LoginForm() {
-  const { signIn, signInWithGoogle, isConfigured } = useAuth();
-  const router = useRouter();
+  const { signIn, signInWithGoogle, isConfigured, firebaseUser, loading: authLoading } =
+    useAuth();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const showLoginForm = !authLoading && !firebaseUser;
 
   const {
     register,
@@ -50,8 +51,13 @@ export function LoginForm() {
     setError(null);
     try {
       await signIn(data.email, data.password);
-      router.push('/');
-      router.refresh();
+      const auth = await ensureAuthReady();
+      if (auth.currentUser) {
+        await establishClientSessionWithRetry(auth.currentUser);
+        window.location.replace(
+          getRedirectTarget('/giris', searchParams.toString())
+        );
+      }
     } catch (err) {
       setError(getFirebaseAuthErrorMessage(err, 'E-posta veya şifre hatalı'));
     } finally {
@@ -70,10 +76,10 @@ export function LoginForm() {
       await signInWithGoogle();
       const auth = await ensureAuthReady();
       if (auth.currentUser) {
-        // Session cookie kurulduktan SONRA yönlendir — aksi hâlde redirect döngüsü
         await establishClientSessionWithRetry(auth.currentUser);
-        redirectFromAuthPagesIfNeeded();
-        window.location.replace(getRedirectTarget('/giris', searchParams.toString()));
+        window.location.replace(
+          getRedirectTarget('/giris', searchParams.toString())
+        );
       }
     } catch (err) {
       setError(
@@ -82,6 +88,10 @@ export function LoginForm() {
       setLoading(false);
     }
   };
+
+  if (!showLoginForm) {
+    return null;
+  }
 
   return (
     <Card className="w-full max-w-md">

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { LoginForm } from '@/components/auth/login-form';
+import { AlreadySignedInPanel } from '@/components/auth/already-signed-in-panel';
 import { AuthShell } from '@/components/auth/auth-shell';
 import { getTranslations } from '@/lib/i18n';
 
@@ -18,7 +19,10 @@ export default function LoginPage() {
       subtitle="Yerel ve global etkinlikleri keşfedin, biletinizi güvenle alın."
     >
       <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted" />}>
-        <LoginForm />
+        <div className="flex w-full max-w-md flex-col items-center">
+          <AlreadySignedInPanel />
+          <LoginForm />
+        </div>
       </Suspense>
     </AuthShell>
   );

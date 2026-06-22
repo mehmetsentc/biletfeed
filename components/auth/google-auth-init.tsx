@@ -12,27 +12,20 @@ import {
 } from '@/lib/firebase/client';
 import { consumeGoogleRedirectResult } from '@/lib/firebase/google-auth';
 import { establishClientSessionWithRetry } from '@/lib/auth/client-session';
-import {
-  redirectFromAuthPagesIfNeeded,
-  isAuthPath,
-  resetAuthRedirectGuard
-} from '@/lib/firebase/auth-redirect';
+import { isAuthPath, resetAuthRedirectGuard } from '@/lib/firebase/auth-redirect';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 
-async function onGoogleSignedIn(user: FirebaseUser) {
-  // Session cookie ÖNCE kurulmalı; yönlendirme sonra.
-  // Aksi hâlde protected sayfaya session'sız gidilir → middleware /giris'e atar → döngü.
+async function ensureSessionForGoogleUser(user: FirebaseUser) {
   try {
     await establishClientSessionWithRetry(user);
   } catch {
-    // Session kurulamazsa da yönlendir; kullanıcı /giris'te tekrar dener
+    // AuthProvider yeniden dener; yönlendirme sessionReady sonrası yapılır
   }
-  redirectFromAuthPagesIfNeeded();
 }
 
 /**
- * Google redirect/popup sonrası oturum + yönlendirme.
- * Auth layout'ta bir kez mount edilir.
+ * Google redirect/popup sonrası oturum çerezini kurar.
+ * Yönlendirme AuthSessionRedirect tarafından sessionReady sonrası yapılır.
  */
 export function GoogleAuthInit() {
   useEffect(() => {
@@ -45,38 +38,26 @@ export function GoogleAuthInit() {
       try {
         const result = await consumeGoogleRedirectResult(auth);
         if (active && result?.user) {
-          await onGoogleSignedIn(result.user);
+          await ensureSessionForGoogleUser(result.user);
         }
       } catch (err) {
         console.error('[GoogleAuthInit]', err);
       }
 
       if (active && auth.currentUser && isAuthPath(window.location.pathname)) {
-        await onGoogleSignedIn(auth.currentUser);
+        await ensureSessionForGoogleUser(auth.currentUser);
       }
     });
 
     const auth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user || !isAuthPath(window.location.pathname)) return;
-      void onGoogleSignedIn(user);
+      void ensureSessionForGoogleUser(user);
     });
-
-    const poll = window.setInterval(() => {
-      const current = getFirebaseAuth().currentUser;
-      if (current && isAuthPath(window.location.pathname)) {
-        void onGoogleSignedIn(current);
-        window.clearInterval(poll);
-      }
-    }, 400);
-
-    const pollTimeout = window.setTimeout(() => window.clearInterval(poll), 8000);
 
     return () => {
       active = false;
       unsubscribe();
-      window.clearInterval(poll);
-      window.clearTimeout(pollTimeout);
     };
   }, []);
 

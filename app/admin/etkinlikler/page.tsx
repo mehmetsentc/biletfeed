@@ -10,6 +10,9 @@ import { runEventScrapeJob } from '@/lib/scraper/sync';
 
 async function triggerScrapeAction(): Promise<{ ok: boolean; message: string }> {
   'use server';
+  const { requireAdmin } = await import('@/lib/auth/guards');
+  await requireAdmin();
+
   try {
     const { status, stats } = await runEventScrapeJob();
     const ok = status !== 'failed';

@@ -7,7 +7,9 @@ import { EventCard } from '@/components/events/event-card';
 import { Button } from '@/components/ui/button';
 import { getOrganizerBySlug } from '@/lib/services/organizers';
 import { getEventsByOrganizer } from '@/lib/services/events';
+import { JsonLd } from '@/lib/seo/json-ld';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { buildOrganizerSchema } from '@/lib/seo/schemas';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -31,6 +33,7 @@ export default async function OrganizerPage({ params }: Props) {
 
   return (
     <>
+      <JsonLd data={buildOrganizerSchema(organizer)} />
       <div className="relative h-48 md:h-64">
         <Image
           src={organizer.coverImage}

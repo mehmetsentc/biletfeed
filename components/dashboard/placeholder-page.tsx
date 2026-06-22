@@ -7,11 +7,15 @@ import { Card, CardContent } from '@/components/ui/card';
 interface DashboardPlaceholderPageProps {
   title: string;
   description: string;
+  createEventHref?: string;
+  panelHref?: string;
 }
 
 export function DashboardPlaceholderPage({
   title,
-  description
+  description,
+  createEventHref = '/dashboard/etkinlik/yeni',
+  panelHref = '/dashboard'
 }: DashboardPlaceholderPageProps) {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -27,10 +31,10 @@ export function DashboardPlaceholderPage({
             kullanabilirsiniz.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link href="/dashboard/etkinlik/yeni">
+            <Link href={createEventHref}>
               <Button>Etkinlik Oluştur</Button>
             </Link>
-            <Link href="/dashboard">
+            <Link href={panelHref}>
               <Button variant="outline" className="gap-2">
                 <ArrowLeft className="size-4" />
                 Panele Dön

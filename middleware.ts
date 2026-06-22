@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { rootDomain, protocol, canonicalHost } from '@/lib/config/domain';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/admin'];
-const AUTH_PATHS = ['/giris', '/kayit', '/sifremi-unuttum'];
+const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/organizator-panel'];
 const SESSION_COOKIE_NAME = 'session';
 
 function extractSubdomain(request: NextRequest): string | null {
@@ -60,7 +59,11 @@ export async function middleware(request: NextRequest) {
   const subdomain = extractSubdomain(request);
 
   if (subdomain) {
-    if (pathname.startsWith('/admin') || pathname.startsWith('/dashboard')) {
+    if (
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/dashboard') ||
+      pathname.startsWith('/organizator-panel')
+    ) {
       return NextResponse.redirect(new URL('/', request.url));
     }
 
@@ -84,12 +87,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (AUTH_PATHS.includes(pathname)) {
-    const session = request.cookies.get(SESSION_COOKIE_NAME);
-    if (session) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-  }
+  // Giriş sayfasında çerez varlığına göre sunucu yönlendirmesi yapma —
+  // geçersiz/eskimiş çerezler /admin ↔ /giris döngüsüne yol açar.
+  // Yönlendirme istemci tarafında oturum doğrulandıktan sonra yapılır.
 
   return NextResponse.next();
 }

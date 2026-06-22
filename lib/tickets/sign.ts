@@ -5,8 +5,17 @@ export function generateTicketCode(): string {
   return `BF-${randomBytes(4).toString('hex').toUpperCase()}`;
 }
 
+function getTicketSecret(): string {
+  const secret = process.env.TICKET_SECRET_KEY?.trim();
+  if (secret) return secret;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('TICKET_SECRET_KEY yapılandırılmamış');
+  }
+  return 'dev-secret-change-in-production';
+}
+
 export function generateValidationToken(ticketId: string, eventId: string): string {
-  const secret = process.env.TICKET_SECRET_KEY || 'dev-secret-change-in-production';
+  const secret = getTicketSecret();
   return createHmac('sha256', secret).update(`${ticketId}:${eventId}`).digest('hex');
 }
 

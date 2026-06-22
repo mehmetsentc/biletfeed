@@ -11,12 +11,19 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         disallow: [
           '/dashboard/',
+          '/organizator-panel/',
           '/admin/',
           '/api/',
+          '/eventjoy/',
           '/giris',
           '/kayit',
           '/sifremi-unuttum',
-          '/odeme/'
+          '/odeme/',
+          '/profil',
+          '/biletlerim',
+          '/favorilerim',
+          '/ilgi-alanlari',
+          '/bildirimler'
         ]
       }
     ],

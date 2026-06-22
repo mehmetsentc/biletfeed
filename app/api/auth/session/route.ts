@@ -69,45 +69,49 @@ export async function POST(request: NextRequest) {
 
     // ── Firebase Admin SDK varsa: tam oturum cookie oluştur ──────────────────
     if (isFirebaseAdminConfigured()) {
-      const adminAuth = getAdminAuth();
-      const decoded = await adminAuth.verifyIdToken(idToken);
-
       try {
-        await syncUserFromFirebase({
-          firebaseUid: decoded.uid,
-          email: decoded.email || '',
-          displayName:
-            decoded.name || decoded.email?.split('@')[0] || 'Kullanıcı',
-          photoURL: decoded.picture
+        const adminAuth = getAdminAuth();
+        const decoded = await adminAuth.verifyIdToken(idToken);
+
+        try {
+          await syncUserFromFirebase({
+            firebaseUid: decoded.uid,
+            email: decoded.email || '',
+            displayName:
+              decoded.name || decoded.email?.split('@')[0] || 'Kullanıcı',
+            photoURL: decoded.picture
+          });
+        } catch {
+          // DB hatası oturumu engellemesin
+        }
+
+        const dbUser = await getUserByFirebaseUid(decoded.uid);
+        if (dbUser) {
+          await syncFirebaseCustomClaims(decoded.uid, dbUser.role);
+        }
+
+        const sessionCookie = await adminAuth.createSessionCookie(idToken, {
+          expiresIn: SESSION_EXPIRES_MS
         });
+
+        const response = NextResponse.json({
+          success: true,
+          role: dbUser?.role ?? null
+        });
+        response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
+          maxAge: SESSION_EXPIRES_MS / 1000,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/'
+        });
+        return response;
       } catch {
-        // DB hatası oturumu engellemesin
+        // Admin SDK başarısız — REST API fallback'e geç
       }
-
-      const dbUser = await getUserByFirebaseUid(decoded.uid);
-      if (dbUser) {
-        await syncFirebaseCustomClaims(decoded.uid, dbUser.role);
-      }
-
-      const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-        expiresIn: SESSION_EXPIRES_MS
-      });
-
-      const response = NextResponse.json({
-        success: true,
-        role: dbUser?.role ?? null
-      });
-      response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
-        maxAge: SESSION_EXPIRES_MS / 1000,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/'
-      });
-      return response;
     }
 
-    // ── Firebase Admin yoksa: REST API ile doğrula + imzalı JSON session ─────
+    // ── Admin yoksa veya başarısızsa: REST API ile doğrula + imzalı JSON ─────
     const { uid, email } = await verifyIdTokenViaRestApi(idToken);
 
     try {

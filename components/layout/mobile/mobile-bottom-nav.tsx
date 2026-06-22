@@ -23,7 +23,7 @@ const navItems = [
       p.startsWith('/sehirler')
   },
   {
-    href: '/dashboard/etkinlik/yeni',
+    href: '/organizator-panel/etkinlik/yeni',
     label: 'Oluştur',
     icon: Plus,
     isCenter: true

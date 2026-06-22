@@ -1,5 +1,17 @@
 import type { User as FirebaseUser } from 'firebase/auth';
 
+export class SessionEstablishError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'SessionEstablishError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
 export async function establishClientSession(
   firebaseUser: FirebaseUser
 ): Promise<void> {
@@ -10,8 +22,17 @@ export async function establishClientSession(
     body: JSON.stringify({ idToken }),
     credentials: 'same-origin'
   });
+
   if (!res.ok) {
-    throw new Error('Oturum oluşturulamadı');
+    const data = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      code?: string;
+    };
+    throw new SessionEstablishError(
+      data.error || 'Oturum oluşturulamadı',
+      res.status,
+      data.code
+    );
   }
 }
 
@@ -20,7 +41,10 @@ export async function establishClientSessionWithRetry(
 ): Promise<void> {
   try {
     await establishClientSession(firebaseUser);
-  } catch {
+  } catch (err) {
+    if (err instanceof SessionEstablishError && err.code === 'firebase_admin_missing') {
+      throw err;
+    }
     await new Promise((r) => setTimeout(r, 800));
     await establishClientSession(firebaseUser);
   }

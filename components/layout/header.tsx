@@ -62,7 +62,7 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/dashboard/etkinlik/yeni"
+            href="/organizator-panel/etkinlik/yeni"
             className="text-sm font-semibold text-[var(--header-fg)] transition-colors hover:text-primary"
           >
             Etkinlik Oluştur
@@ -86,7 +86,7 @@ export function Header() {
                   />
                   <ProfileDropdown />
                   {canAccessDashboard(user.role) && (
-                    <Link href="/dashboard">
+                    <Link href="/organizator-panel/baslangic">
                       <Button
                         variant="outline"
                         size="sm"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { adminUnauthorized, requireAdminSession } from '@/lib/auth/admin-api';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
@@ -45,6 +46,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
+  }
+
   const session = await requireAdminSession();
   if (!session) return adminUnauthorized();
 
@@ -137,7 +142,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   return NextResponse.json({ event: toMockEvent(updated) });
 }
 
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
+  }
+
   const session = await requireAdminSession();
   if (!session) return adminUnauthorized();
 

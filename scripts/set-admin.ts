@@ -1,14 +1,18 @@
 #!/usr/bin/env tsx
 /**
- * Admin rolü ata ve kullanıcı listesini özetle.
- * Kullanım: npx dotenv -e .env.local -- tsx scripts/set-admin.ts [email]
+ * Admin / süperadmin rolü ata.
+ * Kullanım:
+ *   npx dotenv -e .env.local -- tsx scripts/set-admin.ts [email] [admin|super]
+ * Varsayılan: mehmetsentc@gmail.com → ROLE_SUPER_ADMIN
  */
+import type { UserRole } from '@/types';
 import { prisma, ensureDbConnection } from '../lib/db/prisma';
-import {
-  syncFirebaseCustomClaims
-} from '../lib/services/users';
+import { syncFirebaseCustomClaims } from '../lib/services/users';
 
 const email = process.argv[2] || 'mehmetsentc@gmail.com';
+const roleMode = (process.argv[3] || 'super').toLowerCase();
+const targetRole: UserRole =
+  roleMode === 'admin' ? 'ROLE_ADMIN' : 'ROLE_SUPER_ADMIN';
 
 async function main() {
   await ensureDbConnection();
@@ -36,19 +40,19 @@ async function main() {
     process.exit(0);
   }
 
-  if (target.role === 'ROLE_ADMIN' || target.role === 'ROLE_SUPER_ADMIN') {
-    console.log(`\n✅ ${email} zaten admin (${target.role})\n`);
+  if (target.role === targetRole) {
+    console.log(`\n✅ ${email} zaten ${targetRole}\n`);
     return;
   }
 
   await prisma.user.update({
     where: { email },
-    data: { role: 'ROLE_ADMIN' }
+    data: { role: targetRole }
   });
 
-  await syncFirebaseCustomClaims(target.firebaseUid, 'ROLE_ADMIN');
+  await syncFirebaseCustomClaims(target.firebaseUid, targetRole);
 
-  console.log(`\n✅ ${email} → ROLE_ADMIN atandı`);
+  console.log(`\n✅ ${email} → ${targetRole} atandı`);
   console.log('   → Çıkış yapıp tekrar giriş yapın (/admin erişimi için)\n');
 }
 

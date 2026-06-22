@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Lock, User } from 'lucide-react';
+import { ExternalLink, Lock, ShieldCheck, User } from 'lucide-react';
 import { StepIndicator } from '@/components/checkout/step-indicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,8 +24,9 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
 
   const unitPrice = event.price;
   const total = event.isFree ? 0 : unitPrice * quantity;
+  const isPaid = total > 0;
 
-  async function handlePay(e: React.FormEvent) {
+  async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -43,12 +44,22 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
           router.push(`/giris?redirect=/odeme/${event.slug}`);
           return;
         }
-        throw new Error(data.error || 'Ödeme başarısız');
+        throw new Error(data.error || 'Sipariş oluşturulamadı');
       }
 
-      router.push(`/odeme/basarili?order=${data.orderId}`);
+      if (data.status === 'paid') {
+        router.push(`/odeme/basarili?order=${data.orderId}`);
+        return;
+      }
+
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
+      throw new Error('Ödeme sayfası alınamadı');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ödeme başarısız');
+      setError(err instanceof Error ? err.message : 'İşlem başarısız');
     } finally {
       setLoading(false);
     }
@@ -75,9 +86,6 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
                 <Label>Bilet türü</Label>
                 <select className="w-full rounded-md border bg-background px-3 py-2">
                   <option>Genel Giriş — {formatPrice(event)}</option>
-                  {event.price > 200 && (
-                    <option>VIP — {event.price * 2} ₺</option>
-                  )}
                 </select>
               </div>
               <div className="space-y-2">
@@ -102,24 +110,9 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
                 <User className="size-5" />
                 2. Katılımcı Bilgileri
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Ad</Label>
-                  <Input placeholder="Adınız" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Soyad</Label>
-                  <Input placeholder="Soyadınız" required />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>E-posta</Label>
-                <Input type="email" placeholder="bilet@email.com" required />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefon</Label>
-                <Input placeholder="+90 5XX XXX XX XX" />
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Bilet, giriş yaptığınız hesaba tanımlanır. Ek bilgi gerekmez.
+              </p>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)}>
                   Geri
@@ -160,7 +153,7 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
                   Geri
                 </Button>
                 <Button onClick={() => setStep(4)} className="flex-1">
-                  Ödemeye Geç
+                  {isPaid ? 'Ödemeye Geç' : 'Bileti Onayla'}
                 </Button>
               </div>
             </div>
@@ -168,31 +161,36 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
 
           {step === 4 && (
             <form
-              onSubmit={handlePay}
+              onSubmit={handleCheckout}
               className="space-y-4 rounded-2xl border bg-card p-6"
             >
               <h2 className="flex items-center gap-2 font-semibold">
-                <CreditCard className="size-5" />
-                4. Ödeme
+                <ShieldCheck className="size-5" />
+                4. {isPaid ? 'Güvenli Ödeme' : 'Onay'}
               </h2>
-              <div className="space-y-2">
-                <Label>Kart numarası</Label>
-                <Input placeholder="4242 4242 4242 4242" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Son kullanma</Label>
-                  <Input placeholder="MM/YY" />
+
+              {isPaid ? (
+                <div className="space-y-3 rounded-lg bg-muted/50 p-4 text-sm">
+                  <p>
+                    Kart bilgileriniz Bilet Feed sunucularında{' '}
+                    <strong>saklanmaz</strong>. Ödeme, onaylı ödeme kuruluşunun
+                    güvenli sayfasında tamamlanır (3D Secure).
+                  </p>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Lock className="size-3.5 shrink-0" />
+                    <span>256-bit SSL · PCI-DSS uyumlu ödeme altyapısı</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <ExternalLink className="size-3.5 shrink-0" />
+                    <span>Devam ettiğinizde ödeme sayfasına yönlendirilirsiniz</span>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>CVV</Label>
-                  <Input placeholder="123" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Lock className="size-3" />
-                256-bit SSL ile güvenli ödeme
-              </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Ücretsiz etkinlik — onayladığınızda QR biletiniz oluşturulur.
+                </p>
+              )}
+
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -203,10 +201,10 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
                 </Button>
                 <Button type="submit" className="flex-1" disabled={loading}>
                   {loading
-                    ? 'İşleniyor...'
-                    : total === 0
-                      ? 'Bileti Al'
-                      : `${total} ₺ Öde`}
+                    ? 'Yönlendiriliyor...'
+                    : isPaid
+                      ? `${total} ₺ — Ödemeye Git`
+                      : 'Ücretsiz Bileti Al'}
                 </Button>
               </div>
             </form>

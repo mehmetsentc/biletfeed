@@ -75,6 +75,10 @@ export async function validateTicketInput(input: {
     return { status: 'invalid', message: 'Bilet doğrulanamadı' };
   }
 
+  if (!validationToken) {
+    return { status: 'invalid', message: 'Bilet doğrulama kodu gerekli' };
+  }
+
   const canScan = await canManageEventTickets(
     input.scannerUid,
     ticket.eventId,

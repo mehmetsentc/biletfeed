@@ -32,8 +32,12 @@ function isPopupBlockedError(err: unknown): boolean {
   return code === 'auth/popup-blocked';
 }
 
-/** Popup öncelikli — başarılı olunca sayfa aynı kalır, redirect handler devreye girer. */
+/** Popup öncelikli — zaten oturum varsa tekrar Google akışına girme. */
 export async function signInWithGoogle(auth: Auth): Promise<void> {
+  if (auth.currentUser) {
+    return;
+  }
+
   const provider = createGoogleProvider();
 
   try {

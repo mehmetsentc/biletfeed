@@ -1,10 +1,15 @@
-import { AdminPlaceholderPage } from '@/components/admin/placeholder-page';
+import { AdminOrdersPanel } from '@/components/admin/orders-panel';
 
-export default function AdminPage() {
+export default function AdminOrdersPage() {
   return (
-    <AdminPlaceholderPage
-      title="İşlemler"
-      description="Ödeme ve iade işlemlerini takip edin."
-    />
+    <div className="space-y-6 p-6">
+      <div>
+        <h1 className="text-2xl font-bold">İşlemler</h1>
+        <p className="text-muted-foreground">
+          Ödeme ve iade işlemlerini takip edin.
+        </p>
+      </div>
+      <AdminOrdersPanel />
+    </div>
   );
 }

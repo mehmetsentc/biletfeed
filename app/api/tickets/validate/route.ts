@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
 import { validateTicketInput } from '@/lib/services/ticket-validation';
 
@@ -32,6 +33,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
+  }
+
   const session = await verifySessionCookie();
   if (
     !session ||

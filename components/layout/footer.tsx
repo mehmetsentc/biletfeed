@@ -16,7 +16,7 @@ const companyLinks = [
 
 const helpLinks = [
   { href: '/yardim', label: 'Hesap Desteği' },
-  { href: '/dashboard/etkinlik/yeni', label: 'Etkinlik Listeleme' },
+  { href: '/organizator-panel/etkinlik/yeni', label: 'Etkinlik Listeleme' },
   { href: '/biletlerim', label: 'Bilet Satın Alma' },
   { href: '/kosullar', label: 'Bilet Koşulları' }
 ];
@@ -176,7 +176,7 @@ export function CreateEventBanner() {
             Bizimle ortak olun ve Bilet Feed&apos;de listelenin.
           </p>
         </div>
-        <Link href="/dashboard/etkinlik/yeni">
+        <Link href="/organizator-panel/etkinlik/yeni">
           <span className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90">
             <CalendarPlus className="size-5" />
             Etkinlik Oluştur

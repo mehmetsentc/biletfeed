@@ -1,5 +1,8 @@
 import { Suspense } from 'react';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { JsonLd } from '@/lib/seo/json-ld';
+import { buildItemListSchema } from '@/lib/seo/schemas';
+import { siteConfig } from '@/lib/config/site';
 import EventsPageClient from './events-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAllEvents, getCategories } from '@/lib/services/events';
@@ -41,9 +44,23 @@ export default async function EventsPage() {
     getCategories()
   ]);
 
+  const itemListSchema = buildItemListSchema({
+    name: 'Etkinlikler',
+    description: 'Tüm etkinlikleri keşfedin ve filtreleyin',
+    items: events.slice(0, 20).map((event) => ({
+      name: event.title,
+      url: `${siteConfig.url}/etkinlik/${event.slug}`,
+      description: event.shortDescription,
+      image: event.coverImage
+    }))
+  });
+
   return (
-    <Suspense fallback={<EventsLoading />}>
-      <EventsPageClient events={events} categories={categories} />
-    </Suspense>
+    <>
+      <JsonLd data={itemListSchema} />
+      <Suspense fallback={<EventsLoading />}>
+        <EventsPageClient events={events} categories={categories} />
+      </Suspense>
+    </>
   );
 }

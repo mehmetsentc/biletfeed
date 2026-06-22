@@ -1,25 +1,30 @@
-export type PaymentResult = {
-  success: boolean;
-  provider: string;
-  paymentId: string;
-};
+import { getPaymentProvider } from '@/lib/payments/provider';
+import type {
+  PaymentInitInput,
+  PaymentInitResult,
+  PaymentProviderName,
+  PaymentVerifyResult
+} from '@/lib/payments/types';
 
-/** Mock ödeme — Phase 4'te iyzico/Stripe ile değiştirilecek. */
-export async function processPayment(input: {
-  amount: number;
-}): Promise<PaymentResult> {
-  if (input.amount <= 0) {
-    return { success: true, provider: 'free', paymentId: `free_${Date.now()}` };
+export type { PaymentInitInput, PaymentInitResult, PaymentVerifyResult };
+
+export async function startPaymentCheckout(
+  input: PaymentInitInput,
+  providerName?: PaymentProviderName
+): Promise<PaymentInitResult> {
+  const provider = getPaymentProvider(providerName);
+  if (!provider.isConfigured()) {
+    throw new Error(
+      `${provider.name} ödeme sağlayıcısı yapılandırılmamış. Ortam değişkenlerini kontrol edin.`
+    );
   }
+  return provider.createCheckoutSession(input);
+}
 
-  const provider = process.env.PAYMENT_PROVIDER || 'mock';
-  if (provider === 'mock') {
-    return {
-      success: true,
-      provider: 'mock',
-      paymentId: `mock_${Date.now()}`
-    };
-  }
-
-  throw new Error('Ödeme sağlayıcısı henüz yapılandırılmadı');
+export async function verifyPaymentCallback(
+  providerName: PaymentProviderName,
+  request: Request
+): Promise<PaymentVerifyResult> {
+  const provider = getPaymentProvider(providerName);
+  return provider.verifyCallback(request);
 }

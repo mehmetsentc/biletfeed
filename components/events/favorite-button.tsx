@@ -22,7 +22,7 @@ export function FavoriteButton({
     <button
       type="button"
       className={cn(
-        'flex size-9 items-center justify-center rounded-full bg-white/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-white',
+        'flex size-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-gray-900',
         className
       )}
       onClick={(e) => {

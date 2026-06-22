@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { HomeHeroDesktop, HomeHeroMobile, HomeHeroTablet } from '@/components/home/home-hero';
+import { createPageMetadata } from '@/lib/seo/metadata';
 import { EventifyCard } from '@/components/events/eventify-card';
 import { CategoryExplore } from '@/components/home/category-explore';
 import { PopularEventsSection } from '@/components/home/popular-events-section';
@@ -16,6 +17,21 @@ import {
   getOnlineEvents,
   getTrendingEvents
 } from '@/lib/services/events';
+
+export const metadata = createPageMetadata({
+  title: 'Etkinlik Biletleri — Konser, Festival ve Daha Fazlası',
+  description:
+    'Türkiye genelinde konser, tiyatro, festival ve spor etkinliklerini keşfedin. Bilet Feed ile etkinlik biletlerinizi güvenle alın.',
+  path: '/',
+  keywords: [
+    'etkinlik bilet',
+    'konser',
+    'festival',
+    'tiyatro',
+    'bilet al',
+    'etkinlik keşfet'
+  ]
+});
 
 export const revalidate = 300;
 
