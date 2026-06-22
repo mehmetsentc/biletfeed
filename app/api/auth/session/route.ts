@@ -1,8 +1,10 @@
 import { createHmac } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { SESSION_COOKIE_NAME } from '@/lib/auth/session';
 import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+
+// lib/auth/session'dan import etmiyoruz — firebase-admin transitif bağımlılığını kırmak için
+const SESSION_COOKIE_NAME = 'session';
 
 const SESSION_EXPIRES_MS = 60 * 60 * 24 * 5 * 1000; // 5 gün
 
