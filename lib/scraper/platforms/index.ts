@@ -285,16 +285,32 @@ export const bubiletAdapter: ScraperAdapter = {
     )
 };
 
+async function scrapeBiletimo(): Promise<ScraperResult> {
+  try {
+    const probe = await fetchHtml('https://www.biletimo.com/', 12000);
+    if (/hugedomains|is for sale|domain_profile/i.test(probe)) {
+      return result('BILETIMO', [], [
+        'BILETIMO: biletimo.com alan adı satışta — etkinlik kaynağı şu an kullanılamıyor'
+      ]);
+    }
+  } catch (e) {
+    return result('BILETIMO', [], [
+      `BILETIMO: site erişilemedi — ${e instanceof Error ? e.message : String(e)}`
+    ]);
+  }
+
+  return scrapePlatformWithDetails(
+    'BILETIMO',
+    biletimoListingUrls(),
+    /biletimo\.com/i,
+    { aiFirst: true, maxDetails: 80 }
+  );
+}
+
 export const biletimoAdapter: ScraperAdapter = {
   platform: 'BILETIMO',
   label: PLATFORM_LABELS.BILETIMO,
-  scrapeNewEvents: () =>
-    scrapePlatformWithDetails(
-      'BILETIMO',
-      biletimoListingUrls(),
-      /biletimo\.com/i,
-      { aiFirst: true, maxDetails: 80 }
-    )
+  scrapeNewEvents: scrapeBiletimo
 };
 
 /** Aktif scraper kaynakları — yalnızca Bubilet, Biletix, Biletimo */
