@@ -344,7 +344,7 @@ async function scrapeBiletix(): Promise<ScraperResult> {
       aiFirst: false,
       maxDetails: 600,
       extractStubs: (html, url) =>
-        extractBiletixListingStubs(html, url).filter(isFutureBiletixStub)
+        extractBiletixListingStubs(html, url).filter((s) => isFutureBiletixStub(s))
     }
   );
 
