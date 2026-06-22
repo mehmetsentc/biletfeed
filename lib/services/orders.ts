@@ -438,7 +438,14 @@ export async function listOrdersForAdmin(params?: {
       deletedAt: null,
       ...(params?.status ? { status: params.status as never } : {})
     },
-    include: {
+    select: {
+      id: true,
+      status: true,
+      total: true,
+      commission: true,
+      paymentProvider: true,
+      paymentId: true,
+      createdAt: true,
       user: { select: { email: true, displayName: true } },
       event: { select: { title: true, slug: true } },
       organizer: { select: { name: true } },
@@ -457,7 +464,12 @@ export async function requestOrderRefund(params: {
 
   const order = await prisma.order.findUnique({
     where: { id: params.orderId },
-    include: { purchasedTickets: true }
+    select: {
+      id: true,
+      status: true,
+      paymentProvider: true,
+      purchasedTickets: { select: { id: true } }
+    }
   });
   if (!order) throw new Error('Sipariş bulunamadı');
   if (order.status !== 'paid') {

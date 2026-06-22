@@ -1,7 +1,7 @@
 import { createHmac } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+import { syncSessionUserFromAuth } from '@/lib/services/user-queries';
 
 // lib/auth/session'dan import etmiyoruz — firebase-admin transitif bağımlılığını kırmak için
 const SESSION_COOKIE_NAME = 'session';
@@ -52,30 +52,6 @@ async function verifyIdTokenViaRestApi(
   return { uid: user.localId, email: user.email ?? '' };
 }
 
-/** Kullanıcıyı DB'ye kaydet — hata olursa sessizce geç */
-async function syncUserToDB(uid: string, email: string): Promise<string> {
-  if (!isDatabaseConfigured()) return 'ROLE_USER';
-  try {
-    const existing = await prisma.user.findFirst({
-      where: { firebaseUid: uid, deletedAt: null },
-      select: { role: true }
-    });
-    if (existing) return existing.role as string;
-
-    await prisma.user.create({
-      data: {
-        firebaseUid: uid,
-        email,
-        displayName: email.split('@')[0] || 'Kullanıcı',
-        role: 'ROLE_USER'
-      }
-    });
-    return 'ROLE_USER';
-  } catch {
-    return 'ROLE_USER';
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     if (!isSameOriginRequest(request)) {
@@ -89,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { uid, email } = await verifyIdTokenViaRestApi(idToken);
-    const role = await syncUserToDB(uid, email);
+    const role = await syncSessionUserFromAuth(uid, email);
     const sessionCookie = buildSimpleSession(uid, email, role, SESSION_EXPIRES_MS);
 
     const response = NextResponse.json({ success: true, role });

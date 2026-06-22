@@ -38,7 +38,11 @@ export async function getAdminOrders(limit = 100) {
   await ensureDbConnection();
   return prisma.order.findMany({
     where: { deletedAt: null },
-    include: {
+    select: {
+      id: true,
+      total: true,
+      status: true,
+      createdAt: true,
       event: { select: { title: true } },
       user: { select: { displayName: true, email: true } },
       organizer: { select: { name: true } }

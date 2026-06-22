@@ -53,7 +53,11 @@ export async function getOrganizerOrders(organizerId: string) {
   await ensureDbConnection();
   return prisma.order.findMany({
     where: { organizerId, deletedAt: null },
-    include: {
+    select: {
+      id: true,
+      total: true,
+      status: true,
+      createdAt: true,
       event: { select: { title: true, slug: true } },
       user: { select: { displayName: true, email: true } },
       items: { include: { ticketType: { select: { name: true } } } }

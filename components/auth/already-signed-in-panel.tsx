@@ -42,7 +42,10 @@ export function AlreadySignedInPanel() {
     setSyncing(true);
     setError(null);
 
-    if (!sessionReady) {
+    const mustRefreshSession =
+      queryError === 'admin_required' || !sessionReady;
+
+    if (mustRefreshSession) {
       const ok = await syncSession();
       if (!ok) {
         setSyncing(false);

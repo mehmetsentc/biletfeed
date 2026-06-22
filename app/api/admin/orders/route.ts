@@ -16,7 +16,7 @@ export async function GET() {
       commission: o.commission,
       provider: o.paymentProvider,
       paymentId: o.paymentId,
-      paidAt: o.paidAt,
+      paidAt: null,
       createdAt: o.createdAt,
       user: o.user,
       event: o.event,

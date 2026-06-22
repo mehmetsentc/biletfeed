@@ -2,7 +2,8 @@ import { createHmac } from 'crypto';
 import { cookies } from 'next/headers';
 import type { UserRole } from '@/types';
 import { hasRole, ROLES } from '@/lib/auth/roles';
-import { getUserRoleByFirebaseUid } from '@/lib/services/user-queries';
+import { resolveSessionUserRole } from '@/lib/services/user-queries';
+import { isBootstrapSuperAdminEmail } from '@/lib/auth/bootstrap-admins';
 
 // firebase-admin import YOK — ESM uyumsuzluğunu önlemek için
 
@@ -79,10 +80,13 @@ export async function verifySessionCookie(): Promise<SessionUser | null> {
   const parsed = verifySimpleSession(session);
   if (!parsed) return null;
 
-  // Rol kaynağı: veritabanı (çerezdeki rol eski kalabilir)
-  const dbRole = await getUserRoleByFirebaseUid(parsed.uid);
-  if (dbRole) {
-    return { ...parsed, role: dbRole };
+  const resolved = await resolveSessionUserRole(parsed.uid, parsed.email);
+  if (resolved) {
+    return { ...parsed, email: resolved.email, role: resolved.role };
+  }
+
+  if (parsed.email && isBootstrapSuperAdminEmail(parsed.email)) {
+    return { ...parsed, role: ROLES.SUPER_ADMIN };
   }
 
   return parsed;
