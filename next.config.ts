@@ -27,6 +27,19 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        pathname: '/biletfeed.firebasestorage.app/**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.bubilet.com.tr'
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.bubilet.com.tr'
+      },
+      {
+        protocol: 'https',
         hostname: 'images.unsplash.com'
       }
     ]
