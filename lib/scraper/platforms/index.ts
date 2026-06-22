@@ -14,8 +14,15 @@ import {
 import {
   biletixListingUrls,
   bubiletListingUrls,
-  biletimoListingUrls
+  biletimoListingUrls,
+  biletinoListingUrls
 } from '@/lib/scraper/listing-urls';
+import {
+  extractBiletixListingStubs,
+  isFutureBiletixStub
+} from '@/lib/scraper/platforms/biletix';
+import { extractBiletinoProductStubs } from '@/lib/scraper/platforms/biletino';
+import { scrapePasso } from '@/lib/scraper/platforms/passo';
 import type { ScrapedEventRaw, ScraperAdapter, ScraperResult } from '@/lib/scraper/types';
 import { PLATFORM_LABELS } from '@/lib/scraper/types';
 
@@ -35,13 +42,19 @@ function isEventDetailUrl(url: string, platform: ExternalPlatform): boolean {
     if (u.hostname.startsWith('guides.')) return false;
 
     if (platform === 'BILETIX') {
+      // Etkinlik URL formatları: /etkinlik/{ID}/TURKIYE/tr ve /etkinlik-grup/{ID}/TURKIYE/tr
+      if (path.includes('/search/') || path.includes('/category/') ||
+          path.includes('/static/') || path.includes('/anasayfa/') ||
+          path.includes('/yardim/') || path.includes('/mekan/') ||
+          path.includes('/hediyekart/') || path.includes('/cart/') ||
+          path.includes('/auth/') || path.includes('/myaccount/') ||
+          u.hostname.startsWith('guides.') || u.hostname.startsWith('blog.')) {
+        return false;
+      }
       return (
-        (path.includes('/performance/') ||
-          path.includes('/etkinlik/') ||
-          path.includes('/etkinlik-grup/')) &&
-        !path.includes('/search/') &&
-        !path.includes('/category/') &&
-        !path.includes('/static/')
+        path.includes('/etkinlik/') ||
+        path.includes('/etkinlik-grup/') ||
+        path.includes('/performance/')
       );
     }
     if (platform === 'BUBILET') {
@@ -76,6 +89,40 @@ function isEventDetailUrl(url: string, platform: ExternalPlatform): boolean {
       ]);
       if (path.includes('/sayfa/') || path.includes('/blog/')) return false;
       return parts.length >= 2 && !blocked.has(parts[parts.length - 1]!);
+    }
+    if (platform === 'PASSO') {
+      const parts = path.split('/').filter(Boolean);
+      const blocked = new Set([
+        'etkinlikler', 'konserler', 'tiyatro-dansopera', 'spor',
+        'festivaller', 'istanbul', 'ankara', 'izmir', 'antalya',
+        'bursa', 'eskisehir', 'adana', 'gaziantep', 'kayseri',
+        'konya', 'mersin', 'trabzon', 'samsun', 'bodrum', 'mugla', 'alanya'
+      ]);
+      if (path.includes('/sepet') || path.includes('/giris') || path.includes('/uye')) return false;
+      const lastPart = parts[parts.length - 1] ?? '';
+      if (blocked.has(lastPart)) return false;
+      return parts.length >= 1 && (
+        path.includes('/etkinlik/') ||
+        path.includes('/bilet/') ||
+        path.includes('/e/') ||
+        /\/[a-z0-9-]+-\d+$/.test(path) ||
+        (parts.length >= 2 && !blocked.has(parts[0]!))
+      );
+    }
+    if (platform === 'BILETINO') {
+      if (
+        path.includes('/search/') ||
+        path.includes('/city/') ||
+        path.includes('/content/') ||
+        path.includes('/account/') ||
+        path.includes('/category/') ||
+        path.includes('/giris') ||
+        path.includes('/kayit') ||
+        path.includes('/sepet')
+      ) {
+        return false;
+      }
+      return /\/tr\/e-[a-z0-9]+\/[^/]+\/?$/i.test(path);
     }
     return false;
   } catch {
@@ -174,7 +221,11 @@ async function scrapePlatformWithDetails(
   platform: ExternalPlatform,
   listingUrls: string[],
   hostPattern: RegExp,
-  options?: { aiFirst?: boolean; maxDetails?: number }
+  options?: {
+    aiFirst?: boolean;
+    maxDetails?: number;
+    extractStubs?: (html: string, listingUrl: string) => EventStub[];
+  }
 ): Promise<ScraperResult> {
   const errors: string[] = [];
   const stubMap = new Map<string, EventStub>();
@@ -188,6 +239,13 @@ async function scrapePlatformWithDetails(
         const ld = extractJsonLd(html);
         for (const stub of mapJsonLdStubs(platform, ld, listingUrl)) {
           stubMap.set(stub.externalUrl, stub);
+        }
+      }
+
+      if (options?.extractStubs) {
+        for (const stub of options.extractStubs(html, listingUrl)) {
+          const existing = stubMap.get(stub.externalUrl);
+          stubMap.set(stub.externalUrl, existing ? { ...existing, ...stub } : stub);
         }
       }
 
@@ -266,16 +324,49 @@ async function scrapePlatformWithDetails(
   return result(platform, valid, errors);
 }
 
+async function scrapeBiletix(): Promise<ScraperResult> {
+  try {
+    const probe = await fetchHtml('https://www.biletix.com/anasayfa/TURKIYE/tr', 12000);
+    if (!probe || probe.length < 5000) {
+      return result('BILETIX', [], ['BILETIX: site yanıt vermedi veya erişilemedi']);
+    }
+  } catch (e) {
+    return result('BILETIX', [], [
+      `BILETIX: site erişilemedi — ${e instanceof Error ? e.message : String(e)}`
+    ]);
+  }
+
+  const scraped = await scrapePlatformWithDetails(
+    'BILETIX',
+    biletixListingUrls(),
+    /biletix\.com/i,
+    {
+      aiFirst: false,
+      maxDetails: 600,
+      extractStubs: (html, url) =>
+        extractBiletixListingStubs(html, url).filter(isFutureBiletixStub)
+    }
+  );
+
+  const now = new Date();
+  const events = scraped.events.filter(
+    (event) => event.startDate.getTime() >= now.getTime() - 12 * 60 * 60 * 1000
+  );
+
+  return {
+    platform: 'BILETIX',
+    events,
+    errors: [
+      ...scraped.errors,
+      `BILETIX: ${events.length} gelecek etkinlik (${scraped.events.length} toplam çekildi)`
+    ]
+  };
+}
+
 export const biletixAdapter: ScraperAdapter = {
   platform: 'BILETIX',
   label: PLATFORM_LABELS.BILETIX,
-  scrapeNewEvents: () =>
-    scrapePlatformWithDetails(
-      'BILETIX',
-      biletixListingUrls(),
-      /biletix\.com/i,
-      { aiFirst: true, maxDetails: 80 }
-    )
+  scrapeNewEvents: scrapeBiletix
 };
 
 export const bubiletAdapter: ScraperAdapter = {
@@ -318,11 +409,49 @@ export const biletimoAdapter: ScraperAdapter = {
   scrapeNewEvents: scrapeBiletimo
 };
 
-/** Aktif scraper kaynakları — yalnızca Bubilet, Biletix, Biletimo */
+export const passoAdapter: ScraperAdapter = {
+  platform: 'PASSO',
+  label: PLATFORM_LABELS.PASSO,
+  scrapeNewEvents: scrapePasso  // API-based scraper (Angular SPA, no HTML scraping)
+};
+
+async function scrapeBiletino(): Promise<ScraperResult> {
+  try {
+    const probe = await fetchHtml('https://biletino.com/tr/turkiye/', 12000);
+    if (!probe || probe.length < 500) {
+      return result('BILETINO', [], ['BILETINO: site yanıt vermedi veya erişilemedi']);
+    }
+  } catch (e) {
+    return result('BILETINO', [], [
+      `BILETINO: site erişilemedi — ${e instanceof Error ? e.message : String(e)}`
+    ]);
+  }
+
+  return scrapePlatformWithDetails(
+    'BILETINO',
+    biletinoListingUrls(),
+    /biletino\.com/i,
+    {
+      aiFirst: false,
+      maxDetails: 100,
+      extractStubs: extractBiletinoProductStubs
+    }
+  );
+}
+
+export const biletinoAdapter: ScraperAdapter = {
+  platform: 'BILETINO',
+  label: PLATFORM_LABELS.BILETINO,
+  scrapeNewEvents: scrapeBiletino
+};
+
+/** Aktif scraper kaynakları */
 export const scraperAdapters: ScraperAdapter[] = [
   bubiletAdapter,
   biletixAdapter,
-  biletimoAdapter
+  biletimoAdapter,
+  passoAdapter,
+  biletinoAdapter
 ];
 
 export { SCRAPER_USER_AGENT } from '@/lib/scraper/types';

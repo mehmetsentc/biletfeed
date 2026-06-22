@@ -5,6 +5,22 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ScrapeNowButton } from '@/components/admin/scrape-now-button';
+import { runEventScrapeJob } from '@/lib/scraper/sync';
+
+async function triggerScrapeAction(): Promise<{ ok: boolean; message: string }> {
+  'use server';
+  try {
+    const { status, stats } = await runEventScrapeJob();
+    const ok = status !== 'failed';
+    const message = ok
+      ? `${stats.totalCreated} yeni · ${stats.totalUpdated} güncellendi · ${stats.totalSkipped} atlandı`
+      : `Başarısız: ${stats.errors[0] ?? 'Bilinmeyen hata'}`;
+    return { ok, message };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
 
 export default async function AdminEventsPage({
   searchParams
@@ -50,13 +66,14 @@ export default async function AdminEventsPage({
             {needsReview > 0 && ` · ${needsReview} inceleme bekliyor`}.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-start gap-2">
           <Button variant="outline" asChild>
             <Link href="/admin/etkinlikler">Tümü</Link>
           </Button>
           <Button variant={review === '1' ? 'default' : 'outline'} asChild>
             <Link href="/admin/etkinlikler?review=1">Eksik bilgi</Link>
           </Button>
+          <ScrapeNowButton onScrape={triggerScrapeAction} />
         </div>
       </div>
 

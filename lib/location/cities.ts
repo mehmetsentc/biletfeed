@@ -4,7 +4,17 @@ export const SUPPORTED_CITIES = [
   { slug: 'izmir', name: 'İzmir' },
   { slug: 'antalya', name: 'Antalya' },
   { slug: 'bursa', name: 'Bursa' },
-  { slug: 'eskisehir', name: 'Eskişehir' }
+  { slug: 'eskisehir', name: 'Eskişehir' },
+  { slug: 'adana', name: 'Adana' },
+  { slug: 'gaziantep', name: 'Gaziantep' },
+  { slug: 'kayseri', name: 'Kayseri' },
+  { slug: 'konya', name: 'Konya' },
+  { slug: 'mersin', name: 'Mersin' },
+  { slug: 'trabzon', name: 'Trabzon' },
+  { slug: 'samsun', name: 'Samsun' },
+  { slug: 'bodrum', name: 'Bodrum' },
+  { slug: 'mugla', name: 'Muğla' },
+  { slug: 'alanya', name: 'Alanya' }
 ] as const;
 
 export type CitySlug = (typeof SUPPORTED_CITIES)[number]['slug'];

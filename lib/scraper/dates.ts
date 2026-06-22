@@ -22,7 +22,7 @@ export function parseScraperDateTime(
   defaultHour = 20
 ): Date | null {
   if (!text?.trim()) return null;
-  const raw = text.trim();
+  const raw = text.trim().replace(/T(\d{2})::(\d{2})/, 'T$1:$2');
 
   const dateOnly = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (dateOnly) {

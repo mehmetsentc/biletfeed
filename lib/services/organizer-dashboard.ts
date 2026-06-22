@@ -5,7 +5,7 @@ export async function getOrganizerStats(organizerId: string) {
   await ensureDbConnection();
   const [eventCount, orders, tickets] = await Promise.all([
     prisma.event.count({
-      where: { organizerId, deletedAt: null, ...upcomingFilter }
+      where: { organizerId, ...upcomingFilter }
     }),
     prisma.order.findMany({
       where: { organizerId, status: 'paid', deletedAt: null },
