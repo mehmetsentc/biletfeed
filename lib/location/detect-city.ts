@@ -12,7 +12,17 @@ const CITY_COORDS: Record<CitySlug, { lat: number; lon: number }> = {
   izmir: { lat: 38.4192, lon: 27.1287 },
   antalya: { lat: 36.8969, lon: 30.7133 },
   bursa: { lat: 40.1885, lon: 29.061 },
-  eskisehir: { lat: 39.7767, lon: 30.5206 }
+  eskisehir: { lat: 39.7767, lon: 30.5206 },
+  adana: { lat: 37.0, lon: 35.3213 },
+  gaziantep: { lat: 37.0662, lon: 37.3833 },
+  kayseri: { lat: 38.7312, lon: 35.4787 },
+  konya: { lat: 37.8746, lon: 32.4932 },
+  mersin: { lat: 36.8121, lon: 34.6415 },
+  trabzon: { lat: 41.0027, lon: 39.7168 },
+  samsun: { lat: 41.2867, lon: 36.33 },
+  bodrum: { lat: 37.0344, lon: 27.4305 },
+  mugla: { lat: 37.2153, lon: 28.3636 },
+  alanya: { lat: 36.5448, lon: 31.9958 }
 };
 
 function toRad(deg: number) {
