@@ -52,25 +52,25 @@ async function verifyIdTokenViaRestApi(
 
 /** Kullanıcıyı DB'ye kaydet — hata olursa sessizce geç */
 async function syncUserToDB(uid: string, email: string): Promise<string> {
-  if (!isDatabaseConfigured()) return 'USER';
+  if (!isDatabaseConfigured()) return 'ROLE_USER';
   try {
     const existing = await prisma.user.findFirst({
       where: { firebaseUid: uid, deletedAt: null },
       select: { role: true }
     });
-    if (existing) return existing.role;
+    if (existing) return existing.role as string;
 
     await prisma.user.create({
       data: {
         firebaseUid: uid,
         email,
         displayName: email.split('@')[0] || 'Kullanıcı',
-        role: 'USER'
+        role: 'ROLE_USER'
       }
     });
-    return 'USER';
+    return 'ROLE_USER';
   } catch {
-    return 'USER';
+    return 'ROLE_USER';
   }
 }
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
     }
 
-    const body = await request.json() as { idToken?: string };
+    const body = (await request.json()) as { idToken?: string };
     const { idToken } = body;
     if (!idToken) {
       return NextResponse.json({ error: 'Token gerekli' }, { status: 400 });
