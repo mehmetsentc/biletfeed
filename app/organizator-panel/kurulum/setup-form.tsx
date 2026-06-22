@@ -23,12 +23,25 @@ export function OrganizatorSetupForm() {
       const res = await fetch('/api/organizer/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           organizationName: name,
           description
         })
       });
-      const data = await res.json();
+
+      const text = await res.text();
+      let data: { error?: string } = {};
+      try {
+        data = text ? (JSON.parse(text) as { error?: string }) : {};
+      } catch {
+        throw new Error(
+          res.ok
+            ? 'Sunucudan geçersiz yanıt alındı'
+            : `Sunucu hatası (${res.status}). Lütfen tekrar deneyin.`
+        );
+      }
+
       if (!res.ok) throw new Error(data.error || 'Kurulum başarısız');
 
       window.location.href = '/organizator-panel/baslangic';

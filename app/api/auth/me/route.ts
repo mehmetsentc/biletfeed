@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
-import { verifySessionCookie } from '@/lib/auth/session';
-import { getUserByFirebaseUid } from '@/lib/services/users';
+import {
+  verifySessionCookie,
+  SESSION_COOKIE_NAME,
+  SESSION_EXPIRES_MS
+} from '@/lib/auth/session';
+import { getUserProfileByFirebaseUid } from '@/lib/services/user-queries';
 
 export async function GET() {
   try {
@@ -9,7 +13,7 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    const user = await getUserByFirebaseUid(session.uid);
+    const user = await getUserProfileByFirebaseUid(session.uid);
 
     if (!user) {
       return NextResponse.json({ user: null }, { status: 404 });

@@ -2,11 +2,12 @@ import { createHmac } from 'crypto';
 import { cookies } from 'next/headers';
 import type { UserRole } from '@/types';
 import { hasRole, ROLES } from '@/lib/auth/roles';
+import { getUserRoleByFirebaseUid } from '@/lib/services/user-queries';
 
 // firebase-admin import YOK — ESM uyumsuzluğunu önlemek için
-// Tüm session doğrulama HMAC tabanlı yapılıyor
 
-const SESSION_COOKIE_NAME = 'session';
+export const SESSION_COOKIE_NAME = 'session';
+export const SESSION_EXPIRES_MS = 60 * 60 * 24 * 5 * 1000;
 
 export interface SessionUser {
   uid: string;
@@ -18,6 +19,23 @@ const SIMPLE_SESSION_SECRET =
   process.env.NEXTAUTH_SECRET ??
   process.env.TICKET_SECRET_KEY ??
   'biletfeed-simple-session-fallback-key';
+
+export function buildSessionCookie(
+  uid: string,
+  email: string,
+  role: UserRole,
+  expiresMs = SESSION_EXPIRES_MS
+): string {
+  const payload = JSON.stringify({
+    uid,
+    email,
+    role,
+    exp: Date.now() + expiresMs
+  });
+  const b64 = Buffer.from(payload).toString('base64url');
+  const sig = createHmac('sha256', SIMPLE_SESSION_SECRET).update(b64).digest('hex');
+  return `${b64}.${sig}`;
+}
 
 function verifySimpleSession(token: string): SessionUser | null {
   try {
@@ -57,7 +75,17 @@ export async function verifySessionCookie(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!session) return null;
-  return verifySimpleSession(session);
+
+  const parsed = verifySimpleSession(session);
+  if (!parsed) return null;
+
+  // Rol kaynağı: veritabanı (çerezdeki rol eski kalabilir)
+  const dbRole = await getUserRoleByFirebaseUid(parsed.uid);
+  if (dbRole) {
+    return { ...parsed, role: dbRole };
+  }
+
+  return parsed;
 }
 
 export function sessionHasRole(
@@ -67,5 +95,3 @@ export function sessionHasRole(
   if (!session) return false;
   return hasRole(session.role, requiredRole);
 }
-
-export { SESSION_COOKIE_NAME };

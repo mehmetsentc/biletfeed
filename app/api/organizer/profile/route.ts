@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { verifySessionCookie } from '@/lib/auth/session';
+import {
+  verifySessionCookie,
+  buildSessionCookie,
+  SESSION_COOKIE_NAME,
+  SESSION_EXPIRES_MS
+} from '@/lib/auth/session';
+import { ROLES } from '@/lib/auth/roles';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerProfile } from '@/lib/services/organizer-onboarding';
 
@@ -42,7 +48,21 @@ export async function POST(request: NextRequest) {
       description: parsed.data.description
     });
 
-    return NextResponse.json({ success: true, organizer });
+    const response = NextResponse.json({ success: true, organizer });
+    const refreshed = buildSessionCookie(
+      session.uid,
+      session.email ?? user.email,
+      ROLES.ORGANIZER,
+      SESSION_EXPIRES_MS
+    );
+    response.cookies.set(SESSION_COOKIE_NAME, refreshed, {
+      maxAge: SESSION_EXPIRES_MS / 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/'
+    });
+    return response;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Kurulum başarısız';
     return NextResponse.json({ error: message }, { status: 400 });

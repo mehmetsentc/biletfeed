@@ -1,6 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ROLES } from '@/lib/auth/roles';
-import { syncFirebaseCustomClaims } from '@/lib/services/users';
 import { slugify, uniqueSlug } from '@/lib/utils/slug';
 
 export async function ensureOrganizerProfile(params: {
@@ -41,6 +40,5 @@ export async function ensureOrganizerProfile(params: {
     });
   });
 
-  await syncFirebaseCustomClaims(params.firebaseUid, ROLES.ORGANIZER);
   return organizer;
 }

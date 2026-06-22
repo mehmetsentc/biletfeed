@@ -6,7 +6,6 @@ import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrapeNowButton } from '@/components/admin/scrape-now-button';
-import { runEventScrapeJob } from '@/lib/scraper/sync';
 
 async function triggerScrapeAction(): Promise<{ ok: boolean; message: string }> {
   'use server';
@@ -14,6 +13,7 @@ async function triggerScrapeAction(): Promise<{ ok: boolean; message: string }> 
   await requireAdmin();
 
   try {
+    const { runEventScrapeJob } = await import('@/lib/scraper/sync');
     const { status, stats } = await runEventScrapeJob();
     const ok = status !== 'failed';
     const message = ok
