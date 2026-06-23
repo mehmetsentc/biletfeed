@@ -9,10 +9,30 @@ export const hideBottomNavPrefixes = [
   '/profil/ilgi-alanlari'
 ];
 
+/** Footer ve bülten şeridinin gizleneceği hesap / profil rotaları */
+export const hideSiteFooterPrefixes = [
+  '/profil',
+  '/biletlerim',
+  '/favorilerim',
+  '/degerlendirmelerim',
+  '/destek',
+  '/bildirimler'
+];
+
 export function shouldHideBottomNav(pathname: string): boolean {
   return hideBottomNavPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
+}
+
+export function shouldHideSiteFooter(pathname: string): boolean {
+  return hideSiteFooterPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+export function shouldShowNewsletterBanner(pathname: string): boolean {
+  return pathname === '/';
 }
 
 export const mainNavLinks = [

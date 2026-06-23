@@ -5,7 +5,12 @@ import { Header } from '@/components/layout/header';
 import { MobileBottomNav } from '@/components/layout/mobile/mobile-bottom-nav';
 import { MobileHeader } from '@/components/layout/mobile/mobile-header';
 import { HomeCityBar } from '@/components/home/home-city-bar';
-import { shouldHideBottomNav } from '@/lib/layout/navigation';
+import { NewsletterBanner } from '@/components/layout/newsletter-banner';
+import {
+  shouldHideBottomNav,
+  shouldHideSiteFooter,
+  shouldShowNewsletterBanner
+} from '@/lib/layout/navigation';
 import { cn } from '@/lib/utils';
 
 interface SiteChromeProps {
@@ -17,6 +22,8 @@ interface SiteChromeProps {
 export function SiteChrome({ children, footer, mobileFooter }: SiteChromeProps) {
   const pathname = usePathname();
   const hideBottomNav = shouldHideBottomNav(pathname);
+  const hideSiteFooter = shouldHideSiteFooter(pathname);
+  const showNewsletter = shouldShowNewsletterBanner(pathname);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -45,8 +52,14 @@ export function SiteChrome({ children, footer, mobileFooter }: SiteChromeProps) 
         </div>
       )}
 
-      <div className="hidden md:block">{footer}</div>
-      <div className="md:hidden">{mobileFooter}</div>
+      {!hideSiteFooter && showNewsletter && <NewsletterBanner />}
+
+      {!hideSiteFooter && (
+        <>
+          <div className="hidden md:block">{footer}</div>
+          <div className="md:hidden">{mobileFooter}</div>
+        </>
+      )}
     </div>
   );
 }
