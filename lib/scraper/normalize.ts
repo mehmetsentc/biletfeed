@@ -44,9 +44,34 @@ export function resolveCitySlug(input?: string | null): {
 const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp[] }> =
   [
     {
+      slug: 'spor',
+      type: 'sports',
+      patterns: [
+        /\bspor\b/i,
+        /futbol/i,
+        /football/i,
+        /basketbol/i,
+        /basketball/i,
+        /\bfiba\b/i,
+        /\bnba\b/i,
+        /\buel\b/i,
+        /şampiyonlar ligi/i,
+        /maç\b/i,
+        /voleybol/i,
+        /tenis\b/i,
+        /formula\s*1/i,
+        /\bf1\b/i,
+        /motogp/i,
+        /güreş/i,
+        /boks\b/i,
+        /derbi/i,
+        /galatasaray|fenerbahçe|beşiktaş|trabzonspor|başakşehir/i
+      ]
+    },
+    {
       slug: 'muzik',
       type: 'concert',
-      patterns: [/konser/i, /müzik/i, /dj/i, /festival/i, /rock/i, /pop/i]
+      patterns: [/konser/i, /müzik/i, /\bdj\b/i, /\brock\b/i, /\bpop\b/i]
     },
     {
       slug: 'festival',
@@ -56,12 +81,17 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
     {
       slug: 'tiyatro',
       type: 'theatre',
-      patterns: [/tiyatro/i, /stand.?up/i, /komedi/i, /sahne/i, /müzikal/i]
+      patterns: [/tiyatro/i, /stand.?up/i, /müzikal/i, /\bopera\b/i, /\bbale\b/i]
     },
     {
-      slug: 'spor',
-      type: 'sports',
-      patterns: [/spor/i, /futbol/i, /basketbol/i, /maç/i, /voleybol/i]
+      slug: 'komedi',
+      type: 'theatre',
+      patterns: [/komedi/i, /comedy/i]
+    },
+    {
+      slug: 'cocuk',
+      type: 'other',
+      patterns: [/çocuk/i, /\bcocuk\b/i, /\bkids\b/i, /\baile\b/i, /family/i]
     },
     {
       slug: 'teknoloji',
@@ -76,24 +106,49 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
     {
       slug: 'sanat',
       type: 'other',
-      patterns: [/sergi/i, /sanat/i, /opera/i, /bale/i]
+      patterns: [/sergi/i, /\bsanat\b/i]
     }
   ];
+
+function matchCategoryInText(
+  text: string
+): { categorySlug: string; eventType: EventType } | null {
+  const normalized = text.trim();
+  if (!normalized) return null;
+
+  for (const rule of CATEGORY_KEYWORDS) {
+    if (rule.patterns.some((p) => p.test(normalized))) {
+      return { categorySlug: rule.slug, eventType: rule.type };
+    }
+  }
+
+  return null;
+}
 
 export function mapCategory(
   title: string,
   description: string,
   hints?: string[]
 ): { categorySlug: string; eventType: EventType } {
-  const text = [title, description, ...(hints || [])].join(' ');
+  // Başlık her zaman öncelikli — platform ipuçları (ör. "tiyatro" genre slug) spor etkinliğini ezmesin
+  const fromTitle = matchCategoryInText(title);
+  if (fromTitle) return fromTitle;
 
-  for (const rule of CATEGORY_KEYWORDS) {
-    if (rule.patterns.some((p) => p.test(text))) {
-      return { categorySlug: rule.slug, eventType: rule.type };
-    }
+  const fromDescription = matchCategoryInText(description);
+  if (fromDescription) return fromDescription;
+
+  for (const hint of hints || []) {
+    const fromHint = matchCategoryInText(hint);
+    if (fromHint) return fromHint;
   }
 
   return { categorySlug: 'muzik', eventType: 'concert' };
+}
+
+export function categorySlugToEventType(slug: string): EventType {
+  return (
+    CATEGORY_KEYWORDS.find((rule) => rule.slug === slug)?.type ?? 'other'
+  );
 }
 
 export function parsePrice(text?: string | null): {

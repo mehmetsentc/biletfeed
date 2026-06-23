@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, CalendarPlus } from 'lucide-react';
+import { CookiePreferencesButton } from '@/components/consent/cookie-preferences-button';
 import { AppStoreBadges } from '@/components/footer/app-store-badges';
 import { NewsletterForm } from '@/components/footer/newsletter-form';
 import { siteConfig } from '@/lib/config/site';
@@ -73,6 +74,9 @@ export async function Footer() {
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <CookiePreferencesButton className="text-sm font-medium text-white/90 transition-colors hover:text-primary" />
+                </li>
               </ul>
             </div>
 

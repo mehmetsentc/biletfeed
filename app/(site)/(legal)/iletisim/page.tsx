@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import { platformContact } from '@/lib/config/contact';
 
 export default function ContactPage() {
   return (
@@ -47,13 +48,12 @@ export default function ContactPage() {
 
         <div className="space-y-6">
           {[
-            { icon: Mail, label: 'E-posta', value: 'destek@biletfeed.com' },
-            { icon: Phone, label: 'Telefon', value: '0541 953 93 00' },
+            { icon: Mail, label: 'E-posta', value: platformContact.email },
+            { icon: Phone, label: 'Telefon', value: platformContact.phone },
             {
               icon: MapPin,
               label: 'Adres',
-              value:
-                'Hurma Mah. 246 Sk. Adalın Park No:9 Kat:2 Konyaaltı / Antalya'
+              value: platformContact.address
             }
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-4">

@@ -107,6 +107,12 @@ enum ScrapeRunStatus {
   failed
 }
 
+enum InvitationStatus {
+  sent
+  viewed
+  cancelled
+}
+
 model User {
   id           String    @id @default(uuid()) @db.Uuid
   firebaseUid  String    @unique @map("firebase_uid")
@@ -160,6 +166,7 @@ model Organizer {
   transactions   Transaction[]
   venues         Venue[]
   supportTickets OrganizerSupportTicket[]
+  invitations    EventInvitation[]
 
   @@index([status])
   @@index([deletedAt])
@@ -280,6 +287,7 @@ model Event {
   purchasedTickets PurchasedTicket[]
   favorites        Favorite[]
   reviews          Review[]
+  invitations      EventInvitation[]
 
   @@index([status])
   @@index([organizerId])
@@ -334,6 +342,7 @@ model TicketType {
   event            Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   purchasedTickets PurchasedTicket[]
   orderItems       OrderItem[]
+  invitations      EventInvitation[]
 
   @@index([eventId])
   @@index([status])
@@ -408,12 +417,42 @@ model PurchasedTicket {
   ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
   user       User       @relation(fields: [userId], references: [id])
   event      Event      @relation(fields: [eventId], references: [id])
+  invitation EventInvitation?
 
   @@index([userId])
   @@index([eventId])
   @@index([status])
   @@index([deletedAt])
   @@map("purchased_tickets")
+}
+
+model EventInvitation {
+  id                String           @id @default(uuid()) @db.Uuid
+  eventId           String           @map("event_id") @db.Uuid
+  organizerId       String           @map("organizer_id") @db.Uuid
+  purchasedTicketId String           @unique @map("purchased_ticket_id") @db.Uuid
+  ticketTypeId      String           @map("ticket_type_id") @db.Uuid
+  guestName         String           @map("guest_name")
+  guestEmail        String?          @map("guest_email")
+  guestPhone        String?          @map("guest_phone")
+  inviteToken       String           @unique @map("invite_token")
+  personalMessage   String?          @map("personal_message")
+  status            InvitationStatus @default(sent)
+  viewedAt          DateTime?        @map("viewed_at")
+  deletedAt         DateTime?        @map("deleted_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  event           Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organizer       Organizer       @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  purchasedTicket PurchasedTicket @relation(fields: [purchasedTicketId], references: [id], onDelete: Cascade)
+  ticketType      TicketType      @relation(fields: [ticketTypeId], references: [id])
+
+  @@index([eventId])
+  @@index([organizerId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("event_invitations")
 }
 
 model Transaction {

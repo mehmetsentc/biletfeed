@@ -7,6 +7,19 @@ import {
 } from '@/lib/data/mock-events';
 import { resolveCategoryImage } from '@/lib/data/category-images';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
+import { mapCategory } from '@/lib/scraper/normalize';
+
+/** Başlık açıkça başka kategoriye işaret ediyorsa yanlış DB kaydını filtrele */
+function eventMatchesCategorySlug(
+  event: { title: string; description: string; categorySlug: string },
+  categorySlug: string
+): boolean {
+  const fromTitle = mapCategory(event.title, '');
+  if (fromTitle.categorySlug !== 'muzik') {
+    return fromTitle.categorySlug === categorySlug;
+  }
+  return event.categorySlug === categorySlug;
+}
 
 export const publishedFilter = {
   status: 'published' as const,
@@ -93,7 +106,8 @@ export async function getOnlineEvents(): Promise<MockEvent[]> {
 export async function getEventsByCategory(
   categorySlug: string
 ): Promise<MockEvent[]> {
-  return fetchPublishedEvents({ category: { slug: categorySlug } });
+  const events = await fetchPublishedEvents({ category: { slug: categorySlug } });
+  return events.filter((event) => eventMatchesCategorySlug(event, categorySlug));
 }
 
 export async function getEventsByCity(citySlug: string): Promise<MockEvent[]> {

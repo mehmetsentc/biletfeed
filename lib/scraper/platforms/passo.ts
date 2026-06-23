@@ -303,7 +303,7 @@ function mapAllEventItem(item: PassoAllEventsItem): ScrapedEventRaw | null {
   const city = resolveCitySlug(citySlug);
 
   const genreSlug = item.genreId ? (GENRE_ID_TO_SLUG[item.genreId] ?? 'muzik') : 'muzik';
-  const { categorySlug, eventType } = mapCategory(title, genreSlug);
+  const { categorySlug, eventType } = mapCategory(title, item.venue ?? '', [genreSlug]);
 
   // URL oluştur
   const link = item.link ?? item.url ??

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { platformContact } from '@/lib/config/contact';
 
 type TicketRow = {
   id: string;
@@ -53,8 +54,11 @@ export function ContactCenter({ initialTickets }: { initialTickets: TicketRow[] 
         <CardContent className="space-y-4 text-sm text-muted-foreground">
           <p>
             Platform desteği:{' '}
-            <a href="mailto:destek@biletfeed.com" className="text-[#f5a623] underline">
-              destek@biletfeed.com
+            <a
+              href={`mailto:${platformContact.email}`}
+              className="text-[#f5a623] underline"
+            >
+              {platformContact.email}
             </a>
           </p>
           <form onSubmit={submitTicket} className="space-y-4">

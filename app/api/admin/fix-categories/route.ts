@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { recategorizePublishedEvents } from '@/lib/scraper/recategorize-events';
 
 export const dynamic = 'force-dynamic';
 
 const CATEGORY_NAMES: Record<string, string> = {
-  muzik:     'Konser',
-  festival:  'Festival',
-  tiyatro:   'Tiyatro',
-  spor:      'Spor',
+  muzik: 'Konser',
+  festival: 'Festival',
+  tiyatro: 'Tiyatro',
+  spor: 'Spor',
   teknoloji: 'Workshop',
-  online:    'Online',
-  sanat:     'Sanat',
-  komedi:    'Komedi',
-  cocuk:     'Çocuk',
+  online: 'Online',
+  sanat: 'Sanat',
+  komedi: 'Komedi',
+  cocuk: 'Çocuk'
 };
 
-/** POST /api/admin/fix-categories — full scrape gerekmeden kategori adlarını düzeltir */
+/** POST /api/admin/fix-categories — kategori adlarını düzeltir; ?recategorize=1 ile etkinlikleri yeniden eşleştirir */
 export async function POST(request: NextRequest) {
   const adminSecret = process.env.ADMIN_SECRET || process.env.CRON_SECRET;
   if (!adminSecret) {
@@ -31,9 +32,19 @@ export async function POST(request: NextRequest) {
 
   const results: Record<string, number> = {};
   for (const [slug, name] of Object.entries(CATEGORY_NAMES)) {
-    const { count } = await prisma.category.updateMany({ where: { slug }, data: { name } });
+    const { count } = await prisma.category.updateMany({
+      where: { slug },
+      data: { name }
+    });
     results[slug] = count;
   }
 
-  return NextResponse.json({ ok: true, updated: results });
+  const shouldRecategorize =
+    request.nextUrl.searchParams.get('recategorize') === '1';
+
+  const recategorized = shouldRecategorize
+    ? await recategorizePublishedEvents()
+    : null;
+
+  return NextResponse.json({ ok: true, updated: results, recategorized });
 }

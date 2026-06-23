@@ -3,6 +3,7 @@ import type { ScrapeRunStatus } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { dedupeEventsWithAi } from '@/lib/scraper/ai/dedupe-events';
 import { isScraperAiReady } from '@/lib/scraper/ai/config';
+import { recategorizePublishedEvents } from '@/lib/scraper/recategorize-events';
 import { isPlaceholderImage } from '@/lib/scraper/image-utils';
 import {
   buildDedupeHash,
@@ -462,6 +463,13 @@ export async function runEventScrapeJob(): Promise<{
     }
 
     await promoteUpcomingExternalEvents();
+
+    const recategorized = await recategorizePublishedEvents();
+    if (recategorized.updated > 0) {
+      stats.errors.push(
+        `Kategori düzeltme: ${recategorized.updated}/${recategorized.scanned} etkinlik güncellendi`
+      );
+    }
 
     if (stats.errors.length > 0 && stats.totalCreated + stats.totalUpdated === 0 && stats.totalSkipped === 0) {
       status = 'failed';
