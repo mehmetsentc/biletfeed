@@ -14,6 +14,41 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
+function TemplateImage({
+  src,
+  alt,
+  coverColor
+}: {
+  src: string;
+  alt: string;
+  coverColor: string;
+}) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div
+        className={cn(
+          'flex aspect-square w-full items-center justify-center bg-gradient-to-br p-3',
+          coverColor
+        )}
+      >
+        <span className="text-center text-xs font-semibold text-white">{alt}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="aspect-square w-full object-cover"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export function CreateEventWizard() {
   const router = useRouter();
   const { addEvent } = useEventJoy();
@@ -60,7 +95,7 @@ export function CreateEventWizard() {
   }
 
   return (
-    <div className="mx-auto min-h-[calc(100vh-7rem)] max-w-2xl pb-28">
+    <div className="min-h-[calc(100vh-7rem)] max-w-3xl pb-28">
       <div className="mb-6 flex items-center gap-3">
         <Link
           href="/eventjoy/etkinlikler"
@@ -109,10 +144,10 @@ export function CreateEventWizard() {
                     : 'border-border hover:border-primary/40'
                 )}
               >
-                <img
+                <TemplateImage
                   src={t.image}
                   alt={t.name}
-                  className="aspect-square w-full object-cover"
+                  coverColor={t.coverColor}
                 />
                 <p className="px-2 py-2 text-xs font-medium text-foreground">
                   {t.name}
@@ -209,7 +244,7 @@ export function CreateEventWizard() {
       )}
 
       <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 p-4 backdrop-blur-md lg:static lg:mt-6 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-        <div className="mx-auto flex max-w-2xl gap-3">
+        <div className="flex max-w-3xl gap-3">
           {step > 1 && (
             <Button
               type="button"

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CategoryIcon } from '@/components/categories/category-icon';
 import { cn } from '@/lib/utils';
 import { categories } from '@/lib/data/mock-events';
 
@@ -16,9 +17,7 @@ export function CategoryRibbon({ className }: { className?: string }) {
           href={`/kategoriler/${cat.slug}`}
           className="group flex min-w-[88px] flex-col items-center gap-2"
         >
-          <div className="flex size-[72px] items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-primary/20 transition-all group-hover:scale-105 group-hover:ring-primary/50 group-hover:shadow-lg group-hover:shadow-primary/10">
-            <span className="text-2xl">{cat.icon}</span>
-          </div>
+          <CategoryIcon slug={cat.slug} size="ribbon" />
           <span className="text-center text-xs font-medium text-foreground md:text-sm">
             {cat.name}
           </span>

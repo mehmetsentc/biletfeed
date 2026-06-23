@@ -46,7 +46,7 @@ export function EventJoyProfileEdit() {
   });
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 px-4 py-6 lg:px-0">
+    <div className="max-w-lg space-y-6 py-2">
       <div className="flex items-center justify-between">
         <Link
           href="/eventjoy/profil"

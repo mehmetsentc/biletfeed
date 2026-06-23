@@ -8,16 +8,15 @@ import {
   Home,
   MessageCircle,
   Plus,
-  Sparkles,
   User
 } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
+import { useAuth } from '@/components/providers/auth-provider';
 import { siteConfig } from '@/lib/config/site';
-import { brandTheme } from '@/lib/config/brand-theme';
 import { cn } from '@/lib/utils';
 
 /** @deprecated primary / brand-orange kullanın */
-export const EVENTJOY_RED = brandTheme.orange;
+export const EVENTJOY_RED = '#FF9100';
 
 const navItems = [
   {
@@ -36,13 +35,6 @@ const navItems = [
       p === '/eventjoy/etkinlikler'
   },
   {
-    href: '/eventjoy/yeni',
-    label: 'Oluştur',
-    icon: Plus,
-    isCenter: true,
-    match: () => false
-  },
-  {
     href: '/eventjoy/mesajlar',
     label: 'Mesajlar',
     icon: MessageCircle,
@@ -58,85 +50,83 @@ const navItems = [
 
 const hideNavPaths = ['/eventjoy/yeni'];
 
-function NavLink({
+function NavTab({
   item,
-  pathname,
-  variant
+  pathname
 }: {
   item: (typeof navItems)[number];
   pathname: string;
-  variant: 'sidebar' | 'bottom';
 }) {
   const active = item.match?.(pathname) ?? pathname === item.href;
-
-  if (item.isCenter && variant === 'bottom') {
-    return (
-      <Link
-        href={item.href}
-        className="flex flex-col items-center gap-1 -mt-5"
-        aria-label="Yeni etkinlik oluştur"
-      >
-        <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition hover:scale-105 active:scale-95">
-          <Plus className="size-7" strokeWidth={2.5} />
-        </span>
-      </Link>
-    );
-  }
-
-  if (item.isCenter) return null;
-
-  if (variant === 'sidebar') {
-    return (
-      <Link
-        href={item.href}
-        className={cn(
-          'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-          active
-            ? 'bg-primary/15 text-primary'
-            : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-        )}
-      >
-        <item.icon className="size-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} />
-        {item.label}
-      </Link>
-    );
-  }
 
   return (
     <Link
       href={item.href}
       className={cn(
-        'flex min-w-[4rem] flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition-colors',
-        active ? 'text-primary' : 'text-muted-foreground'
+        'inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+        active
+          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+          : 'text-zinc-300 hover:bg-white/8 hover:text-white'
       )}
     >
-      <item.icon className="size-5" strokeWidth={active ? 2.25 : 1.75} />
-      {item.label}
+      <item.icon className="size-4 shrink-0" strokeWidth={active ? 2.25 : 1.75} />
+      <span>{item.label}</span>
     </Link>
   );
 }
 
 function EventJoyTopBar() {
+  const { user } = useAuth();
+  const displayName =
+    user?.displayName?.trim() || user?.email?.split('@')[0] || 'Hesabım';
+
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#1f2327] px-4 text-white lg:px-6">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#1f2327] px-4 text-white lg:px-8">
+      <div className="flex min-w-0 items-center gap-3">
         <Logo href="/eventjoy/panel" variant="on-dark" className="h-8 w-auto ring-0" />
         <span className="hidden rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary sm:inline">
           EventJoy
         </span>
       </div>
-      <Link
-        href="/"
-        className="text-xs text-zinc-400 transition hover:text-white sm:text-sm"
-      >
-        {siteConfig.name}&apos;e Dön
-      </Link>
+
+      <div className="flex items-center gap-3 text-sm">
+        <Link
+          href="/"
+          className="hidden text-zinc-400 transition hover:text-white sm:inline"
+        >
+          {siteConfig.name}&apos;e Dön
+        </Link>
+        <span className="max-w-[140px] truncate rounded-md bg-white/10 px-3 py-1.5 text-zinc-100 sm:max-w-none">
+          {displayName}
+        </span>
+      </div>
     </header>
+  );
+}
+
+function EventJoyNavBar({ pathname }: { pathname: string }) {
+  return (
+    <nav className="sticky top-14 z-40 border-b border-white/10 bg-[#2b3035]">
+      <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:gap-3 lg:px-8 [&::-webkit-scrollbar]:hidden">
+        {navItems.map((item) => (
+          <NavTab key={item.href} item={item} pathname={pathname} />
+        ))}
+        <Link
+          href="/eventjoy/yeni"
+          className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+        >
+          <Plus className="size-4" strokeWidth={2.25} />
+          <span className="hidden sm:inline">Yeni Etkinlik</span>
+          <span className="sm:hidden">Oluştur</span>
+        </Link>
+      </div>
+    </nav>
   );
 }
 
 export function EventJoyShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
   const hideNav = hideNavPaths.some((p) => pathname.startsWith(p));
   const isSubPage =
     pathname.includes('/misafirler/') ||
@@ -150,86 +140,16 @@ export function EventJoyShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="organizer-surface flex min-h-screen flex-col bg-[#eef0f2]">
       <EventJoyTopBar />
+      {showNav && <EventJoyNavBar pathname={pathname} />}
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1">
-        {showNav && (
-          <aside className="hidden w-64 shrink-0 flex-col border-r border-white/5 bg-[#2b3035] text-zinc-100 lg:flex">
-            <div className="border-b border-white/10 p-5">
-              <div className="flex items-center gap-2 text-primary">
-                <Sparkles className="size-4" />
-                <p className="text-[10px] font-semibold uppercase tracking-widest">
-                  EventJoy
-                </p>
-              </div>
-              <p className="mt-1.5 text-sm font-medium text-zinc-200">
-                Küçük etkinlik planlayıcı
-              </p>
-            </div>
-            <nav className="flex-1 space-y-1 p-3">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  pathname={pathname}
-                  variant="sidebar"
-                />
-              ))}
-            </nav>
-            <div className="m-3 rounded-xl border border-primary/20 bg-[#1f2327] p-4">
-              <p className="text-sm font-semibold text-white">Yeni etkinlik</p>
-              <p className="mt-1 text-xs text-zinc-400">
-                Davetiye ve misafir listesini hazırlayın.
-              </p>
-              <Link
-                href="/eventjoy/yeni"
-                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
-              >
-                <Plus className="size-3.5" />
-                Oluştur
-              </Link>
-            </div>
-          </aside>
+      <main
+        className={cn(
+          'min-w-0 flex-1 w-full overflow-auto',
+          isSubPage || hideNav ? 'p-4 md:p-6 lg:p-8' : 'p-4 md:p-6 lg:px-8 lg:py-8'
         )}
-
-        <main
-          className={cn(
-            'min-h-0 flex-1',
-            showNav ? 'pb-24 lg:pb-8' : 'pb-4'
-          )}
-        >
-          <div
-            className={cn(
-              'mx-auto w-full',
-              showNav
-                ? 'max-w-lg px-4 py-5 lg:max-w-none lg:px-8 lg:py-8'
-                : 'max-w-2xl px-4 py-5 lg:max-w-4xl lg:px-8 lg:py-6'
-            )}
-          >
-            {showNav ? (
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-8">
-                {children}
-              </div>
-            ) : (
-              children
-            )}
-          </div>
-        </main>
-      </div>
-
-      {showNav && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden">
-          <div className="mx-auto flex max-w-lg items-end justify-around px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                pathname={pathname}
-                variant="bottom"
-              />
-            ))}
-          </div>
-        </nav>
-      )}
+      >
+        {children}
+      </main>
     </div>
   );
 }
@@ -244,16 +164,16 @@ export function EventJoyHeader({
   rightAction?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-30 -mx-4 -mt-4 flex items-center justify-between border-b border-border bg-card/95 px-4 py-3 backdrop-blur-md md:-mx-8 md:-mt-8 lg:static lg:mx-0 lg:mt-0 lg:rounded-xl lg:border lg:shadow-sm">
-      <div className="flex items-center gap-3">
+    <header className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-border bg-white px-4 py-3 shadow-sm">
+      <div className="flex min-w-0 items-center gap-3">
         <Link
           href={backHref}
-          className="flex size-9 items-center justify-center rounded-full text-foreground transition hover:bg-muted"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition hover:bg-muted"
           aria-label="Geri"
         >
           <ArrowLeft className="size-5" />
         </Link>
-        <h1 className="text-base font-bold text-foreground">{title}</h1>
+        <h1 className="truncate text-lg font-bold text-foreground">{title}</h1>
       </div>
       {rightAction}
     </header>

@@ -5,11 +5,18 @@ import { cn } from '@/lib/utils';
 interface PageHeroProps {
   title: string;
   subtitle?: string;
+  leading?: React.ReactNode;
   breadcrumbs?: { label: string; href?: string }[];
   className?: string;
 }
 
-export function PageHero({ title, subtitle, breadcrumbs, className }: PageHeroProps) {
+export function PageHero({
+  title,
+  subtitle,
+  leading,
+  breadcrumbs,
+  className
+}: PageHeroProps) {
   return (
     <section
       className={cn(
@@ -34,7 +41,10 @@ export function PageHero({ title, subtitle, breadcrumbs, className }: PageHeroPr
             ))}
           </nav>
         )}
-        <h1 className="text-3xl font-bold md:text-4xl">{title}</h1>
+        <h1 className="flex items-center gap-3 text-3xl font-bold md:gap-4 md:text-4xl">
+          {leading}
+          <span>{title}</span>
+        </h1>
         {subtitle && (
           <p className="mt-2 max-w-2xl text-muted-foreground">{subtitle}</p>
         )}
