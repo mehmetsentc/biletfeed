@@ -86,6 +86,7 @@ export default async function AdminEventsPage({
             <tr>
               <th className="p-3 font-medium">Etkinlik</th>
               <th className="p-3 font-medium">Tarih / Saat</th>
+              <th className="p-3 font-medium">Kategori</th>
               <th className="p-3 font-medium">Şehir</th>
               <th className="p-3 font-medium">Kaynak</th>
               <th className="p-3 font-medium">Durum</th>
@@ -116,6 +117,7 @@ export default async function AdminEventsPage({
                   <br />
                   {formatEventTimeRange(event)}
                 </td>
+                <td className="p-3 text-muted-foreground">{event.categorySlug || '—'}</td>
                 <td className="p-3">{event.city}</td>
                 <td className="p-3">{event.externalPlatform || '—'}</td>
                 <td className="p-3">
@@ -137,7 +139,7 @@ export default async function AdminEventsPage({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-muted-foreground">
                   Henüz scraper etkinliği yok. Scrape job çalıştırın.
                 </td>
               </tr>

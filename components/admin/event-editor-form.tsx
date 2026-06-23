@@ -31,12 +31,26 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
     venue: event.venue,
     address: event.address,
     cityName: event.city,
+    categorySlug: event.categorySlug || 'diger',
     startDate: toDatetimeLocalValue(event.startDate),
     endDate: toDatetimeLocalValue(event.endDate),
     basePrice: String(event.price),
     isFree: event.isFree,
     externalUrl: event.externalUrl || ''
   });
+
+  const CATEGORIES = [
+    { slug: 'muzik', label: '🎵 Konser / Müzik' },
+    { slug: 'tiyatro', label: '🎭 Tiyatro' },
+    { slug: 'festival', label: '🎪 Festival' },
+    { slug: 'spor', label: '⚽ Spor' },
+    { slug: 'sanat', label: '🎨 Sanat' },
+    { slug: 'komedi', label: '😄 Komedi' },
+    { slug: 'cocuk', label: '🧒 Çocuk / Aile' },
+    { slug: 'teknoloji', label: '💻 Workshop / Atölye' },
+    { slug: 'online', label: '🌐 Online' },
+    { slug: 'diger', label: '📌 Diğer' },
+  ];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +72,7 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
           startDate: new Date(form.startDate).toISOString(),
           endDate: new Date(form.endDate).toISOString(),
           basePrice: Number(form.basePrice) || 0,
+          categorySlug: form.categorySlug,
           isFree: form.isFree,
           externalUrl: form.externalUrl,
           tags: event.tags.filter(
@@ -129,6 +144,19 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="categorySlug">Kategori</Label>
+          <select
+            id="categorySlug"
+            value={form.categorySlug}
+            onChange={(e) => setForm({ ...form, categorySlug: e.target.value })}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.slug} value={c.slug}>{c.label}</option>
+            ))}
+          </select>
+        </div>
         <div>
           <Label htmlFor="cityName">Şehir</Label>
           <Input

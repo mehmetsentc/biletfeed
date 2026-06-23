@@ -14,6 +14,7 @@ const updateSchema = z.object({
   venue: z.string().max(200).optional(),
   address: z.string().max(300).optional(),
   cityName: z.string().max(80).optional(),
+  categorySlug: z.string().max(60).optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   basePrice: z.number().min(0).optional(),
@@ -73,6 +74,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const data = parsed.data;
   let cityId = existing.cityId;
   let venueId = existing.venueId;
+  let categoryId = existing.categoryId;
+
+  if (data.categorySlug) {
+    const category = await prisma.category.findUnique({
+      where: { slug: data.categorySlug }
+    });
+    if (category) categoryId = category.id;
+  }
 
   if (data.cityName) {
     const { slug, name } = resolveCitySlug(data.cityName);
@@ -134,6 +143,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       ...(data.externalUrl && { externalUrl: data.externalUrl }),
       cityId,
       venueId,
+      categoryId,
       tags: cleanedTags
     },
     include: eventInclude
