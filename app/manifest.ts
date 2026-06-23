@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { brandLogos } from '@/lib/config/brand-theme';
+import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 import { siteConfig } from '@/lib/config/site';
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -16,13 +16,13 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ['entertainment', 'lifestyle'],
     icons: [
       {
-        src: brandLogos.favicon,
+        src: brandAssetUrl(brandLogos.favicon),
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any'
       },
       {
-        src: '/brand/favicon-192.png',
+        src: brandAssetUrl('/brand/favicon-192.png'),
         sizes: '192x192',
         type: 'image/png',
         purpose: 'maskable'

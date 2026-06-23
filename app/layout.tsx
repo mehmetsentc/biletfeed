@@ -17,7 +17,11 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: brandAssetUrl(brandLogos.favicon), type: 'image/png', sizes: '512x512' },
-      { url: '/brand/favicon-192.png', type: 'image/png', sizes: '192x192' }
+      {
+        url: brandAssetUrl('/brand/favicon-192.png'),
+        type: 'image/png',
+        sizes: '192x192'
+      }
     ],
     apple: [{ url: brandAssetUrl(brandLogos.favicon), type: 'image/png' }],
     shortcut: brandAssetUrl(brandLogos.favicon)
