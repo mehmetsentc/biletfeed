@@ -81,7 +81,18 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
     {
       slug: 'tiyatro',
       type: 'theatre',
-      patterns: [/tiyatro/i, /stand.?up/i, /müzikal/i, /\bopera\b/i, /\bbale\b/i]
+      patterns: [
+        /tiyatro/i,
+        /stand.?up/i,
+        /müzikal/i,
+        /\bopera\b/i,
+        /\bbale\b/i,
+        /gösteri/i,
+        /\bpiyes\b/i,
+        /\bmonolog\b/i,
+        /\boyun\b.*sahne/i,
+        /sahne.*\boyun\b/i
+      ]
     },
     {
       slug: 'komedi',

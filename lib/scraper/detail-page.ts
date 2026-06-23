@@ -249,7 +249,15 @@ export function parseDetailPageHtml(
     Array.isArray(offersRaw) ? offersRaw[0] : offersRaw
   ) as Record<string, unknown> | undefined;
   const { price, isFree } = resolvePrice($, offers);
-  const { categorySlug, eventType } = mapCategory(title, description);
+  // Bubilet için: '#Tiyatro', '#Konser' gibi hashtag etiketlerini kategori ipucu olarak kullan
+  const categoryHints: string[] = [];
+  if (platform === 'BUBILET') {
+    $('a[href*="/etiket/"]').each((_, el) => {
+      const text = $(el).text().replace(/^#/, '').trim();
+      if (text) categoryHints.push(text);
+    });
+  }
+  const { categorySlug, eventType } = mapCategory(title, description, categoryHints);
 
   const tags = [PLATFORM_LABELS[platform]];
   if (isPlaceholderImage(cover)) tags.push('eksik-gorsel');
