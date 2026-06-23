@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Suspense } from 'react';
+import type { Prisma } from '@prisma/client';
 import { formatEventDate, formatEventTimeRange } from '@/lib/data/mock-events';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
@@ -36,7 +37,7 @@ export default async function AdminEventsPage({
   await ensureDbConnection();
 
   // Filtre koşulları
-  const where: Parameters<typeof prisma.event.findMany>[0]['where'] = {
+  const where: Prisma.EventWhereInput = {
     deletedAt: null,
     listingType: 'external',
     ...(review === '1' ? {
