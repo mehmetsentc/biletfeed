@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { verifySessionCookie } from '@/lib/auth/session';
-import { getAdminAuth } from '@/lib/firebase/admin';
-import {
-  isFirebaseStorageUploadConfigured,
-  uploadUserAvatarFromBuffer
-} from '@/lib/firebase/admin-storage';
-import { syncUserFromFirebase } from '@/lib/services/users';
 
 export const runtime = 'nodejs';
 
@@ -36,13 +30,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Giriş gerekli' }, { status: 401 });
     }
 
-    if (!isFirebaseStorageUploadConfigured()) {
-      return NextResponse.json(
-        { error: 'Profil fotoğrafı yükleme şu an kullanılamıyor' },
-        { status: 503 }
-      );
-    }
-
     const formData = await request.formData();
     const file = formData.get('file');
     if (!(file instanceof File)) {
@@ -64,6 +51,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { isFirebaseStorageUploadConfigured, uploadUserAvatarFromBuffer } =
+      await import('@/lib/firebase/admin-storage');
+
+    if (!isFirebaseStorageUploadConfigured()) {
+      return NextResponse.json(
+        { error: 'Profil fotoğrafı yükleme şu an kullanılamıyor' },
+        { status: 503 }
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const photoURL = await uploadUserAvatarFromBuffer(
       session.uid,
@@ -73,34 +70,42 @@ export async function POST(request: NextRequest) {
 
     let displayName = session.email?.split('@')[0] || 'Kullanıcı';
     try {
+      const { getAdminAuth } = await import('@/lib/firebase/admin');
       const fbUser = await getAdminAuth().getUser(session.uid);
       if (fbUser.displayName?.trim()) {
         displayName = fbUser.displayName.trim();
       }
+      await getAdminAuth().updateUser(session.uid, { photoURL });
     } catch {
       /* Firebase Auth profili opsiyonel */
     }
 
     const email = session.email?.trim() || `${session.uid}@users.biletfeed.local`;
-    const user = await syncUserFromFirebase({
-      firebaseUid: session.uid,
-      email,
-      displayName,
-      photoURL
+    const { prisma, ensureDbConnection } = await import('@/lib/db/prisma');
+    const { bootstrapRoleForEmail } = await import('@/lib/auth/bootstrap-admins');
+
+    await ensureDbConnection();
+    const user = await prisma.user.upsert({
+      where: { firebaseUid: session.uid },
+      create: {
+        firebaseUid: session.uid,
+        email,
+        displayName,
+        photoURL,
+        role: bootstrapRoleForEmail(email)
+      },
+      update: {
+        email,
+        displayName,
+        photoURL
+      },
+      select: {
+        email: true,
+        displayName: true,
+        photoURL: true,
+        role: true
+      }
     });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Profil kaydı güncellenemedi' },
-        { status: 500 }
-      );
-    }
-
-    try {
-      await getAdminAuth().updateUser(session.uid, { photoURL });
-    } catch {
-      /* DB kaydı yeterli */
-    }
 
     return NextResponse.json({ user, photoURL });
   } catch (err) {
