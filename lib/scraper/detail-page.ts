@@ -224,13 +224,13 @@ export function parseDetailPageHtml(
 
   const loc = parseLocation(ld || {});
 
-  // Bubilet URL formatı: /istanbul/etkinlik/{slug} — şehri URL'den çek, JSON-LD'ye güvenme
+  // Bubilet URL formatı: /{city}/{event-slug} — şehri her zaman URL'den çek
   let cityRaw = loc.cityName;
-  if (platform === 'BUBILET' && !cityRaw) {
+  if (platform === 'BUBILET') {
     try {
       const parts = new URL(pageUrl).pathname.split('/').filter(Boolean);
-      if (parts.length >= 2 && parts[1] === 'etkinlik') {
-        cityRaw = parts[0]!;
+      if (parts.length >= 1) {
+        cityRaw = parts[0]!; // İlk segment her zaman şehir slug'ı
       }
     } catch { /* skip */ }
   }

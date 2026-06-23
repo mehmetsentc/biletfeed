@@ -2,24 +2,90 @@ import type { EventType } from '@prisma/client';
 import { mergeDateWithTimeText, parseScraperDateTime } from '@/lib/scraper/dates';
 
 const CITY_ALIASES: Record<string, string> = {
-  istanbul: 'istanbul',
-  İstanbul: 'istanbul',
-  ankara: 'ankara',
-  Ankara: 'ankara',
-  izmir: 'izmir',
-  İzmir: 'izmir',
-  antalya: 'antalya',
-  Antalya: 'antalya',
-  bursa: 'bursa',
-  Bursa: 'bursa',
-  eskisehir: 'eskisehir',
-  eskişehir: 'eskisehir',
-  Eskişehir: 'eskisehir',
-  adana: 'adana',
-  gaziantep: 'gaziantep',
-  konya: 'konya',
-  mersin: 'mersin',
-  kayseri: 'kayseri',
+  // Büyükşehirler
+  istanbul: 'istanbul', İstanbul: 'istanbul',
+  ankara: 'ankara', Ankara: 'ankara',
+  izmir: 'izmir', İzmir: 'izmir',
+  antalya: 'antalya', Antalya: 'antalya',
+  bursa: 'bursa', Bursa: 'bursa',
+  eskisehir: 'eskisehir', eskişehir: 'eskisehir', Eskişehir: 'eskisehir',
+  // Diğer iller (Türkçe → ASCII slug)
+  adana: 'adana', Adana: 'adana',
+  adiyaman: 'adiyaman', adıyaman: 'adiyaman', Adıyaman: 'adiyaman',
+  afyon: 'afyon', Afyon: 'afyon', afyonkarahisar: 'afyon', Afyonkarahisar: 'afyon',
+  agri: 'agri', ağrı: 'agri', Ağrı: 'agri',
+  aksaray: 'aksaray', Aksaray: 'aksaray',
+  amasya: 'amasya', Amasya: 'amasya',
+  ardahan: 'ardahan', Ardahan: 'ardahan',
+  artvin: 'artvin', Artvin: 'artvin',
+  aydin: 'aydin', aydın: 'aydin', Aydın: 'aydin',
+  balikesir: 'balikesir', balıkesir: 'balikesir', Balıkesir: 'balikesir',
+  bartin: 'bartin', bartın: 'bartin', Bartın: 'bartin',
+  batman: 'batman', Batman: 'batman',
+  bayburt: 'bayburt', Bayburt: 'bayburt',
+  bilecik: 'bilecik', Bilecik: 'bilecik',
+  bingol: 'bingol', bingöl: 'bingol', Bingöl: 'bingol',
+  bitlis: 'bitlis', Bitlis: 'bitlis',
+  bolu: 'bolu', Bolu: 'bolu',
+  burdur: 'burdur', Burdur: 'burdur',
+  canakkale: 'canakkale', çanakkale: 'canakkale', Çanakkale: 'canakkale',
+  cankiri: 'cankiri', çankırı: 'cankiri', Çankırı: 'cankiri',
+  corum: 'corum', çorum: 'corum', Çorum: 'corum',
+  denizli: 'denizli', Denizli: 'denizli',
+  diyarbakir: 'diyarbakir', diyarbakır: 'diyarbakir', Diyarbakır: 'diyarbakir',
+  duzce: 'duzce', düzce: 'duzce', Düzce: 'duzce',
+  edirne: 'edirne', Edirne: 'edirne',
+  elazig: 'elazig', elazığ: 'elazig', Elazığ: 'elazig',
+  erzincan: 'erzincan', Erzincan: 'erzincan',
+  erzurum: 'erzurum', Erzurum: 'erzurum',
+  gaziantep: 'gaziantep', Gaziantep: 'gaziantep',
+  giresun: 'giresun', Giresun: 'giresun',
+  gumushane: 'gumushane', gümüşhane: 'gumushane', Gümüşhane: 'gumushane',
+  hakkari: 'hakkari', Hakkari: 'hakkari',
+  hatay: 'hatay', Hatay: 'hatay',
+  igdir: 'igdir', ığdır: 'igdir', Iğdır: 'igdir',
+  isparta: 'isparta', Isparta: 'isparta',
+  kahramanmaras: 'kahramanmaras', kahramanmaraş: 'kahramanmaras', Kahramanmaraş: 'kahramanmaras',
+  karabuk: 'karabuk', karabük: 'karabuk', Karabük: 'karabuk',
+  karaman: 'karaman', Karaman: 'karaman',
+  kars: 'kars', Kars: 'kars',
+  kastamonu: 'kastamonu', Kastamonu: 'kastamonu',
+  kayseri: 'kayseri', Kayseri: 'kayseri',
+  kilis: 'kilis', Kilis: 'kilis',
+  kirikkale: 'kirikkale', kırıkkale: 'kirikkale', Kırıkkale: 'kirikkale',
+  kirklareli: 'kirklareli', kırklareli: 'kirklareli', Kırklareli: 'kirklareli',
+  kirsehir: 'kirsehir', kırşehir: 'kirsehir', Kırşehir: 'kirsehir',
+  kocaeli: 'kocaeli', Kocaeli: 'kocaeli', izmit: 'kocaeli', İzmit: 'kocaeli',
+  konya: 'konya', Konya: 'konya',
+  kutahya: 'kutahya', kütahya: 'kutahya', Kütahya: 'kutahya',
+  malatya: 'malatya', Malatya: 'malatya',
+  manisa: 'manisa', Manisa: 'manisa',
+  mardin: 'mardin', Mardin: 'mardin',
+  mersin: 'mersin', Mersin: 'mersin', 'icel': 'mersin', İçel: 'mersin',
+  mugla: 'mugla', muğla: 'mugla', Muğla: 'mugla',
+  mus: 'mus', muş: 'mus', Muş: 'mus',
+  nevsehir: 'nevsehir', nevşehir: 'nevsehir', Nevşehir: 'nevsehir',
+  nigde: 'nigde', niğde: 'nigde', Niğde: 'nigde',
+  ordu: 'ordu', Ordu: 'ordu',
+  osmaniye: 'osmaniye', Osmaniye: 'osmaniye',
+  rize: 'rize', Rize: 'rize',
+  sakarya: 'sakarya', Sakarya: 'sakarya', adapazari: 'sakarya',
+  samsun: 'samsun', Samsun: 'samsun',
+  sanliurfa: 'sanliurfa', şanlıurfa: 'sanliurfa', Şanlıurfa: 'sanliurfa', urfa: 'sanliurfa',
+  siirt: 'siirt', Siirt: 'siirt',
+  sinop: 'sinop', Sinop: 'sinop',
+  sirnak: 'sirnak', şırnak: 'sirnak', Şırnak: 'sirnak',
+  sivas: 'sivas', Sivas: 'sivas',
+  tekirdag: 'tekirdag', tekirdağ: 'tekirdag', Tekirdağ: 'tekirdag',
+  tokat: 'tokat', Tokat: 'tokat',
+  trabzon: 'trabzon', Trabzon: 'trabzon',
+  tunceli: 'tunceli', Tunceli: 'tunceli',
+  usak: 'usak', uşak: 'usak', Uşak: 'usak',
+  van: 'van', Van: 'van',
+  yalova: 'yalova', Yalova: 'yalova',
+  yozgat: 'yozgat', Yozgat: 'yozgat',
+  zonguldak: 'zonguldak', Zonguldak: 'zonguldak',
+  // Online
   online: 'online'
 };
 
@@ -118,6 +184,24 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
       slug: 'sanat',
       type: 'other',
       patterns: [/sergi/i, /\bsanat\b/i]
+    },
+    {
+      slug: 'diger',
+      type: 'other',
+      patterns: [
+        /aquapark/i,
+        /\bhavuz\b/i,
+        /hayvanat/i,
+        /kahvaltı/i,
+        /\botel\b/i,
+        /\bresort\b/i,
+        /\bgünübirlik\b/i,
+        /\bpaket\b.*\btur\b/i,
+        /\btur\b.*\bpaket\b/i,
+        /\bsafari\b/i,
+        /\bbreakfast\b/i,
+        /\bbrunch\b/i
+      ]
     }
   ];
 
@@ -153,7 +237,7 @@ export function mapCategory(
     if (fromHint) return fromHint;
   }
 
-  return { categorySlug: 'muzik', eventType: 'concert' };
+  return { categorySlug: 'diger', eventType: 'other' };
 }
 
 export function categorySlugToEventType(slug: string): EventType {

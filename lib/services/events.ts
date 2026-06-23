@@ -14,10 +14,12 @@ function eventMatchesCategorySlug(
   event: { title: string; description: string; categorySlug: string },
   categorySlug: string
 ): boolean {
-  const fromTitle = mapCategory(event.title, '');
-  if (fromTitle.categorySlug !== 'muzik') {
+  const fromTitle = mapCategory(event.title, event.description);
+  // Varsayılan ('diger') değilse başlığın belirlediği kategoriyi kullan
+  if (fromTitle.categorySlug !== 'diger') {
     return fromTitle.categorySlug === categorySlug;
   }
+  // Başlıktan belirlenemedi — DB'deki kategoriye güven
   return event.categorySlug === categorySlug;
 }
 
