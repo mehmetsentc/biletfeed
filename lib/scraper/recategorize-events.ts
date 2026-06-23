@@ -10,7 +10,8 @@ const CATEGORY_NAMES: Record<string, string> = {
   online: 'Online',
   sanat: 'Sanat',
   komedi: 'Komedi',
-  cocuk: 'Çocuk'
+  cocuk: 'Çocuk',
+  diger: 'Diğer'
 };
 
 async function resolveCategoryId(categorySlug: string): Promise<string> {

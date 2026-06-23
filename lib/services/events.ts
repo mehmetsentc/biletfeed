@@ -115,6 +115,53 @@ export async function getEventsByCategory(
   return events.filter((event) => eventMatchesCategorySlug(event, categorySlug));
 }
 
+export interface CategoryStrip {
+  slug: string;
+  name: string;
+  emoji: string;
+  events: MockEvent[];
+}
+
+const HOMEPAGE_CATEGORIES = [
+  { slug: 'muzik', name: 'Konser', emoji: '🎵' },
+  { slug: 'tiyatro', name: 'Tiyatro', emoji: '🎭' },
+  { slug: 'festival', name: 'Festival', emoji: '🎪' },
+  { slug: 'spor', name: 'Spor', emoji: '⚽' },
+  { slug: 'sanat', name: 'Sanat & Sergi', emoji: '🎨' },
+  { slug: 'komedi', name: 'Stand-up & Komedi', emoji: '😄' },
+];
+
+export async function getHomepageCategoryStrips(
+  citySlug?: string
+): Promise<CategoryStrip[]> {
+  if (!isDatabaseConfigured()) return [];
+  await ensureDbConnection();
+
+  const where: Prisma.EventWhereInput = {
+    ...upcomingFilter,
+    category: { slug: { in: HOMEPAGE_CATEGORIES.map((c) => c.slug) } },
+    ...(citySlug ? { city: { slug: citySlug } } : {})
+  };
+
+  const events = await prisma.event.findMany({
+    where,
+    include: eventInclude,
+    orderBy: { startDate: 'asc' },
+    take: 200
+  });
+
+  const mapped = events.map(toMockEvent);
+  const bySlug = new Map<string, MockEvent[]>();
+  for (const cat of HOMEPAGE_CATEGORIES) bySlug.set(cat.slug, []);
+  for (const ev of mapped) {
+    bySlug.get(ev.categorySlug)?.push(ev);
+  }
+
+  return HOMEPAGE_CATEGORIES
+    .map((cat) => ({ ...cat, events: (bySlug.get(cat.slug) ?? []).slice(0, 8) }))
+    .filter((strip) => strip.events.length >= 2);
+}
+
 export async function getEventsByCity(citySlug: string): Promise<MockEvent[]> {
   return fetchPublishedEvents({ city: { slug: citySlug } });
 }

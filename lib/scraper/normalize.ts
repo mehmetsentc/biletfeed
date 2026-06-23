@@ -137,12 +137,33 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
     {
       slug: 'muzik',
       type: 'concert',
-      patterns: [/konser/i, /müzik/i, /\bdj\b/i, /\brock\b/i, /\bpop\b/i]
+      patterns: [
+        /konser/i,
+        /müzik/i,
+        /\bdj\b/i,
+        /\brock\b/i,
+        /\bpop\b/i,
+        /\bparty\b/i,
+        /\bparti\b/i,
+        /akustik/i,
+        /\btour\b/i,
+        /\bconcert\b/i,
+        /\bgala\b/i,
+        /elektronik müzik/i,
+        /rooftop series/i,
+        /\ball night\b/i,
+        /\blive\b.*müzik/i
+      ]
     },
     {
       slug: 'festival',
       type: 'festival',
-      patterns: [/festival/i, /fuar/i]
+      patterns: [
+        /festival/i,
+        /\bfest\b/i,
+        /fuar/i,
+        /\bfaire\b/i
+      ]
     },
     {
       slug: 'tiyatro',
@@ -153,27 +174,52 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
         /müzikal/i,
         /\bopera\b/i,
         /\bbale\b/i,
-        /gösteri/i,
         /\bpiyes\b/i,
         /\bmonolog\b/i,
         /\boyun\b.*sahne/i,
-        /sahne.*\boyun\b/i
+        /sahne.*\boyun\b/i,
+        /\boyunu\b/i,
+        /\bpremiere\b/i,
+        /\bperformans\b/i,
+        /\bimprov\b/i
       ]
     },
     {
       slug: 'komedi',
       type: 'theatre',
-      patterns: [/komedi/i, /comedy/i]
+      patterns: [/komedi/i, /comedy/i, /güldürü/i]
     },
     {
       slug: 'cocuk',
       type: 'other',
-      patterns: [/çocuk/i, /\bcocuk\b/i, /\bkids\b/i, /\baile\b/i, /family/i]
+      patterns: [
+        /çocuk/i,
+        /\bcocuk\b/i,
+        /\bkids\b/i,
+        /\baile\b/i,
+        /family/i,
+        /\bfrozen\b/i,
+        /karlar ülkesi/i,
+        /şirinler/i,
+        /\bsmurfs\b/i,
+        /paw patrol/i,
+        /\bpeppa\b/i,
+        /\bminecraft\b/i,
+        /\bpokemon\b/i,
+        /\bunicorn\b/i,
+        /\bmasal\b/i,
+        /çizgi film/i,
+        /animasyon gösteri/i,
+        /\bperi\b.*gösteri/i,
+        /\bdinozor\b/i,
+        /\bkral\b.*\bkız\b/i,
+        /\bsüper kahraman/i
+      ]
     },
     {
       slug: 'teknoloji',
       type: 'workshop',
-      patterns: [/atölye/i, /eğitim/i, /seminer/i, /konferans/i, /workshop/i]
+      patterns: [/atölye/i, /eğitim/i, /seminer/i, /konferans/i, /workshop/i, /\btufting\b/i, /\btezhip\b/i, /vitray/i, /parfüm yapım/i, /\bmacrame\b/i]
     },
     {
       slug: 'online',
@@ -183,7 +229,22 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
     {
       slug: 'sanat',
       type: 'other',
-      patterns: [/sergi/i, /\bsanat\b/i]
+      patterns: [
+        /sergi/i,
+        /\bsanat\b/i,
+        /\bmüze\b/i,
+        /\bgaleri\b/i,
+        /\bexhibition\b/i,
+        /piramit/i,
+        /keşfi/i,
+        /\bantik\b/i,
+        /\bkeşif\b/i,
+        /\bcolosseum\b/i,
+        /\bgezisi\b/i,
+        /skywalk/i,
+        /skyview/i,
+        /\bpanorama\b/i
+      ]
     },
     {
       slug: 'diger',
@@ -193,14 +254,16 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
         /\bhavuz\b/i,
         /hayvanat/i,
         /kahvaltı/i,
-        /\botel\b/i,
-        /\bresort\b/i,
         /\bgünübirlik\b/i,
-        /\bpaket\b.*\btur\b/i,
-        /\btur\b.*\bpaket\b/i,
         /\bsafari\b/i,
-        /\bbreakfast\b/i,
-        /\bbrunch\b/i
+        /\bbrunch\b/i,
+        /\bdolphinarium\b/i,
+        /yunus gösteri/i,
+        /\bkampçılık\b/i,
+        /\byüzme\b/i,
+        /\bpiknik\b/i,
+        /\bkayak\b.*\bturu\b/i,
+        /\btur\b.*\bpaketi\b/i
       ]
     }
   ];
