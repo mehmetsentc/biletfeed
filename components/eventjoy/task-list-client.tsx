@@ -22,7 +22,7 @@ export function TaskListClient({
       <div className="px-4 py-4">
         <Link
           href={`/eventjoy/etkinlik/${eventId}/gorevler/yeni`}
-          className="text-sm font-semibold text-[#E53935]"
+          className="text-sm font-semibold text-primary"
         >
           + Görev Ekle
         </Link>
@@ -30,7 +30,7 @@ export function TaskListClient({
 
       {tasks.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-8 py-20 text-center">
-          <ClipboardList className="size-16 text-[#E53935]/60" />
+          <ClipboardList className="size-16 text-primary/60" />
           <p className="mt-4 font-bold">Görev bulunamadı</p>
           <p className="mt-1 text-sm text-muted-foreground">Lütfen görevlerinizi ekleyin</p>
         </div>
@@ -46,7 +46,7 @@ export function TaskListClient({
                     prev.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t))
                   )
                 }
-                className="size-5 accent-[#E53935]"
+                className="size-5 accent-primary"
               />
               <div>
                 <p className={task.done ? 'text-muted-foreground line-through' : 'font-medium'}>

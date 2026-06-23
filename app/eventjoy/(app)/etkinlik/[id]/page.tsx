@@ -25,10 +25,16 @@ export default async function EventJoyDetailPage({ params }: Props) {
   ];
 
   return (
-    <div className="bg-white">
+    <div className="px-4 py-4 lg:px-0 lg:py-0">
       <EventJoyHeader title="Etkinlik Yönetimi" backHref="/eventjoy/etkinlikler" />
 
-      <div className={cn('relative mx-4 mt-4 overflow-hidden rounded-xl bg-gradient-to-br p-5 text-white', event.coverColor)}>
+      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:mt-6">
+        <div
+          className={cn(
+            'relative overflow-hidden bg-gradient-to-br p-6 text-white',
+            event.coverColor
+          )}
+        >
         {event.coverImage && (
           <img
             src={event.coverImage}
@@ -48,41 +54,42 @@ export default async function EventJoyDetailPage({ params }: Props) {
             · {event.time}
           </p>
         </div>
-      </div>
+        </div>
 
-      <div className="mt-4 flex justify-center gap-1 px-4">
-        {event.guests.slice(0, 5).map((g) => (
-          <span
-            key={g.id}
-            className="flex size-9 items-center justify-center rounded-full bg-muted text-xs font-bold"
-          >
-            {g.name.charAt(0)}
-          </span>
-        ))}
-        {event.guests.length > 5 && (
-          <span className="flex size-9 items-center justify-center rounded-full bg-muted text-xs">
-            +{event.guests.length - 5}
-          </span>
-        )}
-      </div>
-
-      <ul className="mt-6 divide-y">
-        {links.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className="flex items-center gap-4 px-4 py-4"
+        <div className="flex justify-center gap-1 border-b border-border py-4">
+          {event.guests.slice(0, 5).map((g) => (
+            <span
+              key={g.id}
+              className="flex size-9 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground"
             >
-              <item.icon className="size-5 text-[#E53935]" />
-              <div className="flex-1">
-                <p className="font-semibold">{item.label}</p>
-                <p className="text-sm text-muted-foreground">{item.sub}</p>
-              </div>
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </Link>
-          </li>
-        ))}
-      </ul>
+              {g.name.charAt(0)}
+            </span>
+          ))}
+          {event.guests.length > 5 && (
+            <span className="flex size-9 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground">
+              +{event.guests.length - 5}
+            </span>
+          )}
+        </div>
+
+        <ul className="divide-y divide-border">
+          {links.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className="flex items-center gap-4 px-5 py-4 transition hover:bg-muted/50"
+              >
+                <item.icon className="size-5 text-primary" />
+                <div className="flex-1">
+                  <p className="font-semibold text-foreground">{item.label}</p>
+                  <p className="text-sm text-muted-foreground">{item.sub}</p>
+                </div>
+                <ChevronRight className="size-4 text-muted-foreground" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

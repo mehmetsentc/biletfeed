@@ -55,7 +55,7 @@ export function GuestListClient({ event }: { event: EventJoyEvent }) {
             className={cn(
               'flex-1 border-b-2 px-1 py-3 text-[11px] font-medium transition-colors sm:text-xs',
               tab === t.id
-                ? 'border-[#E53935] text-[#E53935]'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground'
             )}
           >

@@ -8,6 +8,10 @@ import type {
 } from '@/lib/payments/types';
 
 function verifyMockCallbackAuth(request: Request): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+
   const secret =
     process.env.MOCK_PAYMENT_SECRET?.trim() ||
     process.env.CRON_SECRET?.trim();
@@ -47,6 +51,8 @@ export const mockPaymentProvider: PaymentProvider = {
       orderId?: string;
       sessionId?: string;
       status?: string;
+      amount?: number;
+      currency?: string;
     };
 
     const orderId = body.orderId || '';
@@ -56,7 +62,9 @@ export const mockPaymentProvider: PaymentProvider = {
       valid: Boolean(orderId),
       orderId,
       providerPaymentId: body.sessionId || `mock_${Date.now()}`,
-      status
+      status,
+      amount: body.amount,
+      currency: body.currency || 'TRY'
     };
   }
 };

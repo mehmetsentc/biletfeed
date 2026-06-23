@@ -76,6 +76,101 @@ function parseLocation(ld: Record<string, unknown>) {
   };
 }
 
+function metaEventStart($: cheerio.CheerioAPI): string {
+  return (
+    $('meta[property="event:start_time"]').attr('content') ||
+    $('meta[name="event:start_time"]').attr('content') ||
+    ''
+  ).trim();
+}
+
+function metaEventEnd($: cheerio.CheerioAPI): string {
+  return (
+    $('meta[property="event:end_time"]').attr('content') ||
+    $('meta[name="event:end_time"]').attr('content') ||
+    ''
+  ).trim();
+}
+
+/** İndirimli / güncel fiyat (üstü çizili liste fiyatından ayrı) */
+function scrapeSalePrice($: cheerio.CheerioAPI): number | null {
+  let sale: number | null = null;
+
+  $('[class*="theme-green"], [class*="text-green"], [class*="text-theme-green"]').each(
+    (_, el) => {
+      const m = $(el).text().match(/(\d[\d.]*)\s*₺/);
+      if (!m) return;
+      const p = parseInt(m[1].replace(/\./g, ''), 10);
+      if (p > 0) sale = sale === null ? p : Math.min(sale, p);
+    }
+  );
+
+  if (sale) return sale;
+
+  const prices: number[] = [];
+  $('body *').each((_, el) => {
+    if ($(el).find('[class*="line-through"]').length > 0) return;
+    const text = $(el).clone().children().remove().end().text();
+    const m = text.match(/^\s*(\d[\d.]*)\s*₺\s*$/);
+    if (m) {
+      const p = parseInt(m[1].replace(/\./g, ''), 10);
+      if (p > 0) prices.push(p);
+    }
+  });
+
+  if (prices.length === 0) return null;
+  return Math.min(...prices);
+}
+
+function resolveStartDate(
+  $: cheerio.CheerioAPI,
+  ld: Record<string, unknown> | null,
+  stub?: EventStub
+): Date | null {
+  const metaStart = metaEventStart($);
+  const ldStart = String(ld?.startDate || ld?.startTime || '');
+
+  return (
+    parseScraperDateTime(metaStart) ||
+    parseScraperDateTime(ldStart) ||
+    stub?.startDate ||
+    parseTurkishDate(ldStart || metaStart)
+  );
+}
+
+function resolveEndDate(
+  $: cheerio.CheerioAPI,
+  platform: ExternalPlatform,
+  startDate: Date,
+  ld: Record<string, unknown> | null
+): Date {
+  const metaEnd = metaEventEnd($);
+  if (metaEnd) return inferEventEndDate(startDate, metaEnd);
+
+  // Bubilet tek saat gösterir; JSON-LD bitiş UTC kaynaklı yanıltıcı olabiliyor
+  if (platform === 'BUBILET') {
+    return new Date(startDate.getTime());
+  }
+
+  return inferEventEndDate(
+    startDate,
+    String(ld?.endDate || ld?.endTime || '')
+  );
+}
+
+function resolvePrice(
+  $: cheerio.CheerioAPI,
+  offers?: Record<string, unknown>
+): { price: number; isFree: boolean } {
+  const htmlPrice = scrapeSalePrice($);
+  if (htmlPrice) return { price: htmlPrice, isFree: false };
+
+  const priceVal =
+    offers?.lowPrice ?? offers?.price ?? offers?.highPrice;
+  const priceText = priceVal != null ? String(priceVal) : '';
+  return parsePrice(priceText);
+}
+
 function parseImages(ld: Record<string, unknown>, ogImage: string): {
   cover: string;
   gallery: string[];
@@ -122,16 +217,10 @@ export function parseDetailPageHtml(
     title.slice(0, 40).replace(/\s+/g, '-');
 
   const startRaw = String(ld?.startDate || ld?.startTime || '');
-  const startDate =
-    parseScraperDateTime(startRaw) ||
-    stub?.startDate ||
-    parseTurkishDate(startRaw);
+  const startDate = resolveStartDate($, ld, stub);
   if (!startDate) return null;
 
-  const endDate = inferEventEndDate(
-    startDate,
-    String(ld?.endDate || ld?.endTime || '')
-  );
+  const endDate = resolveEndDate($, platform, startDate, ld);
 
   const loc = parseLocation(ld || {});
   const { slug: citySlug, name: cityName } = resolveCitySlug(loc.cityName || 'İstanbul');
@@ -148,10 +237,7 @@ export function parseDetailPageHtml(
   const offers = (
     Array.isArray(offersRaw) ? offersRaw[0] : offersRaw
   ) as Record<string, unknown> | undefined;
-  // || yerine ?? kullan: 0 değeri geçerli fiyattır, falsy değil
-  const priceVal = offers?.price ?? offers?.lowPrice ?? offers?.highPrice;
-  const priceText = priceVal != null ? String(priceVal) : '';
-  const { price, isFree } = parsePrice(priceText);
+  const { price, isFree } = resolvePrice($, offers);
   const { categorySlug, eventType } = mapCategory(title, description);
 
   const tags = [PLATFORM_LABELS[platform]];

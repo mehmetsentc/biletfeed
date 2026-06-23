@@ -19,11 +19,11 @@ export default function EditProfilePage() {
 
       <div className="flex justify-center py-8">
         <div className="relative">
-          <span className="flex size-28 items-center justify-center rounded-full bg-rose-100 text-3xl font-bold text-[#E53935]">
+          <span className="flex size-28 items-center justify-center rounded-full bg-primary/10 text-3xl font-bold text-primary">
             DT
           </span>
           <span className="absolute bottom-1 right-1 flex size-8 items-center justify-center rounded-full border-2 border-white bg-muted">
-            <Camera className="size-4 text-[#E53935]" />
+            <Camera className="size-4 text-primary" />
           </span>
         </div>
       </div>

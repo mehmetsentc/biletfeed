@@ -5,6 +5,7 @@ import { isAllowedAppRedirectUrl } from '@/lib/auth/safe-redirect';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { createCheckout } from '@/lib/services/orders';
 import { getAppBaseUrl } from '@/lib/payments/config';
+import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
 const bodySchema = z.object({
   eventSlug: z.string().min(1),
@@ -13,6 +14,9 @@ const bodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitOrNull(request, 'checkout', 15, 60_000);
+    if (limited) return limited;
+
     if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
     }

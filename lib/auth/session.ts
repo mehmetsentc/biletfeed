@@ -1,7 +1,10 @@
-import { createHmac } from 'crypto';
 import { cookies } from 'next/headers';
 import type { UserRole } from '@/types';
 import { hasRole, ROLES } from '@/lib/auth/roles';
+import {
+  buildSignedSessionToken,
+  verifySessionSignature
+} from '@/lib/auth/session-crypto';
 import { resolveUserRoleForSession } from '@/lib/services/user-queries';
 
 // firebase-admin import YOK — ESM uyumsuzluğunu önlemek için
@@ -15,26 +18,18 @@ export interface SessionUser {
   role: UserRole;
 }
 
-const SIMPLE_SESSION_SECRET =
-  process.env.NEXTAUTH_SECRET ??
-  process.env.TICKET_SECRET_KEY ??
-  'biletfeed-simple-session-fallback-key';
-
 export function buildSessionCookie(
   uid: string,
   email: string,
   role: UserRole,
   expiresMs = SESSION_EXPIRES_MS
 ): string {
-  const payload = JSON.stringify({
+  return buildSignedSessionToken({
     uid,
     email,
     role,
     exp: Date.now() + expiresMs
   });
-  const b64 = Buffer.from(payload).toString('base64url');
-  const sig = createHmac('sha256', SIMPLE_SESSION_SECRET).update(b64).digest('hex');
-  return `${b64}.${sig}`;
 }
 
 function verifySimpleSession(token: string): SessionUser | null {
@@ -45,11 +40,7 @@ function verifySimpleSession(token: string): SessionUser | null {
     const b64 = token.slice(0, dotIdx);
     const sig = token.slice(dotIdx + 1);
 
-    const expectedSig = createHmac('sha256', SIMPLE_SESSION_SECRET)
-      .update(b64)
-      .digest('hex');
-
-    if (sig !== expectedSig) return null;
+    if (!verifySessionSignature(b64, sig)) return null;
 
     const parsed = JSON.parse(Buffer.from(b64, 'base64url').toString()) as {
       uid?: string;
@@ -72,20 +63,27 @@ function verifySimpleSession(token: string): SessionUser | null {
 }
 
 export async function verifySessionCookie(): Promise<SessionUser | null> {
-  const cookieStore = await cookies();
-  const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  if (!session) return null;
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    if (!session) return null;
 
-  const parsed = verifySimpleSession(session);
-  if (!parsed) return null;
+    const parsed = verifySimpleSession(session);
+    if (!parsed) return null;
 
-  // Rol kaynağı: veritabanı + bootstrap e-posta (çerezdeki rol eski kalabilir)
-  const dbRole = await resolveUserRoleForSession(parsed.uid, parsed.email);
-  if (dbRole) {
-    return { ...parsed, role: dbRole };
+    try {
+      const dbRole = await resolveUserRoleForSession(parsed.uid, parsed.email);
+      if (dbRole) {
+        return { ...parsed, role: dbRole };
+      }
+    } catch {
+      /* DB geçici hata — çerezdeki rol ile devam et */
+    }
+
+    return parsed;
+  } catch {
+    return null;
   }
-
-  return parsed;
 }
 
 export function sessionHasRole(

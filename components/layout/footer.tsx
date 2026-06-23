@@ -162,7 +162,8 @@ export async function Footer() {
               </div>
             </div>
             <p className="mt-3 text-center text-xs text-white/30">
-              Ödemeleriniz iyzico altyapısı ile SSL şifreli güvenli bağlantı üzerinden işlenmektedir.
+              Ödemeler onaylı ödeme kuruluşu altyapısı ile SSL/TLS şifreli bağlantı üzerinden işlenir.
+              Kart bilgileriniz BiletFeed sunucularında saklanmaz.
             </p>
           </div>
         </div>

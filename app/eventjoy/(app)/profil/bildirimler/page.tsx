@@ -47,7 +47,7 @@ export default function NotificationsPage() {
                 setEnabled((prev) => ({ ...prev, [n.id]: !prev[n.id] }))
               }
               className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-                enabled[n.id] ? 'bg-[#E53935]' : 'bg-muted'
+                enabled[n.id] ? 'bg-primary' : 'bg-muted'
               }`}
             >
               <span

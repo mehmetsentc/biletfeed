@@ -101,8 +101,35 @@ row(
   'Ticket Secret',
   ticketSecret && ticketSecret !== 'dev-secret-change-in-production'
     ? 'ok'
-    : 'warn',
-  ticketSecret ? 'ayarlı (production için güçlü anahtar önerilir)' : 'eksik'
+    : process.env.NODE_ENV === 'production'
+      ? 'fail'
+      : 'warn',
+  ticketSecret ? 'ayarlı' : 'eksik'
+);
+
+const sessionSecret = process.env.NEXTAUTH_SECRET;
+row(
+  'Session Secret (NEXTAUTH_SECRET)',
+  sessionSecret && sessionSecret !== 'dev-session-secret-local-only'
+    ? 'ok'
+    : process.env.NODE_ENV === 'production'
+      ? 'fail'
+      : 'warn',
+  sessionSecret ? 'ayarlı' : 'eksik — production için zorunlu'
+);
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.ENABLE_MOCK_PAYMENTS === 'true'
+) {
+  row('Mock ödeme', 'fail', 'ENABLE_MOCK_PAYMENTS production ortamında kapalı olmalı');
+}
+
+const cronSecret = process.env.CRON_SECRET;
+row(
+  'Cron Secret',
+  cronSecret ? 'ok' : process.env.NODE_ENV === 'production' ? 'warn' : 'warn',
+  cronSecret ? 'ayarlı' : 'CRON_SECRET önerilir'
 );
 
 row(

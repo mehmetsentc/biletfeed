@@ -1,4 +1,5 @@
 import type { EventType } from '@prisma/client';
+import { mergeDateWithTimeText, parseScraperDateTime } from '@/lib/scraper/dates';
 
 const CITY_ALIASES: Record<string, string> = {
   istanbul: 'istanbul',
@@ -114,8 +115,11 @@ export function parsePrice(text?: string | null): {
 
 export function parseTurkishDate(text?: string | null): Date | null {
   if (!text) return null;
-  const iso = Date.parse(text);
-  if (!Number.isNaN(iso)) return new Date(iso);
+
+  const parsed = parseScraperDateTime(text);
+  if (parsed) return parsed;
+
+  const timeMatch = text.match(/\b(\d{1,2}):(\d{2})\b/);
 
   const trMonths: Record<string, number> = {
     ocak: 0,
@@ -140,13 +144,19 @@ export function parseTurkishDate(text?: string | null): Date | null {
 
   const m = text
     .toLowerCase()
-    .match(/(\d{1,2})[\s./-]+([a-zçğıöşü]+)[\s./-]+(\d{4})/i);
+    .match(/(\d{1,2})[\s./-]+([a-zçğıöşü]+)(?:[\s./-]+(\d{4}))?/i);
   if (m) {
     const day = parseInt(m[1], 10);
     const month = trMonths[m[2].normalize('NFD').replace(/[\u0300-\u036f]/g, '')];
-    const year = parseInt(m[3], 10);
+    const year = m[3] ? parseInt(m[3], 10) : new Date().getFullYear();
     if (month !== undefined) {
-      return new Date(year, month, day, 20, 0, 0);
+      const isoDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const baseDate = parseScraperDateTime(isoDate, 20);
+      if (!baseDate) return null;
+      if (timeMatch) {
+        return mergeDateWithTimeText(baseDate, timeMatch[0]) || baseDate;
+      }
+      return baseDate;
     }
   }
 

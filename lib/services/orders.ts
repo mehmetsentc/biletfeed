@@ -252,7 +252,16 @@ async function issueTickets(
   const ticketType = await tx.ticketType.findUnique({
     where: { id: params.ticketTypeId }
   });
-  if (!ticketType || ticketType.sold + params.quantity > ticketType.capacity) {
+  if (!ticketType) throw new Error('Bilet türü bulunamadı');
+
+  const reserved = await tx.ticketType.updateMany({
+    where: {
+      id: params.ticketTypeId,
+      sold: { lte: ticketType.capacity - params.quantity }
+    },
+    data: { sold: { increment: params.quantity } }
+  });
+  if (reserved.count === 0) {
     throw new Error('Yeterli bilet kalmadı');
   }
 
@@ -271,11 +280,6 @@ async function issueTickets(
       }
     });
   }
-
-  await tx.ticketType.update({
-    where: { id: params.ticketTypeId },
-    data: { sold: { increment: params.quantity } }
-  });
 }
 
 export async function fulfillPaidOrder(params: {
@@ -404,11 +408,14 @@ export async function expireStalePendingOrders(): Promise<number> {
       expiresAt: { lt: now },
       deletedAt: null
     },
-    select: { id: true }
+    select: { id: true, paymentProvider: true }
   });
 
   for (const order of stale) {
-    await failPendingOrder({ orderId: order.id, provider: 'mock' });
+    await failPendingOrder({
+      orderId: order.id,
+      provider: (order.paymentProvider as PaymentProviderName) || 'mock'
+    });
   }
 
   return stale.length;

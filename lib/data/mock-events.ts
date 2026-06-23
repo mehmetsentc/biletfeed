@@ -60,7 +60,8 @@ export function formatEventDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('tr-TR', {
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Europe/Istanbul'
   });
 }
 
@@ -77,7 +78,8 @@ export function formatEventDateLong(dateStr: string): string {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'Europe/Istanbul'
   });
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }

@@ -294,12 +294,13 @@ async function upsertScrapedEvent(
   const { coverImage, tags } = await resolveCoverImage(raw, eventKey);
 
   if (existingExternal) {
+    const sameSource = existingExternal.externalPlatform === raw.platform;
     const replaceSource = shouldReplaceExternalSource(
       existingExternal.externalPlatform,
       raw.platform
     );
 
-    if (!replaceSource) {
+    if (!replaceSource && !sameSource) {
       stats.totalSkipped += 1;
       stats.totalDeduped += 1;
       await prisma.event.update({

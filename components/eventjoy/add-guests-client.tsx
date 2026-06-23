@@ -107,8 +107,7 @@ export function AddGuestsClient({ eventId }: { eventId: string }) {
         <button
           type="button"
           disabled={selected.length === 0}
-          className="w-full rounded-lg py-3.5 text-sm font-bold uppercase text-white disabled:opacity-50"
-          style={{ backgroundColor: '#E53935' }}
+          className="w-full rounded-lg bg-primary py-3.5 text-sm font-bold uppercase text-primary-foreground disabled:opacity-50"
         >
           Davetiye Gönder
         </button>

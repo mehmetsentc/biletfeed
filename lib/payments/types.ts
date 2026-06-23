@@ -52,6 +52,9 @@ export interface PaymentVerifyResult {
   orderId: string;
   providerPaymentId: string;
   status: 'paid' | 'failed' | 'cancelled';
+  /** Provider doğrulamasından gelen tutar (callback'te siparişle karşılaştırılır) */
+  amount?: number;
+  currency?: string;
 }
 
 export interface PaymentProvider {

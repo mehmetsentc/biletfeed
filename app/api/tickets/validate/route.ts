@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
 import { validateTicketInput } from '@/lib/services/ticket-validation';
+import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
 const postSchema = z.object({
   ticketCode: z.string().optional(),
@@ -14,6 +15,9 @@ const postSchema = z.object({
 
 /** QR kod URL'si tarandığında GET ile de doğrulama yapılabilir (salt okunur). */
 export async function GET(request: NextRequest) {
+  const limited = rateLimitOrNull(request, 'ticket-validate', 60, 60_000);
+  if (limited) return limited;
+
   const session = await verifySessionCookie();
   if (!session || !sessionHasRole(session, 'ROLE_ORGANIZER')) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
@@ -33,6 +37,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const limited = rateLimitOrNull(request, 'ticket-validate', 60, 60_000);
+  if (limited) return limited;
+
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }

@@ -49,7 +49,7 @@ export function CreateEventWizard() {
                 type="button"
                 onClick={() => setSelectedTemplate(t.id)}
                 className={`overflow-hidden rounded-lg text-left ${
-                  selectedTemplate === t.id ? 'ring-2 ring-[#E53935]' : ''
+                  selectedTemplate === t.id ? 'ring-2 ring-primary' : ''
                 }`}
               >
                 <img src={t.image} alt={t.name} className="aspect-square w-full object-cover" />
@@ -72,8 +72,7 @@ export function CreateEventWizard() {
           type="button"
           disabled={step === 1 && !selectedTemplate}
           onClick={handleNext}
-          className="w-full rounded-lg py-3 font-semibold text-white disabled:opacity-50"
-          style={{ backgroundColor: '#E53935' }}
+          className="w-full rounded-lg bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-50"
         >
           {step < 5 ? 'Devam Et' : 'Etkinliği Oluştur'}
         </button>

@@ -9,7 +9,9 @@ export function getBootstrapSuperAdminEmails(): string[] {
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 
-  return fromEnv.length > 0 ? fromEnv : DEFAULT_SUPER_ADMIN_EMAILS;
+  if (fromEnv.length > 0) return fromEnv;
+  if (process.env.NODE_ENV === 'production') return [];
+  return DEFAULT_SUPER_ADMIN_EMAILS;
 }
 
 export function isBootstrapSuperAdminEmail(email: string): boolean {

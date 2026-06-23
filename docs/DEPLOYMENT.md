@@ -20,7 +20,13 @@ Copy `.env.example` to `.env.local` for local development. In Vercel, set:
 | `NEXT_PUBLIC_CANONICAL_HOST` | Yes | Non-www host (`yourdomain.com`) |
 | `NEXT_PUBLIC_FIREBASE_*` | Yes | Firebase web app config (6 vars) |
 | `FIREBASE_ADMIN_*` | Yes | Firebase service account (3 vars) |
-| `TICKET_SECRET_KEY` | Yes | Strong random secret for QR signing |
+| `TICKET_SECRET_KEY` | Yes | Strong random secret for QR ticket signing (separate from session) |
+| `NEXTAUTH_SECRET` | Yes | Strong random secret for session cookie HMAC |
+| `SUPER_ADMIN_EMAILS` | Yes | Comma-separated bootstrap superadmin emails |
+| `CRON_SECRET` | Yes | Bearer token for cron/scrape endpoints |
+| `PAYMENT_PROVIDER` | Prod | `iyzico` after provider implementation |
+| `IYZICO_API_KEY` / `IYZICO_SECRET_KEY` | Prod | iyzico credentials (when live) |
+| `ENABLE_MOCK_PAYMENTS` | Never in prod | Development only — must be unset/false in production |
 
 ## 2. Database Setup
 

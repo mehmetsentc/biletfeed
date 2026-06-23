@@ -1,11 +1,9 @@
 import type { UserRole } from '@/types';
 import {
   verifySessionCookie,
-  sessionHasRole,
-  SESSION_COOKIE_NAME
+  sessionHasRole
 } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 
 function loginRedirect(returnPath?: string): never {
   if (returnPath) {
@@ -14,21 +12,12 @@ function loginRedirect(returnPath?: string): never {
   redirect('/giris');
 }
 
-async function clearInvalidSessionCookie() {
-  const session = await verifySessionCookie();
-  if (session) return;
-  const cookieStore = await cookies();
-  if (!cookieStore.get(SESSION_COOKIE_NAME)?.value) return;
-  cookieStore.set(SESSION_COOKIE_NAME, '', { maxAge: 0, path: '/' });
-}
-
 export async function requireAuth(
   requiredRole: UserRole = 'ROLE_USER',
   returnPath?: string
 ) {
   const session = await verifySessionCookie();
   if (!session) {
-    await clearInvalidSessionCookie();
     loginRedirect(returnPath);
   }
   if (!sessionHasRole(session, requiredRole)) {

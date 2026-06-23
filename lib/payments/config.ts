@@ -27,13 +27,25 @@ export function getPaymentProviderName(): PaymentProviderName {
 }
 
 export function isMockPaymentAllowed(): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
   if (process.env.ENABLE_MOCK_PAYMENTS === 'false') {
     return false;
   }
-  if (process.env.NODE_ENV === 'production') {
-    return process.env.ENABLE_MOCK_PAYMENTS === 'true';
-  }
   return getPaymentProviderName() === 'mock';
+}
+
+/** Production deploy öncesi mock ödeme bayrağını reddeder */
+export function assertProductionPaymentConfig(): void {
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.ENABLE_MOCK_PAYMENTS === 'true'
+  ) {
+    throw new Error(
+      'ENABLE_MOCK_PAYMENTS production ortamında kullanılamaz'
+    );
+  }
 }
 
 export function isIyzicoConfigured(): boolean {

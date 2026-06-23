@@ -41,6 +41,13 @@ function redirectToCanonical(request: NextRequest): NextResponse | null {
   const hostname = host.split(':')[0];
   const canonical = canonicalHost.split(':')[0];
 
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  if (forwardedProto === 'http') {
+    const url = request.nextUrl.clone();
+    url.protocol = 'https:';
+    return NextResponse.redirect(url, 301);
+  }
+
   if (hostname === `www.${canonical}`) {
     const url = request.nextUrl.clone();
     url.host = host.replace(/^www\./, '');

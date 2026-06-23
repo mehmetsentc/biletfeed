@@ -225,6 +225,8 @@
     color-scheme: light;
   }
 
+  /* EventJoy — organizer-surface ile aynı açık tema (organizer-surface kullanılır) */
+
   .ticket-card-notch {
     position: relative;
   }

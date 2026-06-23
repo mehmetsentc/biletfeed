@@ -1,22 +1,18 @@
-import { createHmac } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
+import { buildSignedSessionToken } from '@/lib/auth/session-crypto';
 import {
   bootstrapRoleForEmail,
   isBootstrapSuperAdminEmail
 } from '@/lib/auth/bootstrap-admins';
 import { ROLES } from '@/lib/auth/roles';
 import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
 // lib/auth/session'dan import etmiyoruz — firebase-admin transitif bağımlılığını kırmak için
 const SESSION_COOKIE_NAME = 'session';
 
 const SESSION_EXPIRES_MS = 60 * 60 * 24 * 5 * 1000; // 5 gün
-
-const SIMPLE_SESSION_SECRET =
-  process.env.NEXTAUTH_SECRET ??
-  process.env.TICKET_SECRET_KEY ??
-  'biletfeed-simple-session-fallback-key';
 
 function buildSimpleSession(
   uid: string,
@@ -24,10 +20,12 @@ function buildSimpleSession(
   role: string,
   expiresMs: number
 ): string {
-  const payload = JSON.stringify({ uid, email, role, exp: Date.now() + expiresMs });
-  const b64 = Buffer.from(payload).toString('base64url');
-  const sig = createHmac('sha256', SIMPLE_SESSION_SECRET).update(b64).digest('hex');
-  return `${b64}.${sig}`;
+  return buildSignedSessionToken({
+    uid,
+    email,
+    role,
+    exp: Date.now() + expiresMs
+  });
 }
 
 /** Firebase REST API ile ID token doğrular — Admin SDK gerekmez */
@@ -112,6 +110,9 @@ async function syncUserToDB(uid: string, email: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimitOrNull(request, 'auth-session', 20, 60_000);
+    if (limited) return limited;
+
     if (!isSameOriginRequest(request)) {
       return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
     }

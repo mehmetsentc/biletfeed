@@ -10,7 +10,9 @@ const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 export function persistCityChoice(slug: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(CITY_STORAGE_KEY, slug);
-  document.cookie = `${CITY_COOKIE_NAME}=${encodeURIComponent(slug)};path=/;max-age=${COOKIE_MAX_AGE};SameSite=Lax`;
+  const secure =
+    window.location.protocol === 'https:' ? ';Secure' : '';
+  document.cookie = `${CITY_COOKIE_NAME}=${encodeURIComponent(slug)};path=/;max-age=${COOKIE_MAX_AGE};SameSite=Lax${secure}`;
 }
 
 export function readStoredCitySlug(): string | null {
