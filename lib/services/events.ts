@@ -104,9 +104,12 @@ export async function getOnlineEvents(): Promise<MockEvent[]> {
 }
 
 export async function getEventsByCategory(
-  categorySlug: string
+  categorySlug: string,
+  citySlug?: string
 ): Promise<MockEvent[]> {
-  const events = await fetchPublishedEvents({ category: { slug: categorySlug } });
+  const where: Prisma.EventWhereInput = { category: { slug: categorySlug } };
+  if (citySlug) where.city = { slug: citySlug };
+  const events = await fetchPublishedEvents(where);
   return events.filter((event) => eventMatchesCategorySlug(event, categorySlug));
 }
 

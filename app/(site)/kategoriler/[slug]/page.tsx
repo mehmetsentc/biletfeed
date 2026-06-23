@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
+import { CategoryIcon } from '@/components/categories/category-icon';
 import { PageHero } from '@/components/layout/page-hero';
 import { EventCard } from '@/components/events/event-card';
 import { getEventsByCategory, getCategories } from '@/lib/services/events';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -24,12 +26,14 @@ export default async function CategoryDetailPage({ params }: Props) {
   const category = categories.find((c) => c.slug === slug);
   if (!category) notFound();
 
-  const events = await getEventsByCategory(slug);
+  const citySlug = await getPreferredCitySlug();
+  const events = await getEventsByCategory(slug, citySlug);
 
   return (
     <>
       <PageHero
-        title={`${category.icon} ${category.name}`}
+        leading={<CategoryIcon slug={category.slug} size="xl" showRing={false} />}
+        title={category.name}
         subtitle={`${category.count} etkinlik`}
         breadcrumbs={[
           { label: 'Kategoriler', href: '/kategoriler' },

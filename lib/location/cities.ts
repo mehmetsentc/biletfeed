@@ -1,10 +1,12 @@
 export const SUPPORTED_CITIES = [
+  // Büyükşehirler
   { slug: 'istanbul', name: 'İstanbul' },
   { slug: 'ankara', name: 'Ankara' },
   { slug: 'izmir', name: 'İzmir' },
   { slug: 'antalya', name: 'Antalya' },
   { slug: 'bursa', name: 'Bursa' },
   { slug: 'eskisehir', name: 'Eskişehir' },
+  // Diğer büyük ve turistik şehirler
   { slug: 'adana', name: 'Adana' },
   { slug: 'gaziantep', name: 'Gaziantep' },
   { slug: 'kayseri', name: 'Kayseri' },
@@ -12,9 +14,29 @@ export const SUPPORTED_CITIES = [
   { slug: 'mersin', name: 'Mersin' },
   { slug: 'trabzon', name: 'Trabzon' },
   { slug: 'samsun', name: 'Samsun' },
-  { slug: 'bodrum', name: 'Bodrum' },
   { slug: 'mugla', name: 'Muğla' },
-  { slug: 'alanya', name: 'Alanya' }
+  { slug: 'denizli', name: 'Denizli' },
+  { slug: 'kocaeli', name: 'Kocaeli' },
+  { slug: 'hatay', name: 'Hatay' },
+  { slug: 'diyarbakir', name: 'Diyarbakır' },
+  { slug: 'manisa', name: 'Manisa' },
+  { slug: 'tekirdag', name: 'Tekirdağ' },
+  { slug: 'sakarya', name: 'Sakarya' },
+  { slug: 'malatya', name: 'Malatya' },
+  { slug: 'balikesir', name: 'Balıkesir' },
+  { slug: 'canakkale', name: 'Çanakkale' },
+  { slug: 'kahramanmaras', name: 'Kahramanmaraş' },
+  { slug: 'aydin', name: 'Aydın' },
+  { slug: 'sanliurfa', name: 'Şanlıurfa' },
+  { slug: 'van', name: 'Van' },
+  { slug: 'nevsehir', name: 'Nevşehir' },
+  { slug: 'isparta', name: 'Isparta' },
+  { slug: 'afyon', name: 'Afyon' },
+  { slug: 'edirne', name: 'Edirne' },
+  { slug: 'erzurum', name: 'Erzurum' },
+  { slug: 'yalova', name: 'Yalova' },
+  { slug: 'bolu', name: 'Bolu' },
+  { slug: 'mardin', name: 'Mardin' }
 ] as const;
 
 export type CitySlug = (typeof SUPPORTED_CITIES)[number]['slug'];

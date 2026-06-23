@@ -29,16 +29,27 @@ export function biletixListingUrls(): string[] {
 }
 
 /**
- * Bubilet yalnızca 6 şehri destekliyor (bubilet.com.tr/sehir-sec doğrular).
- * Her şehrin ana sayfası + tüm kategori/etiket sayfaları taranır.
+ * Bubilet Türkiye'nin tüm 81 ilini destekliyor (bubilet.com.tr şehir seçici).
+ * Her il için ana sayfa + tüm kategori/etiket sayfaları taranır.
  */
 const BUBILET_CITIES = [
-  'istanbul',
-  'ankara',
-  'izmir',
-  'antalya',
-  'bursa',
-  'eskisehir'
+  // Büyükşehirler
+  'istanbul', 'ankara', 'izmir', 'antalya', 'bursa', 'eskisehir',
+  // Diğer iller (alfabetik)
+  'adana', 'adiyaman', 'afyon', 'agri', 'aksaray', 'amasya',
+  'ardahan', 'artvin', 'aydin', 'balikesir', 'bartin', 'batman',
+  'bayburt', 'bilecik', 'bingol', 'bitlis', 'bolu', 'burdur',
+  'canakkale', 'cankiri', 'corum', 'denizli', 'diyarbakir',
+  'duzce', 'edirne', 'elazig', 'erzincan', 'erzurum',
+  'gaziantep', 'giresun', 'gumushane', 'hakkari', 'hatay',
+  'igdir', 'isparta', 'kahramanmaras', 'karabuk', 'karaman',
+  'kars', 'kastamonu', 'kayseri', 'kilis', 'kirikkale',
+  'kirklareli', 'kirsehir', 'kocaeli', 'konya', 'kutahya',
+  'malatya', 'manisa', 'mardin', 'mersin', 'mugla', 'mus',
+  'nevsehir', 'nigde', 'ordu', 'osmaniye', 'rize',
+  'sakarya', 'samsun', 'sanliurfa', 'siirt', 'sinop',
+  'sirnak', 'sivas', 'tekirdag', 'tokat', 'trabzon', 'tunceli',
+  'usak', 'van', 'yalova', 'yozgat', 'zonguldak'
 ] as const;
 
 const BUBILET_CATEGORIES = [
