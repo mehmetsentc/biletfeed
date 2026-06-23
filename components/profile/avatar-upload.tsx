@@ -1,15 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/components/providers/auth-provider';
-import { uploadUserAvatar } from '@/lib/firebase/storage';
-import { isFirebaseConfigured } from '@/lib/firebase/client';
 import { cn } from '@/lib/utils';
 
 export function AvatarUpload() {
-  const { firebaseUser, user } = useAuth();
+  const { firebaseUser, user, syncSession } = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
   const [photoURL, setPhotoURL] = useState(user?.photoURL);
   const [loading, setLoading] = useState(false);
@@ -20,14 +18,13 @@ export function AvatarUpload() {
     user?.email?.slice(0, 2).toUpperCase() ||
     '?';
 
+  useEffect(() => {
+    setPhotoURL(user?.photoURL);
+  }, [user?.photoURL]);
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !firebaseUser) return;
-
-    if (!isFirebaseConfigured()) {
-      setError('Firebase Storage yapılandırılmamış');
-      return;
-    }
 
     if (!file.type.startsWith('image/')) {
       setError('Sadece görsel dosyası yükleyebilirsiniz');
@@ -43,16 +40,26 @@ export function AvatarUpload() {
     setError(null);
 
     try {
-      const url = await uploadUserAvatar(firebaseUser.uid, file, file.type);
-      setPhotoURL(url);
+      const formData = new FormData();
+      formData.append('file', file);
 
-      await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoURL: url })
+      const res = await fetch('/api/users/profile/avatar', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
       });
+
+      const data = (await res.json()) as { photoURL?: string; error?: string };
+
+      if (!res.ok) {
+        setError(data.error || 'Profil fotoğrafı yüklenemedi');
+        return;
+      }
+
+      setPhotoURL(data.photoURL);
+      await syncSession();
     } catch {
-      setError('Yükleme başarısız. Firebase Storage rules kontrol edin.');
+      setError('Profil fotoğrafı yüklenemedi. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
       if (inputRef.current) inputRef.current.value = '';
