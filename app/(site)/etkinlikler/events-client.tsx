@@ -16,7 +16,8 @@ import {
 } from '@/components/events/events-filter-sidebar';
 import { countActiveFilters } from '@/components/events/events-filter-utils';
 import { useCity } from '@/components/providers/city-provider';
-import { cities, type MockEvent } from '@/lib/data/mock-events';
+import { SUPPORTED_CITIES, getCityName } from '@/lib/location/cities';
+import type { MockEvent } from '@/lib/data/mock-events';
 
 type CategoryItem = {
   slug: string;
@@ -125,27 +126,101 @@ function matchesDateFilter(event: MockEvent, filters: EventsFilters): boolean {
   });
 }
 
+function normalizeSearchText(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i');
+}
+
+function matchCitySlugFromQuery(query: string): string | null {
+  const normalized = normalizeSearchText(query);
+  if (!normalized) return null;
+
+  const matched = SUPPORTED_CITIES.find((city) => {
+    const cityName = normalizeSearchText(city.name);
+    return cityName === normalized || city.slug === normalized;
+  });
+
+  return matched?.slug ?? null;
+}
+
+function matchesTextQuery(event: MockEvent, query: string): boolean {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return true;
+
+  const haystack = normalizeSearchText(
+    [
+      event.title,
+      event.shortDescription,
+      event.description,
+      event.city,
+      event.category,
+      event.venue,
+      event.organizer,
+      event.citySlug,
+      ...event.tags
+    ].join(' ')
+  );
+
+  return haystack.includes(normalizedQuery);
+}
+
+function resolveSearchScope(
+  searchQuery: string,
+  showAllCities: boolean,
+  urlCity: string,
+  preferredCity: string
+) {
+  const trimmed = searchQuery.trim();
+  const cityFromSearch = matchCitySlugFromQuery(trimmed);
+
+  if (showAllCities) {
+    return {
+      citySlug: '',
+      textQuery: cityFromSearch ? '' : trimmed,
+      cityLabel: 'Türkiye'
+    };
+  }
+
+  if (cityFromSearch) {
+    return {
+      citySlug: cityFromSearch,
+      textQuery: '',
+      cityLabel: getCityName(cityFromSearch)
+    };
+  }
+
+  if (trimmed) {
+    return {
+      citySlug: '',
+      textQuery: trimmed,
+      cityLabel: 'Türkiye'
+    };
+  }
+
+  const citySlug = urlCity || preferredCity;
+  return {
+    citySlug,
+    textQuery: '',
+    cityLabel: getCityName(citySlug)
+  };
+}
+
 function filterEvents(
   events: MockEvent[],
   filters: EventsFilters,
   query: string,
-  initialCity: string,
+  citySlug: string,
   initialDate: string,
   feedPill: FeedCategoryPill
 ): MockEvent[] {
   return events.filter((event) => {
-    if (query) {
-      const q = query.toLowerCase();
-      const match =
-        event.title.toLowerCase().includes(q) ||
-        event.city.toLowerCase().includes(q) ||
-        event.category.toLowerCase().includes(q) ||
-        event.venue.toLowerCase().includes(q) ||
-        event.citySlug.toLowerCase().includes(q);
-      if (!match) return false;
-    }
+    if (query && !matchesTextQuery(event, query)) return false;
 
-    if (initialCity && event.citySlug !== initialCity) return false;
+    if (citySlug && event.citySlug !== citySlug) return false;
     if (initialDate && event.startDate.slice(0, 10) !== initialDate) return false;
 
     if (!matchesFeedCategoryPill(event, feedPill)) return false;
@@ -204,34 +279,30 @@ function sortEvents(events: MockEvent[], sort: SortOption): MockEvent[] {
   }
 }
 
-function EmptyState() {
+function EmptyState({
+  cityName,
+  onShowAll
+}: {
+  cityName: string;
+  onShowAll?: () => void;
+}) {
   return (
     <div className="rounded-xl border border-white/10 bg-[#151b24] py-16 text-center">
       <p className="font-medium text-white">Etkinlik bulunamadı</p>
       <p className="mt-1 text-sm text-white/50">
         Filtreleri veya arama terimini değiştirmeyi deneyin
       </p>
+      {onShowAll && (
+        <button
+          type="button"
+          onClick={onShowAll}
+          className="mt-4 text-sm font-medium text-primary hover:underline"
+        >
+          {cityName === 'Türkiye' ? 'Aramayı temizle' : `${cityName} yerine tüm şehirlerde ara`}
+        </button>
+      )}
     </div>
   );
-}
-
-function resolveCityLabel(citySlug: string, searchQuery: string): string {
-  if (citySlug) {
-    const city = cities.find((c) => c.slug === citySlug);
-    if (city) return city.name;
-  }
-
-  const q = searchQuery.trim().toLowerCase();
-  if (q) {
-    const matched = cities.find(
-      (c) =>
-        c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q)
-    );
-    if (matched) return matched.name;
-    return searchQuery.trim();
-  }
-
-  return 'Türkiye';
 }
 
 export default function EventsPageClient({
@@ -241,28 +312,33 @@ export default function EventsPageClient({
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const urlCity = searchParams.get('sehir') || '';
-  const activeCity = urlCity || preferredCitySlug;
   const initialDate = searchParams.get('tarih') || '';
 
   const [filters, setFilters] = useState<EventsFilters>(defaultEventsFilters);
   const [sort, setSort] = useState<SortOption>('date-asc');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(
-    activeCity
-      ? cities.find((c) => c.slug === activeCity)?.name ?? initialQuery
-      : initialQuery
-  );
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [feedPill, setFeedPill] = useState<FeedCategoryPill>('all');
+  const [showAllCities, setShowAllCities] = useState(false);
 
-  const cityLabel = resolveCityLabel(activeCity, searchQuery);
+  const { citySlug: effectiveCity, textQuery, cityLabel } = useMemo(
+    () =>
+      resolveSearchScope(
+        searchQuery,
+        showAllCities,
+        urlCity,
+        preferredCitySlug
+      ),
+    [searchQuery, showAllCities, urlCity, preferredCitySlug]
+  );
   const activeFilterCount = countActiveFilters(filters);
 
   const filteredEvents = useMemo(() => {
     const filtered = filterEvents(
       mockEvents,
       filters,
-      searchQuery.trim(),
-      activeCity,
+      textQuery,
+      effectiveCity,
       initialDate,
       feedPill
     );
@@ -270,8 +346,8 @@ export default function EventsPageClient({
   }, [
     filters,
     sort,
-    searchQuery,
-    activeCity,
+    textQuery,
+    effectiveCity,
     initialDate,
     feedPill,
     mockEvents
@@ -290,9 +366,15 @@ export default function EventsPageClient({
       <EventsFeedHeader
         cityLabel={cityLabel}
         searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(value) => {
+          setShowAllCities(false);
+          setSearchQuery(value);
+        }}
         activePill={feedPill}
-        onPillChange={setFeedPill}
+        onPillChange={(pill) => {
+          setShowAllCities(false);
+          setFeedPill(pill);
+        }}
         resultCount={filteredEvents.length}
         onOpenFilters={() => setFilterOpen(true)}
         activeFilterCount={activeFilterCount}
@@ -309,7 +391,25 @@ export default function EventsPageClient({
 
       <section className="container mx-auto px-4 py-6 md:py-8">
         {filteredEvents.length === 0 ? (
-          <EmptyState />
+          <EmptyState
+            cityName={cityLabel}
+            onShowAll={
+              !showAllCities && effectiveCity
+                ? () => {
+                    setShowAllCities(true);
+                    setSearchQuery('');
+                    setFeedPill('all');
+                    setFilters(defaultEventsFilters);
+                  }
+                : textQuery
+                  ? () => {
+                      setSearchQuery('');
+                      setFeedPill('all');
+                      setFilters(defaultEventsFilters);
+                    }
+                  : undefined
+            }
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredEvents.map((event) => (

@@ -41,7 +41,7 @@ interface AuthContextValue {
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<import('@/lib/firebase/google-auth').GoogleSignInResult>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -163,12 +163,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const signInWithGoogle = useCallback(async (): Promise<void> => {
+  const signInWithGoogle = useCallback(async () => {
     const auth = await ensureAuthReady();
     const { signInWithGoogle: googleSignIn } = await import(
       '@/lib/firebase/google-auth'
     );
-    await googleSignIn(auth);
+    return googleSignIn(auth);
   }, []);
 
   const syncSession = useCallback(async (): Promise<boolean> => {

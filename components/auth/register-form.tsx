@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { getRedirectTarget } from '@/components/auth/auth-session-redirect';
 import { ensureAuthReady } from '@/lib/firebase/client';
@@ -22,6 +22,7 @@ import {
 import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
 import { getTranslations } from '@/lib/i18n';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
+import { readStoredGoogleAuthError } from '@/components/auth/google-auth-init';
 
 const t = getTranslations();
 
@@ -31,6 +32,11 @@ export function RegisterForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const storedError = readStoredGoogleAuthError();
+    if (storedError) setError(storedError);
+  }, []);
 
   const {
     register,
@@ -71,12 +77,16 @@ export function RegisterForm() {
     setLoading(true);
     setError(null);
     try {
-      await signInWithGoogle();
+      const result = await signInWithGoogle();
+      if (result.mode === 'redirect') return;
+
       const auth = await ensureAuthReady();
       if (auth.currentUser) {
         redirectFromAuthPagesIfNeeded();
         window.location.replace(getRedirectTarget('/kayit', searchParams.toString()));
+        return;
       }
+      setLoading(false);
     } catch (err) {
       setError(
         getFirebaseAuthErrorMessage(err, 'Google ile kayıt başarısız oldu')

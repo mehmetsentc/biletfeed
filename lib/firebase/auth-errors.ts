@@ -19,7 +19,7 @@ export function getFirebaseAuthErrorMessage(
     case 'auth/operation-not-allowed':
       return 'Firebase Console → Authentication → Sign-in method → Google etkin değil.';
     case 'auth/unauthorized-domain':
-      return 'Bu domain yetkili değil. Firebase → Authorized domains → localhost ekleyin.';
+      return 'Bu domain yetkili değil. Firebase Console → Authentication → Settings → Authorized domains listesine biletfeed.com ekleyin.';
     case 'auth/invalid-api-key':
     case 'auth/api-key-not-valid.-please-pass-a-valid-api-key.':
       return 'Geçersiz Firebase API key. Firebase Console → Project Settings → Web app → config değerlerini .env.local\'a yeniden kopyalayın.';

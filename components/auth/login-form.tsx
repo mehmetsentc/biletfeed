@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { getRedirectTarget } from '@/components/auth/auth-session-redirect';
 import { ensureAuthReady } from '@/lib/firebase/client';
@@ -22,6 +22,7 @@ import {
 import { loginSchema, type LoginInput } from '@/lib/validations/auth';
 import { getTranslations } from '@/lib/i18n';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
+import { readStoredGoogleAuthError } from '@/components/auth/google-auth-init';
 
 const t = getTranslations();
 
@@ -31,6 +32,11 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const storedError = readStoredGoogleAuthError();
+    if (storedError) setError(storedError);
+  }, []);
 
   const showLoginForm = !authLoading && !firebaseUser;
 
@@ -73,14 +79,18 @@ export function LoginForm() {
     setLoading(true);
     setError(null);
     try {
-      await signInWithGoogle();
+      const result = await signInWithGoogle();
+      if (result.mode === 'redirect') return;
+
       const auth = await ensureAuthReady();
       if (auth.currentUser) {
         await establishClientSessionWithRetry(auth.currentUser);
         window.location.replace(
           getRedirectTarget('/giris', searchParams.toString())
         );
+        return;
       }
+      setLoading(false);
     } catch (err) {
       setError(
         getFirebaseAuthErrorMessage(err, 'Google ile giriş başarısız oldu')
@@ -165,7 +175,7 @@ export function LoginForm() {
           disabled={loading}
           type="button"
         >
-          {t.auth.googleLogin}
+          {loading ? 'Google\'a yönlendiriliyor…' : t.auth.googleLogin}
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
