@@ -27,7 +27,7 @@ import { readStoredGoogleAuthError } from '@/components/auth/google-auth-init';
 const t = getTranslations();
 
 export function LoginForm() {
-  const { signIn, signInWithGoogle, isConfigured, firebaseUser, loading: authLoading } =
+  const { signIn, signInWithGoogle, isConfigured, firebaseUser, loading: authLoading, sessionError } =
     useAuth();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +37,10 @@ export function LoginForm() {
     const storedError = readStoredGoogleAuthError();
     if (storedError) setError(storedError);
   }, []);
+
+  useEffect(() => {
+    if (sessionError) setError(sessionError);
+  }, [sessionError]);
 
   const showLoginForm = !authLoading && !firebaseUser;
 

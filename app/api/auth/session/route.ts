@@ -136,8 +136,12 @@ export async function POST(request: NextRequest) {
       path: '/'
     });
     return response;
-  } catch {
-    return NextResponse.json({ error: 'Oturum oluşturulamadı' }, { status: 401 });
+  } catch (err) {
+    const message =
+      err instanceof Error && err.message.includes('NEXTAUTH_SECRET')
+        ? 'Sunucu oturum anahtarı yapılandırılmamış (NEXTAUTH_SECRET).'
+        : 'Oturum oluşturulamadı';
+    return NextResponse.json({ error: message }, { status: 401 });
   }
 }
 

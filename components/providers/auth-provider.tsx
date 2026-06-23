@@ -29,6 +29,7 @@ import {
   establishClientSessionWithRetry,
   SessionEstablishError
 } from '@/lib/auth/client-session';
+import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 import type { User } from '@/types';
 import { ROLES } from '@/lib/auth/roles';
 
@@ -118,8 +119,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
 
-    void ensureAuthReady().then((auth) => {
+    void ensureAuthReady().then(async (auth) => {
+      try {
+        const { finishGoogleRedirectSignIn } = await import(
+          '@/lib/firebase/google-auth'
+        );
+        const redirectError = await finishGoogleRedirectSignIn(auth);
+        if (!cancelled && redirectError) {
+          setSessionError(redirectError);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setSessionError(
+            getFirebaseAuthErrorMessage(err, 'Google ile giriş başarısız oldu')
+          );
+        }
+      }
+
+      if (cancelled) return;
+
       unsubscribe = onAuthStateChanged(auth, (fbUser) => {
         setFirebaseUser(fbUser);
 
@@ -142,7 +162,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     });
 
-    return () => unsubscribe?.();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, [isConfigured]);
 
   const signIn = useCallback(async (email: string, password: string) => {

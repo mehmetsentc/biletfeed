@@ -27,7 +27,7 @@ import { readStoredGoogleAuthError } from '@/components/auth/google-auth-init';
 const t = getTranslations();
 
 export function RegisterForm() {
-  const { signUp, signInWithGoogle, isConfigured } = useAuth();
+  const { signUp, signInWithGoogle, isConfigured, sessionError } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +37,10 @@ export function RegisterForm() {
     const storedError = readStoredGoogleAuthError();
     if (storedError) setError(storedError);
   }, []);
+
+  useEffect(() => {
+    if (sessionError) setError(sessionError);
+  }, [sessionError]);
 
   const {
     register,
