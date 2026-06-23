@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { canAccessDashboard } from '@/lib/auth/permissions';
 
 export function ProfileDropdown() {
   const pathname = usePathname();
@@ -28,8 +29,9 @@ export function ProfileDropdown() {
   if (!user) return null;
 
   const menuItems = [
+    { href: '/biletlerim', label: 'Biletlerim' },
+    { href: '/profil', label: 'Hesabım' },
     { href: '/profil/ilgi-alanlari', label: 'İlgi Alanları' },
-    { href: '/profil', label: 'Hesap Ayarları' }
   ];
 
   const isProfileActive =
@@ -67,6 +69,21 @@ export function ProfileDropdown() {
               {item.label}
             </Link>
           ))}
+          {canAccessDashboard(user.role) && (
+            <>
+              <div className="my-1 border-t border-border" />
+              <Link
+                href="/organizator-panel/baslangic"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="block px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+              >
+                Etkinlik Yönetimi ↗
+              </Link>
+            </>
+          )}
+          <div className="my-1 border-t border-border" />
           <button
             type="button"
             onClick={async () => {

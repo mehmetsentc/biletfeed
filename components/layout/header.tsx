@@ -12,7 +12,6 @@ import {
 } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { canAccessDashboard } from '@/lib/auth/permissions';
 import { mainNavLinks } from '@/lib/layout/navigation';
 
 const desktopBtnOutlineClass =
@@ -85,17 +84,6 @@ export function Header() {
                     active={pathname === '/favorilerim'}
                   />
                   <ProfileDropdown />
-                  {canAccessDashboard(user.role) && (
-                    <Link href="/organizator-panel/baslangic">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={desktopBtnOutlineClass}
-                      >
-                        Panel
-                      </Button>
-                    </Link>
-                  )}
                 </>
               ) : (
                 <>
