@@ -26,7 +26,7 @@ export function AvatarUpload() {
     const file = e.target.files?.[0];
     if (!file || !firebaseUser) return;
 
-    if (!file.type.startsWith('image/')) {
+    if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
       setError('Sadece görsel dosyası yükleyebilirsiniz');
       return;
     }
@@ -49,15 +49,28 @@ export function AvatarUpload() {
         credentials: 'same-origin'
       });
 
-      const data = (await res.json()) as { photoURL?: string; error?: string };
+      let data: { photoURL?: string; error?: string } = {};
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = (await res.json()) as { photoURL?: string; error?: string };
+      }
 
       if (!res.ok) {
         setError(data.error || 'Profil fotoğrafı yüklenemedi');
         return;
       }
 
+      if (!data.photoURL) {
+        setError('Profil fotoğrafı yüklenemedi');
+        return;
+      }
+
       setPhotoURL(data.photoURL);
-      await syncSession();
+      try {
+        await syncSession();
+      } catch {
+        /* Fotoğraf yüklendi; oturum yenilemesi opsiyonel */
+      }
     } catch {
       setError('Profil fotoğrafı yüklenemedi. Lütfen tekrar deneyin.');
     } finally {
@@ -91,7 +104,7 @@ export function AvatarUpload() {
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,image/*"
           className="hidden"
           onChange={handleFileChange}
         />

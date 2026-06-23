@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { getStorage } from 'firebase-admin/storage';
 import { getAdminApp, isFirebaseAdminConfigured } from '@/lib/firebase/admin';
 
@@ -68,16 +69,20 @@ async function uploadPublicBuffer(
 ): Promise<string> {
   const bucket = getStorage(getAdminApp()).bucket(bucketName);
   const file = bucket.file(path);
+  const downloadToken = randomUUID();
 
   await file.save(buffer, {
     metadata: {
       contentType,
-      cacheControl: 'public, max-age=31536000'
-    },
-    public: true
+      cacheControl: 'public, max-age=31536000',
+      metadata: {
+        firebaseStorageDownloadTokens: downloadToken
+      }
+    }
   });
 
-  return `https://storage.googleapis.com/${bucketName}/${path}`;
+  const encodedPath = encodeURIComponent(path);
+  return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${downloadToken}`;
 }
 
 export async function downloadAndUploadEventCover(
