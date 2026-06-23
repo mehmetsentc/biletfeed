@@ -92,9 +92,13 @@ function createAdminApp(): App {
   }
 
   const { projectId, clientEmail, privateKey } = getServiceAccount();
+  const storageBucket =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
 
   return initializeApp({
-    credential: cert({ projectId, clientEmail, privateKey })
+    credential: cert({ projectId, clientEmail, privateKey }),
+    ...(storageBucket ? { storageBucket } : {})
   });
 }
 
