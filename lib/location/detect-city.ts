@@ -6,7 +6,7 @@ import {
   type CitySlug
 } from './cities';
 
-const CITY_COORDS: Record<CitySlug, { lat: number; lon: number }> = {
+const CITY_COORDS: Partial<Record<CitySlug, { lat: number; lon: number }>> = {
   istanbul: { lat: 41.0082, lon: 28.9784 },
   ankara: { lat: 39.9334, lon: 32.8597 },
   izmir: { lat: 38.4192, lon: 27.1287 },
@@ -20,9 +20,7 @@ const CITY_COORDS: Record<CitySlug, { lat: number; lon: number }> = {
   mersin: { lat: 36.8121, lon: 34.6415 },
   trabzon: { lat: 41.0027, lon: 39.7168 },
   samsun: { lat: 41.2867, lon: 36.33 },
-  bodrum: { lat: 37.0344, lon: 27.4305 },
-  mugla: { lat: 37.2153, lon: 28.3636 },
-  alanya: { lat: 36.5448, lon: 31.9958 }
+  mugla: { lat: 37.2153, lon: 28.3636 }
 };
 
 function toRad(deg: number) {
@@ -47,6 +45,7 @@ function nearestSupportedCity(lat: number, lon: number): CitySlug {
     CitySlug,
     { lat: number; lon: number }
   ][]) {
+    if (!coords) continue;
     const dist = haversineKm(lat, lon, coords.lat, coords.lon);
     if (dist < bestDist) {
       bestDist = dist;
@@ -107,15 +106,16 @@ export function getNearbyCitySlugs(
   const origin = CITY_COORDS[citySlug as CitySlug];
   if (!origin) return [citySlug];
 
-  const ranked = SUPPORTED_CITIES.map((city) => ({
-    slug: city.slug,
-    dist: haversineKm(
-      origin.lat,
-      origin.lon,
-      CITY_COORDS[city.slug].lat,
-      CITY_COORDS[city.slug].lon
-    )
-  }))
+  const ranked = SUPPORTED_CITIES.filter((city) => CITY_COORDS[city.slug])
+    .map((city) => ({
+      slug: city.slug,
+      dist: haversineKm(
+        origin.lat,
+        origin.lon,
+        CITY_COORDS[city.slug]!.lat,
+        CITY_COORDS[city.slug]!.lon
+      )
+    }))
     .sort((a, b) => a.dist - b.dist)
     .map((city) => city.slug);
 
