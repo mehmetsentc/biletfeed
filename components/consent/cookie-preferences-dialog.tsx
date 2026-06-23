@@ -110,7 +110,7 @@ export function CookiePreferencesDialog({
           </Button>
           <Button
             type="button"
-            className="bg-[#3cb371] text-white hover:bg-[#34a366]"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={onAcceptAll}
           >
             Tümünü Kabul Et

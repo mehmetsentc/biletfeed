@@ -68,7 +68,7 @@ export function CookieConsentBanner({
         <Button
           type="button"
           onClick={onAccept}
-          className="h-11 shrink-0 rounded-lg bg-[#3cb371] px-8 text-sm font-semibold text-white hover:bg-[#34a366] md:min-w-[140px]"
+          className="h-11 shrink-0 rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground hover:bg-primary/90 md:min-w-[140px]"
         >
           Kabul Et
         </Button>

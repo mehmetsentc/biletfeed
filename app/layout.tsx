@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   }),
   icons: {
     icon: [
-      { url: brandAssetUrl(brandLogos.favicon), type: 'image/png', sizes: '1000x1000' },
+      { url: brandAssetUrl(brandLogos.favicon), type: 'image/png', sizes: '512x512' },
       { url: '/brand/favicon-192.png', type: 'image/png', sizes: '192x192' }
     ],
     apple: [{ url: brandAssetUrl(brandLogos.favicon), type: 'image/png' }],

@@ -2,14 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Star, Ticket } from 'lucide-react';
 import { CitySelectorButton } from '@/components/location/city-selector-button';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
-import {
-  HeaderIconLink,
-  ProfileDropdown
-} from '@/components/layout/profile-dropdown';
+import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { mainNavLinks } from '@/lib/layout/navigation';
@@ -60,21 +56,7 @@ export function Header() {
           {!loading && (
             <div className="flex items-center gap-2">
               {user ? (
-                <>
-                  <HeaderIconLink
-                    href="/biletlerim"
-                    icon={Ticket}
-                    label="Biletler"
-                    active={pathname.startsWith('/biletlerim')}
-                  />
-                  <HeaderIconLink
-                    href="/favorilerim"
-                    icon={Star}
-                    label="İlgilenilen"
-                    active={pathname === '/favorilerim'}
-                  />
-                  <ProfileDropdown />
-                </>
+                <ProfileDropdown />
               ) : (
                 <>
                   <Link href="/giris">
