@@ -12,14 +12,9 @@ import {
   parseTurkishDate
 } from '@/lib/scraper/normalize';
 import {
-  biletixListingUrls,
   bubiletListingUrls,
   biletinoListingUrls
 } from '@/lib/scraper/listing-urls';
-import {
-  extractBiletixListingStubs,
-  isFutureBiletixStub
-} from '@/lib/scraper/platforms/biletix';
 import { extractBiletinoProductStubs } from '@/lib/scraper/platforms/biletino';
 import { scrapePasso } from '@/lib/scraper/platforms/passo';
 import type { ScrapedEventRaw, ScraperAdapter, ScraperResult } from '@/lib/scraper/types';
@@ -323,51 +318,6 @@ async function scrapePlatformWithDetails(
   return result(platform, valid, errors);
 }
 
-async function scrapeBiletix(): Promise<ScraperResult> {
-  try {
-    const probe = await fetchHtml('https://www.biletix.com/anasayfa/TURKIYE/tr', 12000);
-    if (!probe || probe.length < 5000) {
-      return result('BILETIX', [], ['BILETIX: site yanıt vermedi veya erişilemedi']);
-    }
-  } catch (e) {
-    return result('BILETIX', [], [
-      `BILETIX: site erişilemedi — ${e instanceof Error ? e.message : String(e)}`
-    ]);
-  }
-
-  const scraped = await scrapePlatformWithDetails(
-    'BILETIX',
-    biletixListingUrls(),
-    /biletix\.com/i,
-    {
-      aiFirst: false,
-      maxDetails: 50,
-      extractStubs: (html, url) =>
-        extractBiletixListingStubs(html, url).filter((s) => isFutureBiletixStub(s))
-    }
-  );
-
-  const now = new Date();
-  const events = scraped.events.filter(
-    (event) => event.startDate.getTime() >= now.getTime() - 12 * 60 * 60 * 1000
-  );
-
-  return {
-    platform: 'BILETIX',
-    events,
-    errors: [
-      ...scraped.errors,
-      `BILETIX: ${events.length} gelecek etkinlik (${scraped.events.length} toplam çekildi)`
-    ]
-  };
-}
-
-export const biletixAdapter: ScraperAdapter = {
-  platform: 'BILETIX',
-  label: PLATFORM_LABELS.BILETIX,
-  scrapeNewEvents: scrapeBiletix
-};
-
 export const bubiletAdapter: ScraperAdapter = {
   platform: 'BUBILET',
   label: PLATFORM_LABELS.BUBILET,
@@ -376,7 +326,11 @@ export const bubiletAdapter: ScraperAdapter = {
       'BUBILET',
       bubiletListingUrls(),
       /bubilet\.com\.tr/i,
-      { maxDetails: 100 }
+      {
+        // 6 şehir × 8 kategori + ana sayfa = 55 liste URL
+        // Her sayfadan ~20-40 etkinlik link çıkıyor; 400 limit tüm katalog için yeterli
+        maxDetails: 400
+      }
     )
 };
 
@@ -424,10 +378,9 @@ export const biletinoAdapter: ScraperAdapter = {
   scrapeNewEvents: scrapeBiletino
 };
 
-/** Aktif scraper kaynakları — Biletimo domain satışta, devre dışı */
+/** Aktif scraper kaynakları — Biletix kaldırıldı, Biletimo domain satışta */
 export const scraperAdapters: ScraperAdapter[] = [
   bubiletAdapter,
-  biletixAdapter,
   passoAdapter,
   biletinoAdapter
 ];

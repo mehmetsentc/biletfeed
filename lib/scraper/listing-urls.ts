@@ -28,11 +28,44 @@ export function biletixListingUrls(): string[] {
   return urls;
 }
 
+/**
+ * Bubilet yalnızca 6 şehri destekliyor (bubilet.com.tr/sehir-sec doğrular).
+ * Her şehrin ana sayfası + tüm kategori/etiket sayfaları taranır.
+ */
+const BUBILET_CITIES = [
+  'istanbul',
+  'ankara',
+  'izmir',
+  'antalya',
+  'bursa',
+  'eskisehir'
+] as const;
+
+const BUBILET_CATEGORIES = [
+  'konser',
+  'tiyatro',
+  'festival',
+  'stand-up',
+  'elektronik-muzik',
+  'cocuk-aktiviteleri',
+  'workshop',
+  'spor',
+] as const;
+
 export function bubiletListingUrls(): string[] {
-  const urls = ['https://www.bubilet.com.tr/'];
-  for (const city of SUPPORTED_CITIES) {
-    urls.push(`https://www.bubilet.com.tr/${city.slug}`);
+  const base = 'https://www.bubilet.com.tr';
+  const urls: string[] = [base + '/']; // anasayfa — tüm şehirlerin öne çıkanları
+
+  for (const city of BUBILET_CITIES) {
+    // Şehir ana sayfası (tüm etkinlikler)
+    urls.push(`${base}/${city}`);
+
+    // Her kategori / etiket sayfası
+    for (const cat of BUBILET_CATEGORIES) {
+      urls.push(`${base}/${city}/etiket/${cat}`);
+    }
   }
+
   return urls;
 }
 

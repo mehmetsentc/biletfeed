@@ -223,7 +223,18 @@ export function parseDetailPageHtml(
   const endDate = resolveEndDate($, platform, startDate, ld);
 
   const loc = parseLocation(ld || {});
-  const { slug: citySlug, name: cityName } = resolveCitySlug(loc.cityName || 'İstanbul');
+
+  // Bubilet URL formatı: /istanbul/etkinlik/{slug} — şehri URL'den çek, JSON-LD'ye güvenme
+  let cityRaw = loc.cityName;
+  if (platform === 'BUBILET' && !cityRaw) {
+    try {
+      const parts = new URL(pageUrl).pathname.split('/').filter(Boolean);
+      if (parts.length >= 2 && parts[1] === 'etkinlik') {
+        cityRaw = parts[0]!;
+      }
+    } catch { /* skip */ }
+  }
+  const { slug: citySlug, name: cityName } = resolveCitySlug(cityRaw || 'İstanbul');
 
   const { cover, gallery } = parseImages(ld || {}, ogImage || stub?.coverImage || '');
   const description = String(
