@@ -37,9 +37,9 @@ export default function ContactPage() {
         </form>
         <div className="space-y-6">
           {[
-            { icon: Mail, label: 'E-posta', value: 'info@example.com' },
-            { icon: Phone, label: 'Telefon', value: '+90 212 000 00 00' },
-            { icon: MapPin, label: 'Adres', value: 'İstanbul, Türkiye' }
+            { icon: Mail, label: 'E-posta', value: 'destek@biletfeed.com' },
+            { icon: Phone, label: 'Telefon', value: '0541 953 93 00' },
+            { icon: MapPin, label: 'Adres', value: 'Hurma Mah. 246 Sk. Adalın Park No:9 Kat:2 Konyaaltı / Antalya' }
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-4">
               <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10">

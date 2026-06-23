@@ -23,14 +23,16 @@ export function OrganizatorShell({
   if (isWizard) {
     return (
       <AuthGuard requiredRole="ROLE_ORGANIZER">
-        <div className="min-h-screen bg-[#eef0f2]">{children}</div>
+        <div className="organizer-surface min-h-screen bg-[#eef0f2] p-4 md:p-6 lg:p-8">
+          {children}
+        </div>
       </AuthGuard>
     );
   }
 
   return (
     <AuthGuard requiredRole="ROLE_ORGANIZER">
-      <div className="flex min-h-screen flex-col bg-[#eef0f2]">
+      <div className="organizer-surface flex min-h-screen flex-col bg-[#eef0f2]">
         <OrganizatorHeader
           displayName={displayName}
           onMenuClick={() => setMobileOpen((v) => !v)}

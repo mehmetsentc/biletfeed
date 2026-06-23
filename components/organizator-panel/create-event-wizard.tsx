@@ -126,7 +126,9 @@ export function CreateOrganizerEventWizard() {
         >
           <ArrowLeft className="size-4" />
         </Link>
-        <h1 className="text-2xl font-bold md:text-3xl">Yeni Etkinlik Oluştur</h1>
+        <h1 className="text-2xl font-bold text-foreground md:text-3xl">
+          Yeni Etkinlik Oluştur
+        </h1>
       </div>
 
       <EventWizardStepper current={step} className="mb-10" />
@@ -151,7 +153,7 @@ export function CreateOrganizerEventWizard() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground"
               >
                 <option value="">Lütfen birini seçin</option>
                 {categories.map((cat) => (
@@ -170,7 +172,7 @@ export function CreateOrganizerEventWizard() {
                     setCitySlug(slug);
                   }
                 }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground"
               >
                 {SUPPORTED_CITIES.map((city) => (
                   <option key={city.slug} value={city.slug}>
@@ -184,7 +186,7 @@ export function CreateOrganizerEventWizard() {
           <FormSection title="Tarih & Saat">
             <FormRow label="Etkinlik Türü" required>
               <div className="flex flex-wrap gap-6">
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
                   <input
                     type="radio"
                     name="eventTypeMode"
@@ -194,7 +196,7 @@ export function CreateOrganizerEventWizard() {
                   />
                   Tek Etkinlik
                 </label>
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
                   <input
                     type="radio"
                     name="eventTypeMode"
@@ -208,7 +210,7 @@ export function CreateOrganizerEventWizard() {
             </FormRow>
 
             <div className="border-b border-border px-4 py-6 md:px-6">
-              <p className="mb-4 text-sm font-medium">
+              <p className="mb-4 text-sm font-medium text-foreground">
                 Seans(lar)<span className="text-destructive">*</span>
               </p>
               <div className="space-y-4">
@@ -219,7 +221,7 @@ export function CreateOrganizerEventWizard() {
                   >
                     <div>
                       {index === 0 && (
-                        <label className="mb-1.5 block text-xs text-muted-foreground">
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                           Başlangıç Tarihi<span className="text-destructive">*</span>
                         </label>
                       )}
@@ -237,7 +239,7 @@ export function CreateOrganizerEventWizard() {
                     </div>
                     <div>
                       {index === 0 && (
-                        <label className="mb-1.5 block text-xs text-muted-foreground">
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                           Başlangıç Saati<span className="text-destructive">*</span>
                         </label>
                       )}
@@ -255,7 +257,7 @@ export function CreateOrganizerEventWizard() {
                     </div>
                     <div>
                       {index === 0 && (
-                        <label className="mb-1.5 block text-xs text-muted-foreground">
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                           Bitiş Saati
                         </label>
                       )}
@@ -295,7 +297,7 @@ export function CreateOrganizerEventWizard() {
               <select
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground"
               >
                 <option value="">Lütfen birini seçin</option>
                 <option value="venue">Fiziksel mekan</option>
@@ -320,7 +322,7 @@ export function CreateOrganizerEventWizard() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Etkinliğinizin özel yanlarını ve diğer önemli detayları açıklayın."
-                className="min-h-36 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="min-h-36 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground placeholder:text-[#737373]"
               />
             </FormRow>
           </FormSection>

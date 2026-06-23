@@ -11,7 +11,11 @@ const companyLinks = [
   { href: '/kariyer', label: 'Kariyer' },
   { href: '/sss', label: 'SSS' },
   { href: '/kosullar', label: 'Kullanım Koşulları' },
-  { href: '/gizlilik', label: 'Gizlilik Politikası' }
+  { href: '/gizlilik', label: 'Gizlilik Politikası' },
+  { href: '/kullanici-sozlesmesi', label: 'Kullanıcı Sözleşmesi' },
+  { href: '/mesafeli-satis', label: 'Mesafeli Satış Sözleşmesi' },
+  { href: '/iade-iptal', label: 'Teslimat ve İade Şartları' },
+  { href: '/cerezler', label: 'Çerez Politikası' },
 ];
 
 const helpLinks = [
@@ -136,9 +140,29 @@ export async function Footer() {
             </div>
           </div>
 
-          <div className="mt-12 border-t border-white/10 pt-8 text-center text-sm text-white/50">
-            <p>
-              © {year} {siteConfig.name}. Tüm hakları saklıdır.
+          <div className="mt-12 border-t border-white/10 pt-8">
+            {/* Ödeme yöntemleri */}
+            <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-white/50">
+                © {year} {siteConfig.name}. Tüm hakları saklıdır.
+              </p>
+              <div className="flex flex-col items-center gap-3 sm:flex-row">
+                {/* iyzico ile Öde logosu */}
+                <img
+                  src="/iyzico/iyzico_ile_ode_colored_horizontal.svg"
+                  alt="iyzico ile Öde"
+                  className="h-7 w-auto"
+                />
+                {/* Kart logoları bandı */}
+                <img
+                  src="/iyzico/logo_band_colored.svg"
+                  alt="Mastercard, Visa, American Express, Troy"
+                  className="h-7 w-auto"
+                />
+              </div>
+            </div>
+            <p className="mt-3 text-center text-xs text-white/30">
+              Ödemeleriniz iyzico altyapısı ile SSL şifreli güvenli bağlantı üzerinden işlenmektedir.
             </p>
           </div>
         </div>

@@ -48,7 +48,7 @@ export function EventWizardStepper({
               <span
                 className={cn(
                   'text-xs font-medium',
-                  active || done ? 'text-foreground' : 'text-muted-foreground'
+                  active ? 'text-foreground' : done ? 'text-foreground' : 'text-muted-foreground'
                 )}
               >
                 {label}

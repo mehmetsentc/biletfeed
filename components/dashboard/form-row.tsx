@@ -42,7 +42,7 @@ interface FormSectionProps {
 export function FormSection({ title, children, className }: FormSectionProps) {
   return (
     <section className={cn('space-y-1', className)}>
-      <h2 className="text-lg font-bold">{title}</h2>
+      <h2 className="text-lg font-bold text-foreground">{title}</h2>
       <div className="rounded-lg border border-border bg-card">{children}</div>
     </section>
   );

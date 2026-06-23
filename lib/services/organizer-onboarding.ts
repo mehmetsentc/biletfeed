@@ -21,10 +21,17 @@ export async function ensureOrganizerProfile(params: {
   });
 
   const organizer = await prisma.$transaction(async (tx) => {
-    await tx.user.update({
+    const owner = await tx.user.findUnique({
       where: { id: params.userId },
-      data: { role: ROLES.ORGANIZER }
+      select: { role: true }
     });
+    // Admin / süperadmin rollerini organizatör kurulumunda düşürme
+    if (owner?.role === ROLES.USER) {
+      await tx.user.update({
+        where: { id: params.userId },
+        data: { role: ROLES.ORGANIZER }
+      });
+    }
 
     return tx.organizer.create({
       data: {

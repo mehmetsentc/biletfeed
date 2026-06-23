@@ -42,10 +42,11 @@ export function AlreadySignedInPanel() {
     setSyncing(true);
     setError(null);
 
-    const mustRefreshSession =
-      queryError === 'admin_required' || !sessionReady;
+    // Admin yönlendirmesinde rolü DB'den yenile (bootstrap / süperadmin düzeltmesi)
+    const needsFreshSession =
+      target === '/admin' || queryError === 'admin_required' || !sessionReady;
 
-    if (mustRefreshSession) {
+    if (needsFreshSession) {
       const ok = await syncSession();
       if (!ok) {
         setSyncing(false);

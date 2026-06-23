@@ -2,7 +2,15 @@ import { getAdminOrders } from '@/lib/services/admin-dashboard';
 import { Badge } from '@/components/ui/badge';
 
 export default async function AdminOrdersPage() {
-  const orders = await getAdminOrders();
+  let orders: Awaited<ReturnType<typeof getAdminOrders>> = [];
+  let loadError: string | null = null;
+
+  try {
+    orders = await getAdminOrders();
+  } catch (e) {
+    loadError =
+      e instanceof Error ? e.message : 'Siparişler yüklenemedi. Veritabanı şeması güncel olmayabilir.';
+  }
 
   return (
     <div className="space-y-6">
@@ -10,6 +18,12 @@ export default async function AdminOrdersPage() {
         <h1 className="text-2xl font-bold">Siparişler</h1>
         <p className="text-muted-foreground">Platform siparişleri</p>
       </div>
+
+      {loadError && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          {loadError}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-lg border">
         <table className="w-full text-sm">
@@ -29,9 +43,9 @@ export default async function AdminOrdersPage() {
                 <td className="p-3 whitespace-nowrap text-muted-foreground">
                   {order.createdAt.toLocaleDateString('tr-TR')}
                 </td>
-                <td className="p-3">{order.event.title}</td>
-                <td className="p-3">{order.user.displayName}</td>
-                <td className="p-3">{order.organizer.name}</td>
+                <td className="p-3">{order.event?.title ?? '—'}</td>
+                <td className="p-3">{order.user?.displayName ?? order.user?.email ?? '—'}</td>
+                <td className="p-3">{order.organizer?.name ?? '—'}</td>
                 <td className="p-3">₺{order.total.toLocaleString('tr-TR')}</td>
                 <td className="p-3">
                   <Badge variant={order.status === 'paid' ? 'success' : 'secondary'}>
