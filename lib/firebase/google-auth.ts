@@ -18,6 +18,8 @@ export type GoogleSignInResult = {
 };
 
 const REDIRECT_PENDING_KEY = 'bf_google_redirect_pending';
+const REDIRECT_PENDING_AT_KEY = 'bf_google_redirect_pending_at';
+const REDIRECT_PENDING_TTL_MS = 5 * 60 * 1000;
 
 function createGoogleProvider() {
   const provider = new GoogleAuthProvider();
@@ -31,6 +33,7 @@ export function resetRedirectResultCache() {
   redirectResultPromise = null;
 }
 
+/** Persistence'dan önce çağrılmalı — client.ts mount sırasında tetikler */
 export function consumeGoogleRedirectResult(
   auth: Auth
 ): Promise<UserCredential | null> {
@@ -42,17 +45,23 @@ export function consumeGoogleRedirectResult(
 
 export function wasGoogleRedirectPending(): boolean {
   if (typeof window === 'undefined') return false;
-  return sessionStorage.getItem(REDIRECT_PENDING_KEY) === '1';
+
+  if (localStorage.getItem(REDIRECT_PENDING_KEY) === '1') return true;
+
+  const startedAt = Number(localStorage.getItem(REDIRECT_PENDING_AT_KEY) || 0);
+  return startedAt > 0 && Date.now() - startedAt < REDIRECT_PENDING_TTL_MS;
 }
 
 export function clearGoogleRedirectPending() {
   if (typeof window === 'undefined') return;
-  sessionStorage.removeItem(REDIRECT_PENDING_KEY);
+  localStorage.removeItem(REDIRECT_PENDING_KEY);
+  localStorage.removeItem(REDIRECT_PENDING_AT_KEY);
 }
 
 export function markGoogleRedirectPending() {
   if (typeof window === 'undefined') return;
-  sessionStorage.setItem(REDIRECT_PENDING_KEY, '1');
+  localStorage.setItem(REDIRECT_PENDING_KEY, '1');
+  localStorage.setItem(REDIRECT_PENDING_AT_KEY, String(Date.now()));
 }
 
 function getAuthErrorCode(err: unknown): string {
@@ -62,22 +71,31 @@ function getAuthErrorCode(err: unknown): string {
     : '';
 }
 
-function shouldPreferRedirect(): boolean {
-  if (typeof window === 'undefined') return false;
-
-  return (
-    process.env.NODE_ENV === 'production' ||
-    window.matchMedia('(pointer: coarse)').matches ||
-    window.innerWidth < 768 ||
-    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-  );
-}
-
 const POPUP_FALLBACK_CODES = new Set([
   'auth/popup-blocked',
   'auth/popup-closed-by-user',
   'auth/cancelled-popup-request'
 ]);
+
+async function waitForAuthUser(auth: Auth, ms = 1200): Promise<boolean> {
+  if (auth.currentUser) return true;
+
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const tick = () => {
+      if (auth.currentUser) {
+        resolve(true);
+        return;
+      }
+      if (Date.now() - started >= ms) {
+        resolve(false);
+        return;
+      }
+      window.setTimeout(tick, 100);
+    };
+    tick();
+  });
+}
 
 /**
  * Google redirect dönüşünü işler. AuthProvider mount sırasında, onAuthStateChanged
@@ -90,12 +108,20 @@ export async function finishGoogleRedirectSignIn(
 
   try {
     const result = await consumeGoogleRedirectResult(auth);
-    clearGoogleRedirectPending();
 
-    if (result?.user) return null;
+    if (result?.user) {
+      clearGoogleRedirectPending();
+      return null;
+    }
 
-    if (pending && !auth.currentUser) {
-      return 'Google oturumu tamamlanamadı. Lütfen tekrar deneyin.';
+    if (await waitForAuthUser(auth)) {
+      clearGoogleRedirectPending();
+      return null;
+    }
+
+    if (pending) {
+      clearGoogleRedirectPending();
+      return 'Google oturumu tamamlanamadı. Tarayıcı çerezlerini kontrol edip tekrar deneyin veya e-posta ile giriş yapın.';
     }
 
     return null;
@@ -106,8 +132,7 @@ export async function finishGoogleRedirectSignIn(
 }
 
 /**
- * Production ve mobilde redirect; geliştirmede popup.
- * Popup hata verirse otomatik redirect'e düşer.
+ * Önce popup dener (COOP: same-origin-allow-popups). Popup engellenirse redirect'e düşer.
  */
 export async function signInWithGoogle(auth: Auth): Promise<GoogleSignInResult> {
   if (auth.currentUser) {
@@ -116,24 +141,18 @@ export async function signInWithGoogle(auth: Auth): Promise<GoogleSignInResult> 
 
   const provider = createGoogleProvider();
 
-  if (shouldPreferRedirect()) {
-    resetRedirectResultCache();
-    markGoogleRedirectPending();
-    await signInWithRedirect(auth, provider);
-    return { mode: 'redirect', completed: false };
-  }
-
   try {
     await signInWithPopup(auth, provider);
     return { mode: 'popup', completed: true };
   } catch (err) {
     const code = getAuthErrorCode(err);
-    if (POPUP_FALLBACK_CODES.has(code)) {
-      resetRedirectResultCache();
-      markGoogleRedirectPending();
-      await signInWithRedirect(auth, provider);
-      return { mode: 'redirect', completed: false };
+    if (!POPUP_FALLBACK_CODES.has(code)) {
+      throw err;
     }
-    throw err;
+
+    resetRedirectResultCache();
+    markGoogleRedirectPending();
+    await signInWithRedirect(auth, provider);
+    return { mode: 'redirect', completed: false };
   }
 }

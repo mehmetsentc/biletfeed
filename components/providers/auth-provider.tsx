@@ -121,26 +121,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
 
-    void ensureAuthReady().then(async (auth) => {
-      try {
-        const { finishGoogleRedirectSignIn } = await import(
-          '@/lib/firebase/google-auth'
-        );
-        const redirectError = await finishGoogleRedirectSignIn(auth);
-        if (!cancelled && redirectError) {
-          setSessionError(redirectError);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setSessionError(
-            getFirebaseAuthErrorMessage(err, 'Google ile giriş başarısız oldu')
-          );
+    // Redirect sonucu persistence kurulmadan önce işlenmeli
+    const auth = getFirebaseAuth();
+    void import('@/lib/firebase/google-auth').then(
+      async ({ finishGoogleRedirectSignIn, consumeGoogleRedirectResult }) => {
+        consumeGoogleRedirectResult(auth);
+        try {
+          const redirectError = await finishGoogleRedirectSignIn(auth);
+          if (!cancelled && redirectError) {
+            setSessionError(redirectError);
+            const { storeGoogleAuthError } = await import(
+              '@/components/auth/google-auth-init'
+            );
+            storeGoogleAuthError(redirectError);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setSessionError(
+              getFirebaseAuthErrorMessage(err, 'Google ile giriş başarısız oldu')
+            );
+          }
         }
       }
+    );
 
+    void ensureAuthReady().then((readyAuth) => {
       if (cancelled) return;
 
-      unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      unsubscribe = onAuthStateChanged(readyAuth, (fbUser) => {
         setFirebaseUser(fbUser);
 
         if (fbUser) {

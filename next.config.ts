@@ -36,16 +36,7 @@ const nextConfig: NextConfig = {
         ]
       },
       {
-        source: '/giris',
-        headers: [
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups'
-          }
-        ]
-      },
-      {
-        source: '/kayit',
+        source: '/:path*',
         headers: [
           {
             key: 'Cross-Origin-Opener-Policy',

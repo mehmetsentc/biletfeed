@@ -3,12 +3,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
-import { getRedirectTarget } from '@/components/auth/auth-session-redirect';
-import { ensureAuthReady } from '@/lib/firebase/client';
-import { redirectFromAuthPagesIfNeeded } from '@/lib/firebase/auth-redirect';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +26,6 @@ const t = getTranslations();
 export function RegisterForm() {
   const { signUp, signInWithGoogle, isConfigured, sessionError } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -83,13 +79,6 @@ export function RegisterForm() {
     try {
       const result = await signInWithGoogle();
       if (result.mode === 'redirect') return;
-
-      const auth = await ensureAuthReady();
-      if (auth.currentUser) {
-        redirectFromAuthPagesIfNeeded();
-        window.location.replace(getRedirectTarget('/kayit', searchParams.toString()));
-        return;
-      }
       setLoading(false);
     } catch (err) {
       setError(

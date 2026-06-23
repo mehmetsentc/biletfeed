@@ -2,13 +2,28 @@ import type { NextRequest } from 'next/server';
 
 function collectExpectedOrigins(host: string): Set<string> {
   const expected = new Set<string>();
+  const hostname = host.split(':')[0];
+
   for (const proto of ['https', 'http']) {
     expected.add(`${proto}://${host}`);
+    if (hostname.startsWith('www.')) {
+      expected.add(`${proto}://${hostname.slice(4)}`);
+    } else {
+      expected.add(`${proto}://www.${hostname}`);
+    }
   }
+
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
   if (siteUrl) {
     try {
-      expected.add(new URL(siteUrl).origin);
+      const origin = new URL(siteUrl).origin;
+      expected.add(origin);
+      const siteHost = new URL(siteUrl).hostname;
+      if (siteHost.startsWith('www.')) {
+        expected.add(`${new URL(siteUrl).protocol}//${siteHost.slice(4)}`);
+      } else {
+        expected.add(`${new URL(siteUrl).protocol}//www.${siteHost}`);
+      }
     } catch {
       /* ignore */
     }

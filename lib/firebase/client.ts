@@ -37,6 +37,12 @@ export function getFirebaseAuth(): Auth {
   if (!auth) {
     auth = getAuth(getFirebaseApp());
     if (typeof window !== 'undefined') {
+      // Redirect sonucu persistence kurulumundan önce işlenmeli
+      void import('@/lib/firebase/google-auth').then(
+        ({ consumeGoogleRedirectResult }) => {
+          consumeGoogleRedirectResult(auth!);
+        }
+      );
       persistenceReady = setPersistence(auth, browserLocalPersistence).then(
         () => undefined
       );

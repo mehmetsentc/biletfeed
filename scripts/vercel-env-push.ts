@@ -115,6 +115,15 @@ function main() {
   }
   addEnv('TICKET_SECRET_KEY', ticket);
 
+  let nextAuthSecret = env.NEXTAUTH_SECRET;
+  if (!nextAuthSecret || nextAuthSecret === 'dev-session-secret-local-only') {
+    nextAuthSecret = execSync('openssl rand -base64 32', {
+      encoding: 'utf8'
+    }).trim();
+    console.log('  → Yeni NEXTAUTH_SECRET üretildi');
+  }
+  addEnv('NEXTAUTH_SECRET', nextAuthSecret);
+
   // AI — DeepSeek + Gemini
   addEnv('AI_ENABLED', env.AI_ENABLED || 'true');
   addEnv('SCRAPER_AI_ENABLED', env.SCRAPER_AI_ENABLED || 'true');

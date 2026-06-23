@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
   verifySessionCookie,
-  SESSION_COOKIE_NAME,
-  SESSION_EXPIRES_MS
 } from '@/lib/auth/session';
 import { getUserProfileByFirebaseUid } from '@/lib/services/user-queries';
 
@@ -16,7 +14,18 @@ export async function GET() {
     const user = await getUserProfileByFirebaseUid(session.uid);
 
     if (!user) {
-      return NextResponse.json({ user: null }, { status: 404 });
+      return NextResponse.json({
+        user: {
+          uid: session.uid,
+          email: session.email || '',
+          displayName: session.email?.split('@')[0] || 'Kullanıcı',
+          role: session.role,
+          favorites: [],
+          following: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      });
     }
 
     return NextResponse.json({ user });

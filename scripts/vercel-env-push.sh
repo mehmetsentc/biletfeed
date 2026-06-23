@@ -73,5 +73,12 @@ if [ "$TICKET" = "dev-secret-change-in-production" ] || [ -z "$TICKET" ]; then
 fi
 add_env TICKET_SECRET_KEY "$TICKET"
 
+NEXTAUTH="${NEXTAUTH_SECRET:-}"
+if [ "$NEXTAUTH" = "dev-session-secret-local-only" ] || [ -z "$NEXTAUTH" ]; then
+  NEXTAUTH=$(openssl rand -base64 32)
+  echo "  → Yeni NEXTAUTH_SECRET üretildi"
+fi
+add_env NEXTAUTH_SECRET "$NEXTAUTH"
+
 echo ""
 echo "✅ Env yüklendi. Deploy: npm run deploy"

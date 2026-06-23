@@ -3,12 +3,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
-import { getRedirectTarget } from '@/components/auth/auth-session-redirect';
-import { ensureAuthReady } from '@/lib/firebase/client';
-import { establishClientSessionWithRetry } from '@/lib/auth/client-session';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +25,6 @@ const t = getTranslations();
 export function LoginForm() {
   const { signIn, signInWithGoogle, isConfigured, firebaseUser, loading: authLoading, sessionError } =
     useAuth();
-  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -61,13 +56,7 @@ export function LoginForm() {
     setError(null);
     try {
       await signIn(data.email, data.password);
-      const auth = await ensureAuthReady();
-      if (auth.currentUser) {
-        await establishClientSessionWithRetry(auth.currentUser);
-        window.location.replace(
-          getRedirectTarget('/giris', searchParams.toString())
-        );
-      }
+      // E-posta girişi — AuthProvider oturumu kurar, AuthSessionRedirect yönlendirir
     } catch (err) {
       setError(getFirebaseAuthErrorMessage(err, 'E-posta veya şifre hatalı'));
     } finally {
@@ -84,17 +73,11 @@ export function LoginForm() {
     setError(null);
     try {
       const result = await signInWithGoogle();
-      if (result.mode === 'redirect') return;
-
-      const auth = await ensureAuthReady();
-      if (auth.currentUser) {
-        await establishClientSessionWithRetry(auth.currentUser);
-        window.location.replace(
-          getRedirectTarget('/giris', searchParams.toString())
-        );
+      if (result.mode === 'redirect') {
+        // Sayfa Google'a yönlendirilecek
         return;
       }
-      setLoading(false);
+      // Popup başarılı — AuthProvider oturumu kurar, AuthSessionRedirect yönlendirir
     } catch (err) {
       setError(
         getFirebaseAuthErrorMessage(err, 'Google ile giriş başarısız oldu')
@@ -102,6 +85,9 @@ export function LoginForm() {
       setLoading(false);
     }
   };
+
+  // Popup sonrası oturum hazırlanırken yükleme göstergesini koru
+  const googleInProgress = loading && !error;
 
   if (!showLoginForm) {
     return null;
@@ -176,10 +162,10 @@ export function LoginForm() {
           variant="outline"
           className="w-full"
           onClick={handleGoogleLogin}
-          disabled={loading}
+          disabled={googleInProgress}
           type="button"
         >
-          {loading ? 'Google\'a yönlendiriliyor…' : t.auth.googleLogin}
+          {googleInProgress ? 'Google ile giriş yapılıyor…' : t.auth.googleLogin}
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
