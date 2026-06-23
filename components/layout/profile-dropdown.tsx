@@ -2,19 +2,39 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronDown, Star, Ticket, User } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import {
+  ChevronDown,
+  LayoutDashboard,
+  Plus,
+  Ticket
+} from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Button } from '@/components/ui/button';
+import { useAccountMode } from '@/hooks/use-account-mode';
+import { isAccountAreaActive } from '@/lib/account/navigation';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { canAccessDashboard } from '@/lib/auth/permissions';
 
 export function ProfileDropdown() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { isOrganizerMode, isModeLocked } = useAccountMode();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  const displayName = user?.displayName || 'Hesabım';
+  const initials = useMemo(
+    () =>
+      displayName
+        .split(' ')
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || 'BF',
+    [displayName]
+  );
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -28,74 +48,84 @@ export function ProfileDropdown() {
 
   if (!user) return null;
 
-  const menuItems = [
-    { href: '/biletlerim', label: 'Biletlerim' },
-    { href: '/profil', label: 'Hesabım' },
-    { href: '/profil/ilgi-alanlari', label: 'İlgi Alanları' },
-  ];
+  const isProfileActive = isAccountAreaActive(pathname);
 
-  const isProfileActive =
-    pathname.startsWith('/profil') || pathname === '/biletlerim';
+  async function handleSignOut() {
+    setOpen(false);
+    await signOut();
+    router.push('/');
+    router.refresh();
+  }
 
   return (
-    <div ref={ref} className="relative hidden md:block">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex flex-col items-center gap-0.5 px-2 py-1 text-[var(--header-fg)] transition-colors hover:text-primary',
+          'flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-[var(--header-fg)] transition-colors hover:text-primary sm:gap-2.5 sm:pr-3',
           isProfileActive && 'text-primary'
         )}
+        aria-expanded={open}
+        aria-haspopup="menu"
       >
-        <span className="flex items-center gap-0.5">
-          <User className="size-5" strokeWidth={1.75} />
-          <ChevronDown className="size-3" />
-        </span>
-        <span className="text-[10px] font-medium">Profil</span>
+        <Avatar className="size-8 border border-[var(--header-border)] sm:size-9">
+          <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary sm:text-sm">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        <span className="hidden text-sm font-semibold sm:inline">Hesabım</span>
+        <ChevronDown
+          className={cn(
+            'size-4 transition-transform',
+            open && 'rotate-180'
+          )}
+        />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 min-w-[200px] overflow-hidden rounded-lg border border-border bg-background py-1 shadow-lg">
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'block px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-muted',
-                pathname === item.href && 'bg-muted font-medium'
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-          {canAccessDashboard(user.role) && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-50 mt-2 min-w-[240px] overflow-hidden rounded-xl border border-border bg-background py-2 shadow-xl"
+        >
+          <div className="border-b border-border px-4 py-3 sm:hidden">
+            <p className="truncate text-sm font-semibold">{displayName}</p>
+            {user.email && (
+              <p className="truncate text-xs text-muted-foreground">
+                {user.email}
+              </p>
+            )}
+          </div>
+
+          <AccountMenuList
+            onNavigate={() => setOpen(false)}
+            onSignOut={handleSignOut}
+          />
+
+          {isModeLocked && isOrganizerMode && (
             <>
               <div className="my-1 border-t border-border" />
               <Link
-                href="/organizator-panel/baslangic"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/organizator-panel/etkinlik/yeni"
                 onClick={() => setOpen(false)}
-                className="block px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
               >
-                Etkinlik Yönetimi ↗
+                <Plus className="size-4 shrink-0" strokeWidth={1.75} />
+                Etkinlik Oluştur
+              </Link>
+              <Link
+                href="/organizator-panel/baslangic"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <LayoutDashboard
+                  className="size-4 shrink-0"
+                  strokeWidth={1.75}
+                />
+                Organizatör Panel
               </Link>
             </>
           )}
-          <div className="my-1 border-t border-border" />
-          <button
-            type="button"
-            onClick={async () => {
-              setOpen(false);
-              await signOut();
-              router.push('/');
-              router.refresh();
-            }}
-            className="block w-full px-4 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-muted"
-          >
-            Çıkış Yap
-          </button>
         </div>
       )}
     </div>

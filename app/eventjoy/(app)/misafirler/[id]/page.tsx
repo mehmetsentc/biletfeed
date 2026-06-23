@@ -1,16 +1,9 @@
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { GuestListClient } from '@/components/eventjoy/guest-list-client';
-import { getEventJoyEvent } from '@/lib/data/mock-eventjoy';
+import { EventJoyGuestListPage } from '@/components/eventjoy/guest-list-page';
 
-interface Props {
+export default function GuestListPage({
+  params
+}: {
   params: Promise<{ id: string }>;
-}
-
-export default async function GuestListPage({ params }: Props) {
-  const { id } = await params;
-  const event = getEventJoyEvent(id);
-  if (!event) notFound();
-
-  return <GuestListClient event={event} />;
+}) {
+  return <EventJoyGuestListPage params={params} />;
 }

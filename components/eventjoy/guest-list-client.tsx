@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { MoreHorizontal, Search, UserPlus } from 'lucide-react';
 import { EventJoyHeader, GuestStatusLabel } from '@/components/eventjoy/mobile-shell';
-import { getGuestCounts, type EventJoyEvent } from '@/lib/data/mock-eventjoy';
+import { getGuestCounts } from '@/lib/eventjoy/utils';
+import type { EventJoyEvent } from '@/lib/eventjoy/types';
 import { cn } from '@/lib/utils';
 
 type Tab = 'all' | 'yes' | 'no' | 'pending';
@@ -35,7 +36,7 @@ export function GuestListClient({ event }: { event: EventJoyEvent }) {
   }, [event.guests, tab, query]);
 
   return (
-    <div className="bg-white">
+    <div className="min-h-[calc(100vh-7rem)]">
       <EventJoyHeader
         title="Misafir Listesi"
         backHref={`/eventjoy/etkinlik/${event.id}`}
@@ -76,8 +77,25 @@ export function GuestListClient({ event }: { event: EventJoyEvent }) {
         </div>
       </div>
 
-      <ul className="divide-y">
-        {filtered.map((guest) => (
+      <ul className="divide-y divide-border">
+        {filtered.length === 0 ? (
+          <li className="px-4 py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              {event.guests.length === 0
+                ? 'Henüz misafir eklenmedi.'
+                : 'Arama kriterine uygun misafir bulunamadı.'}
+            </p>
+            {event.guests.length === 0 && (
+              <Link
+                href={`/eventjoy/misafirler/${event.id}/ekle`}
+                className="mt-3 inline-block text-sm font-semibold text-primary"
+              >
+                Misafir ekle
+              </Link>
+            )}
+          </li>
+        ) : (
+          filtered.map((guest) => (
           <li key={guest.id} className="flex items-center justify-between px-4 py-4">
             <div className="min-w-0 flex-1">
               <p className="font-semibold">{guest.name}</p>
@@ -95,7 +113,8 @@ export function GuestListClient({ event }: { event: EventJoyEvent }) {
               </button>
             </div>
           </li>
-        ))}
+        ))
+        )}
       </ul>
     </div>
   );

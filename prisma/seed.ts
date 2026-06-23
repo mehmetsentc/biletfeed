@@ -1,5 +1,6 @@
 import { PrismaClient, UserRole } from '@prisma/client';
 import { categories, cities } from '../lib/data/mock-events';
+import { CATEGORY_IMAGES } from '../lib/data/category-images';
 
 const prisma = new PrismaClient();
 
@@ -37,6 +38,13 @@ async function main() {
         icon: cat.icon,
         image: cat.image
       }
+    });
+  }
+
+  for (const [slug, image] of Object.entries(CATEGORY_IMAGES)) {
+    await prisma.category.updateMany({
+      where: { slug },
+      data: { image }
     });
   }
 

@@ -19,15 +19,22 @@ import {
   persistCityChoice,
   readStoredCitySlug
 } from '@/lib/location/city-preference';
+import { detectCityFromGeolocation } from '@/lib/location/detect-city';
 import { DEFAULT_CITY_SLUG, getCityBySlug } from '@/lib/location/cities';
+
+type SetCityOptions = {
+  /** Ana sayfada kalıp içeriği yenile */
+  refreshOnly?: boolean;
+};
 
 type CityContextValue = {
   citySlug: string;
   cityName: string;
   cities: CityOption[];
   hasChosenCity: boolean;
+  detectingLocation: boolean;
   openCityPicker: () => void;
-  setCity: (slug: string) => void;
+  setCity: (slug: string, options?: SetCityOptions) => void;
 };
 
 const CityContext = createContext<CityContextValue | null>(null);
@@ -58,9 +65,34 @@ export function CityProvider({
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
   const [hasChosenCity, setHasChosenCity] = useState(Boolean(initialCitySlug));
   const [citySlug, setCitySlug] = useState(
     initialCitySlug ?? DEFAULT_CITY_SLUG
+  );
+
+  const applyCity = useCallback(
+    (slug: string, options?: SetCityOptions) => {
+      const city = getCityBySlug(slug);
+      persistCityChoice(city.slug);
+      setCitySlug(city.slug);
+      setHasChosenCity(true);
+      setPickerOpen(false);
+
+      const stayOnPage = options?.refreshOnly || pathname === '/';
+      if (stayOnPage) {
+        router.refresh();
+        return;
+      }
+
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('sehir', city.slug);
+      const targetPath = pathname.startsWith('/etkinlikler')
+        ? pathname
+        : '/etkinlikler';
+      router.push(`${targetPath}?${params.toString()}`);
+    },
+    [router, pathname, searchParams]
   );
 
   useEffect(() => {
@@ -76,23 +108,38 @@ export function CityProvider({
       return;
     }
 
-    setPickerOpen(true);
-  }, [initialCitySlug]);
+    let cancelled = false;
+    setDetectingLocation(true);
+
+    detectCityFromGeolocation()
+      .then((detected) => {
+        if (cancelled) return;
+        if (detected) {
+          persistCityChoice(detected.slug);
+          setCitySlug(detected.slug);
+          setHasChosenCity(true);
+          router.refresh();
+          return;
+        }
+        setPickerOpen(true);
+      })
+      .catch(() => {
+        if (!cancelled) setPickerOpen(true);
+      })
+      .finally(() => {
+        if (!cancelled) setDetectingLocation(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCitySlug, router]);
 
   const setCity = useCallback(
-    (slug: string) => {
-      const city = getCityBySlug(slug);
-      persistCityChoice(city.slug);
-      setCitySlug(city.slug);
-      setHasChosenCity(true);
-      setPickerOpen(false);
-      // Navigate to etkinlikler with the selected city in the URL
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('sehir', city.slug);
-      const targetPath = pathname.startsWith('/etkinlikler') ? pathname : '/etkinlikler';
-      router.push(`${targetPath}?${params.toString()}`);
+    (slug: string, options?: SetCityOptions) => {
+      applyCity(slug, options);
     },
-    [router, pathname, searchParams]
+    [applyCity]
   );
 
   const openCityPicker = useCallback(() => setPickerOpen(true), []);
@@ -103,10 +150,18 @@ export function CityProvider({
       cityName: getCityBySlug(citySlug).name,
       cities,
       hasChosenCity,
+      detectingLocation,
       openCityPicker,
       setCity
     }),
-    [citySlug, cities, hasChosenCity, openCityPicker, setCity]
+    [
+      citySlug,
+      cities,
+      hasChosenCity,
+      detectingLocation,
+      openCityPicker,
+      setCity
+    ]
   );
 
   return (

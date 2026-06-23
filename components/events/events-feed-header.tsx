@@ -34,6 +34,7 @@ interface EventsFeedHeaderProps {
   onPillChange: (pill: FeedCategoryPill) => void;
   resultCount: number;
   onOpenFilters?: () => void;
+  activeFilterCount?: number;
   sortSelect?: React.ReactNode;
 }
 
@@ -45,6 +46,7 @@ export function EventsFeedHeader({
   onPillChange,
   resultCount,
   onOpenFilters,
+  activeFilterCount = 0,
   sortSelect
 }: EventsFeedHeaderProps) {
   return (
@@ -69,11 +71,16 @@ export function EventsFeedHeader({
               <button
                 type="button"
                 onClick={onOpenFilters}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 text-sm font-medium text-white/80 transition hover:bg-white/10 md:hidden"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 text-sm font-medium text-white/80 transition hover:bg-white/10"
                 aria-label="Gelişmiş filtreler"
               >
                 <SlidersHorizontal className="size-4" />
-                Filtre
+                <span className="hidden sm:inline">Filtre</span>
+                {activeFilterCount > 0 && (
+                  <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
               </button>
             )}
           </div>

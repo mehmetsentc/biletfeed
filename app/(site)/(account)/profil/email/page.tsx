@@ -16,7 +16,7 @@ export default function ChangeEmailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-3xl animate-pulse space-y-6">
+      <div className="max-w-3xl animate-pulse space-y-6">
         <div className="h-8 w-48 rounded bg-muted" />
         <div className="h-48 rounded-xl bg-muted" />
       </div>
@@ -24,7 +24,7 @@ export default function ChangeEmailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="max-w-3xl">
       <SettingsPageHeader
         title="E-posta Değiştir"
         description="Yeni e-posta adresinize doğrulama bağlantısı gönderilecektir."

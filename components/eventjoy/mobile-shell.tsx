@@ -8,8 +8,10 @@ import {
   Home,
   MessageCircle,
   Plus,
+  Sparkles,
   User
 } from 'lucide-react';
+import { Logo } from '@/components/brand/logo';
 import { siteConfig } from '@/lib/config/site';
 import { brandTheme } from '@/lib/config/brand-theme';
 import { cn } from '@/lib/utils';
@@ -88,7 +90,7 @@ function NavLink({
       <Link
         href={item.href}
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+          'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
           active
             ? 'bg-primary/15 text-primary'
             : 'text-zinc-300 hover:bg-white/5 hover:text-white'
@@ -117,17 +119,17 @@ function NavLink({
 function EventJoyTopBar() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-[#1f2327] px-4 text-white lg:px-6">
-      <Link href="/eventjoy/panel" className="flex items-center gap-2">
-        <span className="text-lg font-bold tracking-tight text-[#f5a623]">
-          {siteConfig.name.split(' ')[0]}
+      <div className="flex items-center gap-3">
+        <Logo href="/eventjoy/panel" variant="on-dark" className="h-8 w-auto ring-0" />
+        <span className="hidden rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary sm:inline">
+          EventJoy
         </span>
-        <span className="text-sm text-zinc-300">EventJoy</span>
-      </Link>
+      </div>
       <Link
         href="/"
         className="text-xs text-zinc-400 transition hover:text-white sm:text-sm"
       >
-        Siteye Dön
+        {siteConfig.name}&apos;e Dön
       </Link>
     </header>
   );
@@ -151,16 +153,19 @@ export function EventJoyShell({ children }: { children: React.ReactNode }) {
 
       <div className="mx-auto flex w-full max-w-7xl flex-1">
         {showNav && (
-          <aside className="hidden w-64 shrink-0 flex-col bg-[#2b3035] text-zinc-100 lg:flex">
-            <div className="border-b border-white/10 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
-                EventJoy
-              </p>
-              <p className="mt-1 text-sm font-medium text-zinc-200">
+          <aside className="hidden w-64 shrink-0 flex-col border-r border-white/5 bg-[#2b3035] text-zinc-100 lg:flex">
+            <div className="border-b border-white/10 p-5">
+              <div className="flex items-center gap-2 text-primary">
+                <Sparkles className="size-4" />
+                <p className="text-[10px] font-semibold uppercase tracking-widest">
+                  EventJoy
+                </p>
+              </div>
+              <p className="mt-1.5 text-sm font-medium text-zinc-200">
                 Küçük etkinlik planlayıcı
               </p>
             </div>
-            <nav className="flex-1 space-y-0.5 p-3">
+            <nav className="flex-1 space-y-1 p-3">
               {navItems.map((item) => (
                 <NavLink
                   key={item.href}
@@ -170,14 +175,14 @@ export function EventJoyShell({ children }: { children: React.ReactNode }) {
                 />
               ))}
             </nav>
-            <div className="m-3 rounded-xl border border-white/10 bg-[#1f2327] p-4">
+            <div className="m-3 rounded-xl border border-primary/20 bg-[#1f2327] p-4">
               <p className="text-sm font-semibold text-white">Yeni etkinlik</p>
               <p className="mt-1 text-xs text-zinc-400">
                 Davetiye ve misafir listesini hazırlayın.
               </p>
               <Link
                 href="/eventjoy/yeni"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
+                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
               >
                 <Plus className="size-3.5" />
                 Oluştur
@@ -196,11 +201,17 @@ export function EventJoyShell({ children }: { children: React.ReactNode }) {
             className={cn(
               'mx-auto w-full',
               showNav
-                ? 'max-w-lg lg:max-w-none lg:px-8 lg:py-8'
-                : 'max-w-2xl lg:max-w-4xl lg:px-8 lg:py-6'
+                ? 'max-w-lg px-4 py-5 lg:max-w-none lg:px-8 lg:py-8'
+                : 'max-w-2xl px-4 py-5 lg:max-w-4xl lg:px-8 lg:py-6'
             )}
           >
-            {children}
+            {showNav ? (
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm md:p-8">
+                {children}
+              </div>
+            ) : (
+              children
+            )}
           </div>
         </main>
       </div>
@@ -233,7 +244,7 @@ export function EventJoyHeader({
   rightAction?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card/95 px-4 py-3 backdrop-blur-md lg:static lg:rounded-xl lg:border lg:shadow-sm">
+    <header className="sticky top-0 z-30 -mx-4 -mt-4 flex items-center justify-between border-b border-border bg-card/95 px-4 py-3 backdrop-blur-md md:-mx-8 md:-mt-8 lg:static lg:mx-0 lg:mt-0 lg:rounded-xl lg:border lg:shadow-sm">
       <div className="flex items-center gap-3">
         <Link
           href={backHref}

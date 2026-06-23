@@ -5,14 +5,13 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowLeft, Copy, Share2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { getEventJoyEvent } from '@/lib/data/mock-eventjoy';
+import { useEventJoy } from '@/components/providers/eventjoy-provider';
 
 export default function InvitationPage() {
   const params = useParams();
   const id = params.id as string;
-  const event = getEventJoyEvent(id);
+  const { ready, getEvent } = useEventJoy();
+  const event = getEvent(id);
   const [copied, setCopied] = useState(false);
   const inviteLink =
     typeof window !== 'undefined'
@@ -23,6 +22,10 @@ export default function InvitationPage() {
     navigator.clipboard.writeText(inviteLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  if (!ready) {
+    return <div className="h-64 animate-pulse rounded-xl bg-muted mx-4" />;
   }
 
   if (!event) {
@@ -43,53 +46,58 @@ export default function InvitationPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <Link
-        href={`/eventjoy/etkinlik/${id}`}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Etkinliğe Dön
-      </Link>
-      <div>
-        <h1 className="text-xl font-bold">Davetiye Oluştur</h1>
-        <p className="text-sm text-muted-foreground">Misafirlerinize davetiye gönderin</p>
+    <div className="mx-auto max-w-lg px-4 py-6">
+      <div className="mb-6 flex items-center gap-3">
+        <Link
+          href={`/eventjoy/etkinlik/${id}`}
+          className="flex size-9 items-center justify-center rounded-full border border-border hover:bg-muted"
+        >
+          <ArrowLeft className="size-4" />
+        </Link>
+        <h1 className="text-lg font-bold">Davetiye</h1>
       </div>
 
-      <div
-        className={`overflow-hidden rounded-2xl border bg-gradient-to-br ${event.coverColor} p-6 text-white`}
-      >
-        <p className="text-sm opacity-80">Sizi davet ediyoruz!</p>
-        <h2 className="mt-2 text-2xl font-bold">{event.title}</h2>
-        <p className="mt-3 text-sm opacity-90">
-          {formattedDate} · {event.time}
-        </p>
-        <p className="text-sm opacity-90">{event.location}</p>
-        <Button className="mt-6 w-full bg-white text-foreground hover:bg-white/90">
-          Katılacağım
-        </Button>
-      </div>
-
-      <div className="space-y-4 rounded-2xl border bg-card p-4">
-        <div className="space-y-2">
-          <Label>Davet Mesajı</Label>
-          <textarea
-            className="flex min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
-            defaultValue={`Merhaba! ${event.title} etkinliğime davetlisin. Seni görmek isterim! 🎉`}
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+        {event.coverImage && (
+          <img
+            src={event.coverImage}
+            alt=""
+            className="aspect-video w-full object-cover"
           />
+        )}
+        <div className="p-6 text-center">
+          <p className="text-xs font-medium uppercase tracking-wide text-primary">
+            {event.type}
+          </p>
+          <h2 className="mt-2 text-2xl font-bold text-foreground">{event.title}</h2>
+          <p className="mt-3 text-muted-foreground">
+            {formattedDate} · {event.time}
+          </p>
+          {event.location && (
+            <p className="mt-1 text-sm text-muted-foreground">{event.location}</p>
+          )}
+          {event.description && (
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              {event.description}
+            </p>
+          )}
         </div>
-        <div className="space-y-2">
-          <Label>Davet Linki</Label>
-          <div className="flex gap-2">
-            <Input value={inviteLink} readOnly className="text-xs" />
-            <Button variant="outline" size="icon" onClick={copyLink}>
-              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-            </Button>
-          </div>
-        </div>
-        <Button className="w-full gap-2 rounded-full">
-          <Share2 className="size-4" />
-          Davetiyeyi Paylaş
+      </div>
+
+      <div className="mt-6 flex gap-2">
+        <Button variant="outline" className="flex-1 gap-2" onClick={copyLink}>
+          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+          {copied ? 'Kopyalandı' : 'Linki Kopyala'}
+        </Button>
+        <Button variant="outline" className="gap-2" asChild>
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`${event.title} - ${inviteLink}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Share2 className="size-4" />
+            Paylaş
+          </a>
         </Button>
       </div>
     </div>

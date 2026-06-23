@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { MobileBottomNav } from '@/components/layout/mobile/mobile-bottom-nav';
 import { MobileHeader } from '@/components/layout/mobile/mobile-header';
+import { HomeCityBar } from '@/components/home/home-city-bar';
 import { shouldHideBottomNav } from '@/lib/layout/navigation';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,8 @@ export function SiteChrome({ children, footer, mobileFooter }: SiteChromeProps) 
       <div className="hidden md:block">
         <Header />
       </div>
+
+      <HomeCityBar />
 
       <main
         className={cn(

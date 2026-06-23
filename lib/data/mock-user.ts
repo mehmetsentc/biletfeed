@@ -55,6 +55,20 @@ export const mockPurchasedTickets: MockPurchasedTicket[] = [
     price: 650,
     status: 'VALID',
     qrData: 'EVF-2026-009012-USER-001'
+  },
+  {
+    id: 't4',
+    code: 'EVF-2025-004321',
+    eventSlug: 'antalya-jazz-gecesi',
+    eventTitle: 'Antalya Jazz Gecesi',
+    eventImage: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800&q=80',
+    eventDate: '2025-11-12T20:00:00',
+    venue: 'Aspendos Kültür Merkezi',
+    city: 'Antalya',
+    ticketType: 'Genel Giriş',
+    price: 320,
+    status: 'USED',
+    qrData: 'EVF-2025-004321-USER-001'
   }
 ];
 

@@ -8,12 +8,13 @@ import {
   type FeedCategoryPill
 } from '@/components/events/events-feed-header';
 import { NahaberEventCard } from '@/components/events/nahaber-event-card';
-import { MobileFilterSheet } from '@/components/events/events-filter-panels';
+import { EventsFilterPanel } from '@/components/events/events-filter-panels';
 import {
   defaultEventsFilters,
   type DateFilter,
   type EventsFilters
 } from '@/components/events/events-filter-sidebar';
+import { countActiveFilters } from '@/components/events/events-filter-utils';
 import { useCity } from '@/components/providers/city-provider';
 import { cities, type MockEvent } from '@/lib/data/mock-events';
 
@@ -254,6 +255,7 @@ export default function EventsPageClient({
   const [feedPill, setFeedPill] = useState<FeedCategoryPill>('all');
 
   const cityLabel = resolveCityLabel(activeCity, searchQuery);
+  const activeFilterCount = countActiveFilters(filters);
 
   const filteredEvents = useMemo(() => {
     const filtered = filterEvents(
@@ -293,10 +295,11 @@ export default function EventsPageClient({
         onPillChange={setFeedPill}
         resultCount={filteredEvents.length}
         onOpenFilters={() => setFilterOpen(true)}
+        activeFilterCount={activeFilterCount}
         sortSelect={sortSelect}
       />
 
-      <MobileFilterSheet
+      <EventsFilterPanel
         open={filterOpen}
         onOpenChange={setFilterOpen}
         filters={filters}

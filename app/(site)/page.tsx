@@ -10,10 +10,11 @@ import {
 } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { getCityName } from '@/lib/location/cities';
+import { getNearbyCitySlugs } from '@/lib/location/detect-city';
 import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
 import {
   getAllEvents,
-  getEventsByCity,
+  getEventsByCityAndNearby,
   getOnlineEvents,
   getTrendingEvents
 } from '@/lib/services/events';
@@ -46,31 +47,42 @@ const countryMap: Record<string, string> = {
 };
 
 function pickCityEvents(
-  cityEvents: Awaited<ReturnType<typeof getEventsByCity>>,
+  cityEvents: Awaited<ReturnType<typeof getEventsByCityAndNearby>>,
   allUpcoming: Awaited<ReturnType<typeof getAllEvents>>,
-  citySlug: string
+  citySlug: string,
+  nearbySlugs: string[]
 ) {
   if (cityEvents.length >= 3) return cityEvents;
-  const filtered = allUpcoming.filter((e) => e.citySlug === citySlug);
+  const filtered = allUpcoming.filter(
+    (e) => e.citySlug === citySlug || nearbySlugs.includes(e.citySlug)
+  );
   return filtered.length > 0 ? filtered : cityEvents;
 }
 
 export default async function HomePage() {
   const citySlug = await getPreferredCitySlug();
   const cityName = getCityName(citySlug);
+  const nearbySlugs = getNearbyCitySlugs(citySlug, 4);
 
   const [cityEvents, online, trending, allUpcoming] = await Promise.all([
-    getEventsByCity(citySlug),
+    getEventsByCityAndNearby(citySlug),
     getOnlineEvents(),
     getTrendingEvents(),
     getAllEvents()
   ]);
 
-  const heroEvents = pickCityEvents(cityEvents, allUpcoming, citySlug);
-  const trendingInCity = trending.filter((e) => e.citySlug === citySlug);
+  const heroEvents = pickCityEvents(
+    cityEvents,
+    allUpcoming,
+    citySlug,
+    nearbySlugs
+  );
+  const trendingNearby = trending.filter((e) =>
+    nearbySlugs.includes(e.citySlug)
+  );
   const displayTrending =
-    trendingInCity.length >= 3
-      ? trendingInCity
+    trendingNearby.length >= 3
+      ? trendingNearby
       : heroEvents.length > 0
         ? heroEvents
         : trending.slice(0, 6);
@@ -123,7 +135,7 @@ export default async function HomePage() {
       <section className="bg-background py-12 md:py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold md:text-3xl">
-            {cityName}&apos;da Yaklaşan Etkinlikler
+            {cityName} ve Yakın Çevrede Yaklaşan Etkinlikler
           </h2>
           <p className="mt-2 text-muted-foreground">
             Biletix, Bubilet, Biletimo ve diğer kaynaklardan güncel etkinlikler

@@ -5,6 +5,7 @@ import {
   cities as mockCities,
   type MockEvent
 } from '@/lib/data/mock-events';
+import { resolveCategoryImage } from '@/lib/data/category-images';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 
 export const publishedFilter = {
@@ -122,7 +123,7 @@ export async function getCategories() {
     name: c.name,
     icon: c.icon || '',
     count: countMap.get(c.id) ?? c.eventCount,
-    image: c.image || ''
+    image: resolveCategoryImage(c.slug, c.image)
   }));
 }
 
@@ -144,6 +145,39 @@ export async function getCities() {
     image: c.image || '',
     count: countMap.get(c.id) ?? c.eventCount
   }));
+}
+
+export async function getCitiesWithEvents() {
+  const cities = await getCities();
+  const withEvents = cities
+    .filter((city) => city.count > 0)
+    .sort((a, b) => b.count - a.count);
+  return withEvents.length > 0 ? withEvents : cities;
+}
+
+export async function getEventsByCityAndNearby(
+  citySlug: string,
+  minResults = 6
+): Promise<MockEvent[]> {
+  const { getNearbyCitySlugs } = await import('@/lib/location/detect-city');
+  const primary = await getEventsByCity(citySlug);
+  if (primary.length >= minResults) return primary;
+
+  const seen = new Set(primary.map((event) => event.id));
+  const combined = [...primary];
+
+  for (const slug of getNearbyCitySlugs(citySlug, 5)) {
+    if (slug === citySlug) continue;
+    const nearbyEvents = await getEventsByCity(slug);
+    for (const event of nearbyEvents) {
+      if (seen.has(event.id)) continue;
+      seen.add(event.id);
+      combined.push(event);
+      if (combined.length >= minResults) return combined;
+    }
+  }
+
+  return combined;
 }
 
 export async function getFavoriteEvents(userId: string): Promise<MockEvent[]> {

@@ -100,6 +100,28 @@ async function reverseGeocodeCity(
 
 export type DetectedCity = { slug: string; name: string; source: 'geocode' | 'nearest' };
 
+export function getNearbyCitySlugs(
+  citySlug: string,
+  limit = 4
+): string[] {
+  const origin = CITY_COORDS[citySlug as CitySlug];
+  if (!origin) return [citySlug];
+
+  const ranked = SUPPORTED_CITIES.map((city) => ({
+    slug: city.slug,
+    dist: haversineKm(
+      origin.lat,
+      origin.lon,
+      CITY_COORDS[city.slug].lat,
+      CITY_COORDS[city.slug].lon
+    )
+  }))
+    .sort((a, b) => a.dist - b.dist)
+    .map((city) => city.slug);
+
+  return ranked.slice(0, limit);
+}
+
 export function detectCityFromGeolocation(): Promise<DetectedCity | null> {
   if (typeof window === 'undefined' || !navigator.geolocation) {
     return Promise.resolve(null);

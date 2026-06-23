@@ -1,4 +1,5 @@
 import type { EventType } from '@/types';
+import { CATEGORY_IMAGES } from '@/lib/data/category-images';
 
 export interface MockEvent {
   id: string;
@@ -39,12 +40,12 @@ export interface MockEvent {
 export const mockEvents: MockEvent[] = [];
 
 export const categories = [
-  { slug: 'muzik',     name: 'Konser',    icon: '🎵', count: 124, image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=400&q=80' },
-  { slug: 'tiyatro',   name: 'Tiyatro',   icon: '🎭', count: 67,  image: 'https://images.unsplash.com/photo-1507676184292-0b9a1a7eee41?w=400&q=80' },
-  { slug: 'festival',  name: 'Festival',  icon: '🎪', count: 48,  image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&q=80' },
-  { slug: 'spor',      name: 'Spor',      icon: '⚽', count: 89,  image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&q=80' },
-  { slug: 'sanat',     name: 'Sanat',     icon: '🎨', count: 56,  image: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=400&q=80' },
-  { slug: 'teknoloji', name: 'Workshop',  icon: '💻', count: 42,  image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&q=80' },
+  { slug: 'muzik',     name: 'Konser',    icon: '🎵', count: 124, image: CATEGORY_IMAGES.muzik },
+  { slug: 'tiyatro',   name: 'Tiyatro',   icon: '🎭', count: 67,  image: CATEGORY_IMAGES.tiyatro },
+  { slug: 'festival',  name: 'Festival',  icon: '🎪', count: 48,  image: CATEGORY_IMAGES.festival },
+  { slug: 'spor',      name: 'Spor',      icon: '⚽', count: 89,  image: CATEGORY_IMAGES.spor },
+  { slug: 'sanat',     name: 'Sanat',     icon: '🎨', count: 56,  image: CATEGORY_IMAGES.sanat },
+  { slug: 'teknoloji', name: 'Workshop',  icon: '💻', count: 42,  image: CATEGORY_IMAGES.teknoloji },
 ];
 
 export const cities = [

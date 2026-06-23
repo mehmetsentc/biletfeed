@@ -1,22 +1,9 @@
-import { notFound } from 'next/navigation';
-import { BudgetClient } from '@/components/eventjoy/budget-client';
-import { getEventJoyEvent } from '@/lib/data/mock-eventjoy';
+import { EventJoyBudgetPage } from '@/components/eventjoy/event-sub-pages';
 
-interface Props {
+export default function BudgetPage({
+  params
+}: {
   params: Promise<{ id: string }>;
-}
-
-export default async function BudgetPage({ params }: Props) {
-  const { id } = await params;
-  const event = getEventJoyEvent(id);
-  if (!event) notFound();
-
-  return (
-    <BudgetClient
-      eventId={id}
-      items={event.budgetItems}
-      budget={event.budget}
-      spent={event.spent}
-    />
-  );
+}) {
+  return <EventJoyBudgetPage params={params} />;
 }

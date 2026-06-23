@@ -65,6 +65,9 @@ export function CityPickerDialog({
             ? `${detected.name} konumunuz olarak algılandı.`
             : `Size en yakın şehir ${detected.name} olarak seçildi.`
         );
+        if (required) {
+          onSelect(detected.slug);
+        }
       })
       .finally(() => {
         if (!cancelled) setDetecting(false);
@@ -73,7 +76,7 @@ export function CityPickerDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, required]);
+  }, [open, required, onSelect]);
 
   function handleConfirm() {
     onSelect(pendingSlug);

@@ -2,7 +2,7 @@ import { ProfileLayoutClient } from './profile-layout-client';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata = createPageMetadata({
-  title: 'Hesap Ayarları',
+  title: 'Profilim',
   path: '/profil'
 });
 

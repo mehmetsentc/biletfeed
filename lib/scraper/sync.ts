@@ -5,10 +5,6 @@ import { dedupeEventsWithAi } from '@/lib/scraper/ai/dedupe-events';
 import { isScraperAiReady } from '@/lib/scraper/ai/config';
 import { isPlaceholderImage } from '@/lib/scraper/image-utils';
 import {
-  downloadAndUploadEventCover,
-  isFirebaseStorageUploadConfigured
-} from '@/lib/firebase/admin-storage';
-import {
   buildDedupeHash,
   normalizeVenue,
   shouldReplaceExternalSource,
@@ -179,8 +175,7 @@ async function promoteUpcomingExternalEvents() {
 }
 
 async function resolveCoverImage(
-  raw: ScrapedEventRaw,
-  eventKey: string
+  raw: ScrapedEventRaw
 ): Promise<{ coverImage: string; tags: string[] }> {
   const tags = [...(raw.tags || [])];
   const coverImage = raw.coverImage;
@@ -190,25 +185,12 @@ async function resolveCoverImage(
     return { coverImage: '/brand/favicon.png', tags };
   }
 
-  if (isFirebaseStorageUploadConfigured() && coverImage?.startsWith('http')) {
-    const uploaded = await downloadAndUploadEventCover(
-      raw.platform,
-      eventKey,
-      coverImage
-    );
-    if (uploaded) {
-      return { coverImage: uploaded, tags };
-    }
-    if (!tags.includes('eksik-gorsel')) tags.push('eksik-gorsel');
+  if (coverImage?.startsWith('http')) {
+    return { coverImage, tags };
   }
 
-  return {
-    coverImage:
-      coverImage && !isPlaceholderImage(coverImage)
-        ? coverImage
-        : '/brand/favicon.png',
-    tags
-  };
+  if (!tags.includes('eksik-gorsel')) tags.push('eksik-gorsel');
+  return { coverImage: '/brand/favicon.png', tags };
 }
 
 async function resolveUniqueSlug(
@@ -290,8 +272,7 @@ async function upsertScrapedEvent(
   const now = new Date();
   const shortDescription =
     raw.shortDescription || raw.description.slice(0, 160);
-  const eventKey = existingExternal?.id ?? `${raw.platform}-${raw.externalId}`;
-  const { coverImage, tags } = await resolveCoverImage(raw, eventKey);
+  const { coverImage, tags } = await resolveCoverImage(raw);
 
   if (existingExternal) {
     const sameSource = existingExternal.externalPlatform === raw.platform;

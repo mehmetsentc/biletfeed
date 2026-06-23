@@ -1,23 +1,19 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import {
-  SettingsField,
   SettingsPageHeader,
-  SettingsSaveBar,
   SettingsSection
 } from '@/components/account/settings-form';
 import { AvatarUpload } from '@/components/profile/avatar-upload';
 import { useAuth } from '@/components/providers/auth-provider';
-import { Building2, User as UserIcon, CheckCircle2, Loader2 } from 'lucide-react';
+import { useAccountMode } from '@/hooks/use-account-mode';
+import type { AccountMode } from '@/lib/auth/account-mode';
+import { Building2, User as UserIcon, CheckCircle2, Loader2, LayoutDashboard, Plus } from 'lucide-react';
+import Link from 'next/link';
+import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
 import { cn } from '@/lib/utils';
-
-function splitDisplayName(displayName?: string) {
-  if (!displayName?.trim()) return { firstName: '', lastName: '' };
-  const parts = displayName.trim().split(/\s+/);
-  return { firstName: parts[0] ?? '', lastName: parts.slice(1).join(' ') };
-}
 
 type OrganizerInfo = {
   id: string;
@@ -30,18 +26,14 @@ type OrganizerInfo = {
 
 export default function ProfilePage() {
   const { user, loading, syncSession } = useAuth();
-  const [saved, setSaved] = useState(false);
-  const names = useMemo(() => splitDisplayName(user?.displayName), [user?.displayName]);
+  const { accountMode, isModeLocked, selectAccountMode, isOrganizerMode } =
+    useAccountMode();
+  const [pendingMode, setPendingMode] = useState<AccountMode | null>(null);
 
   // Organizatör durumu
   const isAlreadyOrganizer = user?.role === 'ROLE_ORGANIZER' || user?.role === 'ROLE_ADMIN' || user?.role === 'ROLE_SUPER_ADMIN';
   const [orgInfo, setOrgInfo] = useState<OrganizerInfo | null>(null);
   const [orgLoading, setOrgLoading] = useState(false);
-
-  // Hesap türü seçimi
-  const [selectedType, setSelectedType] = useState<'user' | 'organizer'>(
-    isAlreadyOrganizer ? 'organizer' : 'user'
-  );
 
   // Organizatör form state
   const [orgName, setOrgName] = useState('');
@@ -54,8 +46,7 @@ export default function ProfilePage() {
 
   // Mevcut organizatör profilini çek
   useEffect(() => {
-    if (!isAlreadyOrganizer) return;
-    setSelectedType('organizer');
+    if (!isAlreadyOrganizer || !isOrganizerMode || !isModeLocked) return;
     setOrgLoading(true);
     fetch('/api/organizer/profile', { credentials: 'same-origin' })
       .then((r) => r.json())
@@ -64,7 +55,7 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setOrgLoading(false));
-  }, [isAlreadyOrganizer]);
+  }, [isAlreadyOrganizer, isOrganizerMode, isModeLocked]);
 
   async function handleOrganizerSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,6 +82,7 @@ export default function ProfilePage() {
       }
       setOrgSuccess(true);
       setOrgInfo(data.organizer);
+      selectAccountMode('organizer');
       // Session'ı güncelle — role ROLE_ORGANIZER olarak yenilenir
       await syncSession();
     } catch {
@@ -100,10 +92,13 @@ export default function ProfilePage() {
     }
   }
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  function handleConfirmAccountType() {
+    if (!pendingMode) return;
+    selectAccountMode(pendingMode);
+    setPendingMode(null);
   }
+
+  const selectedMode = isModeLocked ? accountMode : pendingMode;
 
   if (loading) {
     return (
@@ -116,8 +111,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <SettingsPageHeader title="Hesap Ayarları" />
+    <div className="max-w-3xl">
+      <AccountProfileTabs />
+      <SettingsPageHeader title="Profilim" />
 
       {/* Fotoğraf */}
       <SettingsSection title="Profil Fotoğrafı">
@@ -127,20 +123,24 @@ export default function ProfilePage() {
       {/* Hesap Türü */}
       <SettingsSection
         title="Hesap Türü"
-        description="Bilet satın alan bir kullanıcı mı, yoksa etkinlik düzenleyen bir organizatör müsünüz?"
+        description={
+          isModeLocked
+            ? 'Hesap türünüz kaydedildi ve değiştirilemez.'
+            : 'Hesap türünüzü bir kez seçin. Kullanıcı modunda EventJoy paneli görünür; organizatör modunda bilet satış paneli açılır.'
+        }
       >
-        <div className="grid grid-cols-2 gap-3 py-4">
-          {/* Kullanıcı Kartı */}
+        <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2">
           <button
             type="button"
-            disabled={isAlreadyOrganizer}
-            onClick={() => !isAlreadyOrganizer && setSelectedType('user')}
+            disabled={isModeLocked}
+            onClick={() => !isModeLocked && setPendingMode('user')}
             className={cn(
               'flex flex-col items-center gap-2 rounded-xl border-2 p-5 text-sm font-medium transition-all',
-              selectedType === 'user' && !isAlreadyOrganizer
+              selectedMode === 'user'
                 ? 'border-primary bg-primary/5 text-primary'
-                : 'border-border text-muted-foreground hover:border-muted-foreground/40',
-              isAlreadyOrganizer && 'cursor-not-allowed opacity-40'
+                : 'border-border text-muted-foreground',
+              !isModeLocked && 'hover:border-muted-foreground/40',
+              isModeLocked && 'cursor-default opacity-90'
             )}
           >
             <UserIcon className="size-7" />
@@ -150,15 +150,17 @@ export default function ProfilePage() {
             </span>
           </button>
 
-          {/* Organizatör Kartı */}
           <button
             type="button"
-            onClick={() => setSelectedType('organizer')}
+            disabled={isModeLocked}
+            onClick={() => !isModeLocked && setPendingMode('organizer')}
             className={cn(
               'flex flex-col items-center gap-2 rounded-xl border-2 p-5 text-sm font-medium transition-all',
-              selectedType === 'organizer'
+              selectedMode === 'organizer'
                 ? 'border-primary bg-primary/5 text-primary'
-                : 'border-border text-muted-foreground hover:border-muted-foreground/40'
+                : 'border-border text-muted-foreground',
+              !isModeLocked && 'hover:border-muted-foreground/40',
+              isModeLocked && 'cursor-default opacity-90'
             )}
           >
             <Building2 className="size-7" />
@@ -169,8 +171,58 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Organizatör Formu — henüz kayıtlı değilse */}
-        {selectedType === 'organizer' && !isAlreadyOrganizer && !orgSuccess && (
+        {!isModeLocked && pendingMode && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <p className="text-sm text-foreground">
+              {pendingMode === 'user'
+                ? 'Kullanıcı hesabı olarak devam edeceksiniz. EventJoy paneli profil menüsünde görünür.'
+                : 'Organizatör hesabı olarak devam edeceksiniz. Organizatör paneli ve etkinlik oluşturma bağlantıları profil menüsünde görünür.'}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Bu seçim kaydedildikten sonra değiştirilemez.
+            </p>
+            <button
+              type="button"
+              onClick={handleConfirmAccountType}
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              Seçimi Onayla
+            </button>
+          </div>
+        )}
+
+        {isModeLocked && accountMode === 'user' && (
+          <div className="border-t border-border py-4">
+            <Link
+              href="/eventjoy/panel"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
+            >
+              <LayoutDashboard className="size-4" />
+              Event Joy Panel
+            </Link>
+          </div>
+        )}
+
+        {isOrganizerMode && isModeLocked && (
+          <div className="flex flex-col gap-2 border-t border-border py-4 sm:flex-row">
+            <Link
+              href="/organizator-panel/etkinlik/yeni"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Plus className="size-4" />
+              Etkinlik Oluştur
+            </Link>
+            <Link
+              href="/organizator-panel/baslangic"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
+            >
+              <LayoutDashboard className="size-4" />
+              Organizatör Panel
+            </Link>
+          </div>
+        )}
+
+        {isModeLocked && isOrganizerMode && !isAlreadyOrganizer && !orgSuccess && (
           <form
             onSubmit={handleOrganizerSubmit}
             className="space-y-0 border-t border-border"
@@ -256,8 +308,9 @@ export default function ProfilePage() {
           </form>
         )}
 
-        {/* Başarılı kayıt mesajı (session yenilenmeden önce) */}
-        {(orgSuccess || (isAlreadyOrganizer && orgInfo)) && (
+        {isModeLocked &&
+          isOrganizerMode &&
+          (orgSuccess || (isAlreadyOrganizer && orgInfo)) && (
           <div className="border-t border-border py-5">
             <div className="flex items-start gap-3 rounded-xl bg-green-500/10 p-4">
               <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-green-600" />
@@ -272,8 +325,9 @@ export default function ProfilePage() {
                   </p>
                 )}
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Etkinliklerinizi yönetmek için profil menüsündeki{' '}
-                  <strong>Etkinlik Yönetimi</strong> bağlantısını kullanın.
+                  Etkinlik oluşturmak ve paneli kullanmak için profil menüsündeki{' '}
+                  <strong>Etkinlik Oluştur</strong> ve{' '}
+                  <strong>Organizatör Panel</strong> bağlantılarını kullanın.
                 </p>
               </div>
             </div>
@@ -287,59 +341,6 @@ export default function ProfilePage() {
           </div>
         )}
       </SettingsSection>
-
-      {/* Profil Bilgileri */}
-      <SettingsSection title="Profil Bilgileri">
-        <SettingsField label="Ad">
-          <Input
-            key={`first-${user?.uid ?? 'guest'}`}
-            placeholder="Adınızı girin"
-            defaultValue={names.firstName}
-            className="h-11 md:h-10"
-          />
-        </SettingsField>
-        <SettingsField label="Soyad">
-          <Input
-            key={`last-${user?.uid ?? 'guest'}`}
-            placeholder="Soyadınızı girin"
-            defaultValue={names.lastName}
-            className="h-11 md:h-10"
-          />
-        </SettingsField>
-        <SettingsField label="Web Sitesi">
-          <Input placeholder="https://..." className="h-11 md:h-10" />
-        </SettingsField>
-        <SettingsField label="Şirket">
-          <Input placeholder="Şirket adını girin" className="h-11 md:h-10" />
-        </SettingsField>
-      </SettingsSection>
-
-      {/* İletişim Bilgileri */}
-      <SettingsSection
-        title="İletişim Bilgileri"
-        description="Bu bilgiler gizlidir ve yalnızca bilet veya ödül bildirimleri için kullanılır."
-      >
-        <SettingsField label="Telefon Numarası">
-          <Input placeholder="Telefon numaranızı girin" className="h-11 md:h-10" />
-        </SettingsField>
-        <SettingsField label="Adres" className="md:items-start">
-          <textarea
-            placeholder="Adresinizi girin"
-            className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm"
-          />
-        </SettingsField>
-        <SettingsField label="Şehir / İlçe">
-          <Input placeholder="Şehir girin" className="h-11 md:h-10" />
-        </SettingsField>
-        <SettingsField label="Ülke">
-          <Input placeholder="Ülke girin" className="h-11 md:h-10" />
-        </SettingsField>
-        <SettingsField label="Posta Kodu">
-          <Input placeholder="Posta kodunu girin" className="h-11 md:h-10" />
-        </SettingsField>
-      </SettingsSection>
-
-      <SettingsSaveBar label="Profilimi Kaydet" saved={saved} onClick={handleSave} />
     </div>
   );
 }

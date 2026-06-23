@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const defaultSteps = ['Düzenle', 'Banner', 'Biletler', 'İnceleme'];
@@ -16,11 +17,14 @@ export function EventWizardStepper({
   return (
     <div className={cn('w-full', className)}>
       <div className="relative flex items-center justify-between">
-        <div className="absolute left-0 right-0 top-4 h-0.5 bg-border" aria-hidden />
         <div
-          className="absolute left-0 top-4 h-0.5 bg-[#1a1d23] transition-all duration-300 dark:bg-indigo-500"
+          className="absolute left-0 right-0 top-5 h-1 rounded-full bg-muted"
+          aria-hidden
+        />
+        <div
+          className="absolute left-0 top-5 h-1 rounded-full bg-primary transition-all duration-500 ease-out"
           style={{
-            width: `${((current - 1) / (steps.length - 1)) * 100}%`
+            width: `${((current - 1) / Math.max(steps.length - 1, 1)) * 100}%`
           }}
           aria-hidden
         />
@@ -37,18 +41,22 @@ export function EventWizardStepper({
             >
               <div
                 className={cn(
-                  'flex size-8 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors',
-                  active && 'border-[#1a1d23] bg-[#1a1d23] text-white',
-                  done && 'border-[#1a1d23] bg-[#1a1d23] text-white',
-                  !active && !done && 'border-border bg-background text-muted-foreground'
+                  'flex size-10 items-center justify-center rounded-full border-2 text-sm font-bold transition-all',
+                  active &&
+                    'border-primary bg-primary text-primary-foreground shadow-md shadow-primary/25',
+                  done &&
+                    'border-primary bg-primary text-primary-foreground',
+                  !active &&
+                    !done &&
+                    'border-border bg-card text-muted-foreground'
                 )}
               >
-                {step}
+                {done ? <Check className="size-4" strokeWidth={2.5} /> : step}
               </div>
               <span
                 className={cn(
-                  'text-xs font-medium',
-                  active ? 'text-foreground' : done ? 'text-foreground' : 'text-muted-foreground'
+                  'text-center text-xs font-semibold',
+                  active || done ? 'text-foreground' : 'text-muted-foreground'
                 )}
               >
                 {label}

@@ -14,9 +14,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { mainNavLinks } from '@/lib/layout/navigation';
 
-const desktopBtnOutlineClass =
-  'border-[var(--header-btn-outline)] bg-transparent text-[var(--header-fg)] hover:bg-[var(--header-hover)]';
-
 export function Header() {
   const pathname = usePathname();
   const { user, loading } = useAuth();
@@ -60,13 +57,6 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/organizator-panel/etkinlik/yeni"
-            className="text-sm font-semibold text-[var(--header-fg)] transition-colors hover:text-primary"
-          >
-            Etkinlik Oluştur
-          </Link>
-
           {!loading && (
             <div className="flex items-center gap-2">
               {user ? (

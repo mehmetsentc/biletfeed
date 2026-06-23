@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { EventJoyHeader } from '@/components/eventjoy/mobile-shell';
-import type { EventJoyBudgetItem } from '@/lib/data/mock-eventjoy';
+import type { EventJoyBudgetItem } from '@/lib/eventjoy/types';
 
 export function BudgetClient({
   eventId,
@@ -24,7 +24,7 @@ export function BudgetClient({
     .reduce((a, i) => a + i.paid, 0);
 
   return (
-    <div className="min-h-[calc(100vh-7rem)] bg-white pb-8">
+    <div className="min-h-[calc(100vh-7rem)] pb-8">
       <EventJoyHeader title="Bütçe" backHref={`/eventjoy/etkinlik/${eventId}`} />
 
       <div className="grid grid-cols-3 gap-2 p-4 text-center">

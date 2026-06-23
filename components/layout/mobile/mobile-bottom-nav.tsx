@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarDays, Home, Plus, Ticket, User } from 'lucide-react';
+import { CalendarDays, Home, Star, Ticket, User } from 'lucide-react';
+import { useAuth } from '@/components/providers/auth-provider';
+import { useAccountMode } from '@/hooks/use-account-mode';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -23,16 +25,16 @@ const navItems = [
       p.startsWith('/sehirler')
   },
   {
-    href: '/organizator-panel/etkinlik/yeni',
-    label: 'Oluştur',
-    icon: Plus,
-    isCenter: true
-  },
-  {
     href: '/biletlerim',
     label: 'Biletler',
     icon: Ticket,
     match: (p: string) => p.startsWith('/biletlerim')
+  },
+  {
+    href: '/favorilerim',
+    label: 'Favoriler',
+    icon: Star,
+    match: (p: string) => p === '/favorilerim'
   },
   {
     href: '/profil',
@@ -40,9 +42,10 @@ const navItems = [
     icon: User,
     match: (p: string) =>
       p.startsWith('/profil') ||
-      p === '/favorilerim' ||
+      p === '/degerlendirmelerim' ||
       p === '/giris' ||
-      p === '/kayit'
+      p === '/kayit' ||
+      p.startsWith('/organizator-panel')
   }
 ] as const;
 
@@ -50,12 +53,13 @@ function isNavActive(
   item: (typeof navItems)[number],
   pathname: string
 ): boolean {
-  if ('isCenter' in item) return false;
   return item.match(pathname);
 }
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const { isOrganizerMode } = useAccountMode();
 
   return (
     <nav
@@ -64,24 +68,6 @@ export function MobileBottomNav() {
     >
       <div className="mx-auto flex max-w-lg items-end justify-around px-2 pb-2 pt-1.5">
         {navItems.map((item) => {
-          if ('isCenter' in item && item.isCenter) {
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex flex-col items-center gap-0.5 -mt-5"
-                aria-label={item.label}
-              >
-                <span className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-                  <Plus className="size-6" strokeWidth={2.5} />
-                </span>
-                <span className="text-[10px] font-semibold text-[var(--header-fg-muted)]">
-                  {item.label}
-                </span>
-              </Link>
-            );
-          }
-
           const active = isNavActive(item, pathname);
 
           return (
@@ -92,7 +78,11 @@ export function MobileBottomNav() {
                 'flex min-w-[3.5rem] flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-colors',
                 active
                   ? 'text-primary'
-                  : 'text-[var(--header-fg-muted)] hover:text-[var(--header-fg)]'
+                  : 'text-[var(--header-fg-muted)] hover:text-[var(--header-fg)]',
+                item.href === '/profil' &&
+                  user &&
+                  isOrganizerMode &&
+                  'relative after:absolute after:right-2 after:top-1.5 after:size-1.5 after:rounded-full after:bg-primary'
               )}
             >
               <item.icon

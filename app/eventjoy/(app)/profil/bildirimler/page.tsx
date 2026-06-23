@@ -29,7 +29,7 @@ export default function NotificationsPage() {
   });
 
   return (
-    <div className="min-h-[calc(100vh-7rem)] bg-white">
+    <div className="min-h-[calc(100vh-7rem)]">
       <EventJoyHeader title="Bildirimler" backHref="/eventjoy/profil" />
 
       <ul className="divide-y">

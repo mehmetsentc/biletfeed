@@ -15,6 +15,9 @@ import {
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
   updateProfile,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
   type User as FirebaseUser
 } from 'firebase/auth';
 import {
@@ -41,6 +44,7 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   syncSession: () => Promise<boolean>;
 }
 
@@ -198,6 +202,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await sendPasswordResetEmail(auth, email);
   }, []);
 
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      const auth = await ensureAuthReady();
+      const fbUser = auth.currentUser;
+      if (!fbUser?.email) {
+        throw new Error('Giriş gerekli');
+      }
+
+      const credential = EmailAuthProvider.credential(
+        fbUser.email,
+        currentPassword
+      );
+      await reauthenticateWithCredential(fbUser, credential);
+      await updatePassword(fbUser, newPassword);
+    },
+    []
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -212,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signOut,
         resetPassword,
+        changePassword,
         syncSession
       }}
     >

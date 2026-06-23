@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ClipboardList } from 'lucide-react';
 import { EventJoyHeader } from '@/components/eventjoy/mobile-shell';
-import type { EventJoyTask } from '@/lib/data/mock-eventjoy';
+import type { EventJoyTask } from '@/lib/eventjoy/types';
 
 export function TaskListClient({
   eventId,
@@ -16,7 +16,7 @@ export function TaskListClient({
   const [tasks, setTasks] = useState(initial);
 
   return (
-    <div className="min-h-[calc(100vh-7rem)] bg-white">
+    <div className="min-h-[calc(100vh-7rem)]">
       <EventJoyHeader title="Görev Listesi" backHref={`/eventjoy/etkinlik/${eventId}`} />
 
       <div className="px-4 py-4">

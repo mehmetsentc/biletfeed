@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { MoreVertical, Send } from 'lucide-react';
 import { EventJoyHeader } from '@/components/eventjoy/mobile-shell';
-import type { EventJoyEvent } from '@/lib/data/mock-eventjoy';
+import type { EventJoyEvent } from '@/lib/eventjoy/types';
 
 export function MessageChatClient({ event }: { event: EventJoyEvent }) {
   const [message, setMessage] = useState('');

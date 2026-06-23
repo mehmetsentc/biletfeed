@@ -1,15 +1,9 @@
-import { notFound } from 'next/navigation';
-import { AddGuestsClient } from '@/components/eventjoy/add-guests-client';
-import { getEventJoyEvent } from '@/lib/data/mock-eventjoy';
+import { EventJoyAddGuestsPage } from '@/components/eventjoy/event-sub-pages';
 
-interface Props {
+export default function AddGuestsPage({
+  params
+}: {
   params: Promise<{ id: string }>;
-}
-
-export default async function AddGuestsPage({ params }: Props) {
-  const { id } = await params;
-  const event = getEventJoyEvent(id);
-  if (!event) notFound();
-
-  return <AddGuestsClient eventId={id} />;
+}) {
+  return <EventJoyAddGuestsPage params={params} />;
 }
