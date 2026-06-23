@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { Suspense } from 'react';
 import { formatEventDate, formatEventTimeRange } from '@/lib/data/mock-events';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrapeNowButton } from '@/components/admin/scrape-now-button';
+import { EventFilters } from '@/components/admin/event-filters';
 
 async function triggerScrapeAction(): Promise<{ ok: boolean; message: string }> {
   'use server';
@@ -28,28 +30,39 @@ async function triggerScrapeAction(): Promise<{ ok: boolean; message: string }> 
 export default async function AdminEventsPage({
   searchParams
 }: {
-  searchParams: Promise<{ review?: string }>;
+  searchParams: Promise<{ review?: string; kategori?: string; sehir?: string; tarih?: string }>;
 }) {
-  const { review } = await searchParams;
+  const { review, kategori, sehir, tarih } = await searchParams;
   await ensureDbConnection();
 
-  const events = await prisma.event.findMany({
-    where: {
-      deletedAt: null,
-      listingType: 'external',
-      ...(review === '1'
-        ? {
-            OR: [
-              { tags: { has: 'eksik-gorsel' } },
-              { tags: { has: 'eksik-aciklama' } }
-            ]
-          }
-        : {})
-    },
-    include: eventInclude,
-    orderBy: [{ startDate: 'asc' }],
-    take: 200
-  });
+  // Filtre koşulları
+  const where: Parameters<typeof prisma.event.findMany>[0]['where'] = {
+    deletedAt: null,
+    listingType: 'external',
+    ...(review === '1' ? {
+      OR: [
+        { tags: { has: 'eksik-gorsel' } },
+        { tags: { has: 'eksik-aciklama' } }
+      ]
+    } : {}),
+    ...(kategori ? { category: { slug: kategori } } : {}),
+    ...(sehir ? { city: { slug: sehir } } : {}),
+    ...(tarih ? { startDate: { gte: new Date(tarih) } } : {}),
+  };
+
+  const [events, allCities] = await Promise.all([
+    prisma.event.findMany({
+      where,
+      include: eventInclude,
+      orderBy: [{ startDate: 'asc' }],
+      take: 300
+    }),
+    prisma.city.findMany({
+      where: { deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { slug: true, name: true }
+    })
+  ]);
 
   const rows = events.map(toMockEvent);
   const needsReview = rows.filter(
@@ -59,14 +72,16 @@ export default async function AdminEventsPage({
       e.coverImage.includes('favicon')
   ).length;
 
+  const cityNames = allCities.map((c) => c.slug);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Etkinlik Editörü</h1>
           <p className="text-sm text-muted-foreground">
-            Scraper kaynaklı etkinlikleri düzenleyin. Toplam {rows.length} etkinlik
-            {needsReview > 0 && ` · ${needsReview} inceleme bekliyor`}.
+            {rows.length} etkinlik gösteriliyor
+            {needsReview > 0 && ` · ${needsReview} inceleme bekliyor`}
           </p>
         </div>
         <div className="flex flex-wrap items-start gap-2">
@@ -79,6 +94,10 @@ export default async function AdminEventsPage({
           <ScrapeNowButton onScrape={triggerScrapeAction} />
         </div>
       </div>
+
+      <Suspense>
+        <EventFilters cities={cityNames} />
+      </Suspense>
 
       <div className="overflow-hidden rounded-lg border">
         <table className="w-full text-sm">
@@ -95,7 +114,7 @@ export default async function AdminEventsPage({
           </thead>
           <tbody>
             {rows.map((event) => (
-              <tr key={event.id} className="border-b last:border-0">
+              <tr key={event.id} className="border-b last:border-0 hover:bg-muted/20">
                 <td className="p-3">
                   <div className="flex items-center gap-3">
                     <div className="relative size-12 shrink-0 overflow-hidden rounded bg-muted">
@@ -117,16 +136,20 @@ export default async function AdminEventsPage({
                   <br />
                   {formatEventTimeRange(event)}
                 </td>
-                <td className="p-3 text-muted-foreground">{event.categorySlug || '—'}</td>
-                <td className="p-3">{event.city}</td>
-                <td className="p-3">{event.externalPlatform || '—'}</td>
+                <td className="p-3">
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                    {event.categorySlug || '—'}
+                  </span>
+                </td>
+                <td className="p-3 text-sm">{event.city}</td>
+                <td className="p-3 text-xs text-muted-foreground">{event.externalPlatform || '—'}</td>
                 <td className="p-3">
                   <div className="flex flex-wrap gap-1">
                     {event.tags.includes('eksik-gorsel') && (
-                      <Badge variant="destructive">Görsel eksik</Badge>
+                      <Badge variant="destructive" className="text-xs">Görsel</Badge>
                     )}
                     {event.tags.includes('eksik-aciklama') && (
-                      <Badge variant="secondary">Açıklama eksik</Badge>
+                      <Badge variant="secondary" className="text-xs">Açıklama</Badge>
                     )}
                   </div>
                 </td>
@@ -140,7 +163,7 @@ export default async function AdminEventsPage({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                  Henüz scraper etkinliği yok. Scrape job çalıştırın.
+                  Filtrele uyan etkinlik yok.
                 </td>
               </tr>
             )}
