@@ -1,10 +1,13 @@
-import { AdminPlaceholderPage } from '@/components/admin/placeholder-page';
+import { BannerAdminPanel } from '@/components/admin/banner-admin-panel';
 
-export default function AdminPage() {
+export default function AdminBannersPage() {
   return (
-    <AdminPlaceholderPage
-      title="Bannerlar"
-      description="Ana sayfa bannerlarını yönetin."
-    />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Bannerlar</h1>
+        <p className="text-muted-foreground">Ana sayfa promosyon bannerlarını yönetin</p>
+      </div>
+      <BannerAdminPanel />
+    </div>
   );
 }

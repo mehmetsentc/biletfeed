@@ -63,3 +63,163 @@ export async function getAdminOrders(limit = 100) {
     return [];
   }
 }
+
+// ─── Organizatörler ────────────────────────────────────────────────────────────
+
+export async function getAdminOrganizers() {
+  await ensureDbConnection();
+  return prisma.organizer.findMany({
+    where: { deletedAt: null },
+    include: {
+      owner: { select: { email: true, displayName: true } },
+      _count: { select: { events: true } }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
+}
+
+export async function updateOrganizerStatus(
+  id: string,
+  status: 'approved' | 'pending' | 'suspended'
+) {
+  await ensureDbConnection();
+  return prisma.organizer.update({ where: { id }, data: { status } });
+}
+
+export async function updateOrganizerCommission(id: string, rate: number) {
+  await ensureDbConnection();
+  return prisma.organizer.update({ where: { id }, data: { commissionRate: rate } });
+}
+
+// ─── Kategoriler ───────────────────────────────────────────────────────────────
+
+export async function getAdminCategories() {
+  await ensureDbConnection();
+  return prisma.category.findMany({
+    where: { deletedAt: null },
+    orderBy: { eventCount: 'desc' }
+  });
+}
+
+export async function upsertCategory(data: {
+  slug: string;
+  name: string;
+  image?: string;
+  description?: string;
+}) {
+  await ensureDbConnection();
+  return prisma.category.upsert({
+    where: { slug: data.slug },
+    update: { name: data.name, image: data.image, description: data.description },
+    create: { slug: data.slug, name: data.name, image: data.image, description: data.description }
+  });
+}
+
+// ─── Şehirler ──────────────────────────────────────────────────────────────────
+
+export async function getAdminCities() {
+  await ensureDbConnection();
+  return prisma.city.findMany({
+    where: { deletedAt: null },
+    orderBy: { eventCount: 'desc' }
+  });
+}
+
+export async function upsertCity(data: {
+  slug: string;
+  name: string;
+  image?: string;
+}) {
+  await ensureDbConnection();
+  return prisma.city.upsert({
+    where: { slug: data.slug },
+    update: { name: data.name, image: data.image },
+    create: { slug: data.slug, name: data.name, image: data.image }
+  });
+}
+
+// ─── Mekanlar ──────────────────────────────────────────────────────────────────
+
+export async function getAdminVenues() {
+  await ensureDbConnection();
+  return prisma.venue.findMany({
+    where: { deletedAt: null },
+    include: {
+      city: { select: { name: true } },
+      organizer: { select: { name: true } }
+    },
+    orderBy: { eventCount: 'desc' },
+    take: 200
+  });
+}
+
+// ─── Analitik ──────────────────────────────────────────────────────────────────
+
+export async function getAdminAnalytics() {
+  await ensureDbConnection();
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+
+  const [
+    totalUsers,
+    newUsers30d,
+    totalEvents,
+    activeEvents,
+    totalOrders,
+    paidOrders,
+    revenueAll,
+    revenue30d,
+    totalTickets,
+    categoryStats,
+    cityStats
+  ] = await Promise.all([
+    prisma.user.count({ where: { deletedAt: null } }),
+    prisma.user.count({ where: { deletedAt: null, createdAt: { gte: thirtyDaysAgo } } }),
+    prisma.event.count({ where: { deletedAt: null } }),
+    prisma.event.count({ where: { deletedAt: null, status: 'published', startDate: { gte: new Date() } } }),
+    prisma.order.count({ where: { deletedAt: null } }),
+    prisma.order.count({ where: { deletedAt: null, status: 'paid' } }),
+    prisma.order.aggregate({ where: { deletedAt: null, status: 'paid' }, _sum: { total: true } }),
+    prisma.order.aggregate({ where: { deletedAt: null, status: 'paid', paidAt: { gte: thirtyDaysAgo } }, _sum: { total: true } }),
+    prisma.purchasedTicket.count({ where: { deletedAt: null } }),
+    prisma.category.findMany({
+      where: { deletedAt: null, eventCount: { gt: 0 } },
+      select: { name: true, slug: true, eventCount: true },
+      orderBy: { eventCount: 'desc' },
+      take: 8
+    }),
+    prisma.city.findMany({
+      where: { deletedAt: null, eventCount: { gt: 0 } },
+      select: { name: true, slug: true, eventCount: true },
+      orderBy: { eventCount: 'desc' },
+      take: 10
+    })
+  ]);
+
+  // Prev 30d revenue for growth calc
+  const prevRevenue = await prisma.order.aggregate({
+    where: { deletedAt: null, status: 'paid', paidAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } },
+    _sum: { total: true }
+  });
+
+  const rev30 = revenue30d._sum.total ?? 0;
+  const revPrev = prevRevenue._sum.total ?? 0;
+  const revenueGrowth = revPrev > 0 ? Math.round(((rev30 - revPrev) / revPrev) * 100) : null;
+
+  return {
+    totalUsers,
+    newUsers30d,
+    totalEvents,
+    activeEvents,
+    totalOrders,
+    paidOrders,
+    revenueAll: revenueAll._sum.total ?? 0,
+    revenue30d: rev30,
+    revenueGrowth,
+    totalTickets,
+    conversionRate: totalOrders > 0 ? Math.round((paidOrders / totalOrders) * 100) : 0,
+    categoryStats,
+    cityStats
+  };
+}
