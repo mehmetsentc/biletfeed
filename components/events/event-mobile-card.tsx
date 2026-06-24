@@ -30,6 +30,7 @@ export function EventMobileCard({ event }: EventMobileCardProps) {
           <FavoriteButton
             className="absolute right-3 top-3 z-10 !bg-white/95 !text-foreground"
             icon="star"
+            eventId={event.id}
           />
         </div>
 

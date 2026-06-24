@@ -112,8 +112,8 @@ export async function getEventsByCategory(
 ): Promise<MockEvent[]> {
   const where: Prisma.EventWhereInput = { category: { slug: categorySlug } };
   if (citySlug) where.city = { slug: citySlug };
-  const events = await fetchPublishedEvents(where);
-  return events.filter((event) => eventMatchesCategorySlug(event, categorySlug));
+  // DB kategori kaydı esas alınır — text-matching post-filtresi hatalı sonuç veriyordu
+  return fetchPublishedEvents(where);
 }
 
 export interface CategoryStrip {

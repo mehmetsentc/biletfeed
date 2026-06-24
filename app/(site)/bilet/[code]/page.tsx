@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, MapPin, Ticket, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { TicketQR } from '@/components/tickets/ticket-qr';
+import { TicketDownloadButton } from '@/components/tickets/ticket-download-button';
 import { getPublicTicketByCode } from '@/lib/services/tickets';
 
 interface Props {

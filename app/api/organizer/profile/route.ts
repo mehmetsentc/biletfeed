@@ -10,6 +10,18 @@ import {
 import { ROLES } from '@/lib/auth/roles';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerProfile } from '@/lib/services/organizer-onboarding';
+import { updateOrganizerSettings } from '@/lib/services/organizer-panel';
+import { requireOrganizerApi } from '@/lib/auth/organizer-route';
+
+const patchSchema = z.object({
+  name: z.string().min(2).max(120).optional(),
+  description: z.string().max(500).optional(),
+  contactEmail: z.string().email().nullable().optional(),
+  contactPhone: z.string().max(20).nullable().optional(),
+  notifyEmail: z.boolean().optional(),
+  notifySms: z.boolean().optional(),
+  socialLinks: z.record(z.string(), z.string()).optional()
+});
 
 const bodySchema = z.object({
   organizationName: z.string().min(2).max(120),
@@ -65,6 +77,29 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Kurulum başarısız';
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
+  }
+
+  const { error, ctx } = await requireOrganizerApi();
+  if (error) return error;
+
+  const json = await request.json();
+  const parsed = patchSchema.safeParse(json);
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
+  }
+
+  try {
+    await updateOrganizerSettings(ctx.organizer.id, parsed.data);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Kaydedilemedi';
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

@@ -159,7 +159,7 @@ export function EventCard({
           </Button>
         </div>
       </Link>
-      <FavoriteButton className="absolute right-3 top-3 z-10" />
+      <FavoriteButton className="absolute right-3 top-3 z-10" eventId={event.id} />
     </div>
   );
 }

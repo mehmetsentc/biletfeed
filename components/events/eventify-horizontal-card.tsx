@@ -44,6 +44,7 @@ export function EventifyHorizontalCard({
           <FavoriteButton
             className="absolute right-3 top-3 z-10 !bg-white !text-foreground"
             icon="star"
+            eventId={event.id}
           />
         </div>
 

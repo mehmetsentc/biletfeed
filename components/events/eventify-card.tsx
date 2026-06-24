@@ -53,7 +53,8 @@ export function EventifyCard({
           <FavoriteButton
             className="absolute right-3 top-3 z-10 !bg-white !text-foreground"
             icon="star"
-            active={isFavorite}
+            eventId={event.id}
+            initialActive={isFavorite}
           />
         </div>
 
