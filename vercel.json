@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/scrape-events",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/accounting",
+      "schedule": "0 2 * * *"
     }
   ],
   "headers": [

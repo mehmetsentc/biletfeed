@@ -113,6 +113,46 @@ enum InvitationStatus {
   cancelled
 }
 
+enum InvoiceType {
+  e_fatura
+  e_arsiv
+  proforma
+  credit_note
+}
+
+enum InvoiceStatus {
+  draft
+  issued
+  cancelled
+}
+
+enum EmailDeliveryStatus {
+  queued
+  sent
+  delivered
+  bounced
+  opened
+  failed
+}
+
+enum PayoutStatus {
+  pending
+  scheduled
+  paid
+  failed
+}
+
+enum ReconciliationStatus {
+  pending
+  reconciled
+  mismatch
+}
+
+enum RevenueRecognitionStatus {
+  deferred
+  recognized
+}
+
 model User {
   id           String    @id @default(uuid()) @db.Uuid
   firebaseUid  String    @unique @map("firebase_uid")
@@ -132,6 +172,8 @@ model User {
   purchasedTickets PurchasedTicket[]
   reviews          Review[]
   supportTickets   UserSupportTicket[]
+  billingProfile   UserBillingProfile?
+  invoices         Invoice[]
 
   @@index([role])
   @@index([deletedAt])
@@ -167,6 +209,7 @@ model Organizer {
   venues         Venue[]
   supportTickets OrganizerSupportTicket[]
   invitations    EventInvitation[]
+  payouts        OrganizerPayout[]
 
   @@index([status])
   @@index([deletedAt])
@@ -288,6 +331,7 @@ model Event {
   favorites        Favorite[]
   reviews          Review[]
   invitations      EventInvitation[]
+  payouts          OrganizerPayout[]
 
   @@index([status])
   @@index([organizerId])
@@ -376,6 +420,10 @@ model Order {
   items            OrderItem[]
   purchasedTickets PurchasedTicket[]
   transactions     Transaction[]
+  invoices         Invoice[]
+  reconciliations  PaymentReconciliation[]
+  revenueEntries   RevenueRecognition[]
+  payouts          OrganizerPayout[]
 
   @@index([userId])
   @@index([eventId])
@@ -476,6 +524,184 @@ model Transaction {
   @@index([status])
   @@index([deletedAt])
   @@map("transactions")
+}
+
+model UserBillingProfile {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @unique @map("user_id") @db.Uuid
+  companyName    String?  @map("company_name")
+  taxOffice      String?  @map("tax_office")
+  taxNumber      String?  @map("tax_number")
+  billingAddress String?  @map("billing_address")
+  isCorporate    Boolean  @default(false) @map("is_corporate")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_billing_profiles")
+}
+
+model Invoice {
+  id              String        @id @default(uuid()) @db.Uuid
+  orderId         String        @map("order_id") @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  invoiceNumber   String        @unique @map("invoice_number")
+  type            InvoiceType   @default(e_arsiv)
+  status          InvoiceStatus @default(issued)
+  buyerName       String        @map("buyer_name")
+  buyerTaxNumber  String?       @map("buyer_tax_number")
+  buyerTaxOffice  String?       @map("buyer_tax_office")
+  buyerAddress    String?       @map("buyer_address")
+  subtotalNet     Float         @map("subtotal_net")
+  vatRate         Float         @map("vat_rate")
+  vatAmount       Float         @map("vat_amount")
+  totalGross      Float         @map("total_gross")
+  currency        Currency      @default(TRY)
+  issuedAt        DateTime      @default(now()) @map("issued_at")
+  cancelledAt     DateTime?     @map("cancelled_at")
+  eInvoiceUuid    String?       @map("e_invoice_uuid")
+  metadata        Json          @default("{}")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  order  Order         @relation(fields: [orderId], references: [id])
+  user   User          @relation(fields: [userId], references: [id])
+  lines  InvoiceLine[]
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status])
+  @@index([issuedAt])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id           String @id @default(uuid()) @db.Uuid
+  invoiceId    String @map("invoice_id") @db.Uuid
+  description  String
+  quantity     Int
+  unitPriceNet Float  @map("unit_price_net")
+  vatRate      Float  @map("vat_rate")
+  vatAmount    Float  @map("vat_amount")
+  totalGross   Float  @map("total_gross")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}
+
+model PaymentReconciliation {
+  id              String               @id @default(uuid()) @db.Uuid
+  orderId         String               @map("order_id") @db.Uuid
+  provider        String
+  providerRef     String?              @map("provider_ref")
+  expectedAmount  Float                @map("expected_amount")
+  receivedAmount  Float                @map("received_amount")
+  feeAmount       Float                @default(0) @map("fee_amount")
+  netAmount       Float                @map("net_amount")
+  currency        Currency             @default(TRY)
+  status          ReconciliationStatus @default(pending)
+  reconciledAt    DateTime?            @map("reconciled_at")
+  metadata        Json                 @default("{}")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([provider])
+  @@index([status])
+  @@map("payment_reconciliations")
+}
+
+model EmailDelivery {
+  id           String              @id @default(uuid()) @db.Uuid
+  to           String
+  subject      String
+  template     String
+  status       EmailDeliveryStatus @default(queued)
+  provider     String              @default("smtp")
+  messageId    String?             @map("message_id")
+  orderId      String?             @map("order_id") @db.Uuid
+  invoiceId    String?             @map("invoice_id") @db.Uuid
+  sentAt       DateTime?           @map("sent_at")
+  deliveredAt  DateTime?           @map("delivered_at")
+  openedAt     DateTime?           @map("opened_at")
+  errorMessage String?             @map("error_message")
+  metadata     Json                @default("{}")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("email_deliveries")
+}
+
+model OrganizerPayout {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizerId      String       @map("organizer_id") @db.Uuid
+  eventId          String       @map("event_id") @db.Uuid
+  orderId          String       @map("order_id") @db.Uuid
+  grossAmount      Float        @map("gross_amount")
+  commissionAmount Float        @map("commission_amount")
+  netAmount        Float        @map("net_amount")
+  currency         Currency     @default(TRY)
+  status           PayoutStatus @default(pending)
+  scheduledAt      DateTime?    @map("scheduled_at")
+  paidAt           DateTime?    @map("paid_at")
+  metadata         Json         @default("{}")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  organizer Organizer @relation(fields: [organizerId], references: [id])
+  event     Event     @relation(fields: [eventId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
+
+  @@index([organizerId])
+  @@index([eventId])
+  @@index([orderId])
+  @@index([status])
+  @@map("organizer_payouts")
+}
+
+model RevenueRecognition {
+  id            String                   @id @default(uuid()) @db.Uuid
+  orderId       String                   @map("order_id") @db.Uuid
+  amount        Float
+  currency      Currency                 @default(TRY)
+  eventDate     DateTime                 @map("event_date")
+  recognizedAt  DateTime?                @map("recognized_at")
+  status        RevenueRecognitionStatus @default(deferred)
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+  @@index([eventDate])
+  @@map("revenue_recognitions")
+}
+
+model AccountingAuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorRole  String?  @map("actor_role")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  before     Json?
+  after      Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("accounting_audit_logs")
 }
 
 model Favorite {

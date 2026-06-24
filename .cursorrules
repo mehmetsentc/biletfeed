@@ -46,7 +46,8 @@ lib/
   scraper/          ← Etkinlik kazıma sistemi
   email/            ← Resend email (resend.ts, invitation-template.ts)
   tickets/sign.ts   ← QR payload oluşturma ve doğrulama
-  config/domain.ts  ← getSiteUrl() helper
+  config/company.ts  ← Ticari unvan, VKN, adres (muhasebe tek kaynağı)
+  accounting/       ← Fatura, mutabakat, hakediş, gelir tanıma, audit
   cookies/          ← Cookie consent yönetimi
 
 prisma/
@@ -130,6 +131,27 @@ Yeni kategori eklenirse şu dosyaları güncelle:
 - Organizatör scanner → `POST /api/tickets/validate` (auth gerekli, markUsed:true)
 - Misafir QR görüntüleme → `GET /bilet/[code]` (public, token ile güvenli)
 - Davetiye sayfası → `/davetiye/[token]` (InvitationGuestClient)
+
+---
+
+## Muhasebe Sistemi
+
+- Şirket bilgisi tek kaynak: `lib/config/company.ts` (KSD ORGANİZASYON, VKN 5901381024)
+- İş mantığı: `lib/accounting/` — `invoice`, `reconciliation`, `commission`, `revenue`, `email`, `fulfillment`
+- Sipariş ödendiğinde: `processOrderAccounting(orderId)` (`lib/services/orders.ts` içinden tetiklenir)
+- İade sonrası: `createCreditNoteForRefund(orderId)`
+- Gelir tanıma cron: `GET /api/cron/accounting` (Bearer `CRON_SECRET`)
+- Admin panel: `/admin/muhasebe` — fatura, mutabakat, hakediş, e-posta log, audit
+- Dokümantasyon: `docs/ACCOUNTING.md`
+- E-posta: `lib/email/resend.ts` → `RESEND_API_KEY` (muhasebe faturaları da Resend kullanır)
+
+### Muhasebe env var'ları
+```
+ACCOUNTING_VAT_RATE     # Varsayılan KDV oranı (20)
+COMPANY_IBAN            # Fatura / hakediş IBAN
+COMPANY_MERSIS_NO       # MERSİS numarası
+CRON_SECRET             # Gelir tanıma cron yetkisi
+```
 
 ---
 

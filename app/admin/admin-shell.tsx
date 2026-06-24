@@ -35,7 +35,7 @@ const adminLinks = [
   { href: '/admin/islemler', label: t.admin.transactions, icon: CreditCard },
   { href: '/admin/analitik', label: t.admin.analytics, icon: BarChart3 },
   { href: '/admin/bannerlar', label: t.admin.banners, icon: Image },
-  { href: '/admin/raporlar', label: t.admin.reports, icon: FileText },
+  { href: '/admin/muhasebe', label: 'Muhasebe', icon: FileText },
   { href: '/admin/ayarlar', label: t.admin.settings, icon: Settings }
 ];
 

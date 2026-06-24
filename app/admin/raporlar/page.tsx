@@ -1,10 +1,5 @@
-import { AdminPlaceholderPage } from '@/components/admin/placeholder-page';
+import { redirect } from 'next/navigation';
 
-export default function AdminPage() {
-  return (
-    <AdminPlaceholderPage
-      title="Raporlar"
-      description="Raporları dışa aktarın."
-    />
-  );
+export default function AdminReportsRedirect() {
+  redirect('/admin/muhasebe');
 }

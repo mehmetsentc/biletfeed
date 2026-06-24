@@ -10,6 +10,8 @@ import {
   PENDING_ORDER_TTL_MINUTES
 } from '@/lib/payments/config';
 import { startPaymentCheckout } from '@/lib/payments/process';
+import { processOrderAccounting } from '@/lib/accounting/fulfillment';
+import { createCreditNoteForRefund } from '@/lib/accounting/invoice';
 import type { PaymentProviderName } from '@/lib/payments/types';
 
 export interface CheckoutResult {
@@ -234,6 +236,10 @@ async function fulfillFreeOrder(params: {
     return created;
   });
 
+  void processOrderAccounting(order.id).catch((err) => {
+    console.error('[accounting] free order', order.id, err);
+  });
+
   return order.id;
 }
 
@@ -348,6 +354,13 @@ export async function fulfillPaidOrder(params: {
     });
 
     return { orderId: order.id, ticketCount, alreadyFulfilled: false };
+  }).then(async (result) => {
+    if (!result.alreadyFulfilled) {
+      void processOrderAccounting(result.orderId).catch((err) => {
+        console.error('[accounting] paid order', result.orderId, err);
+      });
+    }
+    return result;
   });
 }
 
@@ -503,6 +516,10 @@ export async function requestOrderRefund(params: {
         data: { sold: { decrement: item.quantity } }
       });
     }
+  });
+
+  void createCreditNoteForRefund(order.id).catch((err) => {
+    console.error('[accounting] refund credit note', order.id, err);
   });
 
   return { ok: true, message: 'İade işlendi (mock/free)' };
