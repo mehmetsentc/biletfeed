@@ -52,24 +52,7 @@ function isEventDetailUrl(url: string, platform: ExternalPlatform): boolean {
       );
     }
     if (platform === 'BUBILET') {
-      const parts = path.split('/').filter(Boolean);
-      const cities = new Set([
-        'istanbul', 'ankara', 'izmir', 'antalya', 'bursa', 'eskisehir',
-        'adana', 'adiyaman', 'afyon', 'agri', 'aksaray', 'amasya',
-        'ardahan', 'artvin', 'aydin', 'balikesir', 'bartin', 'batman',
-        'bayburt', 'bilecik', 'bingol', 'bitlis', 'bolu', 'burdur',
-        'canakkale', 'cankiri', 'corum', 'denizli', 'diyarbakir',
-        'duzce', 'edirne', 'elazig', 'erzincan', 'erzurum',
-        'gaziantep', 'giresun', 'gumushane', 'hakkari', 'hatay',
-        'igdir', 'isparta', 'kahramanmaras', 'karabuk', 'karaman',
-        'kars', 'kastamonu', 'kayseri', 'kilis', 'kirikkale',
-        'kirklareli', 'kirsehir', 'kocaeli', 'konya', 'kutahya',
-        'malatya', 'manisa', 'mardin', 'mersin', 'mugla', 'mus',
-        'nevsehir', 'nigde', 'ordu', 'osmaniye', 'rize',
-        'sakarya', 'samsun', 'sanliurfa', 'siirt', 'sinop',
-        'sirnak', 'sivas', 'tekirdag', 'tokat', 'trabzon', 'tunceli',
-        'usak', 'van', 'yalova', 'yozgat', 'zonguldak'
-      ]);
+      // Bubilet etkinlik URL formatı: /{city}/etkinlik/{slug}
       if (
         path.includes('/mekan/') ||
         path.includes('/etiket/') ||
@@ -78,7 +61,7 @@ function isEventDetailUrl(url: string, platform: ExternalPlatform): boolean {
       ) {
         return false;
       }
-      return parts.length >= 2 && !cities.has(parts[parts.length - 1]!);
+      return path.includes('/etkinlik/');
     }
     if (platform === 'BILETIMO') {
       const parts = path.split('/').filter(Boolean);
@@ -337,6 +320,61 @@ async function scrapePlatformWithDetails(
   return result(platform, valid, errors);
 }
 
+/**
+ * Bubilet listing sayfasındaki etiket slug'ını BiletFeed categorySlug'ına çevirir.
+ * Bu etiket bilgisi, title/description text-matching'den daha güvenilirdir.
+ */
+const BUBILET_ETIKET_TO_CATEGORY: Record<string, string> = {
+  'konser':           'muzik',
+  'elektronik-muzik': 'muzik',
+  'tiyatro':          'tiyatro',
+  'festival':         'festival',
+  'stand-up':         'komedi',
+  'cocuk-aktiviteleri': 'cocuk',
+  'workshop':         'teknoloji',
+  'spor':             'spor',
+};
+
+/**
+ * Bubilet listing sayfasından stub'ları çeker ve listing URL'sindeki
+ * etiket slug'ını categoryHint olarak stub'a ekler.
+ * Bu sayede detail page'i parse ederken doğru kategori garantilenir.
+ */
+function extractBubiletStubs(html: string, listingUrl: string): EventStub[] {
+  const $ = cheerio.load(html);
+  const stubs: EventStub[] = [];
+
+  // Listing URL'sinden etiket slug'ını çek: /{city}/etiket/{slug}
+  const etiketMatch = listingUrl.match(/\/etiket\/([^/?#]+)/);
+  const categoryHint = etiketMatch?.[1]
+    ? BUBILET_ETIKET_TO_CATEGORY[etiketMatch[1]]
+    : undefined;
+
+  $('a[href]').each((_, el) => {
+    const href = $(el).attr('href') || '';
+    try {
+      const absolute = href.startsWith('http')
+        ? href
+        : new URL(href, listingUrl).href;
+      if (
+        /bubilet\.com\.tr/i.test(absolute) &&
+        isEventDetailUrl(absolute, 'BUBILET')
+      ) {
+        const cleanUrl = absolute.split('#')[0]!;
+        const externalId = cleanUrl.split('/').filter(Boolean).pop() || cleanUrl;
+        stubs.push({
+          platform: 'BUBILET',
+          externalId,
+          externalUrl: cleanUrl,
+          ...(categoryHint ? { categoryHint } : {})
+        });
+      }
+    } catch { /* skip */ }
+  });
+
+  return stubs;
+}
+
 export const bubiletAdapter: ScraperAdapter = {
   platform: 'BUBILET',
   label: PLATFORM_LABELS.BUBILET,
@@ -346,11 +384,11 @@ export const bubiletAdapter: ScraperAdapter = {
       bubiletListingUrls(),
       /bubilet\.com\.tr/i,
       {
-        // 81 şehir × 9 sayfa = 729 URL — 8 paralel çekişle ~90s
-        // İlk 120 sayfa: en aktif şehirler + kategoriler (timeout koruması)
-        maxListingPages: 120,
+        // maxListingPages yok — tüm şehirler taranır
+        // Şehirler aktivite önceliğine göre sıralandı (listing-urls.ts)
         concurrency: 8,
-        maxDetails: 400
+        maxDetails: 600,
+        extractStubs: extractBubiletStubs
       }
     )
 };

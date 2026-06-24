@@ -5,6 +5,7 @@ import { isPlaceholderImage, pickBestImage } from '@/lib/scraper/image-utils';
 import {
   fetchHtml,
   mapCategory,
+  categorySlugToEventType,
   parsePrice,
   parseTurkishDate,
   resolveCitySlug
@@ -19,6 +20,9 @@ export interface EventStub {
   title?: string;
   coverImage?: string;
   startDate?: Date;
+  /** Listing sayfasının etiket slug'ından gelen kategori ipucu (ör. 'muzik', 'tiyatro').
+   *  Text-matching'den daha güvenilir — mevcutsa öncelikli kullanılır. */
+  categoryHint?: string;
 }
 
 function meta($: cheerio.CheerioAPI, key: string): string {
@@ -249,15 +253,25 @@ export function parseDetailPageHtml(
     Array.isArray(offersRaw) ? offersRaw[0] : offersRaw
   ) as Record<string, unknown> | undefined;
   const { price, isFree } = resolvePrice($, offers);
-  // Bubilet için: '#Tiyatro', '#Konser' gibi hashtag etiketlerini kategori ipucu olarak kullan
-  const categoryHints: string[] = [];
-  if (platform === 'BUBILET') {
-    $('a[href*="/etiket/"]').each((_, el) => {
-      const text = $(el).text().replace(/^#/, '').trim();
-      if (text) categoryHints.push(text);
-    });
+  // Bubilet: listing URL'sindeki etiket slug'ı en güvenilir kategori kaynağı.
+  // Mevcutsa doğrudan kullan; yoksa sayfa içeriğinden eşleştir.
+  let categorySlug: string;
+  let eventType: EventType;
+
+  if (platform === 'BUBILET' && stub?.categoryHint) {
+    categorySlug = stub.categoryHint;
+    eventType = categorySlugToEventType(stub.categoryHint);
+  } else {
+    // Sayfa içindeki '#Tiyatro', '#Konser' gibi etiket linklerini ipucu olarak kullan
+    const categoryHints: string[] = [];
+    if (platform === 'BUBILET') {
+      $('a[href*="/etiket/"]').each((_, el) => {
+        const text = $(el).text().replace(/^#/, '').trim();
+        if (text) categoryHints.push(text);
+      });
+    }
+    ({ categorySlug, eventType } = mapCategory(title, description, categoryHints));
   }
-  const { categorySlug, eventType } = mapCategory(title, description, categoryHints);
 
   const tags = [PLATFORM_LABELS[platform]];
   if (isPlaceholderImage(cover)) tags.push('eksik-gorsel');

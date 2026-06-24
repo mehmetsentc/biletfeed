@@ -85,6 +85,15 @@ const CITY_ALIASES: Record<string, string> = {
   yalova: 'yalova', Yalova: 'yalova',
   yozgat: 'yozgat', Yozgat: 'yozgat',
   zonguldak: 'zonguldak', Zonguldak: 'zonguldak',
+  // Uluslararası şehirler (Bubilet yurt dışı etkinlikleri)
+  kibris: 'kibris', kktc: 'kibris', 'kuzey kibris': 'kibris',
+  baku: 'baku', bakü: 'baku', Bakü: 'baku', azerbaycan: 'baku',
+  londra: 'londra', london: 'londra', London: 'londra',
+  berlin: 'berlin', Berlin: 'berlin',
+  stuttgart: 'stuttgart', Stuttgart: 'stuttgart',
+  muenchen: 'muenchen', münchen: 'muenchen', munich: 'muenchen', Munich: 'muenchen',
+  paris: 'paris', Paris: 'paris',
+  dubai: 'dubai', Dubai: 'dubai',
   // Online
   online: 'online'
 };

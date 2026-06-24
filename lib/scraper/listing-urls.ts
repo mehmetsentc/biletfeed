@@ -30,26 +30,47 @@ export function biletixListingUrls(): string[] {
 
 /**
  * Bubilet Türkiye'nin tüm 81 ilini destekliyor (bubilet.com.tr şehir seçici).
- * Her il için ana sayfa + tüm kategori/etiket sayfaları taranır.
+ * Her il için tüm kategori/etiket sayfaları taranır.
+ * Sıralama: önce yüksek etkinlik olasılığı olan şehirler (daha verimli scraping için).
+ * NOT: Afyon için Bubilet slug'ı "afyonkarahisar" — "afyon" değil.
  */
 const BUBILET_CITIES = [
-  // Büyükşehirler
+  // Tier 1 — çok yüksek etkinlik trafiği
   'istanbul', 'ankara', 'izmir', 'antalya', 'bursa', 'eskisehir',
-  // Diğer iller (alfabetik)
-  'adana', 'adiyaman', 'afyon', 'agri', 'aksaray', 'amasya',
-  'ardahan', 'artvin', 'aydin', 'balikesir', 'bartin', 'batman',
-  'bayburt', 'bilecik', 'bingol', 'bitlis', 'bolu', 'burdur',
-  'canakkale', 'cankiri', 'corum', 'denizli', 'diyarbakir',
-  'duzce', 'edirne', 'elazig', 'erzincan', 'erzurum',
-  'gaziantep', 'giresun', 'gumushane', 'hakkari', 'hatay',
-  'igdir', 'isparta', 'kahramanmaras', 'karabuk', 'karaman',
-  'kars', 'kastamonu', 'kayseri', 'kilis', 'kirikkale',
-  'kirklareli', 'kirsehir', 'kocaeli', 'konya', 'kutahya',
-  'malatya', 'manisa', 'mardin', 'mersin', 'mugla', 'mus',
-  'nevsehir', 'nigde', 'ordu', 'osmaniye', 'rize',
-  'sakarya', 'samsun', 'sanliurfa', 'siirt', 'sinop',
-  'sirnak', 'sivas', 'tekirdag', 'tokat', 'trabzon', 'tunceli',
-  'usak', 'van', 'yalova', 'yozgat', 'zonguldak'
+  'gaziantep', 'kayseri', 'samsun', 'trabzon', 'kocaeli', 'mersin',
+  'konya', 'diyarbakir', 'mugla',
+  // Tier 2 — orta düzey etkinlik
+  'adana', 'manisa', 'sakarya', 'hatay', 'malatya', 'denizli',
+  'edirne', 'canakkale', 'aydin', 'balikesir', 'tekirdag', 'ordu',
+  'sivas', 'van', 'erzurum', 'kahramanmaras', 'sanliurfa', 'mardin',
+  'nevsehir', 'isparta', 'bolu', 'rize', 'karabuk', 'yalova', 'kilis',
+  // Tier 3 — kalan iller
+  'adiyaman', 'afyonkarahisar', 'agri', 'aksaray', 'amasya',
+  'ardahan', 'artvin', 'bartin', 'batman', 'bayburt',
+  'bilecik', 'bingol', 'bitlis', 'burdur',
+  'cankiri', 'corum', 'duzce', 'elazig', 'erzincan',
+  'giresun', 'gumushane', 'hakkari',
+  'igdir', 'karaman', 'kars', 'kastamonu', 'kirikkale',
+  'kirklareli', 'kirsehir', 'kutahya',
+  'mus', 'nigde', 'osmaniye',
+  'siirt', 'sinop', 'sirnak', 'tokat', 'tunceli',
+  'usak', 'yozgat', 'zonguldak'
+] as const;
+
+/**
+ * Bubilet'in desteklediği uluslararası şehirler.
+ * Türk diasporası için (Almanya, İngiltere, Fransa, vb.) etkinlikler var.
+ * Sadece konser kategorisi taranır — diğer kategorilerde etkinlik çok nadir.
+ */
+const BUBILET_INTL_CITIES = [
+  'kibris',    // KKTC
+  'baku',      // Azerbaycan
+  'londra',    // İngiltere
+  'berlin',    // Almanya
+  'stuttgart', // Almanya
+  'muenchen',  // Almanya (München)
+  'paris',     // Fransa
+  'dubai',     // BAE
 ] as const;
 
 const BUBILET_CATEGORIES = [
@@ -67,14 +88,20 @@ export function bubiletListingUrls(): string[] {
   const base = 'https://www.bubilet.com.tr';
   const urls: string[] = [base + '/']; // anasayfa — tüm şehirlerin öne çıkanları
 
+  // Türkiye illeri — tüm kategoriler
   for (const city of BUBILET_CITIES) {
-    // Şehir ana sayfası (tüm etkinlikler)
     urls.push(`${base}/${city}`);
-
-    // Her kategori / etiket sayfası
     for (const cat of BUBILET_CATEGORIES) {
       urls.push(`${base}/${city}/etiket/${cat}`);
     }
+  }
+
+  // Uluslararası şehirler — sadece konser + tiyatro (diğer kategoriler nadir)
+  for (const city of BUBILET_INTL_CITIES) {
+    urls.push(`${base}/${city}`);
+    urls.push(`${base}/${city}/etiket/konser`);
+    urls.push(`${base}/${city}/etiket/tiyatro`);
+    urls.push(`${base}/${city}/etiket/festival`);
   }
 
   return urls;
