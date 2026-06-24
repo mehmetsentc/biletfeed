@@ -43,7 +43,9 @@ export async function sendTicketPurchaseEmail(orderId: string): Promise<void> {
       user: { select: { email: true, displayName: true } },
       organizer: { select: { name: true } },
       items: { include: { ticketType: { select: { name: true } } } },
-      purchasedTickets: { select: { ticketCode: true } },
+      purchasedTickets: {
+        select: { ticketCode: true, validationToken: true, id: true }
+      },
       event: {
         select: {
           title: true,
@@ -74,9 +76,11 @@ export async function sendTicketPurchaseEmail(orderId: string): Promise<void> {
     ? event.onlineUrl ?? 'Online'
     : [event.venue?.name, event.venue?.address, cityName].filter(Boolean).join(', ');
 
-  const firstTicketCode = order.purchasedTickets[0]?.ticketCode;
-  const printUrl = firstTicketCode
-    ? getSiteUrl(`/bilet/${firstTicketCode}/print`)
+  const firstTicket = order.purchasedTickets[0];
+  const printUrl = firstTicket
+    ? getSiteUrl(
+        `/bilet/${encodeURIComponent(firstTicket.ticketCode)}/print?token=${encodeURIComponent(firstTicket.validationToken)}&id=${encodeURIComponent(firstTicket.id)}`
+      )
     : undefined;
 
   const calendarUrl = buildGoogleCalendarUrl({
