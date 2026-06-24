@@ -216,7 +216,9 @@ export async function createEventInvitation(params: {
         eventId: params.eventId,
         ticketCode,
         validationToken,
-        status: 'VALID'
+        status: 'VALID',
+        attendeeName: params.guestName.trim(),
+        attendeeEmail: params.guestEmail?.trim() || null
       }
     });
 

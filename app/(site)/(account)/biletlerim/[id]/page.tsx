@@ -1,12 +1,10 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { Calendar, Download, MapPin } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { SettingsPageHeader } from '@/components/account/settings-form';
+import { PremiumTicketCard } from '@/components/tickets/premium-ticket-card';
+import { TicketActions } from '@/components/tickets/ticket-actions';
 import { getTicketById } from '@/lib/services/tickets';
 import { formatEventDate, formatEventTime } from '@/lib/data/mock-events';
-import { TicketQR } from '@/components/tickets/ticket-qr';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
@@ -32,83 +30,43 @@ export default async function TicketDetailPage({ params }: Props) {
   const ticket = await getTicketById(id, session.uid);
   if (!ticket) notFound();
 
-  const statusLabel =
-    ticket.status === 'VALID'
-      ? 'Geçerli Bilet'
-      : ticket.status === 'USED'
-        ? 'Kullanılmış'
-        : ticket.status;
+  const holderName = ticket.attendeeName || 'Misafir';
 
   return (
     <div className="space-y-6">
-      <SettingsPageHeader
-        title="Bilet Detayı"
-        description={ticket.eventTitle}
-      />
+      <SettingsPageHeader title="Bilet Detayı" description={ticket.eventTitle} />
 
-      <div className="mx-auto max-w-lg">
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="relative h-40">
-            <Image
-              src={ticket.eventImage}
-              alt={ticket.eventTitle}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
-          </div>
-          <div className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <Badge variant={ticket.status === 'VALID' ? 'success' : 'secondary'}>
-                  {statusLabel}
-                </Badge>
-                <h2 className="mt-2 text-xl font-bold">{ticket.eventTitle}</h2>
-              </div>
-              <p className="text-lg font-bold text-primary">{ticket.price} ₺</p>
-            </div>
+      <div className="mx-auto max-w-lg space-y-4">
+        <PremiumTicketCard
+          id="premium-ticket-card"
+          eventTitle={ticket.eventTitle}
+          eventImage={ticket.eventImage}
+          eventDate={formatEventDate(ticket.eventDate)}
+          eventTime={formatEventTime(ticket.eventDate)}
+          venue={ticket.venue}
+          city={ticket.city}
+          ticketType={ticket.ticketType}
+          holderName={holderName}
+          ticketCode={ticket.code}
+          qrData={ticket.qrData}
+          status={ticket.status}
+          priceLabel={ticket.price > 0 ? `${ticket.price} ₺` : 'Ücretsiz'}
+        />
 
-            <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <p className="flex items-center gap-2">
-                <Calendar className="size-4" />
-                {formatEventDate(ticket.eventDate)} · {formatEventTime(ticket.eventDate)}
-              </p>
-              <p className="flex items-center gap-2">
-                <MapPin className="size-4" />
-                {ticket.venue}, {ticket.city}
-              </p>
-            </div>
-
-            {ticket.status === 'VALID' && (
-              <div className="my-6 flex justify-center rounded-xl bg-muted/50 p-6">
-                <TicketQR data={ticket.qrData} />
-              </div>
-            )}
-
-            <p className="text-center font-mono text-sm text-muted-foreground">
-              {ticket.code}
-            </p>
-            <p className="mt-1 text-center text-xs text-muted-foreground">
-              {ticket.ticketType}
-            </p>
-          </div>
-        </div>
-
-        {ticket.validationToken && (
-          <Link
-            href={`/bilet/${encodeURIComponent(ticket.code)}/print?token=${encodeURIComponent(ticket.validationToken)}&id=${encodeURIComponent(ticket.id)}`}
-            target="_blank"
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <Download className="size-4" />
-            Bileti PDF olarak indir
-          </Link>
-        )}
+        <TicketActions
+          ticketId={ticket.id}
+          ticketCode={ticket.code}
+          validationToken={ticket.validationToken}
+          eventTitle={ticket.eventTitle}
+          startDate={ticket.eventDate}
+          endDate={ticket.eventEndDate ?? ticket.eventDate}
+          venue={ticket.venue}
+          city={ticket.city}
+        />
 
         <Link
           href="/biletlerim"
-          className="mt-4 block text-center text-sm font-medium text-primary hover:underline"
+          className="block text-center text-sm font-medium text-primary hover:underline"
         >
           ← Tüm Biletler
         </Link>

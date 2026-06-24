@@ -15,14 +15,33 @@ import {
   formatPrice
 } from '@/lib/data/mock-events';
 
-export function CheckoutForm({ event }: { event: MockEvent }) {
+export function CheckoutForm({
+  event,
+  ticketTypes
+}: {
+  event: MockEvent;
+  ticketTypes: Array<{
+    id: string;
+    name: string;
+    type: string;
+    price: number;
+    currency: string;
+    capacity: number;
+    sold: number;
+  }>;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [selectedTypeId, setSelectedTypeId] = useState(ticketTypes[0]?.id ?? '');
+  const [attendeeName, setAttendeeName] = useState('');
+  const [attendeeEmail, setAttendeeEmail] = useState('');
 
-  const unitPrice = event.price;
+  const selectedType =
+    ticketTypes.find((t) => t.id === selectedTypeId) ?? ticketTypes[0];
+  const unitPrice = selectedType?.price ?? event.price;
   const total = event.isFree ? 0 : unitPrice * quantity;
   const isPaid = total > 0;
 
@@ -35,7 +54,13 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
       const res = await fetch('/api/orders/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventSlug: event.slug, quantity })
+        body: JSON.stringify({
+          eventSlug: event.slug,
+          quantity,
+          ticketTypeId: selectedType?.id,
+          attendeeName: attendeeName.trim() || undefined,
+          attendeeEmail: attendeeEmail.trim() || undefined
+        })
       });
       const data = await res.json();
 
@@ -84,8 +109,20 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
               <h2 className="font-semibold">1. Bilet Seçimi</h2>
               <div className="space-y-2">
                 <Label>Bilet türü</Label>
-                <select className="w-full rounded-md border bg-background px-3 py-2">
-                  <option>Genel Giriş — {formatPrice(event)}</option>
+                <select
+                  className="w-full rounded-md border bg-background px-3 py-2"
+                  value={selectedTypeId}
+                  onChange={(e) => setSelectedTypeId(e.target.value)}
+                >
+                  {ticketTypes.length === 0 && (
+                    <option value="">Genel Giriş — {formatPrice(event)}</option>
+                  )}
+                  {ticketTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name} — {type.price <= 0 ? 'Ücretsiz' : `${type.price} ₺`} (
+                      {Math.max(0, type.capacity - type.sold)} kaldı)
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">
@@ -111,8 +148,27 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
                 2. Katılımcı Bilgileri
               </h2>
               <p className="text-sm text-muted-foreground">
-                Bilet, giriş yaptığınız hesaba tanımlanır. Ek bilgi gerekmez.
+                Bilet sahibi bilgileri giriş kapısında gösterilir.
               </p>
+              <div className="space-y-2">
+                <Label htmlFor="attendeeName">Ad Soyad</Label>
+                <Input
+                  id="attendeeName"
+                  value={attendeeName}
+                  onChange={(e) => setAttendeeName(e.target.value)}
+                  placeholder="Bilet sahibi adı"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="attendeeEmail">E-posta</Label>
+                <Input
+                  id="attendeeEmail"
+                  type="email"
+                  value={attendeeEmail}
+                  onChange={(e) => setAttendeeEmail(e.target.value)}
+                  placeholder="bilet@ornek.com"
+                />
+              </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)}>
                   Geri
@@ -135,6 +191,10 @@ export function CheckoutForm({ event }: { event: MockEvent }) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tarih</span>
                   <span>{formatEventDate(event.startDate)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Bilet türü</span>
+                  <span>{selectedType?.name ?? 'Genel Giriş'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Bilet adedi</span>

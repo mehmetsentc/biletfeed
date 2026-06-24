@@ -7,15 +7,60 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+type ScanStatus =
+  | 'VALID'
+  | 'USED'
+  | 'REFUNDED'
+  | 'CANCELLED'
+  | 'EXPIRED'
+  | 'INVALID';
+
 type ScanResult = {
-  status: string;
+  status: ScanStatus | string;
   message: string;
   ticket?: {
     code: string;
     eventTitle: string;
     ticketType: string;
     holderName: string;
+    entryCount?: number;
   };
+};
+
+const statusConfig: Record<
+  string,
+  { icon: typeof CheckCircle2; className: string; label: string }
+> = {
+  VALID: {
+    icon: CheckCircle2,
+    className: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-600',
+    label: 'Giriş Onaylandı'
+  },
+  USED: {
+    icon: AlertCircle,
+    className: 'border-amber-500/50 bg-amber-500/10 text-amber-600',
+    label: 'Daha Önce Kullanıldı'
+  },
+  REFUNDED: {
+    icon: XCircle,
+    className: 'border-destructive/50 bg-destructive/10 text-destructive',
+    label: 'İade Edilmiş'
+  },
+  CANCELLED: {
+    icon: XCircle,
+    className: 'border-destructive/50 bg-destructive/10 text-destructive',
+    label: 'İptal Edilmiş'
+  },
+  EXPIRED: {
+    icon: AlertCircle,
+    className: 'border-amber-500/50 bg-amber-500/10 text-amber-600',
+    label: 'Süresi Dolmuş'
+  },
+  INVALID: {
+    icon: XCircle,
+    className: 'border-destructive/50 bg-destructive/10 text-destructive',
+    label: 'Geçersiz Bilet'
+  }
 };
 
 export function QrScanner() {
@@ -28,28 +73,39 @@ export function QrScanner() {
   const [error, setError] = useState<string | null>(null);
   const [useManual, setUseManual] = useState(false);
 
-  const validate = useCallback(async (payload: { qrRaw?: string; ticketCode?: string }) => {
-    setLoading(true);
-    setResult(null);
-    setError(null);
-    try {
-      const res = await fetch('/api/tickets/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, markUsed: true })
-      });
-      const data = (await res.json()) as ScanResult;
-      if (!res.ok) {
-        setError(data.message || 'Doğrulama başarısız');
-        return;
-      }
-      setResult(data);
-    } catch {
-      setError('Bağlantı hatası');
-    } finally {
-      setLoading(false);
+  const playFeedback = useCallback((status: string) => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      if (status === 'VALID') navigator.vibrate(80);
+      else navigator.vibrate([60, 40, 60]);
     }
   }, []);
+
+  const validate = useCallback(
+    async (payload: { qrRaw?: string; ticketCode?: string }) => {
+      setLoading(true);
+      setResult(null);
+      setError(null);
+      try {
+        const res = await fetch('/api/tickets/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, markUsed: true })
+        });
+        const data = (await res.json()) as ScanResult;
+        if (!res.ok) {
+          setError(data.message || 'Doğrulama başarısız');
+          return;
+        }
+        setResult(data);
+        playFeedback(data.status);
+      } catch {
+        setError('Bağlantı hatası');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [playFeedback]
+  );
 
   const onScanSuccess = useCallback(
     (decoded: string) => {
@@ -98,14 +154,8 @@ export function QrScanner() {
     };
   }, [scanning, useManual, onScanSuccess]);
 
-  const statusIcon = {
-    valid: CheckCircle2,
-    already_used: AlertCircle,
-    invalid: XCircle,
-    cancelled: XCircle
-  };
-
-  const StatusIcon = result ? statusIcon[result.status as keyof typeof statusIcon] || XCircle : null;
+  const config = result ? statusConfig[result.status] ?? statusConfig.INVALID : null;
+  const StatusIcon = config?.icon ?? XCircle;
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
@@ -197,33 +247,24 @@ export function QrScanner() {
         </Card>
       )}
 
-      {result && StatusIcon && (
-        <Card
-          className={cn(
-            result.status === 'valid' && 'border-emerald-500/50 bg-emerald-500/5',
-            result.status === 'already_used' && 'border-amber-500/50 bg-amber-500/5',
-            (result.status === 'invalid' || result.status === 'cancelled') &&
-              'border-destructive/50 bg-destructive/5'
-          )}
-        >
-          <CardContent className="py-4">
+      {result && config && (
+        <Card className={cn('border-2 transition-colors', config.className.split(' ')[0], config.className.split(' ')[1])}>
+          <CardContent className="py-5">
             <div className="flex items-start gap-3">
-              <StatusIcon
-                className={cn(
-                  'size-6 shrink-0',
-                  result.status === 'valid' && 'text-emerald-600',
-                  result.status === 'already_used' && 'text-amber-600',
-                  (result.status === 'invalid' || result.status === 'cancelled') &&
-                    'text-destructive'
-                )}
-              />
+              <StatusIcon className={cn('size-8 shrink-0', config.className.split(' ').slice(2).join(' '))} />
               <div>
-                <p className="font-semibold">{result.message}</p>
+                <p className="text-lg font-bold">{config.label}</p>
+                <p className="text-sm opacity-90">{result.message}</p>
                 {result.ticket && (
-                  <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  <div className="mt-3 space-y-1 text-sm opacity-80">
                     <p>{result.ticket.eventTitle}</p>
-                    <p>{result.ticket.ticketType} · {result.ticket.holderName}</p>
+                    <p>
+                      {result.ticket.ticketType} · {result.ticket.holderName}
+                    </p>
                     <p className="font-mono">{result.ticket.code}</p>
+                    {result.ticket.entryCount != null && result.ticket.entryCount > 0 && (
+                      <p>Giriş sayısı: {result.ticket.entryCount}</p>
+                    )}
                   </div>
                 )}
               </div>

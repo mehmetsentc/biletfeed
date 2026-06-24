@@ -6,6 +6,8 @@ import {
   getOrganizerTickets,
   getOrganizerStats
 } from '@/lib/services/organizer-dashboard';
+import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
+import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -14,9 +16,10 @@ export default async function OrganizatorTicketsPage() {
   const organizer = await getOrganizerForSession(session.uid);
   if (!organizer) redirect('/organizator-panel/kurulum');
 
-  const [tickets, stats] = await Promise.all([
+  const [tickets, stats, checkInStats] = await Promise.all([
     getOrganizerTickets(organizer.id),
-    getOrganizerStats(organizer.id)
+    getOrganizerStats(organizer.id),
+    getOrganizerCheckInStats(organizer.id)
   ]);
 
   return (
@@ -28,12 +31,19 @@ export default async function OrganizatorTicketsPage() {
             {stats.soldTickets} satış · {stats.scannedTickets} giriş yapıldı
           </p>
         </div>
-        <Link href="/organizator-panel/tarayici">
-          <Button className="bg-[#f5a623] text-black hover:bg-[#e09510]">
-            QR Tarayıcı
+        <div className="flex flex-wrap gap-2">
+          <Link href="/organizator-panel/tarayici">
+            <Button className="bg-[#f5a623] text-black hover:bg-[#e09510]">
+              QR Tarayıcı
+            </Button>
+          </Link>
+          <Button variant="outline" asChild>
+            <a href="/api/organizer/tickets/export">CSV İndir</a>
           </Button>
-        </Link>
+        </div>
       </div>
+
+      <CheckInStatsPanel stats={checkInStats} />
 
       <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
         <table className="w-full text-sm">

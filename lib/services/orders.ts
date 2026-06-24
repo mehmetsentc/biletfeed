@@ -13,6 +13,7 @@ import { startPaymentCheckout } from '@/lib/payments/process';
 import { processOrderAccounting } from '@/lib/accounting/fulfillment';
 import { createCreditNoteForRefund } from '@/lib/accounting/invoice';
 import { sendTicketPurchaseEmail } from '@/lib/email/send-ticket-purchase-email';
+import { sendRefundNotificationEmail } from '@/lib/email/send-refund-email';
 import type { PaymentProviderName } from '@/lib/payments/types';
 
 export interface CheckoutResult {
@@ -31,6 +32,7 @@ async function loadCheckoutContext(params: {
   firebaseUid: string;
   eventSlug: string;
   quantity: number;
+  ticketTypeId?: string;
 }) {
   await ensureDbConnection();
 
@@ -45,8 +47,7 @@ async function loadCheckoutContext(params: {
       organizer: true,
       ticketTypes: {
         where: { status: 'active', deletedAt: null },
-        orderBy: { price: 'asc' },
-        take: 1
+        orderBy: { price: 'asc' }
       }
     }
   });
@@ -58,7 +59,11 @@ async function loadCheckoutContext(params: {
     );
   }
 
-  const ticketType = event.ticketTypes[0];
+  const ticketType =
+    (params.ticketTypeId
+      ? event.ticketTypes.find((t) => t.id === params.ticketTypeId)
+      : undefined) ?? event.ticketTypes[0];
+
   if (!ticketType) throw new Error('Aktif bilet türü bulunamadı');
 
   const qty = Math.min(Math.max(params.quantity, 1), 10);
@@ -70,16 +75,45 @@ async function loadCheckoutContext(params: {
   const commissionRate = event.organizer.commissionRate ?? 0.1;
   const commission = Math.round(subtotal * commissionRate * 100) / 100;
 
-  return { user, event, ticketType, qty, subtotal, commission };
+  return { user, event, ticketType, ticketTypes: event.ticketTypes, qty, subtotal, commission };
+}
+
+export async function getCheckoutTicketTypes(eventSlug: string) {
+  await ensureDbConnection();
+  const event = await prisma.event.findFirst({
+    where: { slug: eventSlug, status: 'published', deletedAt: null },
+    select: {
+      ticketTypes: {
+        where: { status: 'active', deletedAt: null },
+        orderBy: { price: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          price: true,
+          currency: true,
+          capacity: true,
+          sold: true
+        }
+      }
+    }
+  });
+  return event?.ticketTypes ?? [];
 }
 
 export async function createCheckout(params: {
   firebaseUid: string;
   eventSlug: string;
   quantity: number;
+  ticketTypeId?: string;
+  attendeeName?: string;
+  attendeeEmail?: string;
 }): Promise<CheckoutResult> {
   const { user, event, ticketType, qty, subtotal, commission } =
     await loadCheckoutContext(params);
+
+  const attendeeName = params.attendeeName?.trim() || user.displayName || undefined;
+  const attendeeEmail = params.attendeeEmail?.trim() || user.email;
 
   if (subtotal <= 0 || event.isFree) {
     const orderId = await fulfillFreeOrder({
@@ -88,7 +122,9 @@ export async function createCheckout(params: {
       organizerId: event.organizerId,
       ticketTypeId: ticketType.id,
       quantity: qty,
-      unitPrice: ticketType.price
+      unitPrice: ticketType.price,
+      attendeeName,
+      attendeeEmail
     });
     return {
       orderId,
@@ -120,6 +156,8 @@ export async function createCheckout(params: {
         status: 'pending',
         paymentProvider: providerName,
         expiresAt: pendingExpiresAt(),
+        attendeeName: attendeeName ?? null,
+        attendeeEmail: attendeeEmail ?? null,
         items: {
           create: {
             ticketTypeId: ticketType.id,
@@ -183,6 +221,8 @@ async function fulfillFreeOrder(params: {
   ticketTypeId: string;
   quantity: number;
   unitPrice: number;
+  attendeeName?: string;
+  attendeeEmail?: string;
 }): Promise<string> {
   const subtotal = params.unitPrice * params.quantity;
 
@@ -231,7 +271,9 @@ async function fulfillFreeOrder(params: {
       userId: params.userId,
       eventId: params.eventId,
       ticketTypeId: params.ticketTypeId,
-      quantity: params.quantity
+      quantity: params.quantity,
+      attendeeName: params.attendeeName,
+      attendeeEmail: params.attendeeEmail
     });
 
     return created;
@@ -258,6 +300,8 @@ async function issueTickets(
     eventId: string;
     ticketTypeId: string;
     quantity: number;
+    attendeeName?: string | null;
+    attendeeEmail?: string | null;
   }
 ): Promise<void> {
   const ticketType = await tx.ticketType.findUnique({
@@ -287,7 +331,9 @@ async function issueTickets(
         eventId: params.eventId,
         ticketCode: generateTicketCode(),
         validationToken: generateValidationToken(ticketId, params.eventId),
-        status: 'VALID'
+        status: 'VALID',
+        attendeeName: params.attendeeName ?? null,
+        attendeeEmail: params.attendeeEmail ?? null
       }
     });
   }
@@ -334,7 +380,9 @@ export async function fulfillPaidOrder(params: {
         userId: order.userId,
         eventId: order.eventId,
         ticketTypeId: item.ticketTypeId,
-        quantity: item.quantity
+        quantity: item.quantity,
+        attendeeName: order.attendeeName,
+        attendeeEmail: order.attendeeEmail
       });
       ticketCount += item.quantity;
     }
@@ -528,6 +576,10 @@ export async function requestOrderRefund(params: {
 
   void createCreditNoteForRefund(order.id).catch((err) => {
     console.error('[accounting] refund credit note', order.id, err);
+  });
+
+  void sendRefundNotificationEmail(order.id, params.reason).catch((err) => {
+    console.error('[email] refund notification', order.id, err);
   });
 
   return { ok: true, message: 'İade işlendi (mock/free)' };

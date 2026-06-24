@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { CheckoutForm } from './checkout-form';
 import { getEventBySlug } from '@/lib/services/events';
+import { getCheckoutTicketTypes } from '@/lib/services/orders';
 import { isExternalListing } from '@/lib/events/ticket-url';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
@@ -26,5 +27,7 @@ export default async function CheckoutPage({ params }: Props) {
     redirect(event.externalUrl);
   }
 
-  return <CheckoutForm event={event} />;
+  const ticketTypes = await getCheckoutTicketTypes(slug);
+
+  return <CheckoutForm event={event} ticketTypes={ticketTypes} />;
 }

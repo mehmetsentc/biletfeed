@@ -64,8 +64,10 @@ export function parseQrPayload(raw: string): {
     }
     if (trimmed.startsWith('http')) {
       const url = new URL(trimmed);
+      const pathMatch = url.pathname.match(/\/bilet\/([^/?#]+)/i);
+      const pathCode = pathMatch?.[1] ? decodeURIComponent(pathMatch[1]) : undefined;
       return {
-        ticketCode: url.searchParams.get('code') || undefined,
+        ticketCode: url.searchParams.get('code') || pathCode || undefined,
         validationToken: url.searchParams.get('token') || undefined,
         ticketId: url.searchParams.get('id') || undefined
       };

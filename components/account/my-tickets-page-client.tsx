@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, MapPin, QrCode } from 'lucide-react';
+import { Calendar, MapPin, QrCode, Search } from 'lucide-react';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { formatEventDate } from '@/lib/data/mock-events';
 import type { MockPurchasedTicket } from '@/lib/data/mock-user';
 import { cn } from '@/lib/utils';
@@ -18,10 +19,7 @@ const tabs: { id: TicketTab; label: string }[] = [
   { id: 'refunds', label: 'İade Taleplerim' }
 ];
 
-const emptyCopy: Record<
-  TicketTab,
-  { title: string; description: string }
-> = {
+const emptyCopy: Record<TicketTab, { title: string; description: string }> = {
   active: {
     title: 'Henüz bilet bulunamadı',
     description: 'Etkinliklere göz atıp bilet satın alabilirsiniz.'
@@ -36,37 +34,65 @@ const emptyCopy: Record<
   }
 };
 
+function statusLabel(ticket: MockPurchasedTicket, isPast: boolean): string {
+  if (ticket.status === 'REFUNDED') return 'İade Edildi';
+  if (ticket.status === 'CANCELLED') return 'İptal';
+  if (ticket.status === 'USED') return 'Kullanıldı';
+  if (ticket.status === 'VALID') return isPast ? 'Süresi Doldu' : 'Geçerli';
+  return ticket.status;
+}
+
 function filterTickets(
   tickets: MockPurchasedTicket[],
-  tab: TicketTab
+  tab: TicketTab,
+  search: string
 ): MockPurchasedTicket[] {
   const now = Date.now();
+  const q = search.trim().toLowerCase();
 
+  let filtered: MockPurchasedTicket[];
   switch (tab) {
     case 'active':
-      return tickets.filter(
+      filtered = tickets.filter(
         (ticket) =>
-          ticket.status === 'VALID' && new Date(ticket.eventDate).getTime() >= now
+          (ticket.status === 'VALID' || ticket.status === 'USED') &&
+          new Date(ticket.eventEndDate ?? ticket.eventDate).getTime() >= now
       );
+      break;
     case 'past':
-      return tickets.filter(
+      filtered = tickets.filter(
         (ticket) =>
           ticket.status === 'USED' ||
           (ticket.status !== 'CANCELLED' &&
-            new Date(ticket.eventDate).getTime() < now)
+            ticket.status !== 'REFUNDED' &&
+            new Date(ticket.eventEndDate ?? ticket.eventDate).getTime() < now)
       );
+      break;
     case 'refunds':
-      return tickets.filter((ticket) => ticket.status === 'CANCELLED');
+      filtered = tickets.filter(
+        (ticket) => ticket.status === 'REFUNDED' || ticket.status === 'CANCELLED'
+      );
+      break;
     default:
-      return tickets;
+      filtered = tickets;
   }
+
+  if (!q) return filtered;
+  return filtered.filter(
+    (t) =>
+      t.eventTitle.toLowerCase().includes(q) ||
+      t.code.toLowerCase().includes(q) ||
+      t.venue.toLowerCase().includes(q) ||
+      t.city.toLowerCase().includes(q)
+  );
 }
 
 function TicketCard({ ticket }: { ticket: MockPurchasedTicket }) {
   const isPast =
     ticket.status === 'USED' ||
     ticket.status === 'CANCELLED' ||
-    new Date(ticket.eventDate).getTime() < Date.now();
+    ticket.status === 'REFUNDED' ||
+    new Date(ticket.eventEndDate ?? ticket.eventDate).getTime() < Date.now();
 
   return (
     <Link
@@ -90,13 +116,7 @@ function TicketCard({ ticket }: { ticket: MockPurchasedTicket }) {
               ticket.status === 'VALID' && !isPast ? 'success' : 'secondary'
             }
           >
-            {ticket.status === 'VALID'
-              ? isPast
-                ? 'Süresi Doldu'
-                : 'Geçerli'
-              : ticket.status === 'USED'
-                ? 'Kullanıldı'
-                : 'İptal'}
+            {statusLabel(ticket, isPast)}
           </Badge>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{ticket.ticketType}</p>
@@ -125,9 +145,10 @@ export function MyTicketsPageClient({
   tickets: MockPurchasedTicket[];
 }) {
   const [tab, setTab] = useState<TicketTab>('active');
+  const [search, setSearch] = useState('');
   const filteredTickets = useMemo(
-    () => filterTickets(tickets, tab),
-    [tickets, tab]
+    () => filterTickets(tickets, tab, search),
+    [tickets, tab, search]
   );
   const empty = emptyCopy[tab];
 
@@ -154,6 +175,18 @@ export function MyTicketsPageClient({
                 {item.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="border-b border-border px-5 py-3 md:px-6">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Etkinlik veya bilet kodu ara..."
+              className="pl-9"
+            />
           </div>
         </div>
 

@@ -9,7 +9,10 @@ import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
 const bodySchema = z.object({
   eventSlug: z.string().min(1),
-  quantity: z.number().int().min(1).max(10)
+  quantity: z.number().int().min(1).max(10),
+  ticketTypeId: z.string().uuid().optional(),
+  attendeeName: z.string().min(2).max(120).optional(),
+  attendeeEmail: z.string().email().optional()
 });
 
 export async function POST(request: NextRequest) {
@@ -35,7 +38,10 @@ export async function POST(request: NextRequest) {
     const result = await createCheckout({
       firebaseUid: session.uid,
       eventSlug: parsed.data.eventSlug,
-      quantity: parsed.data.quantity
+      quantity: parsed.data.quantity,
+      ticketTypeId: parsed.data.ticketTypeId,
+      attendeeName: parsed.data.attendeeName,
+      attendeeEmail: parsed.data.attendeeEmail
     });
 
     const allowedOrigins = [getAppBaseUrl()];

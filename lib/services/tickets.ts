@@ -12,15 +12,18 @@ function mapTicket(t: {
   ticketCode: string;
   validationToken: string;
   status: string;
+  attendeeName: string | null;
   event: {
     slug: string;
     title: string;
     coverImage: string;
     startDate: Date;
+    endDate: Date;
     venue: { name: string } | null;
     city: { name: string };
   };
   ticketType: { name: string; price: number };
+  user: { displayName: string };
 }): MockPurchasedTicket {
   return {
     id: t.id,
@@ -30,11 +33,13 @@ function mapTicket(t: {
     eventTitle: t.event.title,
     eventImage: t.event.coverImage,
     eventDate: t.event.startDate.toISOString(),
+    eventEndDate: t.event.endDate.toISOString(),
     venue: t.event.venue?.name || 'Online',
     city: t.event.city.name,
     ticketType: t.ticketType.name,
     price: t.ticketType.price,
     status: t.status as MockPurchasedTicket['status'],
+    attendeeName: t.attendeeName ?? undefined,
     qrData: buildTicketQrPayload({
       ticketId: t.id,
       ticketCode: t.ticketCode,
@@ -49,9 +54,10 @@ export async function getPurchasedTicketsByUser(
   if (!isDatabaseConfigured()) return mockPurchasedTickets;
 
   try {
+    await ensureDbConnection();
     const user = await prisma.user.findFirst({
       where: { firebaseUid, deletedAt: null },
-      select: { id: true }
+      select: { id: true, displayName: true }
     });
     if (!user) return [];
 
@@ -59,14 +65,14 @@ export async function getPurchasedTicketsByUser(
       where: { userId: user.id, deletedAt: null },
       include: {
         event: { include: { city: true, venue: true } },
-        ticketType: true
+        ticketType: true,
+        user: { select: { displayName: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
 
     return tickets.map(mapTicket);
   } catch {
-    // DB şeması henüz migrate edilmemiş olabilir; 500 yerine boş liste dön
     return [];
   }
 }
@@ -77,20 +83,23 @@ export async function getTicketById(
 ): Promise<MockPurchasedTicket | undefined> {
   if (!isDatabaseConfigured()) return getMockTicketById(id);
 
+  await ensureDbConnection();
   const ticket = await prisma.purchasedTicket.findFirst({
     where: { id, deletedAt: null },
     include: {
       event: { include: { city: true, venue: true } },
       ticketType: true,
-      user: { select: { firebaseUid: true } }
+      user: { select: { firebaseUid: true, displayName: true } }
     }
   });
 
   if (!ticket) return undefined;
   if (firebaseUid && ticket.user.firebaseUid !== firebaseUid) return undefined;
 
-  return mapTicket(ticket);
+  return mapTicket({ ...ticket, user: { displayName: ticket.user.displayName } });
 }
+
+export { incrementTicketDownload } from '@/lib/services/ticket-validation';
 
 export async function getNotificationsByUser(firebaseUid: string) {
   if (!isDatabaseConfigured()) return mockNotifications;
@@ -129,6 +138,7 @@ export type PublicTicketInfo = {
     title: string;
     coverImage: string;
     startDate: string;
+    endDate: string;
     venue: string;
     city: string;
     slug: string;
@@ -165,7 +175,7 @@ export async function getPublicTicketByCode(
 
   return {
     ticketCode: ticket.ticketCode,
-    holderName: ticket.user.displayName,
+    holderName: ticket.attendeeName?.trim() || ticket.user.displayName,
     ticketTypeName: ticket.ticketType.name,
     status: ticket.status,
     isInvitation: !!ticket.invitation,
@@ -174,6 +184,7 @@ export async function getPublicTicketByCode(
       title: ticket.event.title,
       coverImage: ticket.event.coverImage,
       startDate: ticket.event.startDate.toISOString(),
+      endDate: ticket.event.endDate.toISOString(),
       venue: ticket.event.venue?.name ?? 'Online',
       city: ticket.event.city.name,
       slug: ticket.event.slug

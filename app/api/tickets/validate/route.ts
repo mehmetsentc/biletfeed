@@ -63,7 +63,12 @@ export async function POST(request: NextRequest) {
     ...parsed.data,
     scannerUid: session.uid,
     scannerRole: session.role,
-    markUsed: parsed.data.markUsed ?? true
+    markUsed: parsed.data.markUsed ?? true,
+    ipAddress:
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      undefined,
+    device: request.headers.get('user-agent') || undefined
   });
 
   return NextResponse.json(result);

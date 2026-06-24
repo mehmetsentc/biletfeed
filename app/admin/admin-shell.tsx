@@ -15,7 +15,8 @@ import {
   BarChart3,
   Image,
   FileText,
-  ArrowLeft
+  ArrowLeft,
+  Ticket
 } from 'lucide-react';
 import { getTranslations } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ const adminLinks = [
   { href: '/admin/sehirler', label: t.admin.cities, icon: MapPin },
   { href: '/admin/mekanlar', label: t.admin.venues, icon: Building2 },
   { href: '/admin/siparisler', label: t.admin.orders, icon: ShoppingCart },
+  { href: '/admin/biletler', label: 'Biletler', icon: Ticket },
   { href: '/admin/islemler', label: t.admin.transactions, icon: CreditCard },
   { href: '/admin/analitik', label: t.admin.analytics, icon: BarChart3 },
   { href: '/admin/bannerlar', label: t.admin.banners, icon: Image },
