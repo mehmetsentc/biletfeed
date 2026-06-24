@@ -91,7 +91,6 @@ const CITY_ALIASES: Record<string, string> = {
   fethiye: 'mugla', Fethiye: 'mugla',
   datca: 'mugla', datça: 'mugla', Datça: 'mugla',
   gokova: 'mugla', gökova: 'mugla', Gökova: 'mugla',
-  marmaris: 'mugla',
   bozcaada: 'canakkale', Bozcaada: 'canakkale',
   trakya: 'edirne', Trakya: 'edirne',
   saros: 'edirne',   // Saros Körfezi → Edirne/Keşan
