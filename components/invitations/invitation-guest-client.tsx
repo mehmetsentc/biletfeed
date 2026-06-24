@@ -10,6 +10,7 @@ type InvitationData = {
   ticketCode: string;
   ticketStatus: string;
   ticketTypeName: string;
+  inviteToken?: string;
   event: {
     title: string;
     coverImage: string;
@@ -217,7 +218,10 @@ export function InvitationGuestClient({
 
             {/* PDF download */}
             <button
-              onClick={() => window.print()}
+              onClick={() => {
+                const token = invitation.inviteToken ?? invitation.inviteUrl.split('/davetiye/')[1];
+                if (token) window.open(`/davetiye/${token}/print`, '_blank');
+              }}
               className="no-print mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-medium transition-opacity hover:opacity-80"
               style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}
             >

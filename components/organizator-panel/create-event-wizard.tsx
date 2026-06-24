@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -80,6 +80,7 @@ export function CreateOrganizerEventWizard() {
   const [venueName, setVenueName] = useState('');
   const [description, setDescription] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const imageFileRef = useRef<File | null>(null);
   const [ticketType, setTicketType] = useState<'free' | 'paid'>('paid');
   const [price, setPrice] = useState('');
   const [capacity, setCapacity] = useState('');
@@ -117,6 +118,20 @@ export function CreateOrganizerEventWizard() {
 
     setPublishing(true);
     try {
+      // Upload cover image to Firebase Storage if a file was selected
+      let coverImageUrl: string | undefined;
+      if (imageFileRef.current) {
+        const { uploadFile } = await import('@/lib/firebase/storage');
+        const file = imageFileRef.current;
+        const ext = file.type.split('/')[1] || 'jpg';
+        const tempId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        coverImageUrl = await uploadFile(
+          `events/new-${tempId}/cover.${ext}`,
+          file,
+          file.type
+        );
+      }
+
       const res = await fetch('/api/organizer/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,6 +149,7 @@ export function CreateOrganizerEventWizard() {
           isFree: ticketType === 'free',
           price: ticketType === 'paid' ? Number(price) : 0,
           capacity: Number(capacity),
+          coverImage: coverImageUrl,
           status: 'published'
         })
       });
@@ -468,7 +484,10 @@ export function CreateOrganizerEventWizard() {
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) setPreviewImage(URL.createObjectURL(file));
+                      if (file) {
+                        imageFileRef.current = file;
+                        setPreviewImage(URL.createObjectURL(file));
+                      }
                     }}
                   />
                 </label>
