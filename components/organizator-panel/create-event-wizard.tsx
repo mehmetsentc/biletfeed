@@ -118,18 +118,20 @@ export function CreateOrganizerEventWizard() {
 
     setPublishing(true);
     try {
-      // Upload cover image to Firebase Storage if a file was selected
+      // Upload cover image via server API (Admin SDK — no client auth needed)
       let coverImageUrl: string | undefined;
       if (imageFileRef.current) {
-        const { uploadFile } = await import('@/lib/firebase/storage');
-        const file = imageFileRef.current;
-        const ext = file.type.split('/')[1] || 'jpg';
-        const tempId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-        coverImageUrl = await uploadFile(
-          `events/new-${tempId}/cover.${ext}`,
-          file,
-          file.type
-        );
+        const fd = new FormData();
+        fd.append('file', imageFileRef.current);
+        const uploadRes = await fetch('/api/organizer/upload-image', {
+          method: 'POST',
+          body: fd
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          coverImageUrl = uploadData.url;
+        }
+        // If upload fails, continue without image rather than blocking publish
       }
 
       const res = await fetch('/api/organizer/events', {

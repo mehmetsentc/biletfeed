@@ -61,6 +61,20 @@ export async function uploadUserAvatarFromBuffer(
   return uploadPublicBuffer(bucketName, path, buffer, contentType);
 }
 
+export async function uploadOrganizerEventCover(
+  organizerId: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  if (!isFirebaseStorageUploadConfigured()) {
+    throw new Error('Firebase Storage yapılandırılmamış');
+  }
+  const ext = contentType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+  const id = `org-${organizerId}-${randomUUID().slice(0, 8)}`;
+  const path = `events/organizer/${id}/cover.${ext}`;
+  return uploadPublicBuffer(getBucketName()!, path, buffer, contentType);
+}
+
 async function uploadPublicBuffer(
   bucketName: string,
   path: string,
