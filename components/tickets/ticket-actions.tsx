@@ -58,14 +58,6 @@ export function TicketActions({
   const yahooUrl = buildYahooCalendarUrl(calendarInput);
   const icsUrl = buildIcsDataUrl(calendarInput);
 
-  const downloadPng = useCallback(async () => {
-    const link = document.createElement('a');
-    link.href = `/api/tickets/${ticketId}/image`;
-    link.download = `bilet-${ticketCode}.svg`;
-    link.click();
-    await fetch(`/api/tickets/${ticketId}/download`, { method: 'POST' }).catch(() => {});
-  }, [ticketCode, ticketId]);
-
   const shareTicket = useCallback(async () => {
     setSharing(true);
     try {
@@ -87,13 +79,15 @@ export function TicketActions({
           <Button variant="outline" className="gap-2" asChild>
             <Link href={printUrl} target="_blank">
               <Printer className="size-4" />
-              PDF / Yazdır
+              Yazdır
             </Link>
           </Button>
         )}
-        <Button variant="outline" className="gap-2" onClick={() => void downloadPng()}>
-          <Download className="size-4" />
-          PNG İndir
+        <Button variant="outline" className="gap-2" asChild>
+          <a href={`/api/tickets/${ticketId}/pdf`} download>
+            <Download className="size-4" />
+            PDF İndir
+          </a>
         </Button>
         <Button variant="outline" className="gap-2" disabled={sharing} onClick={() => void shareTicket()}>
           <Share2 className="size-4" />
@@ -107,6 +101,10 @@ export function TicketActions({
         </Button>
       </div>
       <div className="flex flex-wrap gap-2 text-xs">
+        <a href={`/api/tickets/${ticketId}/image`} download={`bilet-${ticketCode}.svg`} className="text-primary hover:underline">
+          SVG İndir
+        </a>
+        <span className="text-muted-foreground">·</span>
         <a href={icsUrl} download={`${eventTitle}.ics`} className="text-primary hover:underline">
           Apple Calendar (.ics)
         </a>
