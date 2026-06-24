@@ -98,4 +98,4 @@ Migrasyon: `prisma/migrations/20260624000000_accounting_infrastructure/`
 
 Tablolar: `invoices`, `invoice_lines`, `payment_reconciliations`, `email_deliveries`, `organizer_payouts`, `revenue_recognitions`, `accounting_audit_logs`, `user_billing_profiles`.
 
-Üretimde: `npx prisma migrate deploy`
+Üretimde: `npm run db:migrate:deploy` (Neon pooler URL ile `npx prisma migrate deploy` takılabilir)
