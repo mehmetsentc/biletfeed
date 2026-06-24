@@ -227,6 +227,8 @@ async function scrapePlatformWithDetails(
   options?: {
     aiFirst?: boolean;
     maxDetails?: number;
+    maxListingPages?: number;
+    concurrency?: number;
     extractStubs?: (html: string, listingUrl: string) => EventStub[];
   }
 ): Promise<ScraperResult> {
@@ -234,7 +236,15 @@ async function scrapePlatformWithDetails(
   const stubMap = new Map<string, EventStub>();
   const aiEventByUrl = new Map<string, ScrapedEventRaw>();
 
-  for (const listingUrl of listingUrls) {
+  // Kaç listing sayfası işlenecek (varsayılan: hepsi)
+  const pages = options?.maxListingPages
+    ? listingUrls.slice(0, options.maxListingPages)
+    : listingUrls;
+
+  // Paralel fetch için batch boyutu (varsayılan: 8)
+  const CONCURRENCY = options?.concurrency ?? 8;
+
+  async function processListingUrl(listingUrl: string) {
     try {
       const html = await fetchHtml(listingUrl);
 
@@ -274,12 +284,7 @@ async function scrapePlatformWithDetails(
         }
       }
 
-      for (const link of collectLinksFromHtml(
-        html,
-        listingUrl,
-        hostPattern,
-        platform
-      )) {
+      for (const link of collectLinksFromHtml(html, listingUrl, hostPattern, platform)) {
         if (stubMap.has(link)) continue;
         stubMap.set(link, {
           platform,
@@ -292,6 +297,11 @@ async function scrapePlatformWithDetails(
         `${platform}: ${listingUrl} — ${e instanceof Error ? e.message : String(e)}`
       );
     }
+  }
+
+  // Listing sayfalarını CONCURRENCY kadar paralel çek
+  for (let i = 0; i < pages.length; i += CONCURRENCY) {
+    await Promise.all(pages.slice(i, i + CONCURRENCY).map(processListingUrl));
   }
 
   if (stubMap.size === 0) {
@@ -336,8 +346,10 @@ export const bubiletAdapter: ScraperAdapter = {
       bubiletListingUrls(),
       /bubilet\.com\.tr/i,
       {
-        // 6 şehir × 8 kategori + ana sayfa = 55 liste URL
-        // Her sayfadan ~20-40 etkinlik link çıkıyor; 400 limit tüm katalog için yeterli
+        // 81 şehir × 9 sayfa = 729 URL — 8 paralel çekişle ~90s
+        // İlk 120 sayfa: en aktif şehirler + kategoriler (timeout koruması)
+        maxListingPages: 120,
+        concurrency: 8,
         maxDetails: 400
       }
     )

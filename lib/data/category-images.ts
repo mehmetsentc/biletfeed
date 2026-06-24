@@ -10,7 +10,8 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   komedi: 'https://images.unsplash.com/photo-1543269664-7eef42226a21?w=400&q=80',
   cocuk: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?w=400&q=80',
   yemek: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80',
-  'yemek-icecek': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80'
+  'yemek-icecek': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80',
+  party: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400&q=80'
 };
 
 const DEFAULT_IMAGE =

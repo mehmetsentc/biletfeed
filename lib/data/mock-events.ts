@@ -48,7 +48,8 @@ export const categories = [
   { slug: 'komedi', name: 'Komedi', icon: '', count: 35, image: CATEGORY_IMAGES.komedi },
   { slug: 'cocuk', name: 'Çocuk', icon: '', count: 28, image: CATEGORY_IMAGES.cocuk },
   { slug: 'teknoloji', name: 'Workshop', icon: '', count: 42, image: CATEGORY_IMAGES.teknoloji },
-  { slug: 'online', name: 'Online', icon: '', count: 19, image: CATEGORY_IMAGES.online }
+  { slug: 'online', name: 'Online', icon: '', count: 19, image: CATEGORY_IMAGES.online },
+  { slug: 'party', name: 'Party', icon: '', count: 0, image: CATEGORY_IMAGES.party }
 ];
 
 export const cities = [

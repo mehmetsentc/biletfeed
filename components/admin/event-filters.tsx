@@ -13,6 +13,7 @@ const CATEGORIES = [
   { slug: 'cocuk', label: '🧒 Çocuk' },
   { slug: 'teknoloji', label: '💻 Workshop' },
   { slug: 'online', label: '🌐 Online' },
+  { slug: 'party', label: '🎉 Party' },
   { slug: 'diger', label: '📌 Diğer' },
 ];
 

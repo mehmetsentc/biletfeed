@@ -11,6 +11,7 @@ const CATEGORY_NAMES: Record<string, string> = {
   sanat: 'Sanat',
   komedi: 'Komedi',
   cocuk: 'Çocuk',
+  party: 'Party',
   diger: 'Diğer'
 };
 

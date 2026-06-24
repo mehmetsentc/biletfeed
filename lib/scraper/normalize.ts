@@ -135,6 +135,23 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
       ]
     },
     {
+      slug: 'party',
+      type: 'other',
+      patterns: [
+        /\bparty\b/i,
+        /\bparti\b/i,
+        /\bklub\b/i,
+        /\bclub night\b/i,
+        /\bafter.?party\b/i,
+        /\bnight.?club\b/i,
+        /\bgece.?kulübü\b/i,
+        /\bpool party\b/i,
+        /\bpurple.?party\b/i,
+        /\bfoam party\b/i,
+        /\bcocktail party\b/i
+      ]
+    },
+    {
       slug: 'muzik',
       type: 'concert',
       patterns: [
@@ -143,8 +160,6 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
         /\bdj\b/i,
         /\brock\b/i,
         /\bpop\b/i,
-        /\bparty\b/i,
-        /\bparti\b/i,
         /akustik/i,
         /\btour\b/i,
         /\bconcert\b/i,

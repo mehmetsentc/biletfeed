@@ -49,6 +49,7 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
     { slug: 'cocuk', label: '🧒 Çocuk / Aile' },
     { slug: 'teknoloji', label: '💻 Workshop / Atölye' },
     { slug: 'online', label: '🌐 Online' },
+    { slug: 'party', label: '🎉 Party' },
     { slug: 'diger', label: '📌 Diğer' },
   ];
 
