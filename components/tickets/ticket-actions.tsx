@@ -25,7 +25,6 @@ interface TicketActionsProps {
   endDate: string;
   venue: string;
   city: string;
-  cardElementId?: string;
 }
 
 export function TicketActions({
@@ -36,10 +35,10 @@ export function TicketActions({
   startDate,
   endDate,
   venue,
-  city,
-  cardElementId = 'premium-ticket-card'
+  city
 }: TicketActionsProps) {
   const [sharing, setSharing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const printUrl =
     validationToken &&
@@ -58,6 +57,28 @@ export function TicketActions({
   const yahooUrl = buildYahooCalendarUrl(calendarInput);
   const icsUrl = buildIcsDataUrl(calendarInput);
 
+  const downloadPdf = useCallback(async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/pdf`);
+      if (!res.ok) throw new Error('PDF indirilemedi');
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download =
+        res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ??
+        `BiletFeed-${ticketCode}.pdf`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.alert('Bilet PDF indirilemedi. Lütfen tekrar deneyin.');
+    } finally {
+      setDownloading(false);
+    }
+  }, [ticketCode, ticketId]);
+
   const shareTicket = useCallback(async () => {
     setSharing(true);
     try {
@@ -75,6 +96,14 @@ export function TicketActions({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Button
+          className="gap-2"
+          disabled={downloading}
+          onClick={() => void downloadPdf()}
+        >
+          <Download className="size-4" />
+          {downloading ? 'İndiriliyor…' : 'Bilet İndir'}
+        </Button>
         {printUrl && (
           <Button variant="outline" className="gap-2" asChild>
             <Link href={printUrl} target="_blank">
@@ -83,12 +112,6 @@ export function TicketActions({
             </Link>
           </Button>
         )}
-        <Button variant="outline" className="gap-2" asChild>
-          <a href={`/api/tickets/${ticketId}/pdf`} download>
-            <Download className="size-4" />
-            PDF İndir
-          </a>
-        </Button>
         <Button variant="outline" className="gap-2" disabled={sharing} onClick={() => void shareTicket()}>
           <Share2 className="size-4" />
           Paylaş
@@ -101,10 +124,6 @@ export function TicketActions({
         </Button>
       </div>
       <div className="flex flex-wrap gap-2 text-xs">
-        <a href={`/api/tickets/${ticketId}/image`} download={`bilet-${ticketCode}.svg`} className="text-primary hover:underline">
-          SVG İndir
-        </a>
-        <span className="text-muted-foreground">·</span>
         <a href={icsUrl} download={`${eventTitle}.ics`} className="text-primary hover:underline">
           Apple Calendar (.ics)
         </a>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Calendar, MapPin, Ticket, Download } from 'lucide-react';
 import { TicketQR } from '@/components/tickets/ticket-qr';
 
@@ -24,10 +25,14 @@ type InvitationData = {
 };
 
 export function InvitationGuestClient({
-  invitation
+  invitation,
+  inviteToken
 }: {
   invitation: InvitationData;
+  inviteToken: string;
 }) {
+  const [downloading, setDownloading] = useState(false);
+
   const eventDate = new Date(invitation.event.startDate).toLocaleDateString('tr-TR', {
     weekday: 'long',
     day: 'numeric',
@@ -216,17 +221,34 @@ export function InvitationGuestClient({
               Etkinlik Detayları
             </Link>
 
-            {/* PDF download */}
             <button
-              onClick={() => {
-                const token = invitation.inviteToken ?? invitation.inviteUrl.split('/davetiye/')[1];
-                if (token) window.open(`/davetiye/${token}/print`, '_blank');
+              type="button"
+              disabled={downloading}
+              onClick={async () => {
+                setDownloading(true);
+                try {
+                  const res = await fetch(`/api/invitations/${encodeURIComponent(inviteToken)}/pdf`);
+                  if (!res.ok) throw new Error('PDF indirilemedi');
+                  const blob = await res.blob();
+                  const objectUrl = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = objectUrl;
+                  link.download =
+                    res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ??
+                    `BiletFeed-${invitation.ticketCode}.pdf`;
+                  link.click();
+                  URL.revokeObjectURL(objectUrl);
+                } catch {
+                  window.alert('Davetiye PDF indirilemedi. Lütfen tekrar deneyin.');
+                } finally {
+                  setDownloading(false);
+                }
               }}
-              className="no-print mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-medium transition-opacity hover:opacity-80"
+              className="no-print mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-60"
               style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}
             >
               <Download className="size-4" />
-              Davetiyeyi PDF olarak indir
+              {downloading ? 'İndiriliyor…' : 'Davetiye İndir'}
             </button>
           </div>
         </div>

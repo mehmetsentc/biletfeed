@@ -2,6 +2,8 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import type { TicketPdfInput } from '@/lib/tickets/pdf/types';
 
+type PdfDoc = InstanceType<typeof PDFDocument>;
+
 const BRAND_GOLD = '#f5a623';
 const BG_DARK = '#0c1017';
 const BG_CARD = '#13191f';
@@ -35,7 +37,7 @@ export function buildTicketPdfFilename(eventTitle: string, ticketCode: string): 
 }
 
 function drawDetailBox(
-  doc: PDFKit.PDFDocument,
+  doc: PdfDoc,
   x: number,
   y: number,
   w: number,
@@ -102,7 +104,11 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
       doc.save();
       doc.roundedRect(cardX, cardY, cardW, coverH + 16, 16).clip();
       doc.image(coverBuffer, cardX, cardY, { width: cardW, height: coverH, align: 'center', valign: 'center' });
-      doc.rect(cardX, cardY + coverH - 70, cardW, 70).fill('#0c1017', 0.75);
+      doc.save();
+      doc.fillOpacity(0.75);
+      doc.rect(cardX, cardY + coverH - 70, cardW, 70).fill('#0c1017');
+      doc.fillOpacity(1);
+      doc.restore();
       doc.restore();
 
       doc.fillColor('#ffffff').fontSize(16).font('Helvetica-Bold').text('bilet', cardX + 20, cardY + 18, {
@@ -157,7 +163,11 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     const badgeW = 72;
     const badgeH = 22;
     const badgeX = cardX + cardW - badgeW - 24;
-    doc.roundedRect(badgeX, cursorY, badgeW, badgeH, 11).fill(`${badgeColor}22`);
+    doc.save();
+    doc.fillOpacity(0.15);
+    doc.roundedRect(badgeX, cursorY, badgeW, badgeH, 11).fill(badgeColor);
+    doc.fillOpacity(1);
+    doc.restore();
     doc.fillColor(badgeColor).fontSize(8).font('Helvetica-Bold').text(badgeLabel, badgeX, cursorY + 7, {
       width: badgeW,
       align: 'center'
@@ -165,15 +175,12 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
 
     cursorY += doc.heightOfString(input.eventTitle, { width: contentW - 90, lineGap: 2 }) + 8;
 
-    doc.fillColor(TEXT_MUTED).fontSize(10).font('Helvetica').text('Sayın ', contentX, cursorY, {
-      continued: true
+    const holderLine = isInvitation
+      ? `Sayın ${input.holderName} adına düzenlenmiştir.`
+      : `Sayın ${input.holderName}`;
+    doc.fillColor(TEXT_MUTED).fontSize(10).font('Helvetica').text(holderLine, contentX, cursorY, {
+      width: contentW
     });
-    doc.fillColor('#ffffff').font('Helvetica-Bold').text(input.holderName, { continued: !isInvitation });
-    if (!isInvitation) {
-      doc.fillColor(TEXT_MUTED).font('Helvetica').text('');
-    } else {
-      doc.fillColor(TEXT_MUTED).font('Helvetica').text(' adına düzenlenmiştir.');
-    }
     cursorY += 18;
 
     if (input.personalMessage?.trim()) {

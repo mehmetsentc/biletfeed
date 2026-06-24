@@ -11,5 +11,5 @@ export default async function PublicInvitationPage({ params }: Props) {
   const invitation = await getPublicInvitation(token);
   if (!invitation) notFound();
 
-  return <InvitationGuestClient invitation={invitation} />;
+  return <InvitationGuestClient invitation={invitation} inviteToken={token} />;
 }

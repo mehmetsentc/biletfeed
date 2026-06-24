@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionCookie } from '@/lib/auth/session';
+import { getTicketById } from '@/lib/services/tickets';
 import { incrementTicketDownload } from '@/lib/services/ticket-validation';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 
