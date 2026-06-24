@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runEventScrapeJob } from '@/lib/scraper/sync';
+import { verifySessionCookie } from '@/lib/auth/session';
+import { canAccessAdmin } from '@/lib/auth/permissions';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/admin/scrape-now
- * Admin panelinden manuel olarak scraper'ı çalıştırmak için.
- * ADMIN_SECRET env değişkeni ile korunur.
+ * Admin session cookie veya ADMIN_SECRET/CRON_SECRET Bearer token ile korunur.
  */
 export async function POST(request: NextRequest) {
-  const adminSecret = process.env.ADMIN_SECRET || process.env.CRON_SECRET;
-  if (!adminSecret) {
-    return NextResponse.json({ error: 'Sunucu yapılandırma hatası' }, { status: 500 });
-  }
-
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${adminSecret}`) {
-    return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
+  const adminSecret = process.env.ADMIN_SECRET || process.env.CRON_SECRET;
+  const isCron = adminSecret && authHeader === `Bearer ${adminSecret}`;
+
+  if (!isCron) {
+    const session = await verifySessionCookie();
+    if (!session || !canAccessAdmin(session.role as never)) {
+      return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
+    }
   }
 
   try {
