@@ -1,17 +1,18 @@
-/** Kategori görüntüleme sırası — Konser ile başlar, Diğer en sonda */
+/** Kategori görüntüleme sırası — Konser, Party, Festival önce; Workshop ve Diğer en sonda */
 export const CATEGORY_DISPLAY_ORDER = [
   'muzik',
+  'party',
   'festival',
   'tiyatro',
+  'komedi',
   'spor',
   'sanat',
-  'komedi',
   'cocuk',
-  'party',
   'teknoloji',
   'online',
   'yemek',
-  'yemek-icecek'
+  'yemek-icecek',
+  'workshop'
 ] as const;
 
 const ORDER_INDEX = new Map<string, number>(

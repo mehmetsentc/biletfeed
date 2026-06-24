@@ -74,8 +74,8 @@ export function FavoriteButton({
     <button
       type="button"
       className={cn(
-        'flex size-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed',
-        active && 'bg-red-50 text-red-500 hover:text-red-600',
+        'flex size-9 items-center justify-center rounded-full bg-black/50 text-white shadow-md backdrop-blur-sm transition-all hover:bg-black/70 disabled:cursor-not-allowed',
+        active && 'bg-red-500/90 text-white hover:bg-red-600/90',
         className
       )}
       onClick={handleClick}
@@ -85,7 +85,7 @@ export function FavoriteButton({
       <Icon
         className={cn(
           'size-4 transition-transform',
-          active && (icon === 'heart' ? 'fill-red-500 text-red-500' : 'fill-amber-400 text-amber-400'),
+          active && (icon === 'heart' ? 'fill-white text-white' : 'fill-white text-white'),
           loading && 'opacity-50'
         )}
         strokeWidth={icon === 'star' ? 1.75 : 2}

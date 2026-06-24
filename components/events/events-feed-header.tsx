@@ -6,24 +6,28 @@ import { cn } from '@/lib/utils';
 export type FeedCategoryPill =
   | 'all'
   | 'konser'
-  | 'tiyatro'
+  | 'party'
   | 'festival'
-  | 'elektronik'
+  | 'tiyatro'
   | 'standup'
-  | 'cocuk'
   | 'spor'
-  | 'workshop';
+  | 'cocuk'
+  | 'elektronik'
+  | 'workshop'
+  | 'diger';
 
 const PILLS: { id: FeedCategoryPill; label: string }[] = [
   { id: 'all',       label: 'Tümü' },
   { id: 'konser',    label: 'Konser' },
-  { id: 'tiyatro',   label: 'Tiyatro' },
+  { id: 'party',     label: 'Party' },
   { id: 'festival',  label: 'Festival' },
-  { id: 'elektronik',label: 'Elektronik Müzik' },
+  { id: 'tiyatro',   label: 'Tiyatro' },
   { id: 'standup',   label: 'Stand Up' },
-  { id: 'cocuk',     label: 'Çocuk Aktiviteleri' },
   { id: 'spor',      label: 'Spor' },
+  { id: 'cocuk',     label: 'Çocuk' },
+  { id: 'elektronik',label: 'Elektronik Müzik' },
   { id: 'workshop',  label: 'Workshop' },
+  { id: 'diger',     label: 'Diğer' },
 ];
 
 interface EventsFeedHeaderProps {
@@ -157,6 +161,10 @@ export function matchesFeedCategoryPill(
     case 'workshop':
       return slug === 'workshop' || type === 'workshop' ||
              /workshop|atölye|atolye|eğitim|egitim/i.test(tags);
+    case 'party':
+      return slug === 'party' || /party|parti|gece|rave|dj.set/i.test(tags);
+    case 'diger':
+      return slug === 'diger' || slug === 'online' || slug === 'yemek' || slug === 'yemek-icecek' || slug === 'sanat' || slug === 'teknoloji';
     default:
       return true;
   }
