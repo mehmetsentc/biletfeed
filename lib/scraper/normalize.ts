@@ -85,6 +85,30 @@ const CITY_ALIASES: Record<string, string> = {
   yalova: 'yalova', Yalova: 'yalova',
   yozgat: 'yozgat', Yozgat: 'yozgat',
   zonguldak: 'zonguldak', Zonguldak: 'zonguldak',
+  // Popüler ilçe/bölge adları → il slug (Bubilet URL'si yanlış şehir kullanıyor)
+  marmaris: 'mugla', Marmaris: 'mugla',
+  bodrum: 'mugla', Bodrum: 'mugla',
+  fethiye: 'mugla', Fethiye: 'mugla',
+  datca: 'mugla', datça: 'mugla', Datça: 'mugla',
+  gokova: 'mugla', gökova: 'mugla', Gökova: 'mugla',
+  marmaris: 'mugla',
+  bozcaada: 'canakkale', Bozcaada: 'canakkale',
+  trakya: 'edirne', Trakya: 'edirne',
+  saros: 'edirne',   // Saros Körfezi → Edirne/Keşan
+  arsuz: 'hatay', Arsuz: 'hatay',
+  iskenderun: 'hatay', İskenderun: 'hatay',
+  cesme: 'izmir', çeşme: 'izmir', Çeşme: 'izmir',
+  alacati: 'izmir', alaçatı: 'izmir', Alaçatı: 'izmir',
+  kusadasi: 'aydin', kuşadası: 'aydin', Kuşadası: 'aydin',
+  didim: 'aydin', Didim: 'aydin',
+  kapadokya: 'nevsehir', Kapadokya: 'nevsehir', cappadocia: 'nevsehir',
+  pamukkale: 'denizli', Pamukkale: 'denizli',
+  alanya: 'antalya', Alanya: 'antalya',
+  manavgat: 'antalya', Manavgat: 'antalya',
+  belek: 'antalya', Belek: 'antalya',
+  kemer: 'antalya', Kemer: 'antalya',
+  side: 'antalya', Side: 'antalya',
+  safranbolu: 'karabuk', Safranbolu: 'karabuk',
   // Uluslararası şehirler (Bubilet yurt dışı etkinlikleri)
   kibris: 'kibris', kktc: 'kibris', 'kuzey kibris': 'kibris',
   baku: 'baku', bakü: 'baku', Bakü: 'baku', azerbaycan: 'baku',
@@ -97,6 +121,64 @@ const CITY_ALIASES: Record<string, string> = {
   // Online
   online: 'online'
 };
+
+/**
+ * Etkinlik başlığı veya mekan adından şehir slug'ı çıkarmaya çalışır.
+ * Bubilet bazı etkinlikleri yanlış şehir URL'i altında listeler (ör. Trakya festivali
+ * /antalya/ URL'i altında). Başlıktaki yer adı daha güvenilir bir kaynaktır.
+ */
+const TITLE_CITY_PATTERNS: Array<[RegExp, string]> = [
+  // Trakya bölgesi
+  [/\btrakya\b/i, 'edirne'],
+  [/\bsaros körfezi\b|\bsaros\b/i, 'edirne'],
+  // Çanakkale
+  [/\bbozcaada\b/i, 'canakkale'],
+  [/\bgökçeada\b|\bgokceada\b/i, 'canakkale'],
+  // Muğla (ilçeler)
+  [/\bmarmaris\b/i, 'mugla'],
+  [/\bbodrum\b/i, 'mugla'],
+  [/\bfethiye\b/i, 'mugla'],
+  [/\bdatça\b|\bdatca\b/i, 'mugla'],
+  [/\bgökova\b|\bgokova\b/i, 'mugla'],
+  [/\byalıkavak\b|\byalikavak\b/i, 'mugla'],
+  // İzmir
+  [/\bçeşme\b|\bcesme\b/i, 'izmir'],
+  [/\balacatı\b|\balaçatı\b|\balacati\b/i, 'izmir'],
+  [/\bfoça\b|\bfoca\b/i, 'izmir'],
+  [/\bseferihisar\b/i, 'izmir'],
+  // Aydın
+  [/\bkuşadası\b|\bkusadasi\b/i, 'aydin'],
+  [/\bdidim\b/i, 'aydin'],
+  // Hatay
+  [/\barsuz\b/i, 'hatay'],
+  [/\biskenderun\b/i, 'hatay'],
+  [/\bantakya\b/i, 'hatay'],
+  // Sinop
+  [/\bsinop\b/i, 'sinop'],
+  // Nevşehir
+  [/\bkapadokya\b|\bkapadokia\b|\bcappadocia\b/i, 'nevsehir'],
+  [/\bürgüp\b|\burgup\b|\bgoreme\b|\bgöreme\b/i, 'nevsehir'],
+  // Denizli
+  [/\bpamukkale\b/i, 'denizli'],
+  // Antalya ilçeleri
+  [/\balanya\b/i, 'antalya'],
+  [/\bmanavgat\b|\bside\b|\bbelek\b/i, 'antalya'],
+  // Sakarya
+  [/\bsapanca\b/i, 'sakarya'],
+  // Balıkesir
+  [/\bayvalık\b|\bayvalik\b|\bbandırma\b|\bbandirma\b/i, 'balikesir'],
+  // Bartın
+  [/\bamasra\b/i, 'bartin'],
+  // Karabük
+  [/\bsafranbolu\b/i, 'karabuk'],
+];
+
+export function resolveCityFromTitle(text: string): string | null {
+  for (const [pattern, slug] of TITLE_CITY_PATTERNS) {
+    if (pattern.test(text)) return slug;
+  }
+  return null;
+}
 
 export function resolveCitySlug(input?: string | null): {
   slug: string;

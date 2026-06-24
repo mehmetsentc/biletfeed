@@ -29,10 +29,17 @@ export function EventifyCard({
   return (
     <article
       className={cn(
-        'group overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md',
+        'group relative overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md',
         className
       )}
     >
+      {/* Favori butonu Link'in DIŞINDA — tıklamada navigasyon tetiklenmesin */}
+      <FavoriteButton
+        className="absolute right-3 top-3 z-20 !bg-white/90 !text-zinc-800 shadow-md hover:!bg-white"
+        icon="star"
+        eventId={event.id}
+        initialActive={isFavorite}
+      />
       <Link href={`/etkinlik/${event.slug}`} className="block">
         <div className="relative aspect-[16/10] overflow-hidden">
           <Image
@@ -50,12 +57,6 @@ export function EventifyCard({
           <span className="absolute bottom-3 left-3 rounded bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
             {event.category}
           </span>
-          <FavoriteButton
-            className="absolute right-3 top-3 z-10 !bg-white !text-foreground"
-            icon="star"
-            eventId={event.id}
-            initialActive={isFavorite}
-          />
         </div>
 
         <div className="flex gap-4 p-4">

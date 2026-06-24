@@ -14,7 +14,13 @@ interface EventMobileCardProps {
 
 export function EventMobileCard({ event }: EventMobileCardProps) {
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <article className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      {/* Favori butonu Link'in DIŞINDA */}
+      <FavoriteButton
+        className="absolute right-3 top-3 z-20 !bg-white/90 !text-zinc-800 shadow-md hover:!bg-white"
+        icon="star"
+        eventId={event.id}
+      />
       <Link href={`/etkinlik/${event.slug}`} className="block">
         <div className="relative aspect-[16/10] w-full overflow-hidden">
           <Image
@@ -27,11 +33,6 @@ export function EventMobileCard({ event }: EventMobileCardProps) {
           <span className="absolute bottom-3 left-3 rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold uppercase text-primary-foreground">
             {event.category}
           </span>
-          <FavoriteButton
-            className="absolute right-3 top-3 z-10 !bg-white/95 !text-foreground"
-            icon="star"
-            eventId={event.id}
-          />
         </div>
 
         <div className="p-4">

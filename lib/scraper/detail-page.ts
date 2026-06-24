@@ -8,7 +8,8 @@ import {
   categorySlugToEventType,
   parsePrice,
   parseTurkishDate,
-  resolveCitySlug
+  resolveCitySlug,
+  resolveCityFromTitle
 } from '@/lib/scraper/normalize';
 import { PLATFORM_LABELS } from '@/lib/scraper/types';
 import type { ScrapedEventRaw } from '@/lib/scraper/types';
@@ -228,15 +229,26 @@ export function parseDetailPageHtml(
 
   const loc = parseLocation(ld || {});
 
-  // Bubilet URL formatı: /{city}/{event-slug} — şehri her zaman URL'den çek
+  // Bubilet şehir tespiti öncelik sırası:
+  // 1. JSON-LD address.addressLocality (varsa ve tanınan bir şehirse)
+  // 2. Başlık + mekan adından çıkarım (Bubilet URL'deki şehir yanlış olabiliyor —
+  //    ör. /antalya/etkinlik/trakya-muzik-festivali aslında Edirne'de)
+  // 3. URL'nin ilk path segmenti (son çare)
   let cityRaw = loc.cityName;
   if (platform === 'BUBILET') {
-    try {
-      const parts = new URL(pageUrl).pathname.split('/').filter(Boolean);
-      if (parts.length >= 1) {
-        cityRaw = parts[0]!; // İlk segment her zaman şehir slug'ı
-      }
-    } catch { /* skip */ }
+    // Önce başlık + mekan adından dene (en güvenilir)
+    const fromTitle =
+      resolveCityFromTitle(title) ||
+      resolveCityFromTitle(loc.venue || '');
+    if (fromTitle) {
+      cityRaw = fromTitle;
+    } else if (!loc.cityName) {
+      // JSON-LD'de şehir yoksa URL'den al
+      try {
+        const parts = new URL(pageUrl).pathname.split('/').filter(Boolean);
+        if (parts.length >= 1) cityRaw = parts[0]!;
+      } catch { /* skip */ }
+    }
   }
   const { slug: citySlug, name: cityName } = resolveCitySlug(cityRaw || 'İstanbul');
 
