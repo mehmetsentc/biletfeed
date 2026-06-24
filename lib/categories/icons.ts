@@ -6,6 +6,7 @@ import {
   Laugh,
   Music2,
   Palette,
+  PartyPopper,
   Sparkles,
   Tent,
   Trophy,
@@ -95,6 +96,16 @@ export const CATEGORY_ICON_MAP: Record<string, CategoryIconConfig> = {
     Icon: UtensilsCrossed,
     gradient: 'from-orange-500/30 via-orange-500/15 to-red-500/10',
     iconClass: 'text-orange-400'
+  },
+  party: {
+    Icon: PartyPopper,
+    gradient: 'from-pink-500/30 via-purple-500/15 to-violet-500/10',
+    iconClass: 'text-pink-400'
+  },
+  diger: {
+    Icon: Sparkles,
+    gradient: 'from-zinc-500/30 via-zinc-500/15 to-slate-500/10',
+    iconClass: 'text-zinc-400'
   }
 };
 

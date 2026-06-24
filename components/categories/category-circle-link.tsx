@@ -30,11 +30,14 @@ export function CategoryCircleLink({
         className
       )}
     >
-      <CategoryIcon
-        slug={category.slug}
-        size={size}
-        className="transition-transform group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/10"
-      />
+      {/* p-1 ring'in kesilmeden görünmesi için alan açar */}
+      <div className="p-1">
+        <CategoryIcon
+          slug={category.slug}
+          size={size}
+          className="transition-transform duration-200 group-hover:scale-105"
+        />
+      </div>
       <span className="text-xs font-medium leading-tight text-foreground sm:text-sm">
         {category.name}
       </span>

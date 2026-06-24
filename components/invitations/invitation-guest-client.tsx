@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, MapPin, Ticket } from 'lucide-react';
+import { Calendar, MapPin, Ticket, Download } from 'lucide-react';
 import { TicketQR } from '@/components/tickets/ticket-qr';
 
 type InvitationData = {
@@ -209,18 +209,37 @@ export function InvitationGuestClient({
             {/* CTA button */}
             <Link
               href={`/etkinlik/${invitation.event.slug}`}
-              className="mt-7 flex w-full items-center justify-center rounded-2xl py-3.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+              className="mt-7 flex w-full items-center justify-center rounded-2xl py-3.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 no-print"
               style={{ background: 'linear-gradient(135deg, #f5a623, #e09510)' }}
             >
               Etkinlik Detayları
             </Link>
+
+            {/* PDF download */}
+            <button
+              onClick={() => window.print()}
+              className="no-print mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-medium transition-opacity hover:opacity-80"
+              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              <Download className="size-4" />
+              Davetiyeyi PDF olarak indir
+            </button>
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        <p className="mt-6 text-center text-xs no-print" style={{ color: 'rgba(255,255,255,0.2)' }}>
           biletfeed.com · Güvenli etkinlik ve bilet platformu
         </p>
       </div>
+
+      {/* Print CSS */}
+      <style>{`
+        @media print {
+          body { background: #0c1017 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print { display: none !important; }
+          nav, footer, header { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }

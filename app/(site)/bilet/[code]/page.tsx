@@ -155,17 +155,33 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
             {/* Footer link */}
             <Link
               href={`/etkinlik/${ticket.event.slug}`}
-              className="mt-6 flex w-full items-center justify-center rounded-xl bg-[#f5a623] px-4 py-3 text-sm font-semibold text-white hover:bg-[#e09510] transition-colors"
+              className="mt-6 flex w-full items-center justify-center rounded-xl bg-[#f5a623] px-4 py-3 text-sm font-semibold text-white hover:bg-[#e09510] transition-colors no-print"
             >
               Etkinlik Detayları
             </Link>
+
+            {/* PDF download button */}
+            <TicketDownloadButton
+              ticketCode={ticket.ticketCode}
+              ticketId={ticketId}
+              validationToken={validationToken}
+            />
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-white/30">
+        <p className="mt-6 text-center text-xs text-white/30 no-print">
           biletfeed.com · Güvenli bilet sistemi
         </p>
       </div>
+
+      {/* Print CSS — inline style tag allowed in Server Components */}
+      <style>{`
+        @media print {
+          body { background: #0c1017 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .no-print { display: none !important; }
+          nav, footer, header { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -7,6 +7,7 @@ export const CATEGORY_DISPLAY_ORDER = [
   'sanat',
   'komedi',
   'cocuk',
+  'party',
   'teknoloji',
   'online',
   'yemek',
