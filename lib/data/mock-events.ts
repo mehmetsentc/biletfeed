@@ -41,13 +41,13 @@ export const mockEvents: MockEvent[] = [];
 
 export const categories = [
   { slug: 'muzik', name: 'Konser', icon: '', count: 124, image: CATEGORY_IMAGES.muzik },
-  { slug: 'tiyatro', name: 'Tiyatro', icon: '', count: 67, image: CATEGORY_IMAGES.tiyatro },
   { slug: 'festival', name: 'Festival', icon: '', count: 48, image: CATEGORY_IMAGES.festival },
+  { slug: 'tiyatro', name: 'Tiyatro', icon: '', count: 67, image: CATEGORY_IMAGES.tiyatro },
   { slug: 'spor', name: 'Spor', icon: '', count: 89, image: CATEGORY_IMAGES.spor },
   { slug: 'sanat', name: 'Sanat', icon: '', count: 56, image: CATEGORY_IMAGES.sanat },
-  { slug: 'teknoloji', name: 'Workshop', icon: '', count: 42, image: CATEGORY_IMAGES.teknoloji },
   { slug: 'komedi', name: 'Komedi', icon: '', count: 35, image: CATEGORY_IMAGES.komedi },
   { slug: 'cocuk', name: 'Çocuk', icon: '', count: 28, image: CATEGORY_IMAGES.cocuk },
+  { slug: 'teknoloji', name: 'Workshop', icon: '', count: 42, image: CATEGORY_IMAGES.teknoloji },
   { slug: 'online', name: 'Online', icon: '', count: 19, image: CATEGORY_IMAGES.online }
 ];
 

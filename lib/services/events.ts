@@ -6,6 +6,7 @@ import {
   type MockEvent
 } from '@/lib/data/mock-events';
 import { resolveCategoryImage } from '@/lib/data/category-images';
+import { sortCategoriesByDisplayOrder } from '@/lib/categories/sort';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 import { mapCategory } from '@/lib/scraper/normalize';
 
@@ -173,7 +174,7 @@ export async function getEventsByOrganizer(
 }
 
 export async function getCategories() {
-  if (!isDatabaseConfigured()) return mockCategories;
+  if (!isDatabaseConfigured()) return sortCategoriesByDisplayOrder(mockCategories);
   const rows = await prisma.category.findMany({
     where: { deletedAt: null },
     orderBy: { name: 'asc' }
@@ -184,13 +185,15 @@ export async function getCategories() {
     _count: true
   });
   const countMap = new Map(counts.map((c) => [c.categoryId, c._count]));
-  return rows.map((c) => ({
-    slug: c.slug,
-    name: c.name,
-    icon: c.icon || '',
-    count: countMap.get(c.id) ?? c.eventCount,
-    image: resolveCategoryImage(c.slug, c.image)
-  }));
+  return sortCategoriesByDisplayOrder(
+    rows.map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      icon: c.icon || '',
+      count: countMap.get(c.id) ?? c.eventCount,
+      image: resolveCategoryImage(c.slug, c.image)
+    }))
+  );
 }
 
 export async function getCities() {

@@ -1,17 +1,19 @@
 import Link from 'next/link';
 import { CategoryIcon } from '@/components/categories/category-icon';
-import { cn } from '@/lib/utils';
+import { sortCategoriesByDisplayOrder } from '@/lib/categories/sort';
 import { categories } from '@/lib/data/mock-events';
+import { cn } from '@/lib/utils';
 
 export function CategoryRibbon({ className }: { className?: string }) {
+  const display = sortCategoriesByDisplayOrder(categories);
   return (
     <div
       className={cn(
-        'flex gap-4 overflow-x-auto pb-2 scrollbar-none md:justify-center',
+        'flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
         className
       )}
     >
-      {categories.map((cat) => (
+      {display.map((cat) => (
         <Link
           key={cat.slug}
           href={`/kategoriler/${cat.slug}`}
