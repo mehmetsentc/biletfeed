@@ -19,6 +19,7 @@ import {
   persistCityChoice,
   readStoredCitySlug
 } from '@/lib/location/city-preference';
+import { readCookieConsent } from '@/lib/cookies/consent';
 import { detectCityFromGeolocation } from '@/lib/location/detect-city';
 import { DEFAULT_CITY_SLUG, getCityBySlug } from '@/lib/location/cities';
 
@@ -94,6 +95,21 @@ export function CityProvider({
     [router, pathname, searchParams]
   );
 
+  /** Çerez onayı tamamlanana kadar şehir seçim dialogunu ertele */
+  const openPickerAfterConsent = useCallback(() => {
+    if (readCookieConsent() !== null) {
+      // Zaten onay verilmiş — hemen aç
+      setPickerOpen(true);
+      return;
+    }
+    // Onay bekleniyor — event gelince aç
+    const handleConsent = () => {
+      setPickerOpen(true);
+      window.removeEventListener('bf-cookie-consent-change', handleConsent);
+    };
+    window.addEventListener('bf-cookie-consent-change', handleConsent);
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     const stored = readStoredCitySlug();
@@ -120,10 +136,10 @@ export function CityProvider({
           router.refresh();
           return;
         }
-        setPickerOpen(true);
+        openPickerAfterConsent();
       })
       .catch(() => {
-        if (!cancelled) setPickerOpen(true);
+        if (!cancelled) openPickerAfterConsent();
       })
       .finally(() => {
         if (!cancelled) setDetectingLocation(false);
@@ -132,7 +148,7 @@ export function CityProvider({
     return () => {
       cancelled = true;
     };
-  }, [initialCitySlug, router]);
+  }, [initialCitySlug, router, openPickerAfterConsent]);
 
   const setCity = useCallback(
     (slug: string, options?: SetCityOptions) => {
