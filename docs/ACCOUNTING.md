@@ -33,7 +33,7 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 ### Bildirim katmanı
 
 5. **E-posta Delivery Engine** — `lib/accounting/email.ts`  
-   Resend (`lib/email/resend.ts`, `RESEND_API_KEY`); yapılandırılmadığında log-only mod.
+   Resend (`lib/email/resend.ts`, `lib/config/email.ts`); yapılandırılmadığında log-only mod. Detay: `docs/EMAIL.md`.
 
 6. **Delivery Status Tracker** — `email_deliveries` tablosu  
    `queued` → `sent` / `failed`; ileride webhook ile `delivered` / `opened`.
@@ -87,7 +87,8 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 | `COMPANY_IBAN` | Fatura / hakediş IBAN |
 | `COMPANY_MERSIS_NO` | MERSİS numarası |
 | `RESEND_API_KEY` | Fatura ve onay e-postaları (Resend) |
-| `RESEND_FROM_EMAIL` | Gönderen adresi |
+| `RESEND_FROM_EMAIL` | Varsayılan gönderen (tickets@biletfeed.com) |
+| `RESEND_INVOICE_FROM` | Fatura gönderen (fatura@biletfeed.com) |
 | `CRON_SECRET` | Gelir tanıma cron yetkisi |
 
 ---

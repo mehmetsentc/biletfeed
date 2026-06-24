@@ -1,11 +1,13 @@
 import { prisma } from '@/lib/db/prisma';
 import { companyLegal } from '@/lib/config/company';
-import { logAccountingAudit } from '@/lib/accounting/audit';
+import {
+  getSenderForTemplate,
+  isEmailConfigured,
+  type EmailSenderKind
+} from '@/lib/config/email';
+import { buildInvoiceEmail } from '@/lib/email/invoice-template';
 import { sendEmail } from '@/lib/email/resend';
-
-function emailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
-}
+import { logAccountingAudit } from '@/lib/accounting/audit';
 
 export async function queueEmail(params: {
   to: string;
@@ -14,7 +16,8 @@ export async function queueEmail(params: {
   html: string;
   orderId?: string;
   invoiceId?: string;
-}): Promise<{ id: string; status: string }> {
+  sender?: EmailSenderKind;
+}): Promise<{ id: string; status: string; messageId?: string }> {
   const delivery = await prisma.emailDelivery.create({
     data: {
       to: params.to,
@@ -26,7 +29,7 @@ export async function queueEmail(params: {
     }
   });
 
-  if (!emailConfigured()) {
+  if (!isEmailConfigured()) {
     await prisma.emailDelivery.update({
       where: { id: delivery.id },
       data: {
@@ -36,7 +39,7 @@ export async function queueEmail(params: {
       }
     });
     if (process.env.NODE_ENV !== 'production') {
-      console.info('[accounting:email]', {
+      console.info('[email:queue]', {
         to: params.to,
         subject: params.subject,
         template: params.template
@@ -45,15 +48,22 @@ export async function queueEmail(params: {
     return { id: delivery.id, status: 'sent' };
   }
 
+  const sender = params.sender ?? getSenderForTemplate(params.template);
+
   try {
-    const ok = await sendEmail({
+    const result = await sendEmail({
       to: params.to,
       subject: params.subject,
       html: params.html,
+      sender,
       replyTo: companyLegal.email
     });
-    if (!ok) throw new Error('Resend gönderimi başarısız');
-    const messageId = `resend-${delivery.id}`;
+
+    if (!result.ok) {
+      throw new Error(result.error ?? 'Resend gönderimi başarısız');
+    }
+
+    const messageId = result.messageId ?? `local-${delivery.id}`;
     await prisma.emailDelivery.update({
       where: { id: delivery.id },
       data: { status: 'sent', sentAt: new Date(), messageId }
@@ -62,9 +72,14 @@ export async function queueEmail(params: {
       action: 'email.sent',
       entityType: 'email_delivery',
       entityId: delivery.id,
-      after: { to: params.to, template: params.template }
+      after: {
+        to: params.to,
+        template: params.template,
+        messageId,
+        sender
+      }
     });
-    return { id: delivery.id, status: 'sent' };
+    return { id: delivery.id, status: 'sent', messageId };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await prisma.emailDelivery.update({
@@ -75,7 +90,7 @@ export async function queueEmail(params: {
       action: 'email.failed',
       entityType: 'email_delivery',
       entityId: delivery.id,
-      after: { error: message }
+      after: { error: message, template: params.template }
     });
     return { id: delivery.id, status: 'failed' };
   }
@@ -88,21 +103,27 @@ export async function sendInvoiceEmail(params: {
   currency: string;
   orderId: string;
   invoiceId: string;
+  buyerName?: string;
+  eventTitle?: string;
+  issuedAt?: Date;
 }) {
-  const html = `
-    <div style="font-family:sans-serif;max-width:560px">
-      <h2>${companyLegal.brandName} — Fatura</h2>
-      <p>Fatura No: <strong>${params.invoiceNumber}</strong></p>
-      <p>Tutar: <strong>${params.totalGross.toFixed(2)} ${params.currency}</strong></p>
-      <p>${companyLegal.tradeName}<br/>${companyLegal.taxOffice} — ${companyLegal.taxNumber}</p>
-    </div>
-  `;
+  const html = buildInvoiceEmail({
+    buyerName: params.buyerName ?? 'Değerli Müşterimiz',
+    invoiceNumber: params.invoiceNumber,
+    totalGross: params.totalGross,
+    currency: params.currency,
+    eventTitle: params.eventTitle,
+    orderNumber: params.orderId.slice(0, 8).toUpperCase(),
+    issuedAt: params.issuedAt
+  });
+
   return queueEmail({
     to: params.to,
     subject: `Faturanız — ${params.invoiceNumber}`,
     template: 'invoice_issued',
     html,
     orderId: params.orderId,
-    invoiceId: params.invoiceId
+    invoiceId: params.invoiceId,
+    sender: 'invoice'
   });
 }

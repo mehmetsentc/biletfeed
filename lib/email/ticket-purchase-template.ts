@@ -78,7 +78,7 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
 
   const secondaryButtons = [
     printUrl
-      ? `<a href="${printUrl}" style="display:inline-block;margin:6px;padding:10px 20px;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.85);font-size:13px;text-decoration:none;border-radius:8px;">PDF / Yazdır</a>`
+      ? `<a href="${printUrl}" style="display:inline-block;margin:6px;padding:10px 20px;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.85);font-size:13px;text-decoration:none;border-radius:8px;">Bilet İndir (PDF)</a>`
       : '',
     calendarUrl
       ? `<a href="${calendarUrl}" style="display:inline-block;margin:6px;padding:10px 20px;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.85);font-size:13px;text-decoration:none;border-radius:8px;">Takvime Ekle</a>`

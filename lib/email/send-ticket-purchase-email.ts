@@ -79,7 +79,7 @@ export async function sendTicketPurchaseEmail(orderId: string): Promise<void> {
   const firstTicket = order.purchasedTickets[0];
   const printUrl = firstTicket
     ? getSiteUrl(
-        `/bilet/${encodeURIComponent(firstTicket.ticketCode)}/print?token=${encodeURIComponent(firstTicket.validationToken)}&id=${encodeURIComponent(firstTicket.id)}`
+        `/api/tickets/pdf?code=${encodeURIComponent(firstTicket.ticketCode)}&token=${encodeURIComponent(firstTicket.validationToken)}&id=${encodeURIComponent(firstTicket.id)}`
       )
     : undefined;
 

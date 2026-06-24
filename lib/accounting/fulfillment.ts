@@ -78,7 +78,10 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
       totalGross: invoice.totalGross,
       currency: invoice.currency,
       orderId: order.id,
-      invoiceId: invoice.id
+      invoiceId: invoice.id,
+      buyerName,
+      eventTitle: order.event.title,
+      issuedAt: invoice.issuedAt ?? undefined
     });
   }
 }

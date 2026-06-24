@@ -158,10 +158,14 @@ CRON_SECRET             # Gelir tanıma cron yetkisi
 ## Email Sistemi
 
 - Provider: Resend (REST API, npm paketi gerektirmez)
-- `lib/email/resend.ts` → `sendEmail()` fonksiyonu
-- `lib/email/invitation-template.ts` → HTML davetiye email şablonu
-- Env var: `RESEND_API_KEY` (yoksa email gönderilmez, hata vermez)
-- From: `RESEND_FROM_EMAIL` (varsayılan: `davetiye@biletfeed.com`)
+- Merkezi config: `lib/config/email.ts` — gönderen adresleri, reply-to, şablon eşlemesi
+- `lib/email/resend.ts` → `sendEmail()` — Resend API, messageId döner
+- `lib/accounting/email.ts` → `queueEmail()` — delivery tracking + audit
+- Şablonlar: `ticket-purchase-template`, `invitation-template`, `invoice-template`, `refund-notification-template`, `event-reminder-template`
+- Kurulum: `docs/EMAIL.md` — domain doğrulama, SPF/DKIM/DMARC, Vercel env
+- Test: `POST /api/admin/test-email` (admin oturumu)
+- Env: `RESEND_API_KEY` (yoksa log-only mod, hata vermez)
+- Gönderenler: tickets@, davetiye@, fatura@, noreply@ (biletfeed.com)
 
 ---
 
@@ -201,8 +205,10 @@ DATABASE_URL              # Neon PostgreSQL connection string
 NEXT_PUBLIC_APP_URL       # https://biletfeed.com
 FIREBASE_ADMIN_*          # Firebase Admin SDK
 TICKET_SECRET_KEY         # QR imzalama anahtarı (güçlü random)
-RESEND_API_KEY            # Email gönderimi (resend.com'dan al)
-RESEND_FROM_EMAIL         # davetiye@biletfeed.com
+RESEND_API_KEY            # Email gönderimi (resend.com)
+RESEND_FROM_EMAIL         # tickets@biletfeed.com (varsayılan)
+RESEND_FROM_NAME          # BiletFeed
+RESEND_REPLY_TO           # destek@biletfeed.com
 UPSTASH_REDIS_REST_URL    # Rate limiting
 UPSTASH_REDIS_REST_TOKEN
 SUPER_ADMIN_EMAILS        # Virgülle ayrılmış admin email listesi

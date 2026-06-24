@@ -35,7 +35,11 @@ const SECTIONS: { title: string; settings: Setting[] }[] = [
   {
     title: 'E-posta (Resend)',
     settings: [
-      { label: 'Gönderen Adresi', key: 'RESEND_FROM_EMAIL', value: 'davetiye@biletfeed.com', type: 'text', hint: 'Tüm sistem e-postalarının gönderileceği adres' }
+      { label: 'Gönderen Adı', key: 'RESEND_FROM_NAME', value: 'BiletFeed', type: 'text', hint: 'E-postalarda görünen marka adı' },
+      { label: 'Varsayılan Gönderen', key: 'RESEND_FROM_EMAIL', value: 'tickets@biletfeed.com', type: 'text', hint: 'Bilet onayı ve varsayılan gönderen' },
+      { label: 'Yanıt Adresi', key: 'RESEND_REPLY_TO', value: 'destek@biletfeed.com', type: 'text', hint: 'Müşteri yanıtları bu adrese gider' },
+      { label: 'Fatura Gönderen', key: 'RESEND_INVOICE_FROM', value: 'fatura@biletfeed.com', type: 'text', hint: 'e-Arşiv / fatura bildirimleri' },
+      { label: 'Davetiye Gönderen', key: 'RESEND_INVITATION_FROM', value: 'davetiye@biletfeed.com', type: 'text', hint: 'EventJoy davetiye e-postaları' }
     ]
   }
 ];
