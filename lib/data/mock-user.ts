@@ -1,6 +1,7 @@
 export interface MockPurchasedTicket {
   id: string;
   code: string;
+  validationToken?: string;
   eventSlug: string;
   eventTitle: string;
   eventImage: string;

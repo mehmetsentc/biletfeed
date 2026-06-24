@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { Calendar, MapPin } from 'lucide-react';
+import { Calendar, Download, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { SettingsPageHeader } from '@/components/account/settings-form';
 import { getTicketById } from '@/lib/services/tickets';
@@ -95,9 +95,20 @@ export default async function TicketDetailPage({ params }: Props) {
           </div>
         </div>
 
+        {ticket.validationToken && (
+          <Link
+            href={`/bilet/${encodeURIComponent(ticket.code)}/print?token=${encodeURIComponent(ticket.validationToken)}&id=${encodeURIComponent(ticket.id)}`}
+            target="_blank"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Download className="size-4" />
+            Bileti PDF olarak indir
+          </Link>
+        )}
+
         <Link
           href="/biletlerim"
-          className="mt-6 block text-center text-sm font-medium text-primary hover:underline"
+          className="mt-4 block text-center text-sm font-medium text-primary hover:underline"
         >
           ← Tüm Biletler
         </Link>

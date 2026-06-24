@@ -25,6 +25,7 @@ function mapTicket(t: {
   return {
     id: t.id,
     code: t.ticketCode,
+    validationToken: t.validationToken,
     eventSlug: t.event.slug,
     eventTitle: t.event.title,
     eventImage: t.event.coverImage,

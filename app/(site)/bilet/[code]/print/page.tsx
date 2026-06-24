@@ -54,13 +54,14 @@ export default async function TicketPrintPage({ params, searchParams }: Props) {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #0c1017 !important; font-family: -apple-system, 'Segoe UI', sans-serif; }
-        @page { size: A4; margin: 0; }
+        @page { size: A4 portrait; margin: 0; }
         @media print {
-          html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; width: 210mm; }
           .no-print { display: none !important; }
+          #ticket-root { width: 210mm !important; page-break-after: avoid; page-break-inside: avoid; }
         }
         @media screen {
-          body { display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; min-height: 100vh; }
+          body { display: flex; justify-content: center; align-items: flex-start; padding: 40px 20px; min-height: 100vh; background: #1a1a2e; }
         }
       `}</style>
 
@@ -75,7 +76,7 @@ export default async function TicketPrintPage({ params, searchParams }: Props) {
       </div>
 
       {/* Ticket container — A4 width */}
-      <div style={{
+      <div id="ticket-root" style={{
         width: 595,
         background: '#0c1017',
         color: '#fff',
