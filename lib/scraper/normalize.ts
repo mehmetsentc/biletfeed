@@ -399,18 +399,49 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
     }
   ];
 
-function matchCategoryInText(
+/**
+ * Öncelik sırası: başlıkta birden fazla kategori eşleşirse bu sıra uygulanır.
+ * Örn: "Barok Konser Tiyatro Oyunu" → hem muzik hem tiyatro eşleşir → tiyatro kazanır.
+ */
+const CATEGORY_PRIORITY: string[] = [
+  'tiyatro',  // "Tiyatro Oyunu", "Stand-up" → en yüksek öncelik
+  'cocuk',    // "Çocuk Oyunu", "Müzikli Çocuk" → çocuk içeriği kesin
+  'komedi',   // "Komedi" açık
+  'festival', // "Festival" açık
+  'spor',     // Spor maçı
+  'sanat',
+  'teknoloji',
+  'party',
+  'muzik',    // "Konser" → müzik ama tiyatro/çocuk eşleşmesi varsa kaybeder
+  'online',
+  'diger',
+];
+
+function matchAllInText(
   text: string
-): { categorySlug: string; eventType: EventType } | null {
+): Set<string> {
   const normalized = text.trim();
-  if (!normalized) return null;
+  const matched = new Set<string>();
+  if (!normalized) return matched;
 
   for (const rule of CATEGORY_KEYWORDS) {
     if (rule.patterns.some((p) => p.test(normalized))) {
-      return { categorySlug: rule.slug, eventType: rule.type };
+      matched.add(rule.slug);
     }
   }
+  return matched;
+}
 
+function pickByPriority(
+  matches: Set<string>
+): { categorySlug: string; eventType: EventType } | null {
+  if (matches.size === 0) return null;
+  for (const slug of CATEGORY_PRIORITY) {
+    if (matches.has(slug)) {
+      const rule = CATEGORY_KEYWORDS.find((r) => r.slug === slug);
+      return { categorySlug: slug, eventType: rule?.type ?? 'other' };
+    }
+  }
   return null;
 }
 
@@ -419,15 +450,17 @@ export function mapCategory(
   description: string,
   hints?: string[]
 ): { categorySlug: string; eventType: EventType } {
-  // Başlık her zaman öncelikli — platform ipuçları (ör. "tiyatro" genre slug) spor etkinliğini ezmesin
-  const fromTitle = matchCategoryInText(title);
+  // Başlıkta tüm eşleşmeleri bul, öncelik sırasına göre seç
+  const titleMatches = matchAllInText(title);
+  const fromTitle = pickByPriority(titleMatches);
   if (fromTitle) return fromTitle;
 
-  const fromDescription = matchCategoryInText(description);
-  if (fromDescription) return fromDescription;
+  const descMatches = matchAllInText(description);
+  const fromDesc = pickByPriority(descMatches);
+  if (fromDesc) return fromDesc;
 
   for (const hint of hints || []) {
-    const fromHint = matchCategoryInText(hint);
+    const fromHint = pickByPriority(matchAllInText(hint));
     if (fromHint) return fromHint;
   }
 
