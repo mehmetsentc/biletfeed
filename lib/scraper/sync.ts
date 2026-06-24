@@ -4,6 +4,7 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { dedupeEventsWithAi } from '@/lib/scraper/ai/dedupe-events';
 import { isScraperAiReady } from '@/lib/scraper/ai/config';
 import { recategorizePublishedEvents } from '@/lib/scraper/recategorize-events';
+import { editPendingEventsWithAi } from '@/lib/scraper/ai/edit-events';
 import { isPlaceholderImage } from '@/lib/scraper/image-utils';
 import {
   buildDedupeHash,
@@ -339,7 +340,8 @@ async function upsertScrapedEvent(
       gallery: raw.gallery || [],
       startDate: raw.startDate,
       endDate: raw.endDate,
-      status: 'published',
+      // AI aktifse pending → AI review → published; değilse direkt published
+      status: isScraperAiReady() ? 'pending' : 'published',
       eventType: raw.eventType,
       isOnline: raw.isOnline ?? false,
       isFeatured: false,
@@ -460,6 +462,17 @@ export async function runEventScrapeJob(): Promise<{
 
     for (const raw of byHash.values()) {
       await upsertScrapedEvent(raw, organizer.id, stats);
+    }
+
+    // AI editor: pending etkinlikleri incele, kategori/şehir düzelt, onayla/reddet
+    if (isScraperAiReady()) {
+      const aiStats = await editPendingEventsWithAi(600);
+      stats.errors.push(
+        `AI editor: ${aiStats.processed} işlendi, ${aiStats.approved} onaylandı, ${aiStats.rejected} reddedildi`
+      );
+      if (aiStats.errors.length) {
+        stats.errors.push(...aiStats.errors.slice(0, 5));
+      }
     }
 
     await promoteUpcomingExternalEvents();

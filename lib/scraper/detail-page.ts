@@ -265,24 +265,32 @@ export function parseDetailPageHtml(
     Array.isArray(offersRaw) ? offersRaw[0] : offersRaw
   ) as Record<string, unknown> | undefined;
   const { price, isFree } = resolvePrice($, offers);
-  // Bubilet: listing URL'sindeki etiket slug'ı en güvenilir kategori kaynağı.
-  // Mevcutsa doğrudan kullan; yoksa sayfa içeriğinden eşleştir.
+  // Kategori: başlık/açıklama text matching her zaman önce çalışır.
+  // categoryHint (etiket URL slug'ı) yalnızca text matching belirsiz kalırsa fallback'tir.
+  // Bubilet bazen konserleri yanlış etiket altında listeleyebilir (ör. /etiket/spor altında konser).
   let categorySlug: string;
   let eventType: EventType;
 
-  if (platform === 'BUBILET' && stub?.categoryHint) {
+  // Sayfa içindeki '#Tiyatro', '#Konser' gibi etiket linklerini ipucu olarak topla
+  const categoryHints: string[] = [];
+  if (platform === 'BUBILET') {
+    $('a[href*="/etiket/"]').each((_, el) => {
+      const text = $(el).text().replace(/^#/, '').trim();
+      if (text) categoryHints.push(text);
+    });
+  }
+
+  const textResult = mapCategory(title, description, categoryHints);
+
+  if (textResult.categorySlug !== 'diger' && textResult.categorySlug !== 'online') {
+    // Text matching net sonuç buldu — doğrudan kullan
+    ({ categorySlug, eventType } = textResult);
+  } else if (platform === 'BUBILET' && stub?.categoryHint) {
+    // Text matching belirsiz — etiket URL hint'ini fallback olarak kullan
     categorySlug = stub.categoryHint;
     eventType = categorySlugToEventType(stub.categoryHint);
   } else {
-    // Sayfa içindeki '#Tiyatro', '#Konser' gibi etiket linklerini ipucu olarak kullan
-    const categoryHints: string[] = [];
-    if (platform === 'BUBILET') {
-      $('a[href*="/etiket/"]').each((_, el) => {
-        const text = $(el).text().replace(/^#/, '').trim();
-        if (text) categoryHints.push(text);
-      });
-    }
-    ({ categorySlug, eventType } = mapCategory(title, description, categoryHints));
+    ({ categorySlug, eventType } = textResult);
   }
 
   const tags = [PLATFORM_LABELS[platform]];
