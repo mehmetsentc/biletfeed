@@ -7,15 +7,17 @@ import { cn } from '@/lib/utils';
 
 interface NewsletterFormProps {
   variant?: 'default' | 'figma';
+  onSubscribed?: () => void;
 }
 
-export function NewsletterForm({ variant = 'default' }: NewsletterFormProps) {
+export function NewsletterForm({ variant = 'default', onSubscribed }: NewsletterFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const isFigma = variant === 'figma';
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitted(true);
+    onSubscribed?.();
   }
 
   if (submitted) {

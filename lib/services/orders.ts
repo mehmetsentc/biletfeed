@@ -12,6 +12,7 @@ import {
 import { startPaymentCheckout } from '@/lib/payments/process';
 import { processOrderAccounting } from '@/lib/accounting/fulfillment';
 import { createCreditNoteForRefund } from '@/lib/accounting/invoice';
+import { sendTicketPurchaseEmail } from '@/lib/email/send-ticket-purchase-email';
 import type { PaymentProviderName } from '@/lib/payments/types';
 
 export interface CheckoutResult {
@@ -240,6 +241,10 @@ async function fulfillFreeOrder(params: {
     console.error('[accounting] free order', order.id, err);
   });
 
+  void sendTicketPurchaseEmail(order.id).catch((err) => {
+    console.error('[email] free order confirmation', order.id, err);
+  });
+
   return order.id;
 }
 
@@ -358,6 +363,9 @@ export async function fulfillPaidOrder(params: {
     if (!result.alreadyFulfilled) {
       void processOrderAccounting(result.orderId).catch((err) => {
         console.error('[accounting] paid order', result.orderId, err);
+      });
+      void sendTicketPurchaseEmail(result.orderId).catch((err) => {
+        console.error('[email] paid order confirmation', result.orderId, err);
       });
     }
     return result;

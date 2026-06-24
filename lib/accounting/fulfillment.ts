@@ -3,10 +3,7 @@ import { createSaleInvoice } from '@/lib/accounting/invoice';
 import { reconcilePayment } from '@/lib/accounting/reconciliation';
 import { scheduleOrganizerPayout } from '@/lib/accounting/commission';
 import { deferRevenueRecognition } from '@/lib/accounting/revenue';
-import {
-  sendInvoiceEmail,
-  sendOrderConfirmationEmail
-} from '@/lib/accounting/email';
+import { sendInvoiceEmail } from '@/lib/accounting/email';
 
 /**
  * Ödeme tamamlandıktan sonra muhasebe işlemlerini çalıştırır.
@@ -75,22 +72,14 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
   });
 
   if (order.user.email) {
-    await Promise.all([
-      sendInvoiceEmail({
-        to: order.user.email,
-        invoiceNumber: invoice.invoiceNumber,
-        totalGross: invoice.totalGross,
-        currency: invoice.currency,
-        orderId: order.id,
-        invoiceId: invoice.id
-      }),
-      sendOrderConfirmationEmail({
-        to: order.user.email,
-        eventTitle: order.event.title,
-        orderId: order.id,
-        ticketCount: order.items.reduce((s, i) => s + i.quantity, 0)
-      })
-    ]);
+    await sendInvoiceEmail({
+      to: order.user.email,
+      invoiceNumber: invoice.invoiceNumber,
+      totalGross: invoice.totalGross,
+      currency: invoice.currency,
+      orderId: order.id,
+      invoiceId: invoice.id
+    });
   }
 }
 

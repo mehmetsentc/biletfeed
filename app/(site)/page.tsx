@@ -5,8 +5,7 @@ import { EventifyCard } from '@/components/events/eventify-card';
 import { CategoryExplore } from '@/components/home/category-explore';
 import { HomeCityEvents } from '@/components/home/home-city-events';
 import {
-  CreateEventBanner,
-  CuratedCtaBanner
+  CreateEventBanner
 } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
@@ -76,7 +75,6 @@ export default async function HomePage() {
         </section>
       )}
 
-      <CuratedCtaBanner />
       <CreateEventBanner />
     </>
   );

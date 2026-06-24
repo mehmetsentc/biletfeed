@@ -7,8 +7,11 @@ import {
   newTicketId
 } from '@/lib/tickets/sign';
 import { getSiteUrl } from '@/lib/config/domain';
-import { sendEmail } from '@/lib/email/resend';
-import { buildInvitationEmail } from '@/lib/email/invitation-template';
+import { queueEmail } from '@/lib/accounting/email';
+import {
+  buildInvitationCalendarUrl,
+  buildInvitationEmail
+} from '@/lib/email/invitation-template';
 
 function createInviteToken(): string {
   return randomBytes(16).toString('hex');
@@ -143,7 +146,8 @@ export async function createEventInvitation(params: {
       ticketTypes: {
         where: { id: params.ticketTypeId, deletedAt: null, status: 'active' }
       },
-      venue: { select: { name: true } },
+      organizer: { select: { name: true } },
+      venue: { select: { name: true, address: true } },
       city: { select: { name: true } }
     }
   });
@@ -161,7 +165,7 @@ export async function createEventInvitation(params: {
   const ticketCode = generateTicketCode();
   const validationToken = generateValidationToken(ticketId, params.eventId);
 
-  const invitation = await prisma.$transaction(async (tx) => {
+  const { invitation, orderId } = await prisma.$transaction(async (tx) => {
     const reserved = await tx.ticketType.updateMany({
       where: {
         id: params.ticketTypeId,
@@ -216,7 +220,7 @@ export async function createEventInvitation(params: {
       }
     });
 
-    return tx.eventInvitation.create({
+    const createdInvitation = await tx.eventInvitation.create({
       data: {
         eventId: params.eventId,
         organizerId: params.organizerId,
@@ -230,6 +234,8 @@ export async function createEventInvitation(params: {
       },
       include: invitationInclude
     });
+
+    return { invitation: createdInvitation, orderId: order.id };
   });
 
   const result = mapInvitation(invitation);
@@ -247,10 +253,20 @@ export async function createEventInvitation(params: {
 
     const venueName = event.venue?.name ?? 'Online';
     const cityName = event.city.name;
+    const calendarUrl = buildInvitationCalendarUrl({
+      title: event.title,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      venue: venueName,
+      city: cityName,
+      address: event.venue?.address,
+      inviteUrl: result.inviteUrl
+    });
 
-    void sendEmail({
+    void queueEmail({
       to: params.guestEmail,
       subject: `Davetiyeniz: ${event.title}`,
+      template: 'event_invitation',
       html: buildInvitationEmail({
         guestName: params.guestName,
         eventTitle: event.title,
@@ -261,8 +277,13 @@ export async function createEventInvitation(params: {
         ticketTypeName: ticketType.name,
         ticketCode: result.ticketCode,
         personalMessage: params.personalMessage,
-        inviteUrl: result.inviteUrl
-      })
+        inviteUrl: result.inviteUrl,
+        calendarUrl,
+        organizerName: event.organizer.name
+      }),
+      orderId
+    }).catch((err) => {
+      console.error('[email] invitation', invitation.id, err);
     });
   }
 

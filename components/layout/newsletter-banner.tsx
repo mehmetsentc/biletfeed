@@ -1,8 +1,25 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { NewsletterForm } from '@/components/footer/newsletter-form';
 
+const STORAGE_KEY = 'bf_newsletter_subscribed';
+
 export function NewsletterBanner() {
+  const [subscribed, setSubscribed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setSubscribed(localStorage.getItem(STORAGE_KEY) === '1');
+  }, []);
+
+  // localStorage henüz kontrol edilmedi (SSR) veya zaten abone → gösterme
+  if (subscribed !== false) return null;
+
+  function handleSubscribed() {
+    localStorage.setItem(STORAGE_KEY, '1');
+    setSubscribed(true);
+  }
+
   return (
     <section className="bg-primary py-10 text-primary-foreground">
       <div className="container mx-auto flex flex-col items-start justify-between gap-6 px-4 md:flex-row md:items-center">
@@ -15,7 +32,7 @@ export function NewsletterBanner() {
             yeni etkinlik güncellemelerini alın.
           </p>
         </div>
-        <NewsletterForm variant="figma" />
+        <NewsletterForm variant="figma" onSubscribed={handleSubscribed} />
       </div>
     </section>
   );

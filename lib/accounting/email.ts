@@ -106,25 +106,3 @@ export async function sendInvoiceEmail(params: {
     invoiceId: params.invoiceId
   });
 }
-
-export async function sendOrderConfirmationEmail(params: {
-  to: string;
-  eventTitle: string;
-  orderId: string;
-  ticketCount: number;
-}) {
-  const html = `
-    <div style="font-family:sans-serif;max-width:560px">
-      <h2>Biletiniz hazır!</h2>
-      <p><strong>${params.eventTitle}</strong> etkinliği için ${params.ticketCount} bilet satın alındı.</p>
-      <p>Biletlerinizi hesabınızdan görüntüleyebilirsiniz.</p>
-    </div>
-  `;
-  return queueEmail({
-    to: params.to,
-    subject: `Bilet Onayı — ${params.eventTitle}`,
-    template: 'order_confirmation',
-    html,
-    orderId: params.orderId
-  });
-}
