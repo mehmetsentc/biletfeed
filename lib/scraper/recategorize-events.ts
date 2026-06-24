@@ -40,7 +40,8 @@ export async function recategorizePublishedEvents(): Promise<{
       title: true,
       description: true,
       eventType: true,
-      category: { select: { slug: true } }
+      category: { select: { slug: true } },
+      venue: { select: { name: true } }
     }
   });
 
@@ -48,7 +49,9 @@ export async function recategorizePublishedEvents(): Promise<{
   const samples: Array<{ title: string; from: string; to: string }> = [];
 
   for (const event of events) {
-    const { categorySlug } = mapCategory(event.title, event.description || '');
+    // Venue adını da metin havuzuna ekle — "Açıkhava" gibi mekan adları kategoriyi belirler
+    const textCorpus = [event.title, event.description || '', event.venue?.name || ''].join(' ');
+    const { categorySlug } = mapCategory(event.title, textCorpus);
     if (categorySlug === event.category.slug) continue;
 
     const categoryId = await resolveCategoryId(categorySlug);

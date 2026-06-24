@@ -64,16 +64,46 @@ async function ensureAggregatorOrganizer() {
   return organizer;
 }
 
+/** Slug → doğru Türkçe şehir adı. Bubilet URL'si yanlış şehir verse bile doğru ad kullanılır. */
+const CITY_SLUG_TO_NAME: Record<string, string> = {
+  istanbul: 'İstanbul', ankara: 'Ankara', izmir: 'İzmir', antalya: 'Antalya',
+  bursa: 'Bursa', eskisehir: 'Eskişehir', gaziantep: 'Gaziantep', kayseri: 'Kayseri',
+  samsun: 'Samsun', trabzon: 'Trabzon', kocaeli: 'Kocaeli', mersin: 'Mersin',
+  konya: 'Konya', diyarbakir: 'Diyarbakır', mugla: 'Muğla', adana: 'Adana',
+  balikesir: 'Balıkesir', manisa: 'Manisa', aydin: 'Aydın', tekirdag: 'Tekirdağ',
+  sakarya: 'Sakarya', denizli: 'Denizli', malatya: 'Malatya', edirne: 'Edirne',
+  canakkale: 'Çanakkale', hatay: 'Hatay', kahramanmaras: 'Kahramanmaraş',
+  sanliurfa: 'Şanlıurfa', mardin: 'Mardin', van: 'Van', afyon: 'Afyonkarahisar',
+  nevsehir: 'Nevşehir', sinop: 'Sinop', karabuk: 'Karabük', ordu: 'Ordu',
+  sivas: 'Sivas', erzurum: 'Erzurum', rize: 'Rize', giresun: 'Giresun',
+  yalova: 'Yalova', bolu: 'Bolu', isparta: 'Isparta', burdur: 'Burdur',
+  usak: 'Uşak', kutahya: 'Kütahya', afyonkarahisar: 'Afyonkarahisar',
+  // Uluslararası
+  kibris: 'Kıbrıs', baku: 'Bakü', londra: 'Londra', berlin: 'Berlin',
+  stuttgart: 'Stuttgart', muenchen: 'Münih', paris: 'Paris', dubai: 'Dubai',
+  online: 'Online',
+};
+
 async function resolveCityId(citySlug: string, cityName: string) {
   const slug = citySlug.toLowerCase();
+  // Önce slug'dan doğru ismi al; yoksa scraper'ın verdiği ismi kullan
+  const resolvedName = CITY_SLUG_TO_NAME[slug] || cityName;
+  const isIntl = ['kibris','baku','londra','berlin','stuttgart','muenchen','paris','dubai'].includes(slug);
+
   let city = await prisma.city.findUnique({ where: { slug } });
-  if (city) return city.id;
+  if (city) {
+    // İsim yanlış kaydedilmişse düzelt (ör. hatay slug'u "istanbul" adıyla kaydedilmiş)
+    if (city.name !== resolvedName) {
+      await prisma.city.update({ where: { slug }, data: { name: resolvedName } });
+    }
+    return city.id;
+  }
 
   city = await prisma.city.create({
     data: {
       slug,
-      name: cityName,
-      country: slug === 'online' ? 'Online' : 'Türkiye'
+      name: resolvedName,
+      country: slug === 'online' ? 'Online' : isIntl ? 'Yurt Dışı' : 'Türkiye'
     }
   });
   return city.id;

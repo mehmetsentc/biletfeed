@@ -257,7 +257,33 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
         /elektronik müzik/i,
         /rooftop series/i,
         /\ball night\b/i,
-        /\blive\b.*müzik/i
+        /\blive\b.*müzik/i,
+        // Türkçe müzik türleri
+        /türkü/i,
+        /\brap\b/i,
+        /\bhip.?hop\b/i,
+        /\br&b\b/i,
+        /\bjazz\b/i,
+        /\bbluegrass\b/i,
+        /\bklasik müzik\b/i,
+        /\borchestra\b/i,
+        /\borkestr/i,
+        /\bpiyano/i,
+        /\bkeman\b/i,
+        /\bvokal\b/i,
+        /\bsolo gitar\b/i,
+        // Konser bağlamı
+        /şarkılarıyla/i,
+        /şarkıları ile/i,
+        /sahneye çıkacak/i,
+        /sahnesinde/i,
+        /seslendireck/i,
+        /live music/i,
+        /live performance/i,
+        // Açıkhava = neredeyse her zaman konser mekanı
+        /açıkhava/i,
+        /open.?air/i,
+        /amfi tiyatro.*müzik/i,
       ]
     },
     {
