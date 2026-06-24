@@ -156,7 +156,7 @@ const CATEGORY_KEYWORDS: Array<{ slug: string; type: EventType; patterns: RegExp
       type: 'concert',
       patterns: [
         /konser/i,
-        /müzik/i,
+        /müzik(?!al)/i,
         /\bdj\b/i,
         /\brock\b/i,
         /\bpop\b/i,
