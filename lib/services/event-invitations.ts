@@ -7,6 +7,8 @@ import {
   newTicketId
 } from '@/lib/tickets/sign';
 import { getSiteUrl } from '@/lib/config/domain';
+import { sendEmail } from '@/lib/email/resend';
+import { buildInvitationEmail } from '@/lib/email/invitation-template';
 
 function createInviteToken(): string {
   return randomBytes(16).toString('hex');
@@ -140,7 +142,9 @@ export async function createEventInvitation(params: {
     include: {
       ticketTypes: {
         where: { id: params.ticketTypeId, deletedAt: null, status: 'active' }
-      }
+      },
+      venue: { select: { name: true } },
+      city: { select: { name: true } }
     }
   });
 
@@ -228,7 +232,41 @@ export async function createEventInvitation(params: {
     });
   });
 
-  return mapInvitation(invitation);
+  const result = mapInvitation(invitation);
+
+  // Auto-send email to guest if they provided an address
+  if (params.guestEmail) {
+    const eventDate = new Date(event.startDate).toLocaleDateString('tr-TR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const venueName = event.venue?.name ?? 'Online';
+    const cityName = event.city.name;
+
+    void sendEmail({
+      to: params.guestEmail,
+      subject: `Davetiyeniz: ${event.title}`,
+      html: buildInvitationEmail({
+        guestName: params.guestName,
+        eventTitle: event.title,
+        eventDate,
+        eventVenue: venueName,
+        eventCity: cityName,
+        coverImage: event.coverImage ?? '',
+        ticketTypeName: ticketType.name,
+        ticketCode: result.ticketCode,
+        personalMessage: params.personalMessage,
+        inviteUrl: result.inviteUrl
+      })
+    });
+  }
+
+  return result;
 }
 
 export async function getPublicInvitation(token: string) {

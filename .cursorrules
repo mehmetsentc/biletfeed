@@ -1,0 +1,235 @@
+# BiletFeed — Cursor AI Kuralları
+
+## Proje Özeti
+BiletFeed, Türkiye'nin profesyonel etkinlik keşif ve bilet satış platformudur.
+Hedef: Biletix ve Biletimo seviyesinde, modern, ölçeklenebilir bir SaaS ticket platformu.
+
+---
+
+## Tech Stack
+
+- **Framework**: Next.js 15 App Router (Server Components varsayılan — Client sadece interaktivite için)
+- **Dil**: TypeScript (strict mod — `any` yasak)
+- **Veritabanı**: PostgreSQL (Neon) + Prisma ORM
+- **Auth**: Firebase Auth (client) + custom session cookie (server)
+- **Cache**: Upstash Redis
+- **Email**: Resend (`lib/email/resend.ts`) — RESEND_API_KEY env var ile aktif olur
+- **Stil**: Tailwind CSS v4 + shadcn/ui
+- **Deploy**: Vercel (Serverless + Edge)
+- **Scraper**: Cheerio tabanlı, `lib/scraper/` altında
+
+---
+
+## Klasör Yapısı
+
+```
+app/
+  (site)/           ← Genel kullanıcı sayfaları (layout, SEO dahil)
+  admin/            ← Admin paneli (/admin/*)
+  organizator-panel/ ← Organizatör paneli
+  dashboard/        ← Kullanıcı dashboard'u
+  api/              ← API route'ları
+  eventjoy/         ← EventJoy davetiye uygulaması
+
+components/
+  ui/               ← shadcn/ui primitive'leri (dokunma)
+  admin/            ← Admin-spesifik componentler
+  organizator-panel/ ← Organizatör panel componentleri
+  invitations/      ← Davetiye görüntüleme componentleri
+  tickets/          ← QR kod, bilet componentleri
+  providers/        ← Context provider'lar
+
+lib/
+  db/prisma.ts      ← Prisma client (singleton)
+  auth/             ← Session, CSRF, Firebase Admin
+  services/         ← İş mantığı — tüm DB sorguları burada
+  scraper/          ← Etkinlik kazıma sistemi
+  email/            ← Resend email (resend.ts, invitation-template.ts)
+  tickets/sign.ts   ← QR payload oluşturma ve doğrulama
+  config/domain.ts  ← getSiteUrl() helper
+  cookies/          ← Cookie consent yönetimi
+
+prisma/
+  schema.prisma     ← Tek kaynak — DB değişikliği hep buradan başlar
+```
+
+---
+
+## Temel Kurallar
+
+### Server / Client ayrımı
+- Server Component'ten `'use client'` component import edilebilir, tersi olmaz.
+- `useState`, `useEffect`, event handler → `'use client'` gerekir.
+- Data fetch → Server Component'te veya `lib/services/` fonksiyonlarında yapılır, API route'a gerek yok.
+- API route yalnızca şunlar için: dış istek, webhook, form POST, client-side fetch.
+
+### Tip güvenliği
+- `any` kullanma; `unknown` + type guard veya Prisma çıktı tipi kullan.
+- Prisma where tipi için: `import type { Prisma } from '@prisma/client'` → `Prisma.EventWhereInput`
+- Zod şeması olmayan API route kabul etme.
+
+### Veritabanı
+- Schema değişikliği → `prisma/schema.prisma` güncelle → `npx prisma migrate dev`
+- `prisma.event.findMany` gibi sorgular her zaman `lib/services/` altındaki bir fonksiyona koy.
+- `ensureDbConnection()` çağrısı her servis fonksiyonunun başında olmalı.
+- Soft delete: `deletedAt: null` filtresi her sorguda zorunlu.
+
+### Auth
+- Organizatör endpoint: `requireOrganizerSession()` kullan.
+- Admin endpoint: `verifySessionCookie()` + `sessionHasRole(session, 'ROLE_ADMIN')` kullan.
+- `isSameOriginRequest(request)` — tüm mutasyon POST'larında zorunlu (CSRF koruması).
+
+### Güvenlik
+- Rate limiting: `rateLimitOrNull(request, key, limit, windowMs)` — public API'larda zorunlu.
+- QR bilet payload → `buildTicketQrPayload()` — her zaman bu fonksiyonu kullan, URL formatını elle yazma.
+
+---
+
+## Varlık Modeli (Prisma Özeti)
+
+```
+User → Order → OrderItem → PurchasedTicket
+                               ↑
+Event → TicketType ────────────┘
+  ↓
+EventInvitation → PurchasedTicket (1:1)
+Category
+City
+Organizer (User'dan ayrı profil)
+```
+
+### Önemli alanlar
+- `Event.status`: `draft | published | cancelled | completed`
+- `Event.listingType`: `internal | external`
+- `PurchasedTicket.status`: `VALID | USED | CANCELLED | REFUNDED`
+- `EventInvitation.status`: `sent | viewed | cancelled`
+- `Order.status`: `pending | paid | refunded | cancelled`
+- `Order.paymentProvider`: `iyzico | stripe | invitation | mock`
+
+---
+
+## Kategori Slug'ları
+
+`muzik | festival | tiyatro | spor | sanat | komedi | cocuk | teknoloji | online | party | diger`
+
+Yeni kategori eklenirse şu dosyaları güncelle:
+1. `lib/scraper/normalize.ts` → `CATEGORY_KEYWORDS`
+2. `lib/data/category-images.ts`
+3. `lib/data/mock-events.ts` → `categories` dizisi
+4. `components/admin/event-editor-form.tsx` → `CATEGORIES`
+5. `components/admin/event-filters.tsx` → `CATEGORIES`
+6. `lib/scraper/recategorize-events.ts` → `CATEGORY_NAMES`
+
+---
+
+## QR Bilet Sistemi
+
+- QR kod URL formatı: `/bilet/[code]?token=...&id=...` (public sayfa)
+- `buildTicketQrPayload()` → `lib/tickets/sign.ts` (her zaman bunu kullan)
+- `parseQrPayload()` → URL veya JSON formatını parse eder (organizatör scanner'da kullanılır)
+- Organizatör scanner → `POST /api/tickets/validate` (auth gerekli, markUsed:true)
+- Misafir QR görüntüleme → `GET /bilet/[code]` (public, token ile güvenli)
+- Davetiye sayfası → `/davetiye/[token]` (InvitationGuestClient)
+
+---
+
+## Email Sistemi
+
+- Provider: Resend (REST API, npm paketi gerektirmez)
+- `lib/email/resend.ts` → `sendEmail()` fonksiyonu
+- `lib/email/invitation-template.ts` → HTML davetiye email şablonu
+- Env var: `RESEND_API_KEY` (yoksa email gönderilmez, hata vermez)
+- From: `RESEND_FROM_EMAIL` (varsayılan: `davetiye@biletfeed.com`)
+
+---
+
+## Scraper Sistemi
+
+- `lib/scraper/platforms/index.ts` → `scrapePlatformWithDetails()`
+- `concurrency: 8` ile paralel çalışır (Vercel 300s timeout'a sığar)
+- `maxListingPages` ile sınırlanabilir
+- Kategori → `lib/scraper/normalize.ts` → `mapCategory()` (ilk eşleşen kazanır, sıra önemli)
+- Scrape trigger: Admin paneli → Sunucu action veya `/api/admin/scrape-now` (Bearer token gerekli)
+
+---
+
+## Stil & UI Kuralları
+
+- Marka rengi: `#f5a623` (amber/orange)
+- Koyu tema sayfalar (bilet, davetiye): `bg-[#0c1017]` arkaplan
+- Admin / organizatör panel: beyaz arka plan, `zinc-*` renkler
+- shadcn/ui `Button`, `Input`, `Label`, `Card` kullan — kendi HTML'ini yazma
+- Responsive: mobile-first, `sm:` ve `md:` breakpoint'ler
+- Animasyon: Framer Motion (`framer-motion`) — yalnızca client component'lerde
+
+---
+
+## Cookie & Şehir Seçimi
+
+- `lib/cookies/consent.ts` → `readCookieConsent()`
+- `components/providers/city-provider.tsx` → şehir seçim popup'ı
+- Şehir seçimi yalnızca çerez onayından SONRA açılır (`bf-cookie-consent-change` event)
+
+---
+
+## Çevre Değişkenleri (Kritikler)
+
+```
+DATABASE_URL              # Neon PostgreSQL connection string
+NEXT_PUBLIC_APP_URL       # https://biletfeed.com
+FIREBASE_ADMIN_*          # Firebase Admin SDK
+TICKET_SECRET_KEY         # QR imzalama anahtarı (güçlü random)
+RESEND_API_KEY            # Email gönderimi (resend.com'dan al)
+RESEND_FROM_EMAIL         # davetiye@biletfeed.com
+UPSTASH_REDIS_REST_URL    # Rate limiting
+UPSTASH_REDIS_REST_TOKEN
+SUPER_ADMIN_EMAILS        # Virgülle ayrılmış admin email listesi
+```
+
+---
+
+## Geliştirme Akışı
+
+```bash
+# Lokal başlat
+npm run dev
+
+# DB migration
+npx prisma migrate dev --name aciklama
+
+# Prisma client yenile (schema değişikliği sonrası)
+npx prisma generate
+
+# Build kontrolü
+npm run build
+
+# Deploy
+git add . && git commit -m "feat: ..." && git push origin main
+```
+
+---
+
+## Yapılmaması Gerekenler
+
+- `console.log` production'a commit etme (dev guard koy: `if (process.env.NODE_ENV !== 'production')`)
+- `prisma.$queryRaw` kullanma — Prisma client API yeterli
+- Şifreyi, API key'i, token'ı client component'e iletme
+- `localStorage` kullanma (SSR uyumsuz) — cookie veya server state kullan
+- `pages/` klasörü açma — App Router kullanıyoruz
+- `getServerSideProps` / `getStaticProps` kullanma
+- Tür dönüşümü için `as any` kullanma
+
+---
+
+## Hedef: Profesyonel Ticket Platformu
+
+Aşağıdaki özellikler öncelikli roadmap'tir:
+
+1. **Ödeme entegrasyonu** — İyzico veya Stripe ile gerçek ödeme akışı
+2. **Organizatör onboarding** — Sözleşme onayı, banka hesabı doğrulama
+3. **Komisyon sistemi** — Organizatör kazancı otomatik hesaplama & ödeme
+4. **Gelişmiş bilet türleri** — Erken kayıt, VIP, grup indirimi, promo kod
+5. **Check-in uygulaması** — Mobil scanner (PWA veya React Native)
+6. **Satış analitikleri** — Organizatör dashboard'u (gelir, kapasite, dönüşüm)
+7. **SEO & içerik** — Etkinlik sayfaları server-render, JSON-LD schema, sitemap
+8. **Abonelik** — Organizatör paketleri (Starter / Pro / Enterprise)

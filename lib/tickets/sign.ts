@@ -40,8 +40,10 @@ export function buildTicketQrPayload(input: {
   ticketCode: string;
   validationToken: string;
 }): string {
+  // Points to a public page — when scanned on phone it shows a proper ticket/invitation UI.
+  // The organizer QR scanner uses parseQrPayload which extracts params from the URL.
   return getSiteUrl(
-    `/api/tickets/validate?code=${encodeURIComponent(input.ticketCode)}&token=${encodeURIComponent(input.validationToken)}&id=${encodeURIComponent(input.ticketId)}`
+    `/bilet/${encodeURIComponent(input.ticketCode)}?token=${encodeURIComponent(input.validationToken)}&id=${encodeURIComponent(input.ticketId)}`
   );
 }
 

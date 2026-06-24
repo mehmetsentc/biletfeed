@@ -1,5 +1,5 @@
-import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
-import { buildTicketQrPayload } from '@/lib/tickets/sign';
+import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
+import { buildTicketQrPayload, verifyValidationToken } from '@/lib/tickets/sign';
 import {
   mockPurchasedTickets,
   mockNotifications,
@@ -114,6 +114,75 @@ export async function getNotificationsByUser(firebaseUid: string) {
     read: n.read,
     type: n.type
   }));
+}
+
+/** Public ticket info — shown when guest scans their own QR code. No auth required but token must verify. */
+export type PublicTicketInfo = {
+  ticketCode: string;
+  holderName: string;
+  ticketTypeName: string;
+  status: string;
+  isInvitation: boolean;
+  inviteToken: string | null;
+  event: {
+    title: string;
+    coverImage: string;
+    startDate: string;
+    venue: string;
+    city: string;
+    slug: string;
+  };
+  qrData: string;
+};
+
+export async function getPublicTicketByCode(
+  ticketCode: string,
+  validationToken: string,
+  ticketId: string
+): Promise<PublicTicketInfo | null> {
+  await ensureDbConnection();
+
+  const ticket = await prisma.purchasedTicket.findFirst({
+    where: { ticketCode, deletedAt: null, ...(ticketId ? { id: ticketId } : {}) },
+    include: {
+      event: {
+        include: {
+          city: { select: { name: true } },
+          venue: { select: { name: true } }
+        }
+      },
+      ticketType: { select: { name: true } },
+      user: { select: { displayName: true } },
+      invitation: {
+        select: { inviteToken: true }
+      }
+    }
+  });
+
+  if (!ticket) return null;
+  if (!verifyValidationToken(ticket.id, ticket.eventId, validationToken)) return null;
+
+  return {
+    ticketCode: ticket.ticketCode,
+    holderName: ticket.user.displayName,
+    ticketTypeName: ticket.ticketType.name,
+    status: ticket.status,
+    isInvitation: !!ticket.invitation,
+    inviteToken: ticket.invitation?.inviteToken ?? null,
+    event: {
+      title: ticket.event.title,
+      coverImage: ticket.event.coverImage,
+      startDate: ticket.event.startDate.toISOString(),
+      venue: ticket.event.venue?.name ?? 'Online',
+      city: ticket.event.city.name,
+      slug: ticket.event.slug
+    },
+    qrData: buildTicketQrPayload({
+      ticketId: ticket.id,
+      ticketCode: ticket.ticketCode,
+      validationToken: ticket.validationToken
+    })
+  };
 }
 
 function formatRelativeTime(date: Date): string {
