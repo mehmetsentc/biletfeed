@@ -16,6 +16,7 @@ import {
   Plus,
   Sparkles,
   Ticket,
+  Trash2,
   Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,16 +43,36 @@ type LocationMode = '' | 'venue' | 'online' | 'hybrid';
 interface SessionRow {
   id: string;
   startDate: string;
+  endDate: string;
   startTime: string;
   endTime: string;
+}
+
+interface TicketCategory {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  capacity: string;
 }
 
 function newSession(): SessionRow {
   return {
     id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
     startDate: '',
+    endDate: '',
     startTime: '',
     endTime: ''
+  };
+}
+
+function newTicketCategory(): TicketCategory {
+  return {
+    id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
+    name: '',
+    description: '',
+    price: '',
+    capacity: ''
   };
 }
 
@@ -82,10 +103,11 @@ export function CreateOrganizerEventWizard() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const imageFileRef = useRef<File | null>(null);
   const [ticketType, setTicketType] = useState<'free' | 'paid'>('paid');
-  const [price, setPrice] = useState('');
-  const [capacity, setCapacity] = useState('');
+  const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>([newTicketCategory()]);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isFestival = category === 'festival';
 
   function updateSession(id: string, field: keyof SessionRow, value: string) {
     setSessions((prev) =>
@@ -97,13 +119,35 @@ export function CreateOrganizerEventWizard() {
     setSessions((prev) => [...prev, newSession()]);
   }
 
+  function updateTicketCategory(id: string, field: keyof TicketCategory, value: string) {
+    setTicketCategories((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
+    );
+  }
+
+  function addTicketCategory() {
+    setTicketCategories((prev) => [...prev, newTicketCategory()]);
+  }
+
+  function removeTicketCategory(id: string) {
+    setTicketCategories((prev) => prev.filter((c) => c.id !== id));
+  }
+
   async function publish() {
     setError(null);
     const first = sessions[0];
     const startDate = sessionToIso(first);
-    const endDate = sessionToIso(first, true);
 
-    if (!title.trim() || !category || !description.trim() || !capacity) {
+    // endDate: festival = endDate field; others = endTime of same day
+    let endDate: string | null;
+    if (isFestival && first.endDate) {
+      const endTime = first.endTime || first.startTime || '23:59';
+      endDate = new Date(`${first.endDate}T${endTime}:00`).toISOString();
+    } else {
+      endDate = sessionToIso(first, true);
+    }
+
+    if (!title.trim() || !category || !description.trim()) {
       setError('Lütfen zorunlu alanları doldurun.');
       return;
     }
@@ -111,14 +155,18 @@ export function CreateOrganizerEventWizard() {
       setError('Geçerli bir başlangıç tarihi ve saati girin.');
       return;
     }
-    if (ticketType === 'paid' && !price) {
-      setError('Ücretli etkinlik için fiyat girin.');
+    const validCategories = ticketCategories.filter((c) => c.name.trim() && c.capacity);
+    if (validCategories.length === 0) {
+      setError('En az bir bilet kategorisi ekleyin.');
+      return;
+    }
+    if (ticketType === 'paid' && validCategories.some((c) => !c.price)) {
+      setError('Ücretli biletler için her kategoriye fiyat girin.');
       return;
     }
 
     setPublishing(true);
     try {
-      // Upload cover image via server API (Admin SDK — no client auth needed)
       let coverImageUrl: string | undefined;
       if (imageFileRef.current) {
         const fd = new FormData();
@@ -131,8 +179,10 @@ export function CreateOrganizerEventWizard() {
           const uploadData = await uploadRes.json();
           coverImageUrl = uploadData.url;
         }
-        // If upload fails, continue without image rather than blocking publish
       }
+
+      const totalCapacity = validCategories.reduce((sum, c) => sum + Number(c.capacity), 0);
+      const minPrice = ticketType === 'free' ? 0 : Math.min(...validCategories.map((c) => Number(c.price) || 0));
 
       const res = await fetch('/api/organizer/events', {
         method: 'POST',
@@ -142,17 +192,20 @@ export function CreateOrganizerEventWizard() {
           description: description.trim(),
           categorySlug: category,
           citySlug,
-          venueName:
-            location === 'online'
-              ? 'Online'
-              : venueName.trim() || undefined,
+          venueName: location === 'online' ? 'Online' : venueName.trim() || undefined,
           startDate,
           endDate,
           isFree: ticketType === 'free',
-          price: ticketType === 'paid' ? Number(price) : 0,
-          capacity: Number(capacity),
+          price: minPrice,
+          capacity: totalCapacity,
           coverImage: coverImageUrl,
-          status: 'published'
+          status: 'published',
+          ticketCategories: validCategories.map((c) => ({
+            name: c.name.trim(),
+            description: c.description.trim(),
+            price: ticketType === 'free' ? 0 : Number(c.price),
+            capacity: Number(c.capacity)
+          }))
         })
       });
       const data = await res.json();
@@ -287,6 +340,12 @@ export function CreateOrganizerEventWizard() {
                   />
                 </WizardFormRow>
 
+                {isFestival && (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+                    🎪 Festival seçildi — birden fazla gün sürebilir. Başlangıç ve bitiş tarihini ayrı girin.
+                  </div>
+                )}
+
                 <div className="border-t border-border/60 py-5">
                   <p className="mb-4 text-sm font-semibold text-foreground">
                     Seans(lar)<span className="text-destructive">*</span>
@@ -302,49 +361,54 @@ export function CreateOrganizerEventWizard() {
                             Seans {index + 1}
                           </p>
                         )}
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {/* Başlangıç Tarihi */}
                           <div>
                             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                              Başlangıç Tarihi
-                              <span className="text-destructive">*</span>
+                              Başlangıç Tarihi<span className="text-destructive">*</span>
                             </label>
                             <div className="relative">
                               <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70" />
                               <Input
                                 type="date"
                                 value={session.startDate}
-                                onChange={(e) =>
-                                  updateSession(
-                                    session.id,
-                                    'startDate',
-                                    e.target.value
-                                  )
-                                }
+                                onChange={(e) => updateSession(session.id, 'startDate', e.target.value)}
                                 className="h-11 rounded-lg pl-10"
                               />
                             </div>
                           </div>
+                          {/* Bitiş Tarihi */}
                           <div>
                             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                              Başlangıç Saati
-                              <span className="text-destructive">*</span>
+                              Bitiş Tarihi{isFestival && <span className="text-destructive">*</span>}
+                            </label>
+                            <div className="relative">
+                              <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70" />
+                              <Input
+                                type="date"
+                                value={session.endDate}
+                                min={session.startDate || undefined}
+                                onChange={(e) => updateSession(session.id, 'endDate', e.target.value)}
+                                className="h-11 rounded-lg pl-10"
+                              />
+                            </div>
+                          </div>
+                          {/* Başlangıç Saati */}
+                          <div>
+                            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                              Başlangıç Saati<span className="text-destructive">*</span>
                             </label>
                             <div className="relative">
                               <Clock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70" />
                               <Input
                                 type="time"
                                 value={session.startTime}
-                                onChange={(e) =>
-                                  updateSession(
-                                    session.id,
-                                    'startTime',
-                                    e.target.value
-                                  )
-                                }
+                                onChange={(e) => updateSession(session.id, 'startTime', e.target.value)}
                                 className="h-11 rounded-lg pl-10"
                               />
                             </div>
                           </div>
+                          {/* Bitiş Saati */}
                           <div>
                             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                               Bitiş Saati
@@ -354,13 +418,7 @@ export function CreateOrganizerEventWizard() {
                               <Input
                                 type="time"
                                 value={session.endTime}
-                                onChange={(e) =>
-                                  updateSession(
-                                    session.id,
-                                    'endTime',
-                                    e.target.value
-                                  )
-                                }
+                                onChange={(e) => updateSession(session.id, 'endTime', e.target.value)}
                                 className="h-11 rounded-lg pl-10"
                               />
                             </div>
@@ -499,8 +557,8 @@ export function CreateOrganizerEventWizard() {
 
           {step === 3 && (
             <WizardFormSection
-              title="Bilet Ayarları"
-              description="Satış modelini ve kontenjanı belirleyin."
+              title="Bilet Kategorileri"
+              description="Her kategori için ad, fiyat, kontenjan ve açıklama belirleyin."
               icon={Ticket}
             >
               <WizardFormRow label="Bilet türü" required>
@@ -508,39 +566,104 @@ export function CreateOrganizerEventWizard() {
                   value={ticketType}
                   onChange={setTicketType}
                   options={[
-                    {
-                      id: 'free',
-                      title: 'Ücretsiz',
-                      description: 'Kayıt ile giriş'
-                    },
-                    {
-                      id: 'paid',
-                      title: 'Ücretli',
-                      description: 'Bilet satışı açık'
-                    }
+                    { id: 'free', title: 'Ücretsiz', description: 'Kayıt ile giriş' },
+                    { id: 'paid', title: 'Ücretli', description: 'Bilet satışı açık' }
                   ]}
                 />
               </WizardFormRow>
-              {ticketType === 'paid' && (
-                <WizardFormRow label="Bilet fiyatı (₺)" required>
-                  <Input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="250"
-                    className="h-11 max-w-xs rounded-lg"
-                  />
-                </WizardFormRow>
-              )}
-              <WizardFormRow label="Kontenjan" required hint="Toplam bilet sayısı">
-                <Input
-                  type="number"
-                  value={capacity}
-                  onChange={(e) => setCapacity(e.target.value)}
-                  placeholder="500"
-                  className="h-11 max-w-xs rounded-lg"
-                />
-              </WizardFormRow>
+
+              <div className="space-y-4 pt-2">
+                {ticketCategories.map((cat, index) => (
+                  <div key={cat.id} className="rounded-xl border border-border bg-muted/20 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-foreground">
+                        Kategori {index + 1}
+                      </p>
+                      {ticketCategories.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeTicketCategory(cat.id)}
+                          className="flex items-center gap-1 text-xs text-destructive hover:opacity-80"
+                        >
+                          <Trash2 className="size-3.5" />
+                          Kaldır
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                          Kategori Adı<span className="text-destructive">*</span>
+                        </label>
+                        <Input
+                          value={cat.name}
+                          onChange={(e) => updateTicketCategory(cat.id, 'name', e.target.value)}
+                          placeholder="Örn: Sahne Önü, Backstage, VIP, Genel Giriş"
+                          className="h-11 rounded-lg"
+                        />
+                      </div>
+                      {ticketType === 'paid' && (
+                        <div>
+                          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                            Fiyat (₺)<span className="text-destructive">*</span>
+                          </label>
+                          <Input
+                            type="number"
+                            value={cat.price}
+                            onChange={(e) => updateTicketCategory(cat.id, 'price', e.target.value)}
+                            placeholder="250"
+                            className="h-11 rounded-lg"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                          Kontenjan<span className="text-destructive">*</span>
+                        </label>
+                        <Input
+                          type="number"
+                          value={cat.capacity}
+                          onChange={(e) => updateTicketCategory(cat.id, 'capacity', e.target.value)}
+                          placeholder="100"
+                          className="h-11 rounded-lg"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                          Açıklama
+                        </label>
+                        <Input
+                          value={cat.description}
+                          onChange={(e) => updateTicketCategory(cat.id, 'description', e.target.value)}
+                          placeholder="Örn: Sahne önü, ayakta alan. Sınırlı sayıda."
+                          className="h-11 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addTicketCategory}
+                  className="gap-1.5"
+                >
+                  <Plus className="size-4" />
+                  Kategori Ekle
+                </Button>
+
+                {ticketCategories.length > 1 && (
+                  <p className="text-xs text-muted-foreground">
+                    Toplam kontenjan:{' '}
+                    <strong>
+                      {ticketCategories.reduce((s, c) => s + (Number(c.capacity) || 0), 0)}
+                    </strong>{' '}
+                    bilet
+                  </p>
+                )}
+              </div>
             </WizardFormSection>
           )}
 
@@ -576,14 +699,13 @@ export function CreateOrganizerEventWizard() {
                     {description || 'Açıklama eklenmedi.'}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-lg bg-background px-3 py-1.5 text-sm font-medium ring-1 ring-border">
-                      {ticketType === 'free'
-                        ? 'Ücretsiz'
-                        : `${price || '—'} ₺`}
-                    </span>
-                    <span className="rounded-lg bg-background px-3 py-1.5 text-sm font-medium ring-1 ring-border">
-                      Kontenjan: {capacity || '—'}
-                    </span>
+                    {ticketCategories.filter((c) => c.name).map((c) => (
+                      <span key={c.id} className="rounded-lg bg-background px-3 py-1.5 text-sm font-medium ring-1 ring-border">
+                        {c.name}
+                        {ticketType === 'paid' && c.price ? ` · ${c.price} ₺` : ticketType === 'free' ? ' · Ücretsiz' : ''}
+                        {c.capacity ? ` · ${c.capacity} kişi` : ''}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>

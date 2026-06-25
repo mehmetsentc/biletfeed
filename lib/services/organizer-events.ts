@@ -2,6 +2,13 @@ import type { EventStatus, EventType } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { uniqueSlug } from '@/lib/utils/slug';
 
+export interface TicketCategoryInput {
+  name: string;
+  description?: string;
+  price: number;
+  capacity: number;
+}
+
 export interface CreateOrganizerEventInput {
   organizerId: string;
   title: string;
@@ -18,6 +25,7 @@ export interface CreateOrganizerEventInput {
   coverImage?: string;
   status?: EventStatus;
   eventType?: EventType;
+  ticketCategories?: TicketCategoryInput[];
 }
 
 async function resolveCityId(citySlug: string): Promise<string> {
@@ -111,18 +119,32 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
         capacity: input.capacity,
         listingType: 'internal',
         ticketTypes: {
-          create: {
-            name: 'Genel Giriş',
-            type: 'general',
-            price,
-            currency: 'TRY',
-            quantity: input.capacity,
-            sold: 0,
-            capacity: input.capacity,
-            saleStartDate: now,
-            saleEndDate: input.startDate,
-            status: 'active'
-          }
+          create: (input.ticketCategories && input.ticketCategories.length > 0
+            ? input.ticketCategories.map((cat, i) => ({
+                name: cat.name,
+                type: i === 0 ? ('general' as const) : ('vip' as const),
+                price: input.isFree ? 0 : cat.price,
+                currency: 'TRY',
+                quantity: cat.capacity,
+                sold: 0,
+                capacity: cat.capacity,
+                description: cat.description || undefined,
+                saleStartDate: now,
+                saleEndDate: input.startDate,
+                status: 'active' as const
+              }))
+            : [{
+                name: 'Genel Giriş',
+                type: 'general' as const,
+                price,
+                currency: 'TRY',
+                quantity: input.capacity,
+                sold: 0,
+                capacity: input.capacity,
+                saleStartDate: now,
+                saleEndDate: input.startDate,
+                status: 'active' as const
+              }])
         }
       },
       include: {

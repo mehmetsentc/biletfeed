@@ -5,6 +5,13 @@ import { requireOrganizerSession } from '@/lib/auth/organizer-api';
 import { createOrganizerEvent } from '@/lib/services/organizer-events';
 import { listOrganizerEventsDetailed } from '@/lib/services/organizer-events';
 
+const ticketCategorySchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional().default(''),
+  price: z.number().min(0).default(0),
+  capacity: z.number().int().min(1)
+});
+
 const createSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().min(10).max(10000),
@@ -16,9 +23,10 @@ const createSchema = z.object({
   endDate: z.string().datetime(),
   isFree: z.boolean().default(false),
   price: z.number().min(0).default(0),
-  capacity: z.number().int().min(1).max(100000),
+  capacity: z.number().int().min(1).max(1000000),
   coverImage: z.string().url().optional(),
-  status: z.enum(['draft', 'published', 'pending']).optional()
+  status: z.enum(['draft', 'published', 'pending']).optional(),
+  ticketCategories: z.array(ticketCategorySchema).min(1).optional()
 });
 
 export async function GET() {
@@ -62,7 +70,8 @@ export async function POST(request: NextRequest) {
       price: parsed.data.price,
       capacity: parsed.data.capacity,
       coverImage: parsed.data.coverImage,
-      status: parsed.data.status
+      status: parsed.data.status,
+      ticketCategories: parsed.data.ticketCategories
     });
 
     return NextResponse.json({ success: true, event });
