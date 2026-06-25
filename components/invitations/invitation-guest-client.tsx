@@ -250,6 +250,13 @@ export function InvitationGuestClient({
               <Download className="size-4" />
               {downloading ? 'İndiriliyor…' : 'Davetiye İndir'}
             </button>
+            <Link
+              href={`/davetiye/${inviteToken}/print`}
+              target="_blank"
+              className="no-print mt-2 flex w-full items-center justify-center rounded-2xl py-2.5 text-xs font-medium text-white/45 hover:text-white/70"
+            >
+              Yazdır
+            </Link>
           </div>
         </div>
 

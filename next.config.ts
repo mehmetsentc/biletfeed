@@ -65,7 +65,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname)
   },
-  serverExternalPackages: ['firebase-admin', '@prisma/client', 'prisma'],
+  serverExternalPackages: ['firebase-admin', '@prisma/client', 'prisma', 'pdfkit'],
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns']
   },
