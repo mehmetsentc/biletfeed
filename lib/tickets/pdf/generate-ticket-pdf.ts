@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import type { TicketPdfInput } from '@/lib/tickets/pdf/types';
+import { registerPdfFonts, pdfFont } from '@/lib/tickets/pdf/fonts';
 
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
@@ -47,10 +48,10 @@ function drawDetailBox(
 ) {
   doc.save();
   doc.roundedRect(x, y, w, h, 8).fillAndStroke('#1a2230', '#2a3544');
-  doc.fillColor(BRAND_GOLD).fontSize(8).font('Helvetica-Bold').text(label.toUpperCase(), x + 12, y + 10, {
+  doc.fillColor(BRAND_GOLD).fontSize(8).font(pdfFont(true)).text(label.toUpperCase(), x + 12, y + 10, {
     width: w - 24
   });
-  doc.fillColor('#ffffff').fontSize(10).font('Helvetica-Bold').text(value, x + 12, y + 24, {
+  doc.fillColor('#ffffff').fontSize(10).font(pdfFont(true)).text(value, x + 12, y + 24, {
     width: w - 24,
     lineGap: 2
   });
@@ -84,6 +85,8 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
+    registerPdfFonts(doc);
+
     const pageW = doc.page.width;
     const pageH = doc.page.height;
     const cardX = 40;
@@ -111,7 +114,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
       doc.restore();
       doc.restore();
 
-      doc.fillColor('#ffffff').fontSize(16).font('Helvetica-Bold').text('bilet', cardX + 20, cardY + 18, {
+      doc.fillColor('#ffffff').fontSize(16).font(pdfFont(true)).text('bilet', cardX + 20, cardY + 18, {
         continued: true
       });
       doc.fillColor(BRAND_GOLD).text('feed');
@@ -124,14 +127,14 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
       doc.rect(cardX, cardY, cardW, headerH).fill(BRAND_GOLD);
       doc.restore();
 
-      doc.fillColor('#000000').fontSize(16).font('Helvetica-Bold').text('bilet', cardX + 20, cardY + 16, {
+      doc.fillColor('#000000').fontSize(16).font(pdfFont(true)).text('bilet', cardX + 20, cardY + 16, {
         continued: true
       });
       doc.fillColor('#1a1a1a').text('feed');
 
       doc.fillColor('#000000')
         .fontSize(9)
-        .font('Helvetica-Bold')
+        .font(pdfFont(true))
         .text(isInvitation ? 'DAVETİYE' : 'ETKİNLİK BİLETİ', cardX + cardW - 130, cardY + 20, {
           width: 110,
           align: 'right'
@@ -145,11 +148,11 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     cursorY += 20;
 
     if (isInvitation) {
-      doc.fillColor(BRAND_GOLD).fontSize(9).font('Helvetica-Bold').text('SAYIN DAVETLİ', contentX, cursorY);
+      doc.fillColor(BRAND_GOLD).fontSize(9).font(pdfFont(true)).text('SAYIN DAVETLİ', contentX, cursorY);
       cursorY += 16;
     }
 
-    doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold').text(input.eventTitle, contentX, cursorY, {
+    doc.fillColor('#ffffff').fontSize(18).font(pdfFont(true)).text(input.eventTitle, contentX, cursorY, {
       width: contentW - 90,
       lineGap: 2
     });
@@ -168,7 +171,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     doc.roundedRect(badgeX, cursorY, badgeW, badgeH, 11).fill(badgeColor);
     doc.fillOpacity(1);
     doc.restore();
-    doc.fillColor(badgeColor).fontSize(8).font('Helvetica-Bold').text(badgeLabel, badgeX, cursorY + 7, {
+    doc.fillColor(badgeColor).fontSize(8).font(pdfFont(true)).text(badgeLabel, badgeX, cursorY + 7, {
       width: badgeW,
       align: 'center'
     });
@@ -178,7 +181,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     const holderLine = isInvitation
       ? `Sayın ${input.holderName} adına düzenlenmiştir.`
       : `Sayın ${input.holderName}`;
-    doc.fillColor(TEXT_MUTED).fontSize(10).font('Helvetica').text(holderLine, contentX, cursorY, {
+    doc.fillColor(TEXT_MUTED).fontSize(10).font(pdfFont()).text(holderLine, contentX, cursorY, {
       width: contentW
     });
     cursorY += 18;
@@ -189,7 +192,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
       doc.restore();
       doc.fillColor('#cccccc')
         .fontSize(9)
-        .font('Helvetica-Oblique')
+        .font(pdfFont())
         .text(`"${input.personalMessage.trim()}"`, contentX + 12, cursorY + 10, {
           width: contentW - 24,
           lineGap: 2
@@ -239,18 +242,18 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
 
     const infoX = contentX + qrSize + 44;
     const infoW = contentW - qrSize - 44;
-    doc.fillColor(TEXT_MUTED).fontSize(8).font('Helvetica-Bold').text(
+    doc.fillColor(TEXT_MUTED).fontSize(8).font(pdfFont(true)).text(
       isInvitation ? 'DAVETİYE KODU' : 'BİLET KODU',
       infoX,
       cursorY + 8
     );
-    doc.fillColor('#ffffff').fontSize(16).font('Helvetica-Bold').text(input.ticketCode, infoX, cursorY + 24, {
+    doc.fillColor('#ffffff').fontSize(16).font(pdfFont(true)).text(input.ticketCode, infoX, cursorY + 24, {
       width: infoW,
       characterSpacing: 2
     });
     doc.fillColor(TEXT_MUTED)
       .fontSize(9)
-      .font('Helvetica')
+      .font(pdfFont())
       .text(
         isInvitation
           ? 'Girişte bu QR kodu veya davetiye kodunu gösterin.'
@@ -267,7 +270,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     const footerY = cardY + cardH - 36;
     doc.strokeColor('#ffffff22').lineWidth(1);
     doc.moveTo(contentX, footerY).lineTo(contentX + contentW, footerY).stroke();
-    doc.fillColor('#666666').fontSize(8).font('Helvetica').text('biletfeed.com · Güvenli bilet sistemi', contentX, footerY + 10);
+    doc.fillColor('#666666').fontSize(8).font(pdfFont()).text('biletfeed.com · Güvenli bilet sistemi', contentX, footerY + 10);
     doc.text('Kişiye özeldir, devredilemez.', contentX, footerY + 10, {
       width: contentW,
       align: 'right'

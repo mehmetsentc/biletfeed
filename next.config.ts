@@ -67,7 +67,11 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: ['firebase-admin', '@prisma/client', 'prisma', 'pdfkit'],
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns']
+    optimizePackageImports: ['lucide-react', 'date-fns'],
+    outputFileTracingIncludes: {
+      '/api/tickets/**': ['./assets/fonts/**'],
+      '/api/invitations/**': ['./assets/fonts/**']
+    }
   },
   webpack: (config, { dev }) => {
     if (dev) {
