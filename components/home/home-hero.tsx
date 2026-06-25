@@ -15,7 +15,7 @@ export function HomeHeroMobile() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-[#1a1d23]/90 via-[#1a1d23]/75 to-[#1a1d23]" />
 
-      <div className="relative px-4 pb-7 pt-5">
+      <div className="relative px-4 pb-6 pt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-primary">
           Bilet Feed
         </p>
@@ -25,9 +25,6 @@ export function HomeHeroMobile() {
         <p className="mt-2 text-sm leading-relaxed text-white/75">
           Konser, tiyatro, festival — şehrinde ve online.
         </p>
-        <div className="mt-5">
-          <HeroSearch variant="figma" />
-        </div>
       </div>
     </section>
   );
