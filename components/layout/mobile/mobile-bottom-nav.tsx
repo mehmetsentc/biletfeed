@@ -43,8 +43,8 @@ export function MobileBottomNav() {
     <nav
       className="fixed inset-x-0 bottom-0 z-50 lg:hidden"
       style={{
-        background: '#0c1017',
-        borderTop: '1px solid rgba(255,255,255,0.07)',
+        background: '#ffffff',
+        borderTop: '1px solid #e5e7eb',
         paddingBottom: 'env(safe-area-inset-bottom)'
       }}
     >
@@ -59,7 +59,7 @@ export function MobileBottomNav() {
                 'flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors',
                 active
                   ? 'text-primary'
-                  : 'text-white/35 hover:text-white/60'
+                  : 'text-gray-400 hover:text-gray-600'
               )}
             >
               <item.icon

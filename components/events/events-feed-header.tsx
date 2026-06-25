@@ -90,7 +90,7 @@ export function EventsFeedHeader({
           </div>
         </div>
 
-        <div className="relative mt-5">
+        <div className="relative mt-5 hidden md:block">
           <Search
             className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/35"
             aria-hidden

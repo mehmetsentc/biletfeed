@@ -1,22 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { MapPin, Search, Menu, X } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCity } from '@/components/providers/city-provider';
-import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 export function MobileHeader() {
-  const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
   const { citySlug, cities, setCity } = useCity();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [query, setQuery] = useState('');
 
   const currentCity = cities.find((c) => c.slug === citySlug);
   const cityName = currentCity?.name ?? 'Şehir seç';
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = query.trim();
+    router.push(q ? `/etkinlikler?q=${encodeURIComponent(q)}` : '/etkinlikler');
+  }
 
   const menuLinks = [
     { label: 'Konser', href: '/kategoriler/muzik' },
@@ -30,35 +35,42 @@ export function MobileHeader() {
 
   return (
     <>
-      {/* Header */}
-      <header className="sticky top-0 z-50 lg:hidden" style={{ background: 'linear-gradient(135deg, #1a1d23 0%, #0c1017 100%)' }}>
-        {/* Top bar */}
+      {/* Header — light */}
+      <header
+        className="sticky top-0 z-50 lg:hidden bg-white"
+        style={{ borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+      >
         <div className="flex h-14 items-center gap-2 px-3">
-          {/* City selector */}
+          {/* City pill */}
           <button
             onClick={() => {
               const next = cities[(cities.findIndex(c => c.slug === citySlug) + 1) % cities.length];
               if (next) setCity(next.slug);
             }}
-            className="flex shrink-0 items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"
+            className="flex shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary"
           >
             <MapPin className="size-3.5 shrink-0" />
             <span className="max-w-[80px] truncate">{cityName}</span>
           </button>
 
-          {/* Search bar */}
-          <button
-            onClick={() => router.push('/etkinlikler')}
-            className="flex flex-1 items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-2 text-left text-sm text-white/40"
-          >
-            <Search className="size-4 shrink-0 text-white/30" />
-            <span>Etkinlik, mekan, sanatçı ara…</span>
-          </button>
+          {/* Real search input */}
+          <form onSubmit={handleSearch} className="flex flex-1">
+            <div className="relative flex flex-1 items-center">
+              <Search className="pointer-events-none absolute left-3 size-4 text-gray-400" aria-hidden />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Etkinlik, mekan, sanatçı ara…"
+                className="h-9 w-full rounded-full border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </form>
 
           {/* Hamburger */}
           <button
             onClick={() => setMenuOpen(true)}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/6 text-white/70"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600"
           >
             <Menu className="size-5" />
           </button>
@@ -68,36 +80,34 @@ export function MobileHeader() {
       {/* Side Drawer */}
       {menuOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
-          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMenuOpen(false)}
           />
-
-          {/* Drawer panel */}
-          <div className="absolute inset-y-0 left-0 w-[75vw] max-w-xs overflow-y-auto"
-            style={{ background: '#0c1017', borderRight: '1px solid rgba(245,166,35,0.12)' }}>
-
-            {/* Drawer header */}
+          <div
+            className="absolute inset-y-0 left-0 w-[75vw] max-w-xs overflow-y-auto bg-white"
+            style={{ borderRight: '1px solid #e5e7eb' }}
+          >
+            {/* Logo + close */}
             <div className="flex items-center justify-between px-5 pt-6 pb-4">
-              <span className="text-xl font-extrabold tracking-tight text-white">
+              <span className="text-xl font-extrabold tracking-tight text-gray-900">
                 bilet<span className="text-primary">feed</span>
               </span>
               <button
                 onClick={() => setMenuOpen(false)}
-                className="flex size-8 items-center justify-center rounded-full bg-white/8 text-white/60"
+                className="flex size-8 items-center justify-center rounded-full bg-gray-100 text-gray-500"
               >
                 <X className="size-4" />
               </button>
             </div>
 
-            {/* Auth buttons */}
+            {/* Auth */}
             {!user && (
               <div className="flex gap-2 px-5 pb-5">
                 <Link
                   href="/giris"
                   onClick={() => setMenuOpen(false)}
-                  className="flex flex-1 items-center justify-center rounded-lg border border-white/15 py-2.5 text-sm font-semibold text-white"
+                  className="flex flex-1 items-center justify-center rounded-lg border border-gray-200 py-2.5 text-sm font-semibold text-gray-700"
                 >
                   Giriş Yap
                 </Link>
@@ -116,27 +126,27 @@ export function MobileHeader() {
                 <Link
                   href="/profil"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl bg-white/6 px-4 py-3"
+                  className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3"
                 >
                   {user.photoURL ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={user.photoURL} alt="" className="size-9 rounded-full object-cover" />
                   ) : (
-                    <div className="flex size-9 items-center justify-center rounded-full bg-primary/20 text-sm font-bold text-primary">
+                    <div className="flex size-9 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
                       {user.displayName?.[0]?.toUpperCase() ?? 'U'}
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-semibold text-white">{user.displayName ?? 'Profil'}</p>
-                    <p className="text-xs text-white/40">{user.email}</p>
+                    <p className="text-sm font-semibold text-gray-900">{user.displayName ?? 'Profil'}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
                   </div>
                 </Link>
               </div>
             )}
 
-            {/* Category links */}
+            {/* Categories */}
             <div className="px-5">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-white/30">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                 Kategoriler
               </p>
               <div className="space-y-0.5">
@@ -145,7 +155,7 @@ export function MobileHeader() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium text-white/75 transition-colors hover:bg-white/6 hover:text-white"
+                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
                   >
                     {link.label}
                   </Link>
@@ -153,9 +163,9 @@ export function MobileHeader() {
               </div>
             </div>
 
-            {/* Bottom links */}
-            <div className="mt-6 border-t border-white/8 px-5 pt-5 pb-8">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-white/30">
+            {/* Corporate */}
+            <div className="mt-6 border-t border-gray-100 px-5 pt-5 pb-8">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                 Kurumsal
               </p>
               {[
@@ -168,7 +178,7 @@ export function MobileHeader() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center rounded-lg px-3 py-2.5 text-sm text-white/50 hover:text-white"
+                  className="flex items-center rounded-lg px-3 py-2.5 text-sm text-gray-500 hover:text-gray-800"
                 >
                   {link.label}
                 </Link>
