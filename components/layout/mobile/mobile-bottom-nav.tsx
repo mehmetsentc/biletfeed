@@ -64,8 +64,9 @@ export function MobileBottomNav() {
             >
               <item.icon
                 className={cn('size-[22px] transition-transform', active && 'scale-110')}
-                strokeWidth={active ? 2.25 : 1.6}
-                fill={active && item.href === '/favorilerim' ? 'currentColor' : 'none'}
+                strokeWidth={active ? 2.5 : 1.6}
+                fill={active ? 'currentColor' : 'none'}
+                style={active ? { filter: 'drop-shadow(0 0 4px rgba(249,115,22,0.5))' } : undefined}
               />
               <span className="truncate">{item.label}</span>
             </Link>

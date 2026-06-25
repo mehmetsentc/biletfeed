@@ -79,8 +79,8 @@
   --card-foreground: #0a0a0a;
   --popover: #ffffff;
   --popover-foreground: #0a0a0a;
-  --primary: #ff9100;
-  --primary-foreground: #000000;
+  --primary: #f97316;       /* turuncu — daha canlı, akılda kalıcı */
+  --primary-foreground: #ffffff;
   --secondary: #f5f5f5;
   --secondary-foreground: #171717;
   --muted: #f5f5f5;
@@ -90,15 +90,15 @@
   --destructive: #dc2626;
   --border: #e5e5e5;
   --input: #e5e5e5;
-  --ring: #ff9100;
-  --chart-1: #ff9100;
+  --ring: #f97316;
+  --chart-1: #f97316;
   --chart-2: #0a0a0a;
   --chart-3: #ffb74d;
   --chart-4: #ff6f00;
   --chart-5: #ffe0b2;
   --sidebar: #ffffff;
   --sidebar-foreground: #0a0a0a;
-  --sidebar-primary: #ff9100;
+  --sidebar-primary: #f97316;
   --sidebar-primary-foreground: #000000;
   --sidebar-accent: #fff3e0;
   --sidebar-accent-foreground: #0a0a0a;
@@ -115,32 +115,32 @@
 }
 
 .dark {
-  --background: #000000;
+  --background: #0a0a0a;
   --foreground: #fafafa;
   --card: #141414;
   --card-foreground: #fafafa;
   --popover: #141414;
   --popover-foreground: #fafafa;
-  --primary: #ff9100;
-  --primary-foreground: #000000;
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
   --secondary: #1a1a1a;
   --secondary-foreground: #fafafa;
-  --muted: #141414;
+  --muted: #1a1a1a;
   --muted-foreground: #a3a3a3;
   --accent: #1f1500;
-  --accent-foreground: #ff9100;
+  --accent-foreground: #f97316;
   --destructive: #ef4444;
   --border: #262626;
   --input: #262626;
-  --ring: #ff9100;
-  --chart-1: #ff9100;
+  --ring: #f97316;
+  --chart-1: #f97316;
   --chart-2: #fafafa;
   --chart-3: #ffb74d;
   --chart-4: #ff6f00;
   --chart-5: #ffe0b2;
   --sidebar: #141414;
   --sidebar-foreground: #fafafa;
-  --sidebar-primary: #ff9100;
+  --sidebar-primary: #f97316;
   --sidebar-primary-foreground: #000000;
   --sidebar-accent: #1f1500;
   --sidebar-accent-foreground: #ff9100;
@@ -214,7 +214,7 @@
     --destructive: #dc2626;
     --border: #e5e5e5;
     --input: #d4d4d4;
-    --ring: #ff9100;
+    --ring: #f97316;
 
     color: #0a0a0a;
     color-scheme: light;
