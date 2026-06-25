@@ -24,7 +24,7 @@ export function Header() {
     >
       <div className="container mx-auto flex h-20 items-center justify-between px-4">
         <Logo
-          variant="on-dark"
+          variant="auto"
           className="ring-[var(--header-border)] hover:ring-primary/80"
         />
 

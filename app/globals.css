@@ -105,13 +105,13 @@
   --sidebar-border: #e5e5e5;
   --sidebar-ring: #ff9100;
 
-  /* Marka header — her zaman siyah (logo arka planı) */
-  --header-bg: #000000;
-  --header-fg: #ffffff;
-  --header-fg-muted: #a3a3a3;
-  --header-border: rgba(255, 255, 255, 0.1);
-  --header-hover: rgba(255, 255, 255, 0.08);
-  --header-btn-outline: rgba(255, 255, 255, 0.28);
+  /* Header — light tema beyaz */
+  --header-bg: #ffffff;
+  --header-fg: #0a0a0a;
+  --header-fg-muted: #525252;
+  --header-border: #e5e5e5;
+  --header-hover: rgba(0, 0, 0, 0.05);
+  --header-btn-outline: rgba(0, 0, 0, 0.15);
 }
 
 .dark {
@@ -150,9 +150,9 @@
   --header-bg: #000000;
   --header-fg: #ffffff;
   --header-fg-muted: #a3a3a3;
-  --header-border: rgba(255, 255, 255, 0.1);
-  --header-hover: rgba(255, 255, 255, 0.08);
-  --header-btn-outline: rgba(255, 255, 255, 0.28);
+  --header-border: rgba(255,255,255,0.1);
+  --header-hover: rgba(255,255,255,0.08);
+  --header-btn-outline: rgba(255,255,255,0.28);
 }
 
 @layer base {

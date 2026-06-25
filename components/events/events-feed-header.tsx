@@ -54,17 +54,17 @@ export function EventsFeedHeader({
   sortSelect
 }: EventsFeedHeaderProps) {
   return (
-    <header className="border-b border-white/10 bg-[#0c1017]">
+    <header className="border-b border-border bg-background">
       <div className="container mx-auto px-4 py-6 md:py-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
               <CalendarDays className="size-7 text-primary" aria-hidden />
-              <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
                 Etkinlikler
               </h1>
             </div>
-            <p className="mt-1.5 text-sm text-white/50 md:text-base">
+            <p className="mt-1.5 text-sm text-muted-foreground md:text-base">
               {cityLabel} – Yaklaşan etkinlikler
             </p>
           </div>
@@ -75,7 +75,7 @@ export function EventsFeedHeader({
               <button
                 type="button"
                 onClick={onOpenFilters}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 text-sm font-medium text-white/80 transition hover:bg-white/10"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition hover:bg-muted"
                 aria-label="Gelişmiş filtreler"
               >
                 <SlidersHorizontal className="size-4" />
@@ -92,7 +92,7 @@ export function EventsFeedHeader({
 
         <div className="relative mt-5 hidden md:block">
           <Search
-            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/35"
+            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <input
@@ -100,12 +100,12 @@ export function EventsFeedHeader({
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Şehir veya etkinlik ara…"
-            className="h-12 w-full rounded-xl border border-white/10 bg-[#151b24] pl-11 pr-4 text-sm text-white placeholder:text-white/35 outline-none transition focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+            className="h-12 w-full rounded-xl border border-border bg-muted pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
             aria-label="Etkinlik ara"
           />
         </div>
 
-        <div className="mt-5 flex gap-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-white/10">
+        <div className="mt-5 flex gap-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-border">
           {PILLS.map((pill) => {
             const active = activePill === pill.id;
             return (
@@ -117,7 +117,7 @@ export function EventsFeedHeader({
                   'shrink-0 px-4 pb-3 pt-1 text-xs font-bold uppercase tracking-wide transition whitespace-nowrap border-b-2',
                   active
                     ? 'border-primary text-primary'
-                    : 'border-transparent text-white/50 hover:text-white/80'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
                 )}
               >
                 {pill.label}
@@ -126,7 +126,7 @@ export function EventsFeedHeader({
           })}
         </div>
 
-        <p className="mt-4 text-sm text-white/40">{resultCount} etkinlik</p>
+        <p className="mt-4 text-sm text-muted-foreground">{resultCount} etkinlik</p>
       </div>
     </header>
   );

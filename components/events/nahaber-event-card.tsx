@@ -38,7 +38,7 @@ export function NahaberEventCard({ event }: { event: MockEvent }) {
   const locationLine = `${event.venue} – ${event.city}`;
 
   return (
-    <article className="overflow-hidden rounded-xl border border-white/10 bg-[#151b24] shadow-lg shadow-black/25 transition hover:border-white/20">
+    <article className="overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:border-primary/30 hover:shadow-md">
       <Link
         href={`/etkinlik/${event.slug}`}
         className="group relative block aspect-[16/9] overflow-hidden"
@@ -76,20 +76,20 @@ export function NahaberEventCard({ event }: { event: MockEvent }) {
       </Link>
 
       <div className="p-3">
-        <p className="truncate text-xs text-white/45">{locationLine}</p>
+        <p className="truncate text-xs text-muted-foreground">{locationLine}</p>
 
         <Link href={`/etkinlik/${event.slug}`}>
-          <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-white transition hover:text-primary">
+          <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-foreground transition hover:text-primary">
             {event.title}
           </h3>
         </Link>
 
-        <p className="mt-1 text-xs text-white/45">
+        <p className="mt-1 text-xs text-muted-foreground">
           {formatEventDate(event.startDate)}, {formatEventTimeRange(event)}
         </p>
 
         <div className="mt-3 flex items-center justify-between gap-2">
-          <span className="shrink-0 rounded-full border border-white/15 px-2.5 py-0.5 text-xs text-white/70">
+          <span className="shrink-0 rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
             {event.city}
           </span>
 
@@ -98,7 +98,7 @@ export function NahaberEventCard({ event }: { event: MockEvent }) {
               href={ticketUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#2563eb] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
             >
               {getTicketButtonShortLabel(event)}
               <ExternalLink className="size-3 opacity-80" />
@@ -106,7 +106,7 @@ export function NahaberEventCard({ event }: { event: MockEvent }) {
           ) : (
             <Link
               href={ticketUrl}
-              className="inline-flex shrink-0 items-center rounded-lg bg-[#2563eb] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex shrink-0 items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90"
             >
               {getTicketButtonShortLabel(event)}
             </Link>
