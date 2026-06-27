@@ -62,97 +62,100 @@
 :root {
   --radius: 0.625rem;
 
-  /* Marka — logo paleti */
-  --brand-orange: #ff9100;
+  /* Marka — siyah + turuncu (Pornhub tarzı) */
+  --brand-orange: #ff9900;
   --brand-orange-hover: #ff6f00;
   --brand-orange-soft: #fff3e0;
   --brand-black: #000000;
   --brand-white: #ffffff;
-  --brand-surface: #0a0a0a;
-  --brand-hero: #1a1d23;
-  --brand-gray: #1a1a1a;
+  --brand-surface: #000000;
+  --brand-hero: #000000;
+  --brand-gray: #1b1b1b;
 
   /* Açık tema */
   --background: #ffffff;
-  --foreground: #0a0a0a;
+  --foreground: #000000;
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
+  --card-foreground: #000000;
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
-  --primary: #f97316;       /* turuncu — daha canlı, akılda kalıcı */
-  --primary-foreground: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #ff9900;
+  --primary-foreground: #000000;
   --secondary: #f5f5f5;
   --secondary-foreground: #171717;
   --muted: #f5f5f5;
   --muted-foreground: #525252;
   --accent: #fff3e0;
-  --accent-foreground: #0a0a0a;
+  --accent-foreground: #000000;
   --destructive: #dc2626;
   --border: #e5e5e5;
   --input: #e5e5e5;
-  --ring: #f97316;
-  --chart-1: #f97316;
-  --chart-2: #0a0a0a;
+  --ring: #ff9900;
+  --chart-1: #ff9900;
+  --chart-2: #000000;
   --chart-3: #ffb74d;
   --chart-4: #ff6f00;
   --chart-5: #ffe0b2;
   --sidebar: #ffffff;
-  --sidebar-foreground: #0a0a0a;
-  --sidebar-primary: #f97316;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #ff9900;
   --sidebar-primary-foreground: #000000;
   --sidebar-accent: #fff3e0;
-  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-accent-foreground: #000000;
   --sidebar-border: #e5e5e5;
-  --sidebar-ring: #ff9100;
+  --sidebar-ring: #ff9900;
 
-  /* Header — light tema beyaz */
+  /* Header — light: beyaz zemin */
   --header-bg: #ffffff;
-  --header-fg: #0a0a0a;
+  --header-fg: #000000;
   --header-fg-muted: #525252;
   --header-border: #e5e5e5;
-  --header-hover: rgba(0, 0, 0, 0.05);
+  --header-hover: rgba(0, 0, 0, 0.06);
   --header-btn-outline: rgba(0, 0, 0, 0.15);
+  --header-accent: #ff9900;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --card: #141414;
-  --card-foreground: #fafafa;
-  --popover: #141414;
-  --popover-foreground: #fafafa;
-  --primary: #f97316;
-  --primary-foreground: #ffffff;
-  --secondary: #1a1a1a;
-  --secondary-foreground: #fafafa;
-  --muted: #1a1a1a;
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #1b1b1b;
+  --card-foreground: #ffffff;
+  --popover: #1b1b1b;
+  --popover-foreground: #ffffff;
+  --primary: #ff9900;
+  --primary-foreground: #000000;
+  --secondary: #1b1b1b;
+  --secondary-foreground: #ffffff;
+  --muted: #1b1b1b;
   --muted-foreground: #a3a3a3;
   --accent: #1f1500;
-  --accent-foreground: #f97316;
+  --accent-foreground: #ff9900;
   --destructive: #ef4444;
-  --border: #262626;
-  --input: #262626;
-  --ring: #f97316;
-  --chart-1: #f97316;
-  --chart-2: #fafafa;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #ff9900;
+  --chart-1: #ff9900;
+  --chart-2: #ffffff;
   --chart-3: #ffb74d;
   --chart-4: #ff6f00;
   --chart-5: #ffe0b2;
-  --sidebar: #141414;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #f97316;
+  --sidebar: #1b1b1b;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ff9900;
   --sidebar-primary-foreground: #000000;
   --sidebar-accent: #1f1500;
-  --sidebar-accent-foreground: #ff9100;
-  --sidebar-border: #262626;
-  --sidebar-ring: #ff9100;
+  --sidebar-accent-foreground: #ff9900;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #ff9900;
 
-  --header-bg: #000000;
+  /* Header — dark: #1b1b1b bar, siyah sayfa */
+  --header-bg: #1b1b1b;
   --header-fg: #ffffff;
   --header-fg-muted: #a3a3a3;
-  --header-border: rgba(255,255,255,0.1);
-  --header-hover: rgba(255,255,255,0.08);
-  --header-btn-outline: rgba(255,255,255,0.28);
+  --header-border: rgba(255, 255, 255, 0.08);
+  --header-hover: rgba(255, 255, 255, 0.08);
+  --header-btn-outline: rgba(255, 255, 255, 0.28);
+  --header-accent: #ff9900;
 }
 
 @layer base {
@@ -214,7 +217,7 @@
     --destructive: #dc2626;
     --border: #e5e5e5;
     --input: #d4d4d4;
-    --ring: #f97316;
+    --ring: #ff9900;
 
     color: #0a0a0a;
     color-scheme: light;

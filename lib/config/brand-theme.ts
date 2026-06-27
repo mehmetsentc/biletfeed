@@ -1,16 +1,15 @@
-/** Bilet Feed marka renkleri — logo ile uyumlu */
+/** Bilet Feed marka renkleri — Pornhub tarzı siyah + turuncu palet */
 export const brandTheme = {
-  orange: '#FF9100',
+  orange: '#FF9900',
   orangeHover: '#FF6F00',
   orangeSoft: '#FFF3E0',
   black: '#000000',
   white: '#FFFFFF',
   /** Hero, footer, koyu yüzeyler */
-  surfaceDark: '#0A0A0A',
-  surfaceElevated: '#141414',
-  surfaceCard: '#1A1A1A',
-  /** Eski hero rengi — geriye dönük uyumluluk */
-  hero: '#1A1D23',
+  surfaceDark: '#000000',
+  surfaceElevated: '#1B1B1B',
+  surfaceCard: '#1B1B1B',
+  hero: '#000000',
   gray: {
     50: '#FAFAFA',
     100: '#F5F5F5',
@@ -35,7 +34,7 @@ export const brandLogos = {
 } as const;
 
 /** CDN/cache kırma — logo güncellendiğinde artırın */
-export const brandAssetsVersion = '7';
+export const brandAssetsVersion = '8';
 
 export function brandAssetUrl(path: string): string {
   return `${path}?v=${brandAssetsVersion}`;

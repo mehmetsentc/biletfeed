@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { MapPin, Search, Menu, X } from 'lucide-react';
+import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCity } from '@/components/providers/city-provider';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export function MobileHeader() {
   const router = useRouter();
@@ -35,86 +37,112 @@ export function MobileHeader() {
 
   return (
     <>
-      {/* Header — light */}
       <header
-        className="sticky top-0 z-50 lg:hidden bg-white"
-        style={{ borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+        className={cn(
+          'sticky top-0 z-50 border-b border-[var(--header-border)] bg-[var(--header-bg)] lg:hidden',
+          'text-[var(--header-fg)]'
+        )}
       >
-        <div className="flex h-14 items-center gap-2 px-3">
-          {/* City pill */}
+        {/* Üst bar — logo ortada (Pornhub tarzı) */}
+        <div className="relative flex h-12 items-center justify-center px-3">
           <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="absolute left-3 flex size-9 items-center justify-center text-primary"
+            aria-label="Menü"
+          >
+            <Menu className="size-6" strokeWidth={2.5} />
+          </button>
+
+          <Logo variant="auto" className="pointer-events-auto" />
+
+          <button
+            type="button"
             onClick={() => {
-              const next = cities[(cities.findIndex(c => c.slug === citySlug) + 1) % cities.length];
+              const input = document.getElementById('mobile-search-input');
+              input?.focus();
+            }}
+            className="absolute right-3 flex size-9 items-center justify-center text-[var(--header-fg)]"
+            aria-label="Ara"
+          >
+            <Search className="size-5" />
+          </button>
+        </div>
+
+        {/* Şehir + arama */}
+        <div className="flex items-center gap-2 border-t border-[var(--header-border)] px-3 py-2">
+          <button
+            type="button"
+            onClick={() => {
+              const next = cities[(cities.findIndex((c) => c.slug === citySlug) + 1) % cities.length];
               if (next) setCity(next.slug);
             }}
-            className="flex shrink-0 items-center gap-1 rounded-full border border-primary/40 bg-primary/8 px-3 py-1.5 text-xs font-semibold text-primary"
+            className="flex shrink-0 items-center gap-1 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"
           >
             <MapPin className="size-3.5 shrink-0" />
             <span className="max-w-[80px] truncate">{cityName}</span>
           </button>
 
-          {/* Real search input */}
           <form onSubmit={handleSearch} className="flex flex-1">
             <div className="relative flex flex-1 items-center">
-              <Search className="pointer-events-none absolute left-3 size-4 text-gray-400" aria-hidden />
+              <Search
+                className="pointer-events-none absolute left-3 size-4 text-[var(--header-fg-muted)]"
+                aria-hidden
+              />
               <input
+                id="mobile-search-input"
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Etkinlik, mekan, sanatçı ara…"
-                className="h-9 w-full rounded-full border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                className={cn(
+                  'h-9 w-full rounded-full border border-[var(--header-border)] pl-9 pr-3 text-sm outline-none',
+                  'bg-[var(--muted)] text-[var(--foreground)] placeholder:text-[var(--header-fg-muted)]',
+                  'focus:border-primary/50 focus:ring-2 focus:ring-primary/20'
+                )}
               />
             </div>
           </form>
-
-          {/* Hamburger */}
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600"
-          >
-            <Menu className="size-5" />
-          </button>
         </div>
       </header>
 
-      {/* Side Drawer */}
       {menuOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setMenuOpen(false)}
+            aria-hidden
           />
           <div
-            className="absolute inset-y-0 left-0 w-[75vw] max-w-xs overflow-y-auto bg-white"
-            style={{ borderRight: '1px solid #e5e7eb' }}
+            className={cn(
+              'absolute inset-y-0 left-0 w-[75vw] max-w-xs overflow-y-auto',
+              'border-r border-[var(--border)] bg-[var(--background)] text-[var(--foreground)]'
+            )}
           >
-            {/* Logo + close */}
             <div className="flex items-center justify-between px-5 pt-6 pb-4">
-              <span className="text-xl font-extrabold tracking-tight text-gray-900">
-                bilet<span className="text-primary">feed</span>
-              </span>
+              <Logo variant="auto" href="/" />
               <button
+                type="button"
                 onClick={() => setMenuOpen(false)}
-                className="flex size-8 items-center justify-center rounded-full bg-gray-100 text-gray-500"
+                className="flex size-8 items-center justify-center rounded-full bg-[var(--muted)] text-[var(--muted-foreground)]"
               >
                 <X className="size-4" />
               </button>
             </div>
 
-            {/* Auth */}
             {!user && (
               <div className="flex gap-2 px-5 pb-5">
                 <Link
                   href="/giris"
                   onClick={() => setMenuOpen(false)}
-                  className="flex flex-1 items-center justify-center rounded-lg border border-gray-200 py-2.5 text-sm font-semibold text-gray-700"
+                  className="flex flex-1 items-center justify-center rounded-lg border border-[var(--border)] py-2.5 text-sm font-semibold"
                 >
                   Giriş Yap
                 </Link>
                 <Link
                   href="/kayit"
                   onClick={() => setMenuOpen(false)}
-                  className="flex flex-1 items-center justify-center rounded-lg bg-primary py-2.5 text-sm font-semibold text-black"
+                  className="flex flex-1 items-center justify-center rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                 >
                   Üye Ol
                 </Link>
@@ -126,7 +154,7 @@ export function MobileHeader() {
                 <Link
                   href="/profil"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3"
+                  className="flex items-center gap-3 rounded-xl bg-[var(--muted)] px-4 py-3"
                 >
                   {user.photoURL ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -137,16 +165,15 @@ export function MobileHeader() {
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{user.displayName ?? 'Profil'}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
+                    <p className="text-sm font-semibold">{user.displayName ?? 'Profil'}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">{user.email}</p>
                   </div>
                 </Link>
               </div>
             )}
 
-            {/* Categories */}
             <div className="px-5">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                 Kategoriler
               </p>
               <div className="space-y-0.5">
@@ -155,7 +182,7 @@ export function MobileHeader() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
+                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
                   >
                     {link.label}
                   </Link>
@@ -163,9 +190,8 @@ export function MobileHeader() {
               </div>
             </div>
 
-            {/* Corporate */}
-            <div className="mt-6 border-t border-gray-100 px-5 pt-5 pb-8">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            <div className="mt-6 border-t border-[var(--border)] px-5 pt-5 pb-8">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                 Kurumsal
               </p>
               {[
@@ -178,7 +204,7 @@ export function MobileHeader() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center rounded-lg px-3 py-2.5 text-sm text-gray-500 hover:text-gray-800"
+                  className="flex items-center rounded-lg px-3 py-2.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 >
                   {link.label}
                 </Link>

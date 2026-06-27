@@ -22,7 +22,7 @@ export function Header() {
         !isHome && 'shadow-lg'
       )}
     >
-      <div className="container mx-auto flex h-20 items-center justify-between px-4">
+      <div className="container mx-auto flex h-14 items-center justify-between px-4 md:h-16">
         <Logo
           variant="auto"
           className="ring-[var(--header-border)] hover:ring-primary/80"

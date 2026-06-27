@@ -38,7 +38,7 @@ export async function Footer() {
 
   return (
     <footer>
-      <div className="bg-[#1a1d23] text-white">
+      <div className="bg-black text-white">
         <div className="container mx-auto px-4 py-14">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             <div>
@@ -160,19 +160,19 @@ export async function Footer() {
 
 export function CreateEventBanner() {
   return (
-    <section className="relative overflow-hidden bg-[#1a1d23] py-14 text-white">
+    <section className="relative overflow-hidden bg-black py-14 text-white">
       <div className="pointer-events-none absolute inset-0 opacity-20">
         <svg className="size-full" viewBox="0 0 1200 200" preserveAspectRatio="none">
           <path
             d="M0 100 Q300 20 600 100 T1200 100"
             fill="none"
-            stroke="#FF9100"
+            stroke="#FF9900"
             strokeWidth="2"
           />
           <path
             d="M0 140 Q400 60 800 140 T1200 120"
             fill="none"
-            stroke="#FF9100"
+            stroke="#FF9900"
             strokeWidth="1.5"
           />
         </svg>
@@ -207,23 +207,23 @@ export function CuratedCtaBanner() {
           <path
             d="M0 80 Q200 160 400 80 T800 80 T1200 80"
             fill="none"
-            stroke="#1a1d23"
+            stroke="#000000"
             strokeWidth="3"
           />
         </svg>
       </div>
       <div className="container relative mx-auto flex flex-col items-center gap-6 px-4 text-center md:flex-row md:text-left">
         <div className="flex-1">
-          <h2 className="text-2xl font-bold text-[#1a1d23] md:text-3xl">
+          <h2 className="text-2xl font-bold text-black md:text-3xl">
             Size özel seçilmiş etkinlikler!
           </h2>
-          <p className="mt-2 max-w-xl text-sm text-[#1a1d23]/80 md:text-base">
+          <p className="mt-2 max-w-xl text-sm text-black/80 md:text-base">
             İlgi alanlarınıza göre etkinlik önerileri alın. Favori etkinliklerinizi
             kaçırmayın.
           </p>
         </div>
         <Link href="/kayit">
-          <span className="inline-flex items-center gap-2 rounded-lg bg-[#1a1d23] px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-[#1a1d23]/90">
+          <span className="inline-flex items-center gap-2 rounded-lg bg-black px-8 py-3.5 text-base font-semibold text-white transition-colors hover:bg-black/90">
             Hemen Başla
             <ArrowRight className="size-4" />
           </span>
