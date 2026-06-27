@@ -1,4 +1,4 @@
-/** Bilet Feed marka renkleri — Pornhub tarzı siyah + turuncu palet */
+/** Bilet Feed marka renkleri — siyah zemin + turuncu vurgu paleti */
 export const brandTheme = {
   orange: '#FF9900',
   orangeHover: '#FF6F00',

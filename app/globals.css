@@ -62,7 +62,7 @@
 :root {
   --radius: 0.625rem;
 
-  /* Marka — siyah + turuncu (Pornhub tarzı) */
+  /* Marka — siyah zemin + turuncu vurgu (BiletFeed paleti) */
   --brand-orange: #ff9900;
   --brand-orange-hover: #ff6f00;
   --brand-orange-soft: #fff3e0;

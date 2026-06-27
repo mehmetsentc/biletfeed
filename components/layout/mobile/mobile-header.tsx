@@ -43,7 +43,7 @@ export function MobileHeader() {
           'text-[var(--header-fg)]'
         )}
       >
-        {/* Üst bar — logo ortada (Pornhub tarzı) */}
+        {/* Üst bar — logo ortada, kompakt header */}
         <div className="relative flex h-12 items-center justify-center px-3">
           <button
             type="button"
