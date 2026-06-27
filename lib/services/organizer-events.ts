@@ -120,19 +120,22 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
         listingType: 'internal',
         ticketTypes: {
           create: (input.ticketCategories && input.ticketCategories.length > 0
-            ? input.ticketCategories.map((cat, i) => ({
-                name: cat.name,
+            ? input.ticketCategories.map((cat, i) => {
+                const desc = cat.description?.trim();
+                const displayName = desc ? `${cat.name} — ${desc}` : cat.name;
+                return {
+                name: displayName,
                 type: i === 0 ? ('general' as const) : ('vip' as const),
                 price: input.isFree ? 0 : cat.price,
                 currency: 'TRY',
                 quantity: cat.capacity,
                 sold: 0,
                 capacity: cat.capacity,
-                description: cat.description?.trim() || '',
                 saleStartDate: now,
                 saleEndDate: input.startDate,
                 status: 'active' as const
-              }))
+              };
+              })
             : [{
                 name: 'Genel Giriş',
                 type: 'general' as const,
