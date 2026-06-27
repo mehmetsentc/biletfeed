@@ -20,93 +20,59 @@ export interface CategoryIconConfig {
   iconClass: string;
 }
 
-const DEFAULT: CategoryIconConfig = {
-  Icon: Sparkles,
-  gradient: 'from-primary/30 to-primary/10',
-  iconClass: 'text-primary'
-};
+/** Marka turuncusu (#FF9900) tonları — kategoriler arası hafif fark, aynı palet */
+function brandIcon(
+  Icon: LucideIcon,
+  variant: 'vivid' | 'warm' | 'soft' | 'deep' | 'muted'
+): CategoryIconConfig {
+  const styles: Record<
+    typeof variant,
+    Pick<CategoryIconConfig, 'gradient' | 'iconClass'>
+  > = {
+    vivid: {
+      gradient: 'from-orange-500/40 via-orange-500/22 to-amber-400/12',
+      iconClass: 'text-orange-400'
+    },
+    warm: {
+      gradient: 'from-amber-500/35 via-orange-500/20 to-orange-600/10',
+      iconClass: 'text-amber-400'
+    },
+    soft: {
+      gradient: 'from-orange-400/32 via-orange-500/18 to-amber-500/10',
+      iconClass: 'text-orange-300'
+    },
+    deep: {
+      gradient: 'from-orange-600/38 via-orange-500/20 to-amber-600/12',
+      iconClass: 'text-orange-500'
+    },
+    muted: {
+      gradient: 'from-neutral-500/22 via-orange-500/14 to-neutral-600/10',
+      iconClass: 'text-neutral-400'
+    }
+  };
+
+  return { Icon, ...styles[variant] };
+}
+
+const DEFAULT: CategoryIconConfig = brandIcon(Sparkles, 'vivid');
 
 export const CATEGORY_ICON_MAP: Record<string, CategoryIconConfig> = {
-  muzik: {
-    Icon: Music2,
-    gradient: 'from-violet-500/30 via-violet-500/15 to-fuchsia-500/10',
-    iconClass: 'text-violet-400'
-  },
-  konser: {
-    Icon: Music2,
-    gradient: 'from-violet-500/30 via-violet-500/15 to-fuchsia-500/10',
-    iconClass: 'text-violet-400'
-  },
-  tiyatro: {
-    Icon: Clapperboard,
-    gradient: 'from-rose-500/30 via-rose-500/15 to-orange-500/10',
-    iconClass: 'text-rose-400'
-  },
-  festival: {
-    Icon: Tent,
-    gradient: 'from-amber-500/30 via-amber-500/15 to-orange-500/10',
-    iconClass: 'text-amber-400'
-  },
-  spor: {
-    Icon: Trophy,
-    gradient: 'from-emerald-500/30 via-emerald-500/15 to-teal-500/10',
-    iconClass: 'text-emerald-400'
-  },
-  sanat: {
-    Icon: Palette,
-    gradient: 'from-fuchsia-500/30 via-fuchsia-500/15 to-pink-500/10',
-    iconClass: 'text-fuchsia-400'
-  },
-  teknoloji: {
-    Icon: Laptop,
-    gradient: 'from-sky-500/30 via-sky-500/15 to-blue-500/10',
-    iconClass: 'text-sky-400'
-  },
-  workshop: {
-    Icon: Laptop,
-    gradient: 'from-sky-500/30 via-sky-500/15 to-blue-500/10',
-    iconClass: 'text-sky-400'
-  },
-  online: {
-    Icon: Globe,
-    gradient: 'from-indigo-500/30 via-indigo-500/15 to-violet-500/10',
-    iconClass: 'text-indigo-400'
-  },
-  komedi: {
-    Icon: Laugh,
-    gradient: 'from-yellow-500/30 via-yellow-500/15 to-amber-500/10',
-    iconClass: 'text-yellow-400'
-  },
-  standup: {
-    Icon: Laugh,
-    gradient: 'from-yellow-500/30 via-yellow-500/15 to-amber-500/10',
-    iconClass: 'text-yellow-400'
-  },
-  cocuk: {
-    Icon: Baby,
-    gradient: 'from-pink-500/30 via-pink-500/15 to-rose-500/10',
-    iconClass: 'text-pink-400'
-  },
-  yemek: {
-    Icon: UtensilsCrossed,
-    gradient: 'from-orange-500/30 via-orange-500/15 to-red-500/10',
-    iconClass: 'text-orange-400'
-  },
-  'yemek-icecek': {
-    Icon: UtensilsCrossed,
-    gradient: 'from-orange-500/30 via-orange-500/15 to-red-500/10',
-    iconClass: 'text-orange-400'
-  },
-  party: {
-    Icon: PartyPopper,
-    gradient: 'from-pink-500/30 via-purple-500/15 to-violet-500/10',
-    iconClass: 'text-pink-400'
-  },
-  diger: {
-    Icon: Sparkles,
-    gradient: 'from-zinc-500/30 via-zinc-500/15 to-slate-500/10',
-    iconClass: 'text-zinc-400'
-  }
+  muzik: brandIcon(Music2, 'vivid'),
+  konser: brandIcon(Music2, 'vivid'),
+  party: brandIcon(PartyPopper, 'warm'),
+  festival: brandIcon(Tent, 'deep'),
+  tiyatro: brandIcon(Clapperboard, 'soft'),
+  komedi: brandIcon(Laugh, 'warm'),
+  standup: brandIcon(Laugh, 'warm'),
+  spor: brandIcon(Trophy, 'deep'),
+  sanat: brandIcon(Palette, 'vivid'),
+  cocuk: brandIcon(Baby, 'soft'),
+  teknoloji: brandIcon(Laptop, 'muted'),
+  workshop: brandIcon(Laptop, 'muted'),
+  online: brandIcon(Globe, 'soft'),
+  yemek: brandIcon(UtensilsCrossed, 'deep'),
+  'yemek-icecek': brandIcon(UtensilsCrossed, 'deep'),
+  diger: brandIcon(Sparkles, 'muted')
 };
 
 /** Tüm bilinen kategori slug'ları (DB + scraper) */

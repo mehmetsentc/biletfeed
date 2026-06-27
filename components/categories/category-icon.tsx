@@ -39,7 +39,8 @@ export function CategoryIcon({
       className={cn(
         'flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br shadow-inner',
         gradient,
-        showRing && 'ring-2 ring-border transition-all group-hover:ring-primary',
+        showRing &&
+          'ring-2 ring-orange-500/20 transition-all group-hover:ring-orange-500/50 dark:ring-orange-500/25 dark:group-hover:ring-orange-400/60',
         containerSizes[size],
         className
       )}
