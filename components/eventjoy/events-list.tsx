@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { Calendar, CalendarPlus, ChevronRight } from 'lucide-react';
+import { EventJoyCrossLinks } from '@/components/eventjoy/eventjoy-cross-links';
 import { useEventJoy } from '@/components/providers/eventjoy-provider';
+import { eventJoyRoutes } from '@/lib/eventjoy/navigation';
 import { cn } from '@/lib/utils';
 
 export function EventJoyEventsList() {
@@ -22,6 +24,14 @@ export function EventJoyEventsList() {
 
   return (
     <div className="space-y-6 lg:space-y-8">
+      <nav aria-label="Konum" className="text-sm text-muted-foreground">
+        <Link href={eventJoyRoutes.panel} className="hover:text-primary">
+          Ana Sayfa
+        </Link>
+        <span className="mx-2">/</span>
+        <span className="text-foreground">Etkinliklerim</span>
+      </nav>
+
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
@@ -95,6 +105,7 @@ export function EventJoyEventsList() {
           ))}
         </div>
       )}
+      <EventJoyCrossLinks className="border-t border-border pt-6" />
     </div>
   );
 }

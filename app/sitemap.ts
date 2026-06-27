@@ -21,7 +21,8 @@ const staticRoutes = [
   '/iade-iptal',
   '/mesafeli-satis',
   '/yardim',
-  '/kariyer'
+  '/kariyer',
+  '/eventjoy'
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

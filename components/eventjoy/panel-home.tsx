@@ -12,8 +12,10 @@ import {
   Sparkles,
   Users
 } from 'lucide-react';
+import { EventJoyCrossLinks } from '@/components/eventjoy/eventjoy-cross-links';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useEventJoy } from '@/components/providers/eventjoy-provider';
+import { eventJoyRoutes } from '@/lib/eventjoy/navigation';
 import {
   getUpcomingEvents,
   profileDisplayName,
@@ -78,7 +80,7 @@ export function EventJoyPanelHome() {
 
   const quickActions = [
     {
-      href: '/eventjoy/yeni',
+      href: eventJoyRoutes.create,
       icon: CalendarPlus,
       label: 'Etkinlik Oluştur',
       desc: 'Davetiye, tarih ve kapak görseli',
@@ -87,21 +89,21 @@ export function EventJoyPanelHome() {
     {
       href: nextEvent
         ? `/eventjoy/misafirler/${nextEvent.id}`
-        : '/eventjoy/etkinlikler',
+        : eventJoyRoutes.events,
       icon: Users,
       label: 'Misafir Listesi',
       desc: nextEvent ? nextEvent.title : 'Önce etkinlik oluşturun',
       accent: 'bg-[#fff3e0] text-[#e65100]'
     },
     {
-      href: '/eventjoy/mesajlar',
+      href: eventJoyRoutes.messages,
       icon: MessageCircle,
       label: 'Mesajlar',
       desc: 'Misafirlerle grup iletişimi',
       accent: 'bg-zinc-100 text-zinc-700'
     },
     {
-      href: '/eventjoy/etkinlikler',
+      href: eventJoyRoutes.events,
       icon: Calendar,
       label: 'Tüm Etkinlikler',
       desc: `${events.length} planlanmış etkinlik`,
@@ -131,7 +133,7 @@ export function EventJoyPanelHome() {
             </p>
             {name === 'Kullanıcı' && !user?.displayName && (
               <Link
-                href="/eventjoy/profil/duzenle"
+                href={eventJoyRoutes.profileEdit}
                 className="mt-4 inline-flex text-sm font-semibold text-primary hover:underline"
               >
                 Profilinizi tamamlayın →
@@ -141,7 +143,7 @@ export function EventJoyPanelHome() {
 
           <div className="flex shrink-0 flex-wrap gap-3">
             <Link
-              href="/eventjoy/yeni"
+              href={eventJoyRoutes.create}
               className="inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
             >
               <CalendarPlus className="size-4" />
@@ -283,7 +285,7 @@ export function EventJoyPanelHome() {
                 kanalını hazırlayın.
               </p>
               <Link
-                href="/eventjoy/yeni"
+                href={eventJoyRoutes.create}
                 className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
               >
                 <CalendarPlus className="size-4" />
@@ -334,7 +336,7 @@ export function EventJoyPanelHome() {
               organizatör paneline geçebilirsiniz.
             </p>
             <Link
-              href="/profil"
+              href={eventJoyRoutes.accountProfile}
               className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline"
             >
               Hesap ayarları →
@@ -342,6 +344,8 @@ export function EventJoyPanelHome() {
           </div>
         </aside>
       </div>
+
+      <EventJoyCrossLinks className="border-t border-border pt-6" />
     </div>
   );
 }
