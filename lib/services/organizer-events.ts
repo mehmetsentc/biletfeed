@@ -128,7 +128,7 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
                 quantity: cat.capacity,
                 sold: 0,
                 capacity: cat.capacity,
-                description: cat.description || undefined,
+                description: cat.description?.trim() || '',
                 saleStartDate: now,
                 saleEndDate: input.startDate,
                 status: 'active' as const
