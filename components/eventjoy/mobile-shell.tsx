@@ -20,12 +20,6 @@ export const EVENTJOY_RED = '#FF9100';
 
 const navItems = [
   {
-    href: '/eventjoy/panel',
-    label: 'Ana Sayfa',
-    icon: Home,
-    match: (p: string) => p === '/eventjoy/panel'
-  },
-  {
     href: '/eventjoy/etkinlikler',
     label: 'Etkinlikler',
     icon: Calendar,
@@ -45,6 +39,12 @@ const navItems = [
     label: 'Profil',
     icon: User,
     match: (p: string) => p.startsWith('/eventjoy/profil')
+  },
+  {
+    href: '/eventjoy/panel',
+    label: 'Ana Sayfa',
+    icon: Home,
+    match: (p: string) => p === '/eventjoy/panel'
   }
 ];
 
@@ -108,17 +108,23 @@ function EventJoyNavBar({ pathname }: { pathname: string }) {
   return (
     <nav className="sticky top-14 z-40 border-b border-white/10 bg-[#2b3035]">
       <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:gap-3 lg:px-8 [&::-webkit-scrollbar]:hidden">
-        {navItems.map((item) => (
-          <NavTab key={item.href} item={item} pathname={pathname} />
-        ))}
+        {/* Oluştur — kaydırma çubuğunun başında sabit */}
         <Link
           href="/eventjoy/yeni"
-          className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+          className={cn(
+            'sticky left-0 z-10 inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-2',
+            'text-sm font-semibold text-primary-foreground transition hover:bg-primary/90',
+            'shadow-[6px_0_14px_rgba(43,48,53,0.95)]'
+          )}
         >
           <Plus className="size-4" strokeWidth={2.25} />
           <span className="hidden sm:inline">Yeni Etkinlik</span>
           <span className="sm:hidden">Oluştur</span>
         </Link>
+
+        {navItems.map((item) => (
+          <NavTab key={item.href} item={item} pathname={pathname} />
+        ))}
       </div>
     </nav>
   );

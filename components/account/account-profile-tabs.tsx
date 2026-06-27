@@ -6,6 +6,7 @@ import {
   Calendar,
   Contact,
   Heart,
+  Settings,
   Star,
   Ticket,
   User
@@ -19,6 +20,16 @@ const profileTabs = [
     label: 'Profil',
     icon: User,
     isActive: (p: string) => p === '/profil' || p === '/profil/duzenle'
+  },
+  {
+    href: '/profil/ayarlar',
+    label: 'Ayarlar',
+    icon: Settings,
+    isActive: (p: string) =>
+      p === '/profil/ayarlar' ||
+      p === '/profil/email' ||
+      p === '/profil/sifre' ||
+      p === '/profil/ilgi-alanlari'
   },
   {
     href: '/profil/bilgilerim',
