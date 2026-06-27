@@ -49,7 +49,7 @@ export function buildInvitationEmail(params: {
 
   const personalBlock = personalMessage
     ? `
-      <div style="margin:0 0 24px;padding:16px 20px;background:rgba(245,166,35,0.08);border-left:3px solid ${EMAIL_BRAND.accent};border-radius:0 8px 8px 0;">
+      <div style="margin:0 0 24px;padding:16px 20px;background:rgba(255,145,0,0.08);border-left:3px solid ${EMAIL_BRAND.accent};border-radius:0 8px 8px 0;">
         <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.75);font-style:italic;line-height:1.6;">
           "${personalMessage}"
         </p>

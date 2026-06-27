@@ -1,5 +1,6 @@
 import { emailConfig } from '@/lib/config/email';
 import {
+  EMAIL_BRAND,
   emailAccentBar,
   emailFooter,
   emailLogoBar,
@@ -55,7 +56,7 @@ export function buildEventReminderEmail(params: EventReminderEmailParams): strin
     ${coverBlock}
     <tr>
       <td style="padding:28px 28px 8px;">
-        <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#f5a623;text-transform:uppercase;letter-spacing:0.5px;">
+        <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:${EMAIL_BRAND.accent};text-transform:uppercase;letter-spacing:0.5px;">
           Etkinlik hatırlatması · ${whenLabel}
         </p>
         <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#fff;">${params.eventTitle}</h1>
@@ -84,7 +85,7 @@ export function buildEventReminderEmail(params: EventReminderEmailParams): strin
     <tr>
       <td style="padding:0 28px 28px;" align="center">
         <a href="${params.ticketsUrl}"
-           style="display:inline-block;padding:14px 28px;background:#f5a623;color:#0c1017;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">
+           style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:${EMAIL_BRAND.bg};font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">
           Biletimi Görüntüle
         </a>
         ${calendarBlock}

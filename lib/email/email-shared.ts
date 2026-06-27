@@ -1,12 +1,19 @@
+import { brandAssetUrl, brandLogos, brandTheme } from '@/lib/config/brand-theme';
 import { platformContact } from '@/lib/config/contact';
+import { getSiteUrl } from '@/lib/config/domain';
 
 export const EMAIL_BRAND = {
-  bg: '#0c1017',
-  card: '#151b24',
-  header: '#0e1420',
-  accent: '#f5a623',
-  accentDark: '#e09510'
+  bg: brandTheme.surfaceDark,
+  card: brandTheme.surfaceCard,
+  header: brandTheme.surfaceElevated,
+  accent: brandTheme.orange,
+  accentDark: brandTheme.orangeHover
 } as const;
+
+/** E-posta istemcileri için mutlak logo URL'si (koyu zemin) */
+export function emailLogoUrl(): string {
+  return getSiteUrl(brandAssetUrl(brandLogos.forDarkSurface));
+}
 
 export function formatEventDateTimeTr(startDate: Date): string {
   return startDate.toLocaleDateString('tr-TR', {
@@ -28,12 +35,16 @@ export function formatCurrencyTr(amount: number): string {
 }
 
 export function emailLogoBar(): string {
+  const logoUrl = emailLogoUrl();
+  const homeUrl = getSiteUrl('/');
+
   return `
     <tr>
       <td style="padding:20px 28px;background:${EMAIL_BRAND.header};border-bottom:1px solid rgba(255,255,255,0.06);">
-        <span style="font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.5px;">
-          bilet<span style="color:${EMAIL_BRAND.accent};">feed</span>
-        </span>
+        <a href="${homeUrl}" style="text-decoration:none;display:inline-block;line-height:0;">
+          <img src="${logoUrl}" alt="BiletFeed" width="160" height="44"
+               style="display:block;width:160px;height:auto;max-height:44px;border:0;outline:none;" />
+        </a>
       </td>
     </tr>`;
 }

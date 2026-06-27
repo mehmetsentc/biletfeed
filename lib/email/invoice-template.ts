@@ -1,6 +1,7 @@
 import { companyLegal, formatCompanyTaxLine } from '@/lib/config/company';
 import { emailConfig } from '@/lib/config/email';
 import {
+  EMAIL_BRAND,
   emailAccentBar,
   emailFooter,
   emailLogoBar,
@@ -68,7 +69,7 @@ export function buildInvoiceEmail(params: InvoiceEmailParams): string {
           <tr>
             <td style="padding:20px;">
               <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.5px;">Fatura No</p>
-              <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#f5a623;font-family:monospace;">${params.invoiceNumber}</p>
+              <p style="margin:0 0 16px;font-size:18px;font-weight:700;color:${EMAIL_BRAND.accent};font-family:monospace;">${params.invoiceNumber}</p>
               <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,0.45);">Tutar (KDV dahil)</p>
               <p style="margin:0 0 16px;font-size:24px;font-weight:700;color:#fff;">${amountLabel}</p>
               <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.45);">Düzenleme tarihi: ${issuedLabel}</p>
@@ -92,7 +93,7 @@ export function buildInvoiceEmail(params: InvoiceEmailParams): string {
       <td style="padding:0 28px 28px;">
         <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;">
           Fatura ile ilgili sorularınız için
-          <a href="mailto:${emailConfig.supportEmail}" style="color:#f5a623;text-decoration:none;">${emailConfig.supportEmail}</a>
+          <a href="mailto:${emailConfig.supportEmail}" style="color:${EMAIL_BRAND.accent};text-decoration:none;">${emailConfig.supportEmail}</a>
           adresine yazabilirsiniz.
         </p>
       </td>

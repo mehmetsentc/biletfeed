@@ -1,5 +1,6 @@
 import { emailConfig } from '@/lib/config/email';
 import {
+  EMAIL_BRAND,
   emailAccentBar,
   emailFooter,
   emailLogoBar,
@@ -41,7 +42,7 @@ export function buildRefundNotificationEmail(
       <tr>
         <td style="padding:0 28px 28px;" align="center">
           <a href="${params.ticketsUrl}"
-             style="display:inline-block;padding:14px 28px;background:#f5a623;color:#0c1017;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">
+             style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:${EMAIL_BRAND.bg};font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">
             Biletlerime Git
           </a>
         </td>
@@ -80,7 +81,7 @@ export function buildRefundNotificationEmail(
         <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;">
           Biletleriniz geçersiz kılınmıştır. Ödeme sağlayıcınıza bağlı olarak tutarın hesabınıza yansıması 3–10 iş günü sürebilir.
           Sorularınız için
-          <a href="mailto:${emailConfig.supportEmail}" style="color:#f5a623;text-decoration:none;">${emailConfig.supportEmail}</a>.
+          <a href="mailto:${emailConfig.supportEmail}" style="color:${EMAIL_BRAND.accent};text-decoration:none;">${emailConfig.supportEmail}</a>.
         </p>
       </td>
     </tr>
