@@ -10,24 +10,6 @@ import { Button } from '@/components/ui/button';
 import { ScrapeNowButton } from '@/components/admin/scrape-now-button';
 import { EventFilters } from '@/components/admin/event-filters';
 
-async function triggerScrapeAction(): Promise<{ ok: boolean; message: string }> {
-  'use server';
-  const { requireAdmin } = await import('@/lib/auth/guards');
-  await requireAdmin();
-
-  try {
-    const { runEventScrapeJob } = await import('@/lib/scraper/sync');
-    const { status, stats } = await runEventScrapeJob();
-    const ok = status !== 'failed';
-    const message = ok
-      ? `${stats.totalCreated} yeni · ${stats.totalUpdated} güncellendi · ${stats.totalSkipped} atlandı`
-      : `Başarısız: ${stats.errors[0] ?? 'Bilinmeyen hata'}`;
-    return { ok, message };
-  } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : String(e) };
-  }
-}
-
 export default async function AdminEventsPage({
   searchParams
 }: {
@@ -92,7 +74,7 @@ export default async function AdminEventsPage({
           <Button variant={review === '1' ? 'default' : 'outline'} asChild>
             <Link href="/admin/etkinlikler?review=1">Eksik bilgi</Link>
           </Button>
-          <ScrapeNowButton onScrape={triggerScrapeAction} />
+          <ScrapeNowButton />
         </div>
       </div>
 

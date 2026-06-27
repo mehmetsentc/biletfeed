@@ -375,6 +375,17 @@ function extractBubiletStubs(html: string, listingUrl: string): EventStub[] {
   return stubs;
 }
 
+function envIntOptional(key: string): number | undefined {
+  const raw = process.env[key]?.trim();
+  if (!raw) return undefined;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function envInt(key: string, fallback: number): number {
+  return envIntOptional(key) ?? fallback;
+}
+
 export const bubiletAdapter: ScraperAdapter = {
   platform: 'BUBILET',
   label: PLATFORM_LABELS.BUBILET,
@@ -384,10 +395,10 @@ export const bubiletAdapter: ScraperAdapter = {
       bubiletListingUrls(),
       /bubilet\.com\.tr/i,
       {
-        // maxListingPages yok — tüm şehirler taranır
-        // Şehirler aktivite önceliğine göre sıralandı (listing-urls.ts)
+        // SCRAPER_MAX_PAGES yoksa tüm şehir/kategori sayfaları taranır (listing-urls.ts)
+        maxListingPages: envIntOptional('SCRAPER_MAX_PAGES'),
         concurrency: 8,
-        maxDetails: 600,
+        maxDetails: envInt('SCRAPER_MAX_DETAILS', 600),
         extractStubs: extractBubiletStubs
       }
     )
