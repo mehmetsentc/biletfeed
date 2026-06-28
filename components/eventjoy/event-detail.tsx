@@ -54,7 +54,7 @@ export function EventJoyDetail({ id }: { id: string }) {
       href: `/eventjoy/davetiye/${id}`,
       icon: Mail,
       label: 'Davetiye',
-      sub: 'Önizleme'
+      sub: 'Paylaş & Gönder'
     }
   ];
 
