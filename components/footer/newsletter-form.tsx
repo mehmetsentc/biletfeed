@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useCity } from '@/components/providers/city-provider';
 import { cn } from '@/lib/utils';
 
 interface NewsletterFormProps {
@@ -13,7 +14,9 @@ interface NewsletterFormProps {
 const SUCCESS_HIDE_MS = 4500;
 
 export function NewsletterForm({ variant = 'default', onSubscribed }: NewsletterFormProps) {
+  const { citySlug, cityName } = useCity();
   const [submitted, setSubmitted] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const isFigma = variant === 'figma';
@@ -34,16 +37,27 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, source: 'homepage' }),
+        body: JSON.stringify({ email, source: 'homepage', citySlug }),
       });
 
-      const data = (await res.json()) as { ok?: boolean; error?: string; message?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        message?: string;
+        cityName?: string | null;
+      };
 
       if (!res.ok) {
         setError(data.error ?? 'Abonelik kaydedilemedi. Lütfen tekrar deneyin.');
         return;
       }
 
+      setSuccessMessage(
+        data.message ??
+          (data.cityName ?? cityName
+            ? `${data.cityName ?? cityName} etkinlikleri dahil bültenimize abone oldunuz`
+            : 'Bültenimize abone oldunuz')
+      );
       setSubmitted(true);
       window.setTimeout(() => onSubscribed?.(), SUCCESS_HIDE_MS);
     } catch {
@@ -65,7 +79,7 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
         role="status"
         aria-live="polite"
       >
-        Teşekkürler! Bültenimize abone oldunuz. Onay e-postası gelen kutunuza iletildi.
+        {successMessage}. Onay e-postası gelen kutunuza iletildi.
       </p>
     );
   }

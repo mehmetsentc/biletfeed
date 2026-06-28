@@ -7,8 +7,23 @@ import {
 } from '@/lib/email/email-shared';
 import { getSiteUrl } from '@/lib/config/domain';
 
-export function buildNewsletterWelcomeEmail(): string {
+export function buildNewsletterWelcomeEmail(params?: {
+  cityName?: string | null;
+}): string {
   const eventsUrl = getSiteUrl('/etkinlikler');
+  const cityName = params?.cityName?.trim();
+
+  const cityLine = cityName
+    ? `<p style="margin:0 0 20px;font-size:15px;color:rgba(255,255,255,0.78);line-height:1.65;">
+         <strong style="color:#ffffff;">${cityName}</strong> ve Türkiye genelindeki yeni etkinlikleri
+         size <strong style="color:#ffffff;">"BiletFeed'te yeni"</strong> ve
+         <strong style="color:#ffffff;">"${cityName}'de yeni"</strong> başlıklarıyla ileteceğiz.
+       </p>`
+    : `<p style="margin:0 0 20px;font-size:15px;color:rgba(255,255,255,0.78);line-height:1.65;">
+         Yaklaşan konserler, festivaller ve şehrinizdeki yeni etkinliklerden
+         haberdar olacaksınız. Konumunuzu site üzerinden seçerseniz
+         <strong style="color:#ffffff;">"Şehrinizde yeni"</strong> listeleri de gönderilir.
+       </p>`;
 
   const body = `
     <tr>
@@ -17,9 +32,9 @@ export function buildNewsletterWelcomeEmail(): string {
           Bültenimize hoş geldiniz!
         </h1>
         <p style="margin:0 0 20px;font-size:15px;color:rgba(255,255,255,0.78);line-height:1.65;">
-          BiletFeed bültenine abone oldunuz. Yaklaşan konserler, festivaller ve
-          şehrinizdeki yeni etkinliklerden haberdar olacaksınız.
+          BiletFeed bültenine abone oldunuz.
         </p>
+        ${cityLine}
         <p style="margin:0 0 28px;font-size:14px;color:rgba(255,255,255,0.55);line-height:1.6;">
           Haftalık özetler ve öne çıkan etkinlikler bu adrese gönderilecektir.
         </p>
