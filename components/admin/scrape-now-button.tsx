@@ -31,6 +31,39 @@ function formatScrapeMessage(stats: ScrapeStats, status?: string): string {
   return msg;
 }
 
+async function pollScrapeRun(runId: string): Promise<{
+  ok: boolean;
+  status?: string;
+  stats?: ScrapeStats;
+  error?: string;
+}> {
+  const maxAttempts = 120; // ~6 dk (3s aralık)
+  for (let i = 0; i < maxAttempts; i++) {
+    const res = await fetch(`/api/admin/scrape-now?runId=${encodeURIComponent(runId)}`, {
+      credentials: 'include',
+    });
+    const data = (await res.json()) as {
+      ok?: boolean;
+      finished?: boolean;
+      status?: string;
+      stats?: ScrapeStats;
+      error?: string;
+    };
+
+    if (!res.ok) {
+      return { ok: false, error: data.error ?? `Sunucu hatası (${res.status})` };
+    }
+
+    if (data.finished && data.stats) {
+      return { ok: Boolean(data.ok), status: data.status, stats: data.stats };
+    }
+
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+
+  return { ok: false, error: 'Scrape zaman aşımı — arka planda devam ediyor olabilir' };
+}
+
 export function ScrapeNowButton() {
   const router = useRouter();
   const [status, setStatus] = useState<Status>('idle');
@@ -44,13 +77,16 @@ export function ScrapeNowButton() {
       const res = await fetch('/api/admin/scrape-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
 
       let data: {
         ok?: boolean;
         error?: string;
+        runId?: string;
         status?: string;
         stats?: ScrapeStats;
+        finished?: boolean;
       } | null = null;
 
       try {
@@ -65,20 +101,34 @@ export function ScrapeNowButton() {
         return;
       }
 
-      if (!data?.stats) {
+      if (data?.finished && data.stats) {
+        if (data.ok) {
+          setStatus('success');
+          setMessage(formatScrapeMessage(data.stats, data.status));
+          router.refresh();
+        } else {
+          setStatus('error');
+          const err = data.stats.errors?.[0];
+          setMessage(err ? `Başarısız: ${err}` : 'Scrape başarısız');
+        }
+        return;
+      }
+
+      if (!data?.runId) {
         setStatus('error');
         setMessage('Beklenmeyen sunucu yanıtı');
         return;
       }
 
-      if (data.ok) {
+      const result = await pollScrapeRun(data.runId);
+
+      if (result.ok && result.stats) {
         setStatus('success');
-        setMessage(formatScrapeMessage(data.stats, data.status));
+        setMessage(formatScrapeMessage(result.stats, result.status));
         router.refresh();
       } else {
         setStatus('error');
-        const err = data.stats.errors?.[0];
-        setMessage(err ? `Başarısız: ${err}` : 'Scrape başarısız');
+        setMessage(result.error ?? result.stats?.errors?.[0] ?? 'Scrape başarısız');
       }
     } catch (e) {
       setStatus('error');

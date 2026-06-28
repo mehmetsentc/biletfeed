@@ -426,7 +426,7 @@ async function fixCategoryNames() {
   }
 }
 
-export async function runEventScrapeJob(): Promise<{
+export async function runEventScrapeJob(existingRunId?: string): Promise<{
   runId: string;
   status: ScrapeRunStatus;
   stats: SyncStats;
@@ -434,9 +434,11 @@ export async function runEventScrapeJob(): Promise<{
   await ensureDbConnection();
   await fixCategoryNames(); // mevcut yanlış isimleri düzelt
 
-  const run = await prisma.scrapeRun.create({
-    data: { status: 'running' }
-  });
+  const run = existingRunId
+    ? await prisma.scrapeRun.findUniqueOrThrow({ where: { id: existingRunId } })
+    : await prisma.scrapeRun.create({
+        data: { status: 'running' }
+      });
 
   const stats: SyncStats = {
     totalFetched: 0,
