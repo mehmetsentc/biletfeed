@@ -43,6 +43,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signInWithGoogle: () => Promise<import('@/lib/firebase/google-auth').GoogleSignInResult>;
+  signInWithApple: () => Promise<import('@/lib/firebase/apple-auth').AppleSignInResult>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -123,27 +124,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Redirect sonucu persistence kurulmadan önce işlenmeli
     const auth = getFirebaseAuth();
-    void import('@/lib/firebase/google-auth').then(
-      async ({ finishGoogleRedirectSignIn, consumeGoogleRedirectResult }) => {
-        consumeGoogleRedirectResult(auth);
-        try {
-          const redirectError = await finishGoogleRedirectSignIn(auth);
-          if (!cancelled && redirectError) {
-            setSessionError(redirectError);
+    void Promise.all([
+      import('@/lib/firebase/google-auth'),
+      import('@/lib/firebase/apple-auth'),
+      import('@/lib/firebase/oauth-redirect')
+    ]).then(async ([googleAuth, appleAuth, oauthRedirect]) => {
+      oauthRedirect.consumeOAuthRedirectResult(auth);
+      try {
+        const [googleError, appleError] = await Promise.all([
+          googleAuth.finishGoogleRedirectSignIn(auth),
+          appleAuth.finishAppleRedirectSignIn(auth)
+        ]);
+        const redirectError = googleError ?? appleError;
+        if (!cancelled && redirectError) {
+          setSessionError(redirectError);
+          if (googleError) {
             const { storeGoogleAuthError } = await import(
               '@/components/auth/google-auth-init'
             );
-            storeGoogleAuthError(redirectError);
+            storeGoogleAuthError(googleError);
           }
-        } catch (err) {
-          if (!cancelled) {
-            setSessionError(
-              getFirebaseAuthErrorMessage(err, 'Google ile giriş başarısız oldu')
+          if (appleError) {
+            const { storeAppleAuthError } = await import(
+              '@/components/auth/apple-auth-init'
             );
+            storeAppleAuthError(appleError);
           }
         }
+      } catch (err) {
+        if (!cancelled) {
+          setSessionError(
+            getFirebaseAuthErrorMessage(err, 'Sosyal giriş başarısız oldu')
+          );
+        }
       }
-    );
+    });
 
     void ensureAuthReady().then((readyAuth) => {
       if (cancelled) return;
@@ -200,6 +215,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       '@/lib/firebase/google-auth'
     );
     return googleSignIn(auth);
+  }, []);
+
+  const signInWithApple = useCallback(async () => {
+    const auth = await ensureAuthReady();
+    const { signInWithApple: appleSignIn } = await import(
+      '@/lib/firebase/apple-auth'
+    );
+    return appleSignIn(auth);
   }, []);
 
   const syncSession = useCallback(async (): Promise<boolean> => {
@@ -263,6 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signInWithGoogle,
+        signInWithApple,
         signOut,
         resetPassword,
         changePassword,

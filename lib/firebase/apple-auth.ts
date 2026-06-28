@@ -1,5 +1,5 @@
 import {
-  GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   type Auth,
@@ -9,37 +9,40 @@ import { FirebaseError } from 'firebase/app';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 import {
   consumeOAuthRedirectResult,
-  resetRedirectResultCache as resetOAuthRedirectResultCache
+  resetRedirectResultCache
 } from '@/lib/firebase/oauth-redirect';
 
-export { resetRedirectResultCache } from '@/lib/firebase/oauth-redirect';
+export type AppleSignInMode = 'popup' | 'redirect';
 
-export type GoogleSignInMode = 'popup' | 'redirect';
-
-export type GoogleSignInResult = {
-  mode: GoogleSignInMode;
+export type AppleSignInResult = {
+  mode: AppleSignInMode;
   /** Popup akışında kullanıcı oturumu hemen hazır */
   completed: boolean;
 };
 
-const REDIRECT_PENDING_KEY = 'bf_google_redirect_pending';
-const REDIRECT_PENDING_AT_KEY = 'bf_google_redirect_pending_at';
+const REDIRECT_PENDING_KEY = 'bf_apple_redirect_pending';
+const REDIRECT_PENDING_AT_KEY = 'bf_apple_redirect_pending_at';
 const REDIRECT_PENDING_TTL_MS = 5 * 60 * 1000;
 
-function createGoogleProvider() {
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
+function createAppleProvider() {
+  const provider = new OAuthProvider('apple.com');
+  provider.addScope('email');
+  provider.addScope('name');
   return provider;
 }
 
-/** Persistence'dan önce çağrılmalı — client.ts mount sırasında tetikler */
-export function consumeGoogleRedirectResult(
+export function resetAppleRedirectResultCache() {
+  resetRedirectResultCache();
+}
+
+/** Persistence'dan önce çağrılmalı — AuthProvider mount sırasında tetikler */
+export function consumeAppleRedirectResult(
   auth: Auth
 ): Promise<UserCredential | null> {
   return consumeOAuthRedirectResult(auth);
 }
 
-export function wasGoogleRedirectPending(): boolean {
+export function wasAppleRedirectPending(): boolean {
   if (typeof window === 'undefined') return false;
 
   if (localStorage.getItem(REDIRECT_PENDING_KEY) === '1') return true;
@@ -48,13 +51,13 @@ export function wasGoogleRedirectPending(): boolean {
   return startedAt > 0 && Date.now() - startedAt < REDIRECT_PENDING_TTL_MS;
 }
 
-export function clearGoogleRedirectPending() {
+export function clearAppleRedirectPending() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(REDIRECT_PENDING_KEY);
   localStorage.removeItem(REDIRECT_PENDING_AT_KEY);
 }
 
-export function markGoogleRedirectPending() {
+export function markAppleRedirectPending() {
   if (typeof window === 'undefined') return;
   localStorage.setItem(REDIRECT_PENDING_KEY, '1');
   localStorage.setItem(REDIRECT_PENDING_AT_KEY, String(Date.now()));
@@ -94,48 +97,48 @@ async function waitForAuthUser(auth: Auth, ms = 1200): Promise<boolean> {
 }
 
 /**
- * Google redirect dönüşünü işler. AuthProvider mount sırasında, onAuthStateChanged
+ * Apple redirect dönüşünü işler. AuthProvider mount sırasında, onAuthStateChanged
  * öncesinde çağrılmalıdır.
  */
-export async function finishGoogleRedirectSignIn(
+export async function finishAppleRedirectSignIn(
   auth: Auth
 ): Promise<string | null> {
-  const pending = wasGoogleRedirectPending();
+  const pending = wasAppleRedirectPending();
 
   try {
-    const result = await consumeGoogleRedirectResult(auth);
+    const result = await consumeAppleRedirectResult(auth);
 
     if (result?.user) {
-      clearGoogleRedirectPending();
+      clearAppleRedirectPending();
       return null;
     }
 
     if (await waitForAuthUser(auth)) {
-      clearGoogleRedirectPending();
+      clearAppleRedirectPending();
       return null;
     }
 
     if (pending) {
-      clearGoogleRedirectPending();
-      return 'Google oturumu tamamlanamadı. Tarayıcı çerezlerini kontrol edip tekrar deneyin veya e-posta ile giriş yapın.';
+      clearAppleRedirectPending();
+      return 'Apple oturumu tamamlanamadı. Tarayıcı çerezlerini kontrol edip tekrar deneyin veya e-posta ile giriş yapın.';
     }
 
     return null;
   } catch (err) {
-    clearGoogleRedirectPending();
-    return getFirebaseAuthErrorMessage(err, 'Google ile giriş başarısız oldu');
+    clearAppleRedirectPending();
+    return getFirebaseAuthErrorMessage(err, 'Apple ile giriş başarısız oldu', 'apple');
   }
 }
 
 /**
  * Önce popup dener (COOP: same-origin-allow-popups). Popup engellenirse redirect'e düşer.
  */
-export async function signInWithGoogle(auth: Auth): Promise<GoogleSignInResult> {
+export async function signInWithApple(auth: Auth): Promise<AppleSignInResult> {
   if (auth.currentUser) {
     return { mode: 'popup', completed: true };
   }
 
-  const provider = createGoogleProvider();
+  const provider = createAppleProvider();
 
   try {
     await signInWithPopup(auth, provider);
@@ -146,8 +149,8 @@ export async function signInWithGoogle(auth: Auth): Promise<GoogleSignInResult> 
       throw err;
     }
 
-    resetOAuthRedirectResultCache();
-    markGoogleRedirectPending();
+    resetAppleRedirectResultCache();
+    markAppleRedirectPending();
     await signInWithRedirect(auth, provider);
     return { mode: 'redirect', completed: false };
   }

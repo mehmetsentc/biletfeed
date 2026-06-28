@@ -19,17 +19,20 @@ import { loginSchema, type LoginInput } from '@/lib/validations/auth';
 import { getTranslations } from '@/lib/i18n';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 import { readStoredGoogleAuthError } from '@/components/auth/google-auth-init';
+import { readStoredAppleAuthError } from '@/components/auth/apple-auth-init';
+import { AppleSignInButton } from '@/components/auth/apple-sign-in-button';
 
 const t = getTranslations();
 
 export function LoginForm() {
-  const { signIn, signInWithGoogle, isConfigured, firebaseUser, loading: authLoading, sessionError } =
+  const { signIn, signInWithGoogle, signInWithApple, isConfigured, firebaseUser, loading: authLoading, sessionError } =
     useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const storedError = readStoredGoogleAuthError();
+    const storedError =
+      readStoredGoogleAuthError() ?? readStoredAppleAuthError();
     if (storedError) setError(storedError);
   }, []);
 
@@ -86,8 +89,26 @@ export function LoginForm() {
     }
   };
 
+  const handleAppleLogin = async () => {
+    if (!isConfigured) {
+      setError('Firebase yapılandırması eksik. .env.local dosyasını kontrol edin.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await signInWithApple();
+      if (result.mode === 'redirect') return;
+    } catch (err) {
+      setError(
+        getFirebaseAuthErrorMessage(err, 'Apple ile giriş başarısız oldu', 'apple')
+      );
+      setLoading(false);
+    }
+  };
+
   // Popup sonrası oturum hazırlanırken yükleme göstergesini koru
-  const googleInProgress = loading && !error;
+  const socialInProgress = loading && !error;
 
   if (!showLoginForm) {
     return null;
@@ -162,11 +183,18 @@ export function LoginForm() {
           variant="outline"
           className="w-full"
           onClick={handleGoogleLogin}
-          disabled={googleInProgress}
+          disabled={socialInProgress}
           type="button"
         >
-          {googleInProgress ? 'Google ile giriş yapılıyor…' : t.auth.googleLogin}
+          {socialInProgress ? 'Google ile giriş yapılıyor…' : t.auth.googleLogin}
         </Button>
+
+        <AppleSignInButton
+          label={t.auth.appleLogin}
+          loadingLabel="Apple ile giriş yapılıyor…"
+          loading={socialInProgress}
+          onClick={handleAppleLogin}
+        />
 
         <p className="text-center text-sm text-muted-foreground">
           {t.auth.noAccount}{' '}

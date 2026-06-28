@@ -56,6 +56,8 @@ export const tr = {
     forgotPasswordButton: 'Sıfırlama Bağlantısı Gönder',
     googleLogin: 'Google ile Giriş Yap',
     googleRegister: 'Google ile Kayıt Ol',
+    appleLogin: 'Apple ile Giriş Yap',
+    appleRegister: 'Apple ile Kayıt Ol',
     noAccount: 'Hesabınız yok mu?',
     hasAccount: 'Zaten hesabınız var mı?',
     forgotPassword: 'Şifremi unuttum',

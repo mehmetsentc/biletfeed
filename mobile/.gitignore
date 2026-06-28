@@ -1,0 +1,11 @@
+# Capacitor native projects (generated after `npx cap add`)
+ios/
+android/
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+*.xcuserstate
+*.xcuserdata
+.DS_Store
