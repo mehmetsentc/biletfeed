@@ -51,6 +51,9 @@ export interface EventJoyEvent {
   description: string;
   coverColor: string;
   coverImage?: string;
+  /** Server-side share token for public guest invitation link */
+  shareToken?: string;
+  personalMessage?: string;
   guestCount: number;
   confirmedCount: number;
   budget: number;

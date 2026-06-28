@@ -6,10 +6,15 @@ import { MapPin, Search, Menu, X } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCity } from '@/components/providers/city-provider';
+import { toCategoryNavLinks, type CategoryNavItem } from '@/lib/categories/nav-links';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-export function MobileHeader() {
+interface MobileHeaderProps {
+  categories: CategoryNavItem[];
+}
+
+export function MobileHeader({ categories }: MobileHeaderProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { citySlug, cities, setCity } = useCity();
@@ -25,15 +30,7 @@ export function MobileHeader() {
     router.push(q ? `/etkinlikler?q=${encodeURIComponent(q)}` : '/etkinlikler');
   }
 
-  const menuLinks = [
-    { label: 'Konser', href: '/kategoriler/muzik' },
-    { label: 'Tiyatro', href: '/kategoriler/tiyatro' },
-    { label: 'Festival', href: '/kategoriler/festival' },
-    { label: 'Stand Up', href: '/kategoriler/komedi' },
-    { label: 'Çocuk', href: '/kategoriler/cocuk' },
-    { label: 'Spor', href: '/kategoriler/spor' },
-    { label: 'Sanat', href: '/kategoriler/sanat' },
-  ];
+  const menuLinks = toCategoryNavLinks(categories);
 
   return (
     <>
@@ -179,7 +176,7 @@ export function MobileHeader() {
               <div className="space-y-0.5">
                 {menuLinks.map((link) => (
                   <Link
-                    key={link.href}
+                    key={link.slug}
                     href={link.href}
                     onClick={() => setMenuOpen(false)}
                     className="flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
@@ -187,6 +184,13 @@ export function MobileHeader() {
                     {link.label}
                   </Link>
                 ))}
+                <Link
+                  href="/kategoriler"
+                  onClick={() => setMenuOpen(false)}
+                  className="mt-1 flex items-center rounded-lg px-3 py-3 text-sm font-semibold text-primary"
+                >
+                  Tüm Kategoriler →
+                </Link>
               </div>
             </div>
 

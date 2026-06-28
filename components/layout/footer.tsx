@@ -85,7 +85,7 @@ export async function Footer() {
                 Kategoriler
               </h3>
               <ul className="space-y-2.5">
-                {categories.slice(0, 8).map((cat) => (
+                {categories.map((cat) => (
                   <li key={cat.slug}>
                     <Link
                       href={`/kategoriler/${cat.slug}`}

@@ -4,7 +4,7 @@ import { SiteChrome } from '@/components/layout/site-chrome';
 import { CityProvider } from '@/components/providers/city-provider';
 import { CITY_COOKIE_NAME } from '@/lib/location/city-preference';
 import { SUPPORTED_CITIES } from '@/lib/location/cities';
-import { getCitiesWithEvents } from '@/lib/services/events';
+import { getCategories, getCitiesWithEvents } from '@/lib/services/events';
 import { cookies } from 'next/headers';
 
 export default async function SiteLayout({
@@ -12,8 +12,9 @@ export default async function SiteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [cities, cookieStore] = await Promise.all([
+  const [cities, categories, cookieStore] = await Promise.all([
     getCitiesWithEvents(),
+    getCategories(),
     cookies()
   ]);
   const cookieSlug = cookieStore.get(CITY_COOKIE_NAME)?.value;
@@ -24,7 +25,11 @@ export default async function SiteLayout({
 
   return (
     <CityProvider cities={cities} initialCitySlug={initialCitySlug ?? null}>
-      <SiteChrome footer={<Footer />} mobileFooter={<MobileFooter />}>
+      <SiteChrome
+        categories={categories.map((c) => ({ slug: c.slug, name: c.name }))}
+        footer={<Footer />}
+        mobileFooter={<MobileFooter />}
+      >
         {children}
       </SiteChrome>
     </CityProvider>
