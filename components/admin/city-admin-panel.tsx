@@ -73,7 +73,7 @@ export function CityAdminPanel({ cities }: { cities: City[] }) {
       </div>
 
       {showNew && (
-        <div className="rounded-lg border border-dashed border-[#f5a623]/50 bg-[#f5a623]/5 p-4">
+        <div className="rounded-lg border border-dashed border-primary/50 bg-primary/5 p-4">
           <p className="mb-3 text-sm font-semibold">Yeni Şehir</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <div>

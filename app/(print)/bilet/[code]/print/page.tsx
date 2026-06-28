@@ -49,7 +49,7 @@ export default async function TicketPrintPage({ params, searchParams }: Props) {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: #0c1017 !important; font-family: -apple-system, 'Segoe UI', sans-serif; }
+        html, body { background: var(--ticket-page-bg) !important; font-family: -apple-system, 'Segoe UI', sans-serif; }
         @page { size: A4 portrait; margin: 12mm; }
         @media print {
           html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -68,7 +68,7 @@ export default async function TicketPrintPage({ params, searchParams }: Props) {
         style={{
           width: 595,
           maxWidth: '100%',
-          background: '#0c1017',
+          background: 'var(--ticket-page-bg)',
           color: '#fff',
           fontFamily: '-apple-system, "Segoe UI", sans-serif',
           margin: '0 auto',
@@ -102,7 +102,7 @@ export default async function TicketPrintPage({ params, searchParams }: Props) {
                 color: '#fff'
               }}
             >
-              bilet<span style={{ color: '#f5a623' }}>feed</span>
+              bilet<span style={{ color: 'var(--bf-orange)' }}>feed</span>
             </div>
           </div>
         )}
@@ -110,7 +110,7 @@ export default async function TicketPrintPage({ params, searchParams }: Props) {
         {!ticket.event.coverImage && (
           <div
             style={{
-              background: 'linear-gradient(135deg, #f5a623 0%, #e09510 100%)',
+              background: 'linear-gradient(135deg, var(--bf-orange) 0%, var(--bf-orange-hover) 100%)',
               padding: '22px 28px',
               display: 'flex',
               justifyContent: 'space-between',
@@ -187,7 +187,7 @@ export default async function TicketPrintPage({ params, searchParams }: Props) {
                 <p
                   style={{
                     fontSize: 10,
-                    color: '#f5a623',
+                    color: 'var(--bf-orange)',
                     fontWeight: 700,
                     letterSpacing: 1,
                     textTransform: 'uppercase',
@@ -257,7 +257,7 @@ export default async function TicketPrintPage({ params, searchParams }: Props) {
                   marginTop: 16,
                   height: 3,
                   borderRadius: 99,
-                  background: 'linear-gradient(90deg, #f5a623, rgba(245,166,35,0.1))'
+                  background: 'linear-gradient(90deg, var(--bf-orange), rgba(245,166,35,0.1))'
                 }}
               />
             </div>

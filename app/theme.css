@@ -1,0 +1,198 @@
+/**
+ * BiletFeed Design System — tek kaynak CSS token'ları
+ * Logo: Siyah · Beyaz · Turuncu (#FF8A00)
+ */
+
+:root {
+  /* ── Primary (Logo Orange) ── */
+  --bf-orange: #ff8a00;
+  --bf-orange-hover: #f57c00;
+  --bf-orange-pressed: #e56f00;
+  --bf-orange-soft: #fff4e8;
+  --bf-orange-border: #ffd199;
+
+  /* ── Light surfaces ── */
+  --bf-bg: #ffffff;
+  --bf-surface: #fafafa;
+  --bf-card: #ffffff;
+  --bf-border: #e9e9e9;
+
+  /* ── Text ── */
+  --bf-text: #111111;
+  --bf-text-secondary: #5a5a5a;
+  --bf-text-muted: #777777;
+  --bf-text-inverse: #ffffff;
+
+  /* ── Status ── */
+  --bf-success: #16a34a;
+  --bf-warning: #f59e0b;
+  --bf-danger: #dc2626;
+  --bf-info: #2563eb;
+
+  /* ── Spacing scale (Apple-style) ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Radius ── */
+  --radius-button: 14px;
+  --radius-input: 14px;
+  --radius-card: 20px;
+  --radius-dialog: 24px;
+  --radius-image: 18px;
+
+  /* ── Shadow (light — subtle) ── */
+  --shadow-xs: 0 1px 2px rgba(17, 17, 17, 0.04);
+  --shadow-sm: 0 2px 8px rgba(17, 17, 17, 0.06);
+  --shadow-md: 0 8px 24px rgba(17, 17, 17, 0.08);
+  --shadow-lg: 0 16px 40px rgba(17, 17, 17, 0.1);
+  --shadow-focus: 0 0 0 3px color-mix(in srgb, var(--bf-orange) 35%, transparent);
+
+  /* ── Motion ── */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* ── shadcn semantic (light default) ── */
+  --radius: var(--radius-button);
+  --background: var(--bf-bg);
+  --foreground: var(--bf-text);
+  --card: var(--bf-card);
+  --card-foreground: var(--bf-text);
+  --popover: var(--bf-card);
+  --popover-foreground: var(--bf-text);
+  --primary: var(--bf-orange);
+  --primary-foreground: var(--bf-text);
+  --secondary: var(--bf-surface);
+  --secondary-foreground: var(--bf-text);
+  --muted: var(--bf-surface);
+  --muted-foreground: var(--bf-text-secondary);
+  --accent: var(--bf-orange-soft);
+  --accent-foreground: var(--bf-text);
+  --destructive: var(--bf-danger);
+  --destructive-foreground: var(--bf-text-inverse);
+  --success: var(--bf-success);
+  --success-foreground: var(--bf-text-inverse);
+  --warning: var(--bf-warning);
+  --info: var(--bf-info);
+  --border: var(--bf-border);
+  --input: var(--bf-border);
+  --ring: var(--bf-orange);
+
+  /* Brand aliases */
+  --brand-orange: var(--bf-orange);
+  --brand-orange-hover: var(--bf-orange-hover);
+  --brand-orange-soft: var(--bf-orange-soft);
+  --brand-black: #0a0a0a;
+  --brand-white: #ffffff;
+  --brand-surface: var(--bf-bg);
+  --brand-hero: var(--bf-bg);
+  --brand-gray: var(--bf-surface);
+
+  /* Header (light) */
+  --header-bg: var(--bf-bg);
+  --header-fg: var(--bf-text);
+  --header-fg-muted: var(--bf-text-secondary);
+  --header-border: var(--bf-border);
+  --header-hover: rgba(17, 17, 17, 0.04);
+  --header-btn-outline: rgba(17, 17, 17, 0.12);
+  --header-accent: var(--bf-orange);
+
+  /* Admin sidebar (always dark) */
+  --admin-sidebar-bg: #0a0a0a;
+  --admin-sidebar-fg: rgba(255, 255, 255, 0.72);
+  --admin-sidebar-fg-active: #ffffff;
+  --admin-sidebar-border: #2b2b2b;
+  --admin-sidebar-active: var(--bf-orange);
+  --admin-sidebar-hover: rgba(255, 255, 255, 0.06);
+
+  /* Ticket / davetiye — her zaman koyu OLED yüzey */
+  --ticket-page-bg: #0a0a0a;
+  --ticket-card-bg: #151515;
+  --ticket-border: #2b2b2b;
+
+  /* Organizatör paneli chrome */
+  --organizer-shell-bg: color-mix(in srgb, var(--bf-border) 35%, var(--bf-surface));
+  --organizer-header-bg: #0a0a0a;
+  --organizer-sidebar-bg: #101010;
+  --organizer-sidebar-active: #151515;
+  --organizer-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --organizer-chrome-fg: rgba(255, 255, 255, 0.72);
+  --organizer-chrome-fg-muted: rgba(255, 255, 255, 0.55);
+
+  /* Status soft (badge / chip) */
+  --bf-success-soft: color-mix(in srgb, var(--bf-success) 15%, transparent);
+  --bf-warning-soft: color-mix(in srgb, var(--bf-warning) 15%, transparent);
+  --bf-danger-soft: color-mix(in srgb, var(--bf-danger) 15%, transparent);
+  --bf-info-soft: color-mix(in srgb, var(--bf-info) 15%, transparent);
+
+  /* Charts */
+  --chart-1: var(--bf-orange);
+  --chart-2: var(--bf-text);
+  --chart-3: var(--bf-orange-hover);
+  --chart-4: var(--bf-orange-border);
+  --chart-5: var(--bf-orange-soft);
+
+  /* shadcn sidebar compat */
+  --sidebar: var(--bf-card);
+  --sidebar-foreground: var(--bf-text);
+  --sidebar-primary: var(--bf-orange);
+  --sidebar-primary-foreground: var(--bf-text);
+  --sidebar-accent: var(--bf-orange-soft);
+  --sidebar-accent-foreground: var(--bf-text);
+  --sidebar-border: var(--bf-border);
+  --sidebar-ring: var(--bf-orange);
+}
+
+.dark {
+  --bf-bg: #0a0a0a;
+  --bf-surface: #101010;
+  --bf-card: #151515;
+  --bf-border: #2b2b2b;
+
+  --bf-text: #ffffff;
+  --bf-text-secondary: rgba(255, 255, 255, 0.72);
+  --bf-text-muted: rgba(255, 255, 255, 0.55);
+
+  --bf-orange-soft: rgba(255, 138, 0, 0.12);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+
+  --background: var(--bf-bg);
+  --foreground: var(--bf-text);
+  --card: var(--bf-card);
+  --card-foreground: var(--bf-text);
+  --popover: var(--bf-card);
+  --popover-foreground: var(--bf-text);
+  --primary: var(--bf-orange);
+  --primary-foreground: var(--bf-text);
+  --secondary: var(--bf-surface);
+  --secondary-foreground: var(--bf-text);
+  --muted: var(--bf-surface);
+  --muted-foreground: var(--bf-text-muted);
+  --accent: var(--bf-orange-soft);
+  --accent-foreground: var(--bf-orange);
+  --border: var(--bf-border);
+  --input: var(--bf-border);
+
+  --brand-surface: var(--bf-bg);
+  --brand-hero: var(--bf-bg);
+  --brand-gray: var(--bf-card);
+
+  --header-bg: var(--bf-surface);
+  --header-fg: var(--bf-text);
+  --header-fg-muted: var(--bf-text-muted);
+  --header-border: var(--bf-border);
+  --header-hover: rgba(255, 255, 255, 0.06);
+  --header-btn-outline: rgba(255, 255, 255, 0.2);
+}

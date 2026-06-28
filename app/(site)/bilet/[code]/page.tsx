@@ -43,29 +43,29 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
       label: 'Bilet Geçerli',
       sublabel: 'Girişte bu QR kodu gösterin',
       icon: CheckCircle2,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10 border-emerald-500/30'
+      color: 'text-[var(--bf-success)]',
+      bg: 'bg-[var(--bf-success-soft)] border-[var(--bf-success)]/30'
     },
     USED: {
       label: 'Bilet Kullanıldı',
       sublabel: 'Bu bilet daha önce taratılmış',
       icon: Clock,
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10 border-amber-500/30'
+      color: 'text-[var(--bf-warning)]',
+      bg: 'bg-[var(--bf-warning-soft)] border-[var(--bf-warning)]/30'
     },
     CANCELLED: {
       label: 'Bilet İptal Edildi',
       sublabel: 'Bu bilet artık geçerli değil',
       icon: XCircle,
-      color: 'text-red-400',
-      bg: 'bg-red-500/10 border-red-500/30'
+      color: 'text-[var(--bf-danger)]',
+      bg: 'bg-[var(--bf-danger-soft)] border-[var(--bf-danger)]/30'
     },
     REFUNDED: {
       label: 'Bilet İade Edildi',
       sublabel: 'Bu bilet iade işlemi yapılmış',
       icon: XCircle,
-      color: 'text-red-400',
-      bg: 'bg-red-500/10 border-red-500/30'
+      color: 'text-[var(--bf-danger)]',
+      bg: 'bg-[var(--bf-danger-soft)] border-[var(--bf-danger)]/30'
     }
   };
 
@@ -74,18 +74,18 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
   const isValid = ticket.status === 'VALID';
 
   return (
-    <div className="min-h-screen bg-[#0c1017] px-4 py-10">
+    <div className="min-h-screen bg-ticket-page px-4 py-10">
       <div className="mx-auto max-w-lg">
 
         {/* Header */}
         <div className="mb-6 text-center">
           <Link href="/" className="inline-block text-xl font-bold text-white tracking-tight">
-            bilet<span className="text-[#f5a623]">feed</span>
+            bilet<span className="text-primary">feed</span>
           </Link>
         </div>
 
         {/* Card */}
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#151b24] shadow-2xl">
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-ticket-card shadow-2xl">
 
           {/* Event cover */}
           {ticket.event.coverImage && (
@@ -95,7 +95,7 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
                 alt={ticket.event.title}
                 className="aspect-video w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#151b24] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--ticket-card-bg)] via-transparent to-transparent" />
             </div>
           )}
 
@@ -117,15 +117,15 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
 
             <div className="mt-4 space-y-2 text-sm text-white/60">
               <p className="flex items-center gap-2">
-                <Calendar className="size-4 shrink-0 text-[#f5a623]" />
+                <Calendar className="size-4 shrink-0 text-primary" />
                 {eventDate}
               </p>
               <p className="flex items-center gap-2">
-                <MapPin className="size-4 shrink-0 text-[#f5a623]" />
+                <MapPin className="size-4 shrink-0 text-primary" />
                 {ticket.event.venue}, {ticket.event.city}
               </p>
               <p className="flex items-center gap-2">
-                <Ticket className="size-4 shrink-0 text-[#f5a623]" />
+                <Ticket className="size-4 shrink-0 text-primary" />
                 {ticket.ticketTypeName}
               </p>
             </div>
@@ -155,7 +155,7 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
             {/* Footer link */}
             <Link
               href={`/etkinlik/${ticket.event.slug}`}
-              className="mt-6 flex w-full items-center justify-center rounded-xl bg-[#f5a623] px-4 py-3 text-sm font-semibold text-white hover:bg-[#e09510] transition-colors no-print"
+              className="mt-6 flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors no-print"
             >
               Etkinlik Detayları
             </Link>
@@ -177,7 +177,7 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
       {/* Print CSS — inline style tag allowed in Server Components */}
       <style>{`
         @media print {
-          body { background: #0c1017 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body { background: var(--ticket-page-bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
           nav, footer, header { display: none !important; }
         }

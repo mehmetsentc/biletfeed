@@ -50,7 +50,7 @@ function useThemeClasses(theme: FilterTheme) {
       : 'border-border bg-background text-foreground hover:border-primary/40',
     checkbox: isDark ? 'text-white/90' : 'text-foreground/90',
     dateInput: isDark
-      ? 'border-white/15 bg-[#0c1017] text-white'
+      ? 'border-white/15 bg-ticket-page text-white'
       : 'border-input bg-background'
   };
 }

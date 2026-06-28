@@ -52,17 +52,17 @@ export function OrganizatorSetupForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#1f2327] px-4">
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#2b3035] p-8 text-white shadow-xl">
-        <p className="text-sm text-[#f5a623]">{siteConfig.name}</p>
+    <div className="bg-organizer-header flex min-h-screen items-center justify-center px-4">
+      <div className="bg-organizer-sidebar w-full max-w-md rounded-[var(--radius-card)] border border-[var(--ticket-border)] p-8 text-white shadow-xl">
+        <p className="text-sm text-primary">{siteConfig.name}</p>
         <h1 className="mt-1 text-2xl font-bold">{ORGANIZATOR_BRAND}</h1>
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="text-organizer-chrome-muted mt-2 text-sm">
           Organizasyon profilinizi oluşturun ve etkinlik satmaya başlayın.
         </p>
 
         <form onSubmit={submit} className="mt-8 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="org-name" className="text-zinc-200">
+            <Label htmlFor="org-name" className="text-organizer-chrome">
               Organizasyon Adı
             </Label>
             <Input
@@ -72,11 +72,11 @@ export function OrganizatorSetupForm() {
               placeholder="Örn: Let Us Event"
               required
               minLength={2}
-              className="border-white/10 bg-[#1f2327] text-white"
+              className="border-[var(--ticket-border)] bg-organizer-header text-white"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="org-desc" className="text-zinc-200">
+            <Label htmlFor="org-desc" className="text-organizer-chrome">
               Kısa Açıklama (isteğe bağlı)
             </Label>
             <Input
@@ -84,23 +84,19 @@ export function OrganizatorSetupForm() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Konser ve festival organizasyonu"
-              className="border-white/10 bg-[#1f2327] text-white"
+              className="border-[var(--ticket-border)] bg-organizer-header text-white"
             />
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button
-            type="submit"
-            className="w-full bg-[#f5a623] text-black hover:bg-[#e09510]"
-            disabled={loading}
-          >
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Oluşturuluyor...' : 'Organizatör Paneline Geç'}
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-zinc-500">
-          <Link href="/" className="hover:text-zinc-300">
+        <p className="text-organizer-chrome-muted mt-6 text-center text-xs">
+          <Link href="/" className="hover:text-white">
             Ana sayfaya dön
           </Link>
         </p>

@@ -26,14 +26,14 @@ export default async function OrganizatorTicketsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-800">Biletler</h1>
-          <p className="text-sm text-zinc-600">
+          <h1 className="text-2xl font-bold text-foreground">Biletler</h1>
+          <p className="text-sm text-muted-foreground">
             {stats.soldTickets} satış · {stats.scannedTickets} giriş yapıldı
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/organizator-panel/tarayici">
-            <Button className="bg-[#f5a623] text-black hover:bg-[#e09510]">
+            <Button className="">
               QR Tarayıcı
             </Button>
           </Link>
@@ -45,9 +45,9 @@ export default async function OrganizatorTicketsPage() {
 
       <CheckInStatsPanel stats={checkInStats} />
 
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-zinc-50 text-left">
+          <thead className="border-b bg-muted text-left">
             <tr>
               <th className="p-3 font-medium">Kod</th>
               <th className="p-3 font-medium">Etkinlik</th>

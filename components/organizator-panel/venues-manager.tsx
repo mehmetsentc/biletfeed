@@ -127,9 +127,9 @@ export function VenuesManager({
                 <Input type="number" value={seatsPerRow} onChange={(e) => setSeatsPerRow(e.target.value)} placeholder="Koltuk" />
               </div>
             </div>
-            {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
+            {error && <p className="text-sm text-destructive sm:col-span-2">{error}</p>}
             <div className="sm:col-span-2">
-              <Button type="submit" disabled={loading} className="bg-[#f5a623] text-black hover:bg-[#e09510]">
+              <Button type="submit" disabled={loading} className="">
                 {loading ? 'Kaydediliyor…' : 'Mekan Kaydet'}
               </Button>
             </div>
@@ -137,9 +137,9 @@ export function VenuesManager({
         </CardContent>
       </Card>
 
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-zinc-50 text-left">
+          <thead className="border-b bg-muted text-left">
             <tr>
               <th className="p-3 font-medium">Mekan</th>
               <th className="p-3 font-medium">Şehir</th>

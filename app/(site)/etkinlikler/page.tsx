@@ -18,7 +18,7 @@ export const revalidate = 300;
 
 function EventsLoading() {
   return (
-    <div className="min-h-screen bg-[#0c1017]">
+    <div className="min-h-screen bg-ticket-page">
       <div className="border-b border-white/10 px-4 py-8">
         <Skeleton className="h-8 w-48 bg-white/10" />
         <Skeleton className="mt-3 h-4 w-64 bg-white/10" />

@@ -18,8 +18,8 @@ export default async function OrganizatorVenuesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">Mekan & Koltuk</h1>
-        <p className="text-sm text-zinc-600">Etkinlikleriniz için mekan tanımlayın ve kapasite belirleyin</p>
+        <h1 className="text-2xl font-bold text-foreground">Mekan & Koltuk</h1>
+        <p className="text-sm text-muted-foreground">Etkinlikleriniz için mekan tanımlayın ve kapasite belirleyin</p>
       </div>
       <VenuesManager
         initialVenues={venues.map((v) => ({

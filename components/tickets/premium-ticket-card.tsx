@@ -50,7 +50,7 @@ export function PremiumTicketCard({
       className={cn(
         'overflow-hidden rounded-2xl border shadow-xl backdrop-blur-sm',
         isDark
-          ? 'border-white/10 bg-[#0c1017]/95 text-white'
+          ? 'border-white/10 bg-ticket-page/95 text-white'
           : 'border-border bg-card text-foreground',
         className
       )}
@@ -67,12 +67,12 @@ export function PremiumTicketCard({
           className={cn(
             'absolute inset-0',
             isDark
-              ? 'bg-gradient-to-t from-[#0c1017] via-[#0c1017]/40 to-transparent'
+              ? 'bg-gradient-to-t from-[var(--ticket-page-bg)] via-[var(--ticket-page-bg)]/40 to-transparent'
               : 'bg-gradient-to-t from-card via-card/30 to-transparent'
           )}
         />
         <div className="absolute left-4 top-4 text-lg font-bold tracking-tight">
-          bilet<span className="text-[#f5a623]">feed</span>
+          bilet<span className="text-primary">feed</span>
         </div>
         <Badge
           variant={isValid ? 'success' : 'secondary'}
@@ -83,7 +83,7 @@ export function PremiumTicketCard({
       </div>
 
       <div className="relative px-5 pb-5 pt-2 sm:px-6">
-        <div className="absolute -top-3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#f5a623]/50 to-transparent" />
+        <div className="absolute -top-3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
         <h2 className="text-xl font-bold leading-tight sm:text-2xl">{eventTitle}</h2>
         <p className={cn('mt-1 text-sm', isDark ? 'text-white/60' : 'text-muted-foreground')}>
@@ -92,17 +92,17 @@ export function PremiumTicketCard({
 
         <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
           <p className={cn('flex items-center gap-2', isDark ? 'text-white/70' : 'text-muted-foreground')}>
-            <Calendar className="size-4 shrink-0 text-[#f5a623]" />
+            <Calendar className="size-4 shrink-0 text-primary" />
             {eventDate} · {eventTime}
           </p>
           <p className={cn('flex items-center gap-2', isDark ? 'text-white/70' : 'text-muted-foreground')}>
-            <MapPin className="size-4 shrink-0 text-[#f5a623]" />
+            <MapPin className="size-4 shrink-0 text-primary" />
             {venue}, {city}
           </p>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-[#f5a623]/30 bg-[#f5a623]/10 px-3 py-1 text-xs font-semibold text-[#f5a623]">
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             {ticketType}
           </span>
           {priceLabel && (

@@ -14,8 +14,8 @@ export default async function OrganizatorModerationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">Moderasyon</h1>
-        <p className="text-sm text-zinc-600">Etkinliklerinize yapılan yorumları yönetin</p>
+        <h1 className="text-2xl font-bold text-foreground">Moderasyon</h1>
+        <p className="text-sm text-muted-foreground">Etkinliklerinize yapılan yorumları yönetin</p>
       </div>
       <ModerationPanel
         initialReviews={reviews.map((r) => ({

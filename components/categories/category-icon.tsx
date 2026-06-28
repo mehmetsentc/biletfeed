@@ -38,15 +38,15 @@ export function CategoryIcon({
     <div
       className={cn(
         'flex shrink-0 items-center justify-center rounded-full',
-        'bg-zinc-100 dark:bg-[#1b1b1b]',
+        'bg-muted dark:bg-card',
         showRing &&
-          'ring-2 ring-orange-500/25 transition-all duration-200 group-hover:ring-orange-500/60 group-hover:shadow-[0_0_20px_rgba(255,153,0,0.25)]',
+          'ring-2 ring-primary/25 transition-all duration-200 group-hover:ring-primary/50 group-hover:shadow-[0_0_20px_color-mix(in_srgb,var(--bf-orange)_25%,transparent)]',
         containerSizes[size],
         className
       )}
     >
       <Icon
-        className={cn(iconSizes[size], 'text-[#FF9900]')}
+        className={cn(iconSizes[size], 'text-primary')}
         strokeWidth={2}
         aria-hidden
       />

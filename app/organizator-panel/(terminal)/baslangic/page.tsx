@@ -18,8 +18,8 @@ export default async function OrganizatorHomePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-800">Başlangıç</h1>
-          <p className="text-sm text-zinc-600">{ORGANIZATOR_BRAND}</p>
+          <h1 className="text-2xl font-bold text-foreground">Başlangıç</h1>
+          <p className="text-sm text-muted-foreground">{ORGANIZATOR_BRAND}</p>
         </div>
         <Link href="/organizator-panel/tarayici">
           <Button variant="outline">QR Tarayıcı</Button>

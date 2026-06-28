@@ -56,7 +56,7 @@ export function ContactCenter({ initialTickets }: { initialTickets: TicketRow[] 
             Platform desteği:{' '}
             <a
               href={`mailto:${platformContact.email}`}
-              className="text-[#f5a623] underline"
+              className="text-primary underline"
             >
               {platformContact.email}
             </a>
@@ -75,17 +75,17 @@ export function ContactCenter({ initialTickets }: { initialTickets: TicketRow[] 
                 required
               />
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" disabled={loading} className="bg-[#f5a623] text-black hover:bg-[#e09510]">
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" disabled={loading} className="">
               {loading ? 'Gönderiliyor…' : 'Talep Gönder'}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-zinc-50 text-left">
+          <thead className="border-b bg-muted text-left">
             <tr>
               <th className="p-3 font-medium">Tarih</th>
               <th className="p-3 font-medium">Konu</th>

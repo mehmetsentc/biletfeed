@@ -93,11 +93,11 @@ export function SystemSettingsPanel() {
                       }))
                     }
                     className={`mt-2 relative inline-flex h-6 w-11 rounded-full transition-colors ${
-                      values[setting.key] === 'true' ? 'bg-[#f5a623]' : 'bg-muted'
+                      values[setting.key] === 'true' ? 'bg-primary' : 'bg-muted'
                     }`}
                   >
                     <span
-                      className={`absolute top-1 size-4 rounded-full bg-white shadow transition-transform ${
+                      className={`absolute top-1 size-4 rounded-full bg-card shadow transition-transform ${
                         values[setting.key] === 'true' ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
@@ -119,7 +119,7 @@ export function SystemSettingsPanel() {
       ))}
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} className="gap-2 bg-[#f5a623] hover:bg-[#e09510]">
+        <Button onClick={handleSave} className="gap-2 bg-primary hover:bg-primary/90">
           <Save className="size-4" />
           {saved ? '✓ Kaydedildi' : 'Ayarları Kaydet'}
         </Button>

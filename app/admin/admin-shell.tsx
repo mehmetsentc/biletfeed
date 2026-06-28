@@ -45,35 +45,57 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-64 shrink-0 border-r bg-muted/30 lg:block">
-        <div className="flex h-16 items-center border-b px-6">
-          <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+    <div className="flex min-h-screen bg-background">
+      <aside
+        className="hidden w-64 shrink-0 border-r lg:block"
+        style={{
+          backgroundColor: 'var(--admin-sidebar-bg)',
+          borderColor: 'var(--admin-sidebar-border)'
+        }}
+      >
+        <div
+          className="flex h-16 items-center border-b px-6"
+          style={{ borderColor: 'var(--admin-sidebar-border)' }}
+        >
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm transition-colors"
+            style={{ color: 'var(--admin-sidebar-fg)' }}
+          >
             <ArrowLeft className="size-4" />
             {siteConfig.name}
           </Link>
         </div>
         <nav className="space-y-1 p-4">
-          {adminLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                pathname === link.href ||
-                (link.href !== '/admin' && pathname.startsWith(link.href))
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              )}
-            >
-              <link.icon className="size-4" />
-              {link.label}
-            </Link>
-          ))}
+          {adminLinks.map((link) => {
+            const active =
+              pathname === link.href ||
+              (link.href !== '/admin' && pathname.startsWith(link.href));
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'flex items-center gap-3 rounded-[var(--radius-button)] px-3 py-2.5 text-sm font-semibold transition-colors duration-[var(--duration-fast)]',
+                  active
+                    ? 'bg-[var(--admin-sidebar-active)] text-[var(--bf-text)] shadow-[var(--shadow-sm)]'
+                    : 'hover:bg-[var(--admin-sidebar-hover)]'
+                )}
+                style={
+                  active
+                    ? undefined
+                    : { color: 'var(--admin-sidebar-fg)' }
+                }
+              >
+                <link.icon className="size-[18px]" strokeWidth={2} />
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
       </aside>
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">{children}</div>
+      <main className="flex-1 overflow-auto bg-[var(--bf-surface)]">
+        <div className="p-6 md:p-8">{children}</div>
       </main>
     </div>
   );

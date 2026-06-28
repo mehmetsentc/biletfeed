@@ -32,7 +32,7 @@ export default async function EventJoyInvitationPrintPage({ params }: Props) {
     <>
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: #0c1017 !important; font-family: -apple-system, 'Segoe UI', sans-serif; }
+        html, body { background: var(--ticket-page-bg) !important; font-family: -apple-system, 'Segoe UI', sans-serif; }
         @page { size: A4 portrait; margin: 12mm; }
         @media print {
           html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -62,7 +62,7 @@ export default async function EventJoyInvitationPrintPage({ params }: Props) {
       >
         <div
           style={{
-            background: 'linear-gradient(135deg, #f5a623 0%, #e09510 100%)',
+            background: 'linear-gradient(135deg, var(--bf-orange) 0%, var(--bf-orange-hover) 100%)',
             padding: '14px 28px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -107,7 +107,7 @@ export default async function EventJoyInvitationPrintPage({ params }: Props) {
           <p
             style={{
               fontSize: 12,
-              color: '#f5a623',
+              color: 'var(--bf-orange)',
               fontWeight: 700,
               letterSpacing: 2,
               textTransform: 'uppercase',
@@ -129,7 +129,7 @@ export default async function EventJoyInvitationPrintPage({ params }: Props) {
                 margin: '18px 0',
                 padding: '12px 16px',
                 background: 'rgba(245,166,35,0.06)',
-                borderLeft: '3px solid #f5a623',
+                borderLeft: '3px solid var(--bf-orange)',
                 borderRadius: '0 8px 8px 0'
               }}
             >
@@ -165,7 +165,7 @@ export default async function EventJoyInvitationPrintPage({ params }: Props) {
                 <p
                   style={{
                     fontSize: 10,
-                    color: '#f5a623',
+                    color: 'var(--bf-orange)',
                     fontWeight: 700,
                     letterSpacing: 1.2,
                     textTransform: 'uppercase',

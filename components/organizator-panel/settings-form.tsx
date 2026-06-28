@@ -124,9 +124,9 @@ export function OrganizerSettingsForm({ initial }: { initial: Settings }) {
             />
             SMS bildirimleri
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {saved && <p className="text-sm text-emerald-600">Ayarlar kaydedildi.</p>}
-          <Button type="submit" disabled={loading} className="w-fit bg-[#f5a623] text-black hover:bg-[#e09510]">
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          {saved && <p className="text-sm text-[var(--bf-success)]">Ayarlar kaydedildi.</p>}
+          <Button type="submit" disabled={loading} className="w-fit">
             {loading ? 'Kaydediliyor…' : 'Kaydet'}
           </Button>
         </form>

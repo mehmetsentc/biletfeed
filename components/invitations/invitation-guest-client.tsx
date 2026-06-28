@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Calendar, MapPin, Ticket, Download } from 'lucide-react';
 import { TicketQR } from '@/components/tickets/ticket-qr';
+import { brandTheme } from '@/lib/config/brand-theme';
 
 type InvitationData = {
   guestName: string;
@@ -49,21 +50,23 @@ export function InvitationGuestClient({
   return (
     <div
       className="min-h-screen px-4 py-10"
-      style={{ background: 'linear-gradient(135deg, #0c1017 0%, #111827 50%, #0c1017 100%)' }}
+      style={{
+        background: `linear-gradient(135deg, ${brandTheme.black} 0%, ${brandTheme.surfaceElevated} 50%, ${brandTheme.black} 100%)`
+      }}
     >
       <div className="mx-auto max-w-md">
 
         {/* Wordmark */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-block text-lg font-bold tracking-tight text-white">
-            bilet<span style={{ color: '#f5a623' }}>feed</span>
+            bilet<span style={{ color: brandTheme.orange }}>feed</span>
           </Link>
         </div>
 
         {/* Main card */}
         <div
           className="overflow-hidden rounded-3xl shadow-2xl"
-          style={{ border: '1px solid rgba(245,166,35,0.2)', background: '#13191f' }}
+          style={{ border: `1px solid ${brandTheme.orangeBorder}`, background: brandTheme.surfaceElevated }}
         >
           {/* Cover image with gradient overlay */}
           {invitation.event.coverImage && (
@@ -84,7 +87,11 @@ export function InvitationGuestClient({
               <div className="absolute bottom-4 left-5">
                 <span
                   className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
-                  style={{ background: 'rgba(245,166,35,0.2)', color: '#f5a623', border: '1px solid rgba(245,166,35,0.4)' }}
+                  style={{
+                    background: brandTheme.orangeSoft,
+                    color: brandTheme.orange,
+                    border: `1px solid ${brandTheme.orangeBorder}`
+                  }}
                 >
                   ✦ Davetiye
                 </span>
@@ -96,7 +103,9 @@ export function InvitationGuestClient({
           {!invitation.event.coverImage && (
             <div
               className="flex items-center justify-center py-6"
-              style={{ background: 'linear-gradient(135deg, #f5a623, #e09510)' }}
+              style={{
+                background: `linear-gradient(135deg, ${brandTheme.orange}, ${brandTheme.orangeHover})`
+              }}
             >
               <span className="text-xs font-bold uppercase tracking-widest text-black">
                 ✦ Davetiye
@@ -122,8 +131,8 @@ export function InvitationGuestClient({
               <div
                 className="mt-4 rounded-xl px-4 py-3"
                 style={{
-                  background: 'rgba(245,166,35,0.07)',
-                  borderLeft: '3px solid #f5a623'
+                  background: brandTheme.orangeSoft,
+                  borderLeft: `3px solid ${brandTheme.orange}`
                 }}
               >
                 <p className="text-sm italic" style={{ color: 'rgba(255,255,255,0.7)' }}>
@@ -140,7 +149,7 @@ export function InvitationGuestClient({
               <div className="flex items-start gap-3 text-sm">
                 <Calendar
                   className="mt-0.5 size-4 shrink-0"
-                  style={{ color: '#f5a623' }}
+                  style={{ color: brandTheme.orange }}
                 />
                 <div>
                   <span className="text-white">{eventDate}</span>
@@ -150,13 +159,13 @@ export function InvitationGuestClient({
                 </div>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <MapPin className="size-4 shrink-0" style={{ color: '#f5a623' }} />
+                <MapPin className="size-4 shrink-0" style={{ color: brandTheme.orange }} />
                 <span style={{ color: 'rgba(255,255,255,0.75)' }}>
                   {invitation.event.venue}, {invitation.event.city}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
-                <Ticket className="size-4 shrink-0" style={{ color: '#f5a623' }} />
+                <Ticket className="size-4 shrink-0" style={{ color: brandTheme.orange }} />
                 <span style={{ color: 'rgba(255,255,255,0.75)' }}>
                   {invitation.ticketTypeName}
                 </span>
@@ -167,7 +176,7 @@ export function InvitationGuestClient({
             <div className="relative my-6">
               <div
                 className="absolute -left-6 top-1/2 size-5 -translate-y-1/2 rounded-full"
-                style={{ background: '#0c1017' }}
+                style={{ background: 'var(--ticket-page-bg)' }}
               />
               <div
                 className="border-t border-dashed"
@@ -175,7 +184,7 @@ export function InvitationGuestClient({
               />
               <div
                 className="absolute -right-6 top-1/2 size-5 -translate-y-1/2 rounded-full"
-                style={{ background: '#0c1017' }}
+                style={{ background: 'var(--ticket-page-bg)' }}
               />
             </div>
 
@@ -184,7 +193,7 @@ export function InvitationGuestClient({
               {isValid ? (
                 <div
                   className="rounded-2xl bg-white p-4 shadow-lg"
-                  style={{ boxShadow: '0 0 40px rgba(245,166,35,0.15)' }}
+                  style={{ boxShadow: `0 0 40px ${brandTheme.orangeSoft}` }}
                 >
                   <TicketQR data={invitation.qrData} size={190} />
                 </div>
@@ -216,7 +225,9 @@ export function InvitationGuestClient({
             <Link
               href={`/etkinlik/${invitation.event.slug}`}
               className="mt-7 flex w-full items-center justify-center rounded-2xl py-3.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 no-print"
-              style={{ background: 'linear-gradient(135deg, #f5a623, #e09510)' }}
+              style={{
+                background: `linear-gradient(135deg, ${brandTheme.orange}, ${brandTheme.orangeHover})`
+              }}
             >
               Etkinlik Detayları
             </Link>
@@ -268,7 +279,7 @@ export function InvitationGuestClient({
       {/* Print CSS */}
       <style>{`
         @media print {
-          body { background: #0c1017 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body { background: var(--ticket-page-bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
           nav, footer, header { display: none !important; }
         }

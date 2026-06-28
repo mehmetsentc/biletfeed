@@ -10,7 +10,7 @@ function StatCard({ label, value, sub, icon: Icon, accent }: {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-          <Icon className={`size-4 ${accent ? 'text-[#f5a623]' : 'text-muted-foreground'}`} />
+          <Icon className={`size-4 ${accent ? 'text-primary' : 'text-muted-foreground'}`} />
         </div>
       </CardHeader>
       <CardContent>
@@ -53,7 +53,7 @@ export default async function AdminAnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="size-4 text-[#f5a623]" /> Kategorilere Göre Etkinlik
+              <BarChart3 className="size-4 text-primary" /> Kategorilere Göre Etkinlik
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -69,7 +69,7 @@ export default async function AdminAnalyticsPage() {
                     </div>
                     <div className="h-2 rounded-full bg-muted">
                       <div
-                        className="h-2 rounded-full bg-[#f5a623]"
+                        className="h-2 rounded-full bg-primary"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -84,7 +84,7 @@ export default async function AdminAnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="size-4 text-[#f5a623]" /> Şehirlere Göre Etkinlik
+              <BarChart3 className="size-4 text-primary" /> Şehirlere Göre Etkinlik
             </CardTitle>
           </CardHeader>
           <CardContent>

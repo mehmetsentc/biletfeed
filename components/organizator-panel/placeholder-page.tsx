@@ -16,8 +16,8 @@ export function OrganizatorPlaceholderPage({
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">{title}</h1>
-        <p className="mt-2 text-sm text-zinc-600">{description}</p>
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
       </div>
       <Card>
         <CardContent className="flex flex-col items-center py-16 text-center">
@@ -28,7 +28,7 @@ export function OrganizatorPlaceholderPage({
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link href="/organizator-panel/etkinlik/yeni">
-              <Button className="bg-[#f5a623] text-black hover:bg-[#e09510]">
+              <Button className="">
                 Etkinlik Oluştur
               </Button>
             </Link>

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import { AppSpeedInsights } from '@/components/analytics/speed-insights';
 import { Providers } from '@/components/providers';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
@@ -7,6 +8,12 @@ import { JsonLd } from '@/lib/seo/json-ld';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { buildOrganizationSchema, buildWebsiteSchema } from '@/lib/seo/schemas';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-inter',
+  display: 'swap'
+});
 
 export const metadata: Metadata = {
   ...createPageMetadata({
@@ -31,9 +38,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' }
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' }
   ],
-  colorScheme: 'dark light'
+  colorScheme: 'light dark'
 };
 
 export default function RootLayout({
@@ -43,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className={`${inter.variable} font-sans antialiased`}>
         <JsonLd
           data={[buildOrganizationSchema(), buildWebsiteSchema()]}
         />

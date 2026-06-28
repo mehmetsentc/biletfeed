@@ -21,12 +21,12 @@ export function EventJoyInvitationGuest({
   return (
     <div
       className="min-h-screen px-4 py-10"
-      style={{ background: 'linear-gradient(135deg, #0c1017 0%, #111827 50%, #0c1017 100%)' }}
+      style={{ background: 'linear-gradient(135deg, var(--ticket-page-bg) 0%, #111827 50%, var(--ticket-page-bg) 100%)' }}
     >
       <div className="mx-auto max-w-md">
         <div className="mb-8 text-center">
           <Link href="/eventjoy" className="inline-block text-lg font-bold tracking-tight text-white">
-            Event<span style={{ color: '#f5a623' }}>Joy</span>
+            Event<span style={{ color: 'var(--bf-orange)' }}>Joy</span>
           </Link>
         </div>
 
@@ -53,7 +53,7 @@ export function EventJoyInvitationGuest({
                   className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
                   style={{
                     background: 'rgba(245,166,35,0.2)',
-                    color: '#f5a623',
+                    color: 'var(--bf-orange)',
                     border: '1px solid rgba(245,166,35,0.4)'
                   }}
                 >
@@ -91,7 +91,7 @@ export function EventJoyInvitationGuest({
                 className="mt-4 rounded-xl px-4 py-3"
                 style={{
                   background: 'rgba(245,166,35,0.07)',
-                  borderLeft: '3px solid #f5a623'
+                  borderLeft: '3px solid var(--bf-orange)'
                 }}
               >
                 <p className="text-sm italic" style={{ color: 'rgba(255,255,255,0.7)' }}>
@@ -108,7 +108,7 @@ export function EventJoyInvitationGuest({
               }}
             >
               <div className="flex items-start gap-3 text-sm">
-                <Calendar className="mt-0.5 size-4 shrink-0" style={{ color: '#f5a623' }} />
+                <Calendar className="mt-0.5 size-4 shrink-0" style={{ color: 'var(--bf-orange)' }} />
                 <div>
                   <span className="text-white">{dateLabel}</span>
                   <span className="ml-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
@@ -118,12 +118,12 @@ export function EventJoyInvitationGuest({
               </div>
               {invitation.location && (
                 <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="size-4 shrink-0" style={{ color: '#f5a623' }} />
+                  <MapPin className="size-4 shrink-0" style={{ color: 'var(--bf-orange)' }} />
                   <span style={{ color: 'rgba(255,255,255,0.75)' }}>{invitation.location}</span>
                 </div>
               )}
               <div className="flex items-center gap-3 text-sm">
-                <User className="size-4 shrink-0" style={{ color: '#f5a623' }} />
+                <User className="size-4 shrink-0" style={{ color: 'var(--bf-orange)' }} />
                 <span style={{ color: 'rgba(255,255,255,0.75)' }}>{invitation.hostName}</span>
               </div>
             </div>
@@ -160,7 +160,7 @@ export function EventJoyInvitationGuest({
                 }
               }}
               className="no-print mt-7 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #f5a623, #e09510)' }}
+              style={{ background: 'linear-gradient(135deg, var(--bf-orange), var(--bf-orange-hover))' }}
             >
               <Download className="size-4" />
               {downloading ? 'İndiriliyor…' : 'Davetiye İndir'}
@@ -183,7 +183,7 @@ export function EventJoyInvitationGuest({
 
       <style>{`
         @media print {
-          body { background: #0c1017 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body { background: var(--ticket-page-bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
           nav, footer, header { display: none !important; }
         }
