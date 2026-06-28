@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { BiletFeedWordmark } from '@/components/brand/biletfeed-wordmark';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 import { siteConfig } from '@/lib/config/site';
 import { cn } from '@/lib/utils';
@@ -13,8 +14,8 @@ interface LogoProps {
   href?: string;
   size?: 'default' | 'large';
   /**
-   * on-dark — siyah header / koyu zemin (dark theme logo)
-   * on-light — açık zemin (light theme logo)
+   * on-dark — siyah/koyu header zemin
+   * on-light — açık zemin
    * auto — next-themes ile otomatik
    */
   variant?: 'on-dark' | 'on-light' | 'auto';
@@ -42,7 +43,6 @@ export function Logo({
 
   const isLarge = size === 'large';
   const height = isLarge ? 58 : 44;
-  const width = isLarge ? 210 : 160;
 
   let logoVariant: 'on-dark' | 'on-light' = 'on-dark';
   if (variant === 'auto') {
@@ -51,8 +51,6 @@ export function Logo({
   } else {
     logoVariant = variant;
   }
-
-  const src = resolveLogoSrc(logoVariant);
 
   return (
     <Link
@@ -63,20 +61,12 @@ export function Logo({
         className
       )}
     >
-      <Image
-        src={src}
-        alt={siteConfig.name}
-        width={LOGO_WIDTH}
-        height={LOGO_HEIGHT}
-        priority
-        className="block h-auto w-auto object-contain object-left"
-        style={{ width, height: 'auto', maxHeight: height }}
-      />
+      <BiletFeedWordmark variant={logoVariant} height={height} />
     </Link>
   );
 }
 
-/** PNG logo — e-posta, OG, basılı materyal */
+/** PNG logo — e-posta, OG, basılı materyal (vektör yerine raster gerekirse) */
 export function LogoImage({
   variant = 'on-dark',
   className,
