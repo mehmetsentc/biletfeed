@@ -2,15 +2,17 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import type { TicketPdfInput } from '@/lib/tickets/pdf/types';
 import { registerPdfFonts, pdfFont } from '@/lib/tickets/pdf/fonts';
+import { brandTheme } from '@/lib/config/brand-theme';
+import { designTokens } from '@/lib/config/design-tokens';
 
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
-const BRAND_GOLD = '#f5a623';
-const BG_DARK = '#0c1017';
-const BG_CARD = '#13191f';
-const TEXT_MUTED = '#999999';
-const VALID_GREEN = '#34d399';
-const INVALID_RED = '#ef4444';
+const BRAND_ORANGE = brandTheme.orange;
+const BG_DARK = brandTheme.black;
+const BG_CARD = designTokens.color.dark.card;
+const TEXT_MUTED = brandTheme.gray[500];
+const VALID_GREEN = designTokens.color.status.success;
+const INVALID_RED = designTokens.color.status.danger;
 
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   try {
@@ -48,7 +50,7 @@ function drawDetailBox(
 ) {
   doc.save();
   doc.roundedRect(x, y, w, h, 8).fillAndStroke('#1a2230', '#2a3544');
-  doc.fillColor(BRAND_GOLD).fontSize(8).font(pdfFont(true)).text(label.toUpperCase(), x + 12, y + 10, {
+  doc.fillColor(BRAND_ORANGE).fontSize(8).font(pdfFont(true)).text(label.toUpperCase(), x + 12, y + 10, {
     width: w - 24
   });
   doc.fillColor('#ffffff').fontSize(10).font(pdfFont(true)).text(value, x + 12, y + 24, {
@@ -109,7 +111,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
       doc.image(coverBuffer, cardX, cardY, { width: cardW, height: coverH, align: 'center', valign: 'center' });
       doc.save();
       doc.fillOpacity(0.75);
-      doc.rect(cardX, cardY + coverH - 70, cardW, 70).fill('#0c1017');
+      doc.rect(cardX, cardY + coverH - 70, cardW, 70).fill(BG_DARK);
       doc.fillOpacity(1);
       doc.restore();
       doc.restore();
@@ -117,14 +119,14 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
       doc.fillColor('#ffffff').fontSize(16).font(pdfFont(true)).text('bilet', cardX + 20, cardY + 18, {
         continued: true
       });
-      doc.fillColor(BRAND_GOLD).text('feed');
+      doc.fillColor(BRAND_ORANGE).text('feed');
 
       cursorY = cardY + coverH;
     } else {
       const headerH = 52;
       doc.save();
       doc.roundedRect(cardX, cardY, cardW, headerH, 16).clip();
-      doc.rect(cardX, cardY, cardW, headerH).fill(BRAND_GOLD);
+      doc.rect(cardX, cardY, cardW, headerH).fill(BRAND_ORANGE);
       doc.restore();
 
       doc.fillColor('#000000').fontSize(16).font(pdfFont(true)).text('bilet', cardX + 20, cardY + 16, {
@@ -148,7 +150,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     cursorY += 20;
 
     if (isInvitation) {
-      doc.fillColor(BRAND_GOLD).fontSize(9).font(pdfFont(true)).text('SAYIN DAVETLİ', contentX, cursorY);
+      doc.fillColor(BRAND_ORANGE).fontSize(9).font(pdfFont(true)).text('SAYIN DAVETLİ', contentX, cursorY);
       cursorY += 16;
     }
 
@@ -188,7 +190,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
 
     if (input.personalMessage?.trim()) {
       doc.save();
-      doc.roundedRect(contentX, cursorY, contentW, 44, 8).fill('#f5a62311');
+      doc.roundedRect(contentX, cursorY, contentW, 44, 8).fill(`${BRAND_ORANGE}11`);
       doc.restore();
       doc.fillColor('#cccccc')
         .fontSize(9)
@@ -228,7 +230,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     cursorY += boxH * 2 + 20;
 
     doc.save();
-    doc.strokeColor('#f5a62344').lineWidth(1).dash(4, { space: 4 });
+    doc.strokeColor(`${BRAND_ORANGE}44`).lineWidth(1).dash(4, { space: 4 });
     doc.moveTo(contentX, cursorY).lineTo(contentX + contentW, cursorY).stroke();
     doc.undash();
     doc.restore();
@@ -264,7 +266,7 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
       );
 
     doc.save();
-    doc.roundedRect(infoX, cursorY + 96, infoW, 3, 2).fill(BRAND_GOLD);
+    doc.roundedRect(infoX, cursorY + 96, infoW, 3, 2).fill(BRAND_ORANGE);
     doc.restore();
 
     const footerY = cardY + cardH - 36;

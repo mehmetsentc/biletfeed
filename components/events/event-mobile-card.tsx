@@ -17,7 +17,7 @@ export function EventMobileCard({ event }: EventMobileCardProps) {
     <article className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       {/* Favori butonu Link'in DIŞINDA */}
       <FavoriteButton
-        className="absolute right-3 top-3 z-20 !bg-white/90 !text-zinc-800 shadow-md hover:!bg-white"
+        className="absolute right-3 top-3 z-20 !bg-card/90 !text-foreground shadow-md hover:!bg-card"
         icon="star"
         eventId={event.id}
       />

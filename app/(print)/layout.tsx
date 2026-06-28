@@ -1,5 +1,5 @@
 export default function PrintLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#0c1017] text-white antialiased">{children}</div>
+    <div className="min-h-screen bg-ticket-page text-white antialiased">{children}</div>
   );
 }

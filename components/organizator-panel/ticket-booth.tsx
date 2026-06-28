@@ -211,7 +211,7 @@ export function TicketBoothPanel() {
   if (loading) {
     return (
       <div className="flex min-h-[320px] items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-zinc-400" />
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -219,8 +219,8 @@ export function TicketBoothPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">Bilet Gişesi</h1>
-        <p className="mt-1 text-sm text-zinc-600">
+        <h1 className="text-2xl font-bold text-foreground">Bilet Gişesi</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Tüm etkinliklerinize davetiye üretip QR kodlu bilet gönderimi yapabilirsiniz.
         </p>
       </div>
@@ -235,34 +235,34 @@ export function TicketBoothPanel() {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex flex-col items-center rounded-xl border bg-white p-6 text-center transition-all',
+                'flex flex-col items-center rounded-xl border bg-card p-6 text-center transition-all',
                 active
-                  ? 'border-[#f5a623] shadow-sm ring-1 ring-[#f5a623]/30'
-                  : 'border-zinc-200 hover:border-zinc-300'
+                  ? 'border-primary shadow-sm ring-1 ring-primary/30'
+                  : 'border-border hover:border-border'
               )}
             >
               <Icon
                 className={cn(
                   'mb-3 size-10',
-                  active ? 'text-[#f5a623]' : 'text-zinc-400'
+                  active ? 'text-primary' : 'text-muted-foreground'
                 )}
               />
-              <span className="font-semibold text-zinc-800">{tab.label}</span>
-              <span className="mt-1 text-xs text-zinc-500">{tab.description}</span>
+              <span className="font-semibold text-foreground">{tab.label}</span>
+              <span className="mt-1 text-xs text-muted-foreground">{tab.description}</span>
             </button>
           );
         })}
       </div>
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-4 md:p-6">
-        <Label htmlFor="event-select" className="text-zinc-700">
+      <div className="rounded-xl border border-border bg-card p-4 md:p-6">
+        <Label htmlFor="event-select" className="text-foreground">
           Etkinlik Adı
         </Label>
         <select
           id="event-select"
           value={eventId}
           onChange={(e) => setEventId(e.target.value)}
-          className="mt-2 flex h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-800"
+          className="mt-2 flex h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-foreground"
         >
           {events.length === 0 ? (
             <option value="">Yayında etkinlik yok</option>
@@ -275,7 +275,7 @@ export function TicketBoothPanel() {
           )}
         </select>
         {selectedEvent && (
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-muted-foreground">
             {new Date(selectedEvent.startDate).toLocaleDateString('tr-TR', {
               day: 'numeric',
               month: 'long',
@@ -300,10 +300,10 @@ export function TicketBoothPanel() {
         <div className="grid gap-6 lg:grid-cols-2">
           <form
             onSubmit={handleSendInvitation}
-            className="rounded-xl border border-zinc-200 bg-white p-5 md:p-6"
+            className="rounded-xl border border-border bg-card p-5 md:p-6"
           >
-            <h2 className="text-lg font-semibold text-zinc-800">Davetiye Gönder</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <h2 className="text-lg font-semibold text-foreground">Davetiye Gönder</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
               Misafir adına QR kodlu ücretsiz bilet oluşturulur.
             </p>
 
@@ -314,7 +314,7 @@ export function TicketBoothPanel() {
                   id="ticket-type"
                   value={ticketTypeId}
                   onChange={(e) => setTicketTypeId(e.target.value)}
-                  className="mt-1.5 flex h-10 w-full rounded-md border border-zinc-200 px-3 text-sm"
+                  className="mt-1.5 flex h-10 w-full rounded-md border border-border px-3 text-sm"
                   required
                 >
                   {ticketTypes.map((type) => (
@@ -367,14 +367,14 @@ export function TicketBoothPanel() {
                   value={personalMessage}
                   onChange={(e) => setPersonalMessage(e.target.value)}
                   placeholder="Davetiyenize kısa bir not ekleyin..."
-                  className="mt-1.5 min-h-[90px] w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
+                  className="mt-1.5 min-h-[90px] w-full rounded-md border border-border bg-white px-3 py-2 text-sm"
                 />
               </div>
             </div>
 
             <Button
               type="submit"
-              className="mt-6 w-full bg-[#f5a623] hover:bg-[#e09510]"
+              className="mt-6 w-full"
               disabled={sending || !eventId || ticketTypes.length === 0}
             >
               {sending ? (
@@ -393,13 +393,13 @@ export function TicketBoothPanel() {
 
           <div className="space-y-4">
             {lastInvite && (
-              <div className="rounded-xl border border-[#f5a623]/40 bg-[#fff9ef] p-5">
-                <h3 className="font-semibold text-zinc-800">Son Davetiye</h3>
-                <p className="mt-1 text-sm text-zinc-600">{lastInvite.guestName}</p>
-                <div className="mt-4 flex justify-center rounded-lg bg-white p-4">
+              <div className="rounded-xl border border-primary/40 bg-accent p-5">
+                <h3 className="font-semibold text-foreground">Son Davetiye</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{lastInvite.guestName}</p>
+                <div className="mt-4 flex justify-center rounded-lg bg-card p-4">
                   <TicketQR data={lastInvite.qrData} size={160} />
                 </div>
-                <p className="mt-3 text-center font-mono text-sm text-zinc-700">
+                <p className="mt-3 text-center font-mono text-sm text-foreground">
                   {lastInvite.ticketCode}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -435,12 +435,12 @@ export function TicketBoothPanel() {
               </div>
             )}
 
-            <div className="rounded-xl border border-zinc-200 bg-white p-5">
-              <h3 className="font-semibold text-zinc-800">
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="font-semibold text-foreground">
                 Gönderilen Davetiyeler ({invitations.length})
               </h3>
               {invitations.length === 0 ? (
-                <p className="mt-3 text-sm text-zinc-500">
+                <p className="mt-3 text-sm text-muted-foreground">
                   Henüz davetiye gönderilmedi.
                 </p>
               ) : (
@@ -448,13 +448,13 @@ export function TicketBoothPanel() {
                   {invitations.map((invite) => (
                     <li
                       key={invite.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 px-3 py-2.5"
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5"
                     >
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-zinc-800">
+                        <p className="truncate font-medium text-foreground">
                           {invite.guestName}
                         </p>
-                        <p className="truncate text-xs text-zinc-500">
+                        <p className="truncate text-xs text-muted-foreground">
                           {invite.ticketTypeName} · {invite.ticketCode}
                         </p>
                       </div>
@@ -476,9 +476,9 @@ export function TicketBoothPanel() {
       )}
 
       {activeTab === 'sales' && (
-        <div className="rounded-xl border border-zinc-200 bg-white p-5 md:p-6">
-          <h2 className="text-lg font-semibold text-zinc-800">Giriş Kontrolü</h2>
-          <p className="mt-1 text-sm text-zinc-500">
+        <div className="rounded-xl border border-border bg-card p-5 md:p-6">
+          <h2 className="text-lg font-semibold text-foreground">Giriş Kontrolü</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             Misafirlerin QR kodunu tarayarak etkinliğe giriş onaylayın.
           </p>
           <div className="mt-6">
@@ -488,10 +488,10 @@ export function TicketBoothPanel() {
       )}
 
       {activeTab === 'pending' && (
-        <div className="rounded-xl border border-zinc-200 bg-white p-5 md:p-6">
-          <h2 className="text-lg font-semibold text-zinc-800">Ödeme Bekleyen Siparişler</h2>
+        <div className="rounded-xl border border-border bg-card p-5 md:p-6">
+          <h2 className="text-lg font-semibold text-foreground">Ödeme Bekleyen Siparişler</h2>
           {pendingOrders.length === 0 ? (
-            <p className="mt-4 text-sm text-zinc-500">
+            <p className="mt-4 text-sm text-muted-foreground">
               Bu etkinlik için bekleyen ödeme yok.
             </p>
           ) : (
@@ -499,18 +499,18 @@ export function TicketBoothPanel() {
               {pendingOrders.map((order) => (
                 <li
                   key={order.id}
-                  className="rounded-lg border border-zinc-100 px-4 py-3"
+                  className="rounded-lg border border-border px-4 py-3"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="font-medium text-zinc-800">{order.buyerName}</p>
-                      <p className="text-xs text-zinc-500">{order.buyerEmail}</p>
+                      <p className="font-medium text-foreground">{order.buyerName}</p>
+                      <p className="text-xs text-muted-foreground">{order.buyerEmail}</p>
                     </div>
-                    <p className="font-semibold text-[#f5a623]">
+                    <p className="font-semibold text-primary">
                       {order.total.toLocaleString('tr-TR')} ₺
                     </p>
                   </div>
-                  <p className="mt-2 text-xs text-zinc-500">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {order.items
                       .map((item) => `${item.quantity}x ${item.name}`)
                       .join(' · ')}

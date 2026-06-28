@@ -46,9 +46,9 @@ export function ModerationPanel({ initialReviews }: { initialReviews: ReviewRow[
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <table className="w-full text-sm">
-        <thead className="border-b bg-zinc-50 text-left">
+        <thead className="border-b bg-muted text-left">
           <tr>
             <th className="p-3 font-medium">Etkinlik</th>
             <th className="p-3 font-medium">Kullanıcı</th>

@@ -357,12 +357,12 @@ export default function EventsPageClient({
     <SortSelect
       value={sort}
       onChange={setSort}
-      className="hidden h-10 rounded-lg border border-white/15 bg-[#151b24] px-3 text-sm font-medium text-white/80 md:block"
+      className="hidden h-10 rounded-lg border border-white/15 bg-ticket-card px-3 text-sm font-medium text-white/80 md:block"
     />
   );
 
   return (
-    <div className="min-h-screen bg-[#0c1017]">
+    <div className="min-h-screen bg-ticket-page">
       <EventsFeedHeader
         cityLabel={cityLabel}
         searchValue={searchQuery}

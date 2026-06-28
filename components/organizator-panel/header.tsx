@@ -14,7 +14,7 @@ export function OrganizatorHeader({
   onMenuClick?: () => void;
 }) {
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-[#1f2327] px-4 text-white lg:px-6">
+    <header className="bg-organizer-header flex h-14 items-center justify-between border-b border-[var(--ticket-border)] px-4 text-white lg:px-6">
       <div className="flex items-center gap-3">
         <Button
           type="button"
@@ -26,10 +26,10 @@ export function OrganizatorHeader({
           <Menu className="size-5" />
         </Button>
         <Link href="/organizator-panel/baslangic" className="flex items-center gap-2">
-          <span className="text-lg font-bold tracking-tight text-[#f5a623]">
+          <span className="text-lg font-bold tracking-tight text-primary">
             {siteConfig.name.split(' ')[0]}
           </span>
-          <span className="hidden text-sm text-zinc-300 sm:inline">
+          <span className="text-organizer-chrome hidden text-sm sm:inline">
             {ORGANIZATOR_BRAND.replace('Biletfeed ', '')}
           </span>
         </Link>
@@ -38,11 +38,11 @@ export function OrganizatorHeader({
       <div className="flex items-center gap-4 text-sm">
         <Link
           href="/"
-          className="hidden text-zinc-400 transition-colors hover:text-white sm:inline"
+          className="text-organizer-chrome-muted hidden transition-colors hover:text-white sm:inline"
         >
           Siteye Dön
         </Link>
-        <span className="rounded-md bg-white/10 px-3 py-1.5 text-zinc-100">
+        <span className="text-organizer-chrome rounded-md bg-white/10 px-3 py-1.5">
           {displayName}
         </span>
       </div>

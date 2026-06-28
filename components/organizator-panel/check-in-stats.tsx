@@ -16,22 +16,22 @@ export function CheckInStatsPanel({
       </div>
 
       {stats.recentCheckIns.length > 0 && (
-        <div className="rounded-lg border bg-white p-4 shadow-sm">
-          <h3 className="mb-3 text-sm font-semibold text-zinc-800">Son Girişler</h3>
+        <div className="rounded-lg border bg-card p-4 shadow-sm">
+          <h3 className="mb-3 text-sm font-semibold text-foreground">Son Girişler</h3>
           <ul className="space-y-2">
             {stats.recentCheckIns.map((row) => (
               <li key={row.id} className="flex items-center justify-between text-sm">
                 <div>
-                  <p className="font-medium text-zinc-800">{row.holderName}</p>
-                  <p className="text-xs text-zinc-500">{row.eventTitle} · {row.ticketCode}</p>
+                  <p className="font-medium text-foreground">{row.holderName}</p>
+                  <p className="text-xs text-muted-foreground">{row.eventTitle} · {row.ticketCode}</p>
                 </div>
                 <span
                   className={
                     row.result === 'VALID'
-                      ? 'text-emerald-600'
+                      ? 'text-[var(--bf-success)]'
                       : row.result === 'USED'
                         ? 'text-amber-600'
-                        : 'text-red-600'
+                        : 'text-destructive'
                   }
                 >
                   {row.result}
@@ -57,13 +57,13 @@ function StatCard({
   sub?: string;
 }) {
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2 text-zinc-500">
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="size-4" />
         <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
       </div>
-      <p className="mt-2 text-2xl font-bold text-zinc-900">{value}</p>
-      {sub && <p className="text-xs text-zinc-500">{sub}</p>}
+      <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
+      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
     </div>
   );
 }

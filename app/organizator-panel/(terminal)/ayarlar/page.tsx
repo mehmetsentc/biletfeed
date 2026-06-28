@@ -17,8 +17,8 @@ export default async function OrganizatorSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">Ayarlar</h1>
-        <p className="text-sm text-zinc-600">Profil bilgileri, iletişim ve bildirim tercihleri</p>
+        <h1 className="text-2xl font-bold text-foreground">Ayarlar</h1>
+        <p className="text-sm text-muted-foreground">Profil bilgileri, iletişim ve bildirim tercihleri</p>
       </div>
       <OrganizerSettingsForm
         initial={{

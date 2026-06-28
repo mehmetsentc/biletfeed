@@ -20,35 +20,35 @@ export function CookieConsentBanner({
       aria-labelledby="cookie-consent-title"
       aria-describedby="cookie-consent-desc"
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.12)] md:flex-row md:items-center md:gap-6 md:p-5">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 rounded-[var(--radius-card)] border border-border bg-card p-4 shadow-md md:flex-row md:items-center md:gap-6 md:p-5">
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-100">
-            <Cookie className="size-5 text-zinc-600" aria-hidden />
+          <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary">
+            <Cookie className="size-5 text-muted-foreground" aria-hidden />
           </div>
           <div className="min-w-0">
             <p
               id="cookie-consent-title"
-              className="text-sm font-semibold text-zinc-800 md:text-base"
+              className="text-sm font-semibold text-foreground md:text-base"
             >
               Sana özel bir deneyim için çalışıyoruz
             </p>
             <p
               id="cookie-consent-desc"
-              className="mt-1.5 text-xs leading-relaxed text-zinc-600 md:text-sm"
+              className="mt-1.5 text-xs leading-relaxed text-muted-foreground md:text-sm"
             >
               Deneyiminizi iyileştirmek için çerezler kullanıyoruz. Gerekli çerezler
               hizmet sunumu için, diğerleri ise yalnızca izninizle kullanılır.{' '}
               <button
                 type="button"
                 onClick={onReject}
-                className="font-medium text-zinc-800 underline underline-offset-2 hover:text-zinc-950"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
               >
                 Reddet
               </button>{' '}
               seçeneğiyle yalnızca zorunlu çerezlerle devam edebilirsiniz. Detaylara{' '}
               <Link
                 href="/cerezler"
-                className="font-medium text-zinc-800 underline underline-offset-2 hover:text-zinc-950"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
               >
                 Çerez Politikası
               </Link>{' '}
@@ -56,7 +56,7 @@ export function CookieConsentBanner({
               <button
                 type="button"
                 onClick={onOpenPreferences}
-                className="font-medium text-zinc-800 underline underline-offset-2 hover:text-zinc-950"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
               >
                 Tercihler
               </button>
@@ -68,7 +68,7 @@ export function CookieConsentBanner({
         <Button
           type="button"
           onClick={onAccept}
-          className="h-11 shrink-0 rounded-lg bg-primary px-8 text-sm font-semibold text-primary-foreground hover:bg-primary/90 md:min-w-[140px]"
+          className="h-11 shrink-0 px-8 text-sm font-semibold md:min-w-[140px]"
         >
           Kabul Et
         </Button>

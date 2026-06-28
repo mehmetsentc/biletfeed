@@ -76,7 +76,7 @@ export function BannerAdminPanel() {
       </div>
 
       {showNew && (
-        <div className="rounded-lg border border-dashed border-[#f5a623]/50 bg-[#f5a623]/5 p-4">
+        <div className="rounded-lg border border-dashed border-primary/50 bg-primary/5 p-4">
           <p className="mb-3 text-sm font-semibold">Yeni Banner</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
@@ -145,11 +145,11 @@ export function BannerAdminPanel() {
               <button
                 onClick={() => toggleActive(banner.id)}
                 className={`relative inline-flex h-5 w-9 rounded-full transition-colors ${
-                  banner.active ? 'bg-[#f5a623]' : 'bg-muted'
+                  banner.active ? 'bg-primary' : 'bg-muted'
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform ${
+                  className={`absolute top-0.5 size-4 rounded-full bg-card shadow transition-transform ${
                     banner.active ? 'translate-x-4' : 'translate-x-0.5'
                   }`}
                 />

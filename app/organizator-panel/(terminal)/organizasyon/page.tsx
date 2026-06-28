@@ -24,8 +24,8 @@ export default async function OrganizatorOrganizationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">Organizasyon</h1>
-        <p className="text-sm text-zinc-600">Profil ve herkese açık sayfa bilgileri</p>
+        <h1 className="text-2xl font-bold text-foreground">Organizasyon</h1>
+        <p className="text-sm text-muted-foreground">Profil ve herkese açık sayfa bilgileri</p>
       </div>
 
       <Card>

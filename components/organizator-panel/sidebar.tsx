@@ -46,17 +46,17 @@ export function OrganizatorSidebar({
   return (
     <aside
       className={cn(
-        'flex w-64 shrink-0 flex-col bg-[#2b3035] text-zinc-100',
+        'bg-organizer-sidebar text-organizer-chrome flex w-64 shrink-0 flex-col',
         className
       )}
     >
       <div className="border-b border-white/10 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+        <p className="text-organizer-chrome-muted text-[10px] font-semibold uppercase tracking-widest">
           Organizasyon
         </p>
         <button
           type="button"
-          className="mt-2 flex w-full items-center justify-between rounded-md bg-[#1f2327] px-3 py-2 text-left text-sm font-medium"
+          className="bg-organizer-header mt-2 flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-white"
         >
           <span className="truncate">{organizationName}</span>
           <ChevronDown className="size-4 shrink-0 opacity-70" />
@@ -70,18 +70,18 @@ export function OrganizatorSidebar({
             (item.href !== '/organizator-panel/baslangic' &&
               pathname.startsWith(item.href));
 
-          const className = cn(
+          const linkClassName = cn(
             'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors',
             active
-              ? 'bg-[#3d444b] text-white'
-              : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+              ? 'bg-[var(--organizer-sidebar-active)] text-white'
+              : 'text-organizer-chrome hover:bg-[var(--organizer-sidebar-hover)] hover:text-white'
           );
 
           const Icon = item.icon;
 
           if (item.external) {
             return (
-              <a key={item.href} href={item.href} className={className}>
+              <a key={item.href} href={item.href} className={linkClassName}>
                 <Icon className="size-4 shrink-0 opacity-80" />
                 {item.label}
               </a>
@@ -89,7 +89,7 @@ export function OrganizatorSidebar({
           }
 
           return (
-            <Link key={item.href} href={item.href} className={className}>
+            <Link key={item.href} href={item.href} className={linkClassName}>
               <Icon className="size-4 shrink-0 opacity-80" />
               {item.label}
             </Link>
@@ -97,7 +97,7 @@ export function OrganizatorSidebar({
         })}
       </nav>
 
-      <div className="border-t border-white/10 p-4 text-[11px] text-zinc-500">
+      <div className="text-organizer-chrome-muted border-t border-white/10 p-4 text-[11px]">
         © Biletfeed {new Date().getFullYear()}
       </div>
     </aside>

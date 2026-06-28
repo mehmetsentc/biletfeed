@@ -100,14 +100,14 @@ export function EventJoyPanelHome() {
       icon: MessageCircle,
       label: 'Mesajlar',
       desc: 'Misafirlerle grup iletişimi',
-      accent: 'bg-zinc-100 text-zinc-700'
+      accent: 'bg-secondary text-foreground'
     },
     {
       href: eventJoyRoutes.events,
       icon: Calendar,
       label: 'Tüm Etkinlikler',
       desc: `${events.length} planlanmış etkinlik`,
-      accent: 'bg-zinc-100 text-zinc-700'
+      accent: 'bg-secondary text-foreground'
     }
   ];
 

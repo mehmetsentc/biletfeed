@@ -166,13 +166,13 @@ export function CreateEventBanner() {
           <path
             d="M0 100 Q300 20 600 100 T1200 100"
             fill="none"
-            stroke="#FF9900"
+            stroke="var(--bf-orange)"
             strokeWidth="2"
           />
           <path
             d="M0 140 Q400 60 800 140 T1200 120"
             fill="none"
-            stroke="#FF9900"
+            stroke="var(--bf-orange)"
             strokeWidth="1.5"
           />
         </svg>

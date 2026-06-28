@@ -14,13 +14,13 @@ export default async function OrganizatorOrdersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-800">Siparişler</h1>
-        <p className="text-sm text-zinc-600">Sipariş geçmişi ve ödeme durumları</p>
+        <h1 className="text-2xl font-bold text-foreground">Siparişler</h1>
+        <p className="text-sm text-muted-foreground">Sipariş geçmişi ve ödeme durumları</p>
       </div>
 
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b bg-zinc-50 text-left">
+          <thead className="border-b bg-muted text-left">
             <tr>
               <th className="p-3 font-medium">Tarih</th>
               <th className="p-3 font-medium">Etkinlik</th>
