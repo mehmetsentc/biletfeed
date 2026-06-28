@@ -34,7 +34,7 @@ export const brandLogos = {
 } as const;
 
 /** CDN/cache kırma — logo güncellendiğinde artırın */
-export const brandAssetsVersion = '8';
+export const brandAssetsVersion = '9';
 
 export function brandAssetUrl(path: string): string {
   return `${path}?v=${brandAssetsVersion}`;
