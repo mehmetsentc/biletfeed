@@ -20,8 +20,8 @@ interface LogoProps {
   variant?: 'on-dark' | 'on-light' | 'auto';
 }
 
-/** Yatay logo oranı — 1024×223 px kaynak dosyalar */
-const LOGO_ASPECT = 1024 / 223;
+/** Yatay logo oranı — 2001×436 px kaynak dosyalar (~/biletfeed/Logo) */
+const LOGO_ASPECT = 2001 / 436;
 
 function resolveLogoSrc(variant: 'on-dark' | 'on-light'): string {
   return variant === 'on-dark'
