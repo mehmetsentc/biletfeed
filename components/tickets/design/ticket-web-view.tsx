@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { brandAssetUrl, brandLogos, brandTheme } from '@/lib/config/brand-theme';
 import { TicketQR } from '@/components/tickets/ticket-qr';
 import {
-  ticketCompanyAddressLine,
   ticketCompanyContactLine,
   ticketCompanyLegalLine,
   ticketTermsEn,

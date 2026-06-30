@@ -79,7 +79,7 @@ export function barcodeToDataUrl(
   options?: { width?: number; height?: number; barColor?: string }
 ): string {
   const svg = barcodeToSvg(text, options);
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 /** PDFKit için dikey çubuk çizimi */
