@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/brand/logo';
+import { siteConfig } from '@/lib/config/site';
 import { cn } from '@/lib/utils';
 
 export const ORGANIZATOR_BRAND = 'Biletfeed Organizatör';
@@ -35,7 +36,7 @@ const navItems = [
   { href: '/organizator-panel/mekanlar', label: 'Mekanlar', icon: MapPin },
   { href: '/organizator-panel/moderasyon', label: 'Moderasyon', icon: Sparkles },
   { href: '/organizator-panel/iletisim', label: 'İletişim', icon: MessageCircle },
-  { href: '/yardim', label: 'Yardım', icon: HelpCircle, external: true },
+  { href: `${siteConfig.url}/yardim`, label: 'Yardım', icon: HelpCircle, external: true },
   { href: '/organizator-panel/ayarlar', label: 'Ayarlar', icon: Settings },
 ];
 
@@ -100,7 +101,13 @@ export function OrganizatorSidebar({
 
           if (item.external) {
             return (
-              <a key={item.href} href={item.href} className={linkClassName}>
+              <a
+                key={item.href}
+                href={item.href}
+                className={linkClassName}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Icon className="size-[18px] shrink-0" strokeWidth={2} />
                 {item.label}
               </a>
