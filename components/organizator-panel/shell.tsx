@@ -19,11 +19,17 @@ export function OrganizatorShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const isWizard = pathname === '/organizator-panel/etkinlik/yeni';
+  const isScanner = pathname === '/organizator-panel/tarayici';
 
-  if (isWizard) {
+  if (isWizard || isScanner) {
     return (
       <AuthGuard requiredRole="ROLE_ORGANIZER">
-        <div className="organizer-surface bg-organizer-shell min-h-screen p-4 md:p-6 lg:p-8">
+        <div
+          className={cn(
+            'min-h-screen',
+            isScanner ? 'bg-[#0a0a0a]' : 'organizer-surface bg-organizer-shell p-4 md:p-6 lg:p-8'
+          )}
+        >
           {children}
         </div>
       </AuthGuard>
@@ -53,7 +59,9 @@ export function OrganizatorShell({
               aria-label="Menüyü kapat"
             />
           )}
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">{children}</main>
+          <main className="organizer-surface flex-1 overflow-auto bg-background p-4 md:p-6 lg:p-8">
+            {children}
+          </main>
         </div>
       </div>
     </AuthGuard>

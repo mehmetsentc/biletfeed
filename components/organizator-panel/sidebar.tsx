@@ -9,34 +9,36 @@ import {
   Home,
   MapPin,
   MessageCircle,
+  Plus,
   ScanLine,
   Settings,
-  ShoppingCart,
+  ShoppingBag,
   Sparkles,
   Star,
-  Ticket
+  Ticket,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export const ORGANIZATOR_BRAND = 'Biletfeed Organizatör';
 
 const navItems = [
-  { href: '/organizator-panel/baslangic', label: 'Başlangıç', icon: Home },
-  { href: '/organizator-panel/etkinlikler', label: 'Etkinlik', icon: Calendar },
-  { href: '/organizator-panel/organizasyon', label: 'Organizasyon', icon: Star },
-  { href: '/organizator-panel/mekanlar', label: 'Mekan & Koltuk', icon: MapPin },
-  { href: '/organizator-panel/moderasyon', label: 'Moderasyon', icon: Sparkles },
-  { href: '/organizator-panel/tarayici', label: 'Bilet Gişesi', icon: ScanLine },
-  { href: '/organizator-panel/siparisler', label: 'Siparişler', icon: ShoppingCart },
+  { href: '/organizator-panel/baslangic', label: 'Genel Bakış', icon: Home },
+  { href: '/organizator-panel/etkinlikler', label: 'Etkinlikler', icon: Calendar },
+  { href: '/organizator-panel/tarayici', label: 'Bilet Tara', icon: ScanLine },
+  { href: '/organizator-panel/siparisler', label: 'Satışlar', icon: ShoppingBag },
   { href: '/organizator-panel/biletler', label: 'Biletler', icon: Ticket },
+  { href: '/organizator-panel/organizasyon', label: 'Organizasyon', icon: Star },
+  { href: '/organizator-panel/mekanlar', label: 'Mekanlar', icon: MapPin },
+  { href: '/organizator-panel/moderasyon', label: 'Moderasyon', icon: Sparkles },
   { href: '/organizator-panel/iletisim', label: 'İletişim', icon: MessageCircle },
   { href: '/yardim', label: 'Yardım', icon: HelpCircle, external: true },
-  { href: '/organizator-panel/ayarlar', label: 'Ayarlar', icon: Settings }
+  { href: '/organizator-panel/ayarlar', label: 'Ayarlar', icon: Settings },
 ];
 
 export function OrganizatorSidebar({
   organizationName,
-  className
+  className,
 }: {
   organizationName: string;
   className?: string;
@@ -46,24 +48,33 @@ export function OrganizatorSidebar({
   return (
     <aside
       className={cn(
-        'bg-organizer-sidebar text-organizer-chrome flex w-64 shrink-0 flex-col',
+        'bg-organizer-sidebar text-organizer-chrome flex w-[17.5rem] shrink-0 flex-col border-r border-white/10',
         className
       )}
     >
       <div className="border-b border-white/10 p-4">
-        <p className="text-organizer-chrome-muted text-[10px] font-semibold uppercase tracking-widest">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-organizer-chrome-muted">
           Organizasyon
         </p>
         <button
           type="button"
-          className="bg-organizer-header mt-2 flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-medium text-white"
+          className="mt-2 flex w-full items-center justify-between rounded-xl bg-white/5 px-3 py-2.5 text-left text-sm font-medium text-white"
         >
           <span className="truncate">{organizationName}</span>
           <ChevronDown className="size-4 shrink-0 opacity-70" />
         </button>
+        <Button
+          asChild
+          className="mt-3 h-10 w-full gap-2 bg-primary font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+        >
+          <Link href="/organizator-panel/etkinlik/yeni">
+            <Plus className="size-4" strokeWidth={2} />
+            Yeni Etkinlik
+          </Link>
+        </Button>
       </div>
 
-      <nav className="flex-1 space-y-0.5 p-3">
+      <nav className="flex-1 space-y-1 p-3">
         {navItems.map((item) => {
           const active =
             pathname === item.href ||
@@ -71,9 +82,9 @@ export function OrganizatorSidebar({
               pathname.startsWith(item.href));
 
           const linkClassName = cn(
-            'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors',
+            'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
             active
-              ? 'bg-[var(--organizer-sidebar-active)] text-white'
+              ? 'bg-primary text-primary-foreground shadow-sm'
               : 'text-organizer-chrome hover:bg-[var(--organizer-sidebar-hover)] hover:text-white'
           );
 
@@ -82,7 +93,7 @@ export function OrganizatorSidebar({
           if (item.external) {
             return (
               <a key={item.href} href={item.href} className={linkClassName}>
-                <Icon className="size-4 shrink-0 opacity-80" />
+                <Icon className="size-[18px] shrink-0" strokeWidth={2} />
                 {item.label}
               </a>
             );
@@ -90,15 +101,15 @@ export function OrganizatorSidebar({
 
           return (
             <Link key={item.href} href={item.href} className={linkClassName}>
-              <Icon className="size-4 shrink-0 opacity-80" />
+              <Icon className="size-[18px] shrink-0" strokeWidth={2} />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="text-organizer-chrome-muted border-t border-white/10 p-4 text-[11px]">
-        © Biletfeed {new Date().getFullYear()}
+      <div className="border-t border-white/10 p-4 text-[11px] text-organizer-chrome-muted">
+        © BiletFeed {new Date().getFullYear()}
       </div>
     </aside>
   );

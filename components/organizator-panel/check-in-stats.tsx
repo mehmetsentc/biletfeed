@@ -2,18 +2,22 @@ import { Users, UserCheck, Clock, TrendingUp } from 'lucide-react';
 import type { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
 
 export function CheckInStatsPanel({
-  stats
+  stats,
+  showSummary = true,
 }: {
   stats: Awaited<ReturnType<typeof getOrganizerCheckInStats>>;
+  showSummary?: boolean;
 }) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Users} label="Satılan" value={String(stats.sold)} />
-        <StatCard icon={UserCheck} label="Giriş Yapan" value={String(stats.checkedIn)} sub={`%${stats.attendancePct} katılım`} />
-        <StatCard icon={Clock} label="Bekleyen" value={String(stats.waiting)} />
-        <StatCard icon={TrendingUp} label="Kapasite" value={String(stats.totalCapacity)} />
-      </div>
+      {showSummary && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard icon={Users} label="Satılan" value={String(stats.sold)} />
+          <StatCard icon={UserCheck} label="Giriş Yapan" value={String(stats.checkedIn)} sub={`%${stats.attendancePct} katılım`} />
+          <StatCard icon={Clock} label="Bekleyen" value={String(stats.waiting)} />
+          <StatCard icon={TrendingUp} label="Kapasite" value={String(stats.totalCapacity)} />
+        </div>
+      )}
 
       {stats.recentCheckIns.length > 0 && (
         <div className="rounded-lg border bg-card p-4 shadow-sm">

@@ -66,6 +66,24 @@ export async function middleware(request: NextRequest) {
   const subdomain = extractSubdomain(request);
 
   if (subdomain) {
+    if (subdomain === 'organizer') {
+      if (pathname === '/') {
+        return NextResponse.redirect(
+          new URL('/organizator-panel/baslangic', request.url)
+        );
+      }
+      if (
+        pathname.startsWith('/organizator-panel') ||
+        pathname.startsWith('/giris') ||
+        pathname.startsWith('/api')
+      ) {
+        return NextResponse.next();
+      }
+      return NextResponse.redirect(
+        new URL(`/organizator-panel/baslangic`, request.url)
+      );
+    }
+
     if (
       pathname.startsWith('/admin') ||
       pathname.startsWith('/dashboard') ||

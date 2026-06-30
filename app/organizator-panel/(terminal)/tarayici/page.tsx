@@ -1,5 +1,5 @@
-import { TicketBoothPanel } from '@/components/organizator-panel/ticket-booth';
+import { TicketEntryScanner } from '@/components/organizator-panel/ticket-entry-scanner';
 
 export default function OrganizatorScannerPage() {
-  return <TicketBoothPanel />;
+  return <TicketEntryScanner />;
 }
