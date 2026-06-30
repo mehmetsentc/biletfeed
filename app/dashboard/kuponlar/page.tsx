@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { DashboardPlaceholderPage } from '@/components/dashboard/placeholder-page';
+import { panelHref } from '@/lib/config/domain';
 import { getTranslations } from '@/lib/i18n';
 
 const t = getTranslations();
@@ -12,7 +13,7 @@ export default function DashboardCouponsPage() {
         description="Kupon yönetimi organizatör panelinden yapılır."
       />
       <Link
-        href="/organizator-panel/kuponlar"
+        href={panelHref('/organizator-panel/kuponlar')}
         className="inline-flex text-sm font-semibold text-primary hover:underline"
       >
         Organizatör Kuponları →

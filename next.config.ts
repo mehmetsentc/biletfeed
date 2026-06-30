@@ -47,16 +47,18 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
+    const panelBase =
+      process.env.NEXT_PUBLIC_PANEL_URL || 'https://panel.biletfeed.com';
     return [
       {
         source: '/dashboard',
-        destination: '/organizator-panel/baslangic',
-        permanent: false
+        destination: `${panelBase}/baslangic`,
+        permanent: true
       },
       {
         source: '/dashboard/:path*',
-        destination: '/organizator-panel/:path*',
-        permanent: false
+        destination: `${panelBase}/:path*`,
+        permanent: true
       }
     ];
   },

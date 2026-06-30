@@ -1,18 +1,17 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAccountMode } from '@/hooks/use-account-mode';
+import { panelHref } from '@/lib/config/domain';
 
 export function EventJoyUserGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const { isOrganizerMode, isModeLocked } = useAccountMode();
 
   useEffect(() => {
     if (isModeLocked && isOrganizerMode) {
-      router.replace('/organizator-panel/baslangic');
+      window.location.replace(panelHref('/organizator-panel/baslangic'));
     }
-  }, [isOrganizerMode, isModeLocked, router]);
+  }, [isOrganizerMode, isModeLocked]);
 
   if (isModeLocked && isOrganizerMode) {
     return (

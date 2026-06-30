@@ -3,6 +3,7 @@ import { ArrowRight, CalendarPlus } from 'lucide-react';
 import { CookiePreferencesButton } from '@/components/consent/cookie-preferences-button';
 import { AppStoreBadges } from '@/components/footer/app-store-badges';
 import { siteConfig } from '@/lib/config/site';
+import { panelHref } from '@/lib/config/domain';
 import { getCategories } from '@/lib/services/events';
 
 const companyLinks = [
@@ -20,7 +21,7 @@ const companyLinks = [
 
 const helpLinks = [
   { href: '/yardim', label: 'Hesap Desteği' },
-  { href: '/organizator-panel/etkinlik/yeni', label: 'Etkinlik Listeleme' },
+  { href: panelHref('/organizator-panel/etkinlik/yeni'), label: 'Etkinlik Listeleme' },
   { href: '/biletlerim', label: 'Bilet Satın Alma' },
   { href: '/kosullar', label: 'Bilet Koşulları' }
 ];
@@ -187,7 +188,7 @@ export function CreateEventBanner() {
             Bizimle ortak olun ve Bilet Feed&apos;de listelenin.
           </p>
         </div>
-        <Link href="/organizator-panel/etkinlik/yeni">
+        <Link href={panelHref('/organizator-panel/etkinlik/yeni')}>
           <span className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90">
             <CalendarPlus className="size-5" />
             Etkinlik Oluştur

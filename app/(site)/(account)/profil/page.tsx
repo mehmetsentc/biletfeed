@@ -13,6 +13,7 @@ import type { AccountMode } from '@/lib/auth/account-mode';
 import { Building2, User as UserIcon, CheckCircle2, Loader2, LayoutDashboard, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
+import { panelHref } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
 type OrganizerInfo = {
@@ -206,14 +207,14 @@ export default function ProfilePage() {
         {isOrganizerMode && isModeLocked && (
           <div className="flex flex-col gap-2 border-t border-border py-4 sm:flex-row">
             <Link
-              href="/organizator-panel/etkinlik/yeni"
+              href={panelHref('/organizator-panel/etkinlik/yeni')}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Plus className="size-4" />
               Etkinlik Oluştur
             </Link>
             <Link
-              href="/organizator-panel/baslangic"
+              href={panelHref('/organizator-panel/baslangic')}
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
             >
               <LayoutDashboard className="size-4" />

@@ -13,6 +13,7 @@ import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useAccountMode } from '@/hooks/use-account-mode';
 import { isAccountAreaActive } from '@/lib/account/navigation';
+import { panelHref } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -106,7 +107,7 @@ export function ProfileDropdown() {
             <>
               <div className="my-1 border-t border-border" />
               <Link
-                href="/organizator-panel/etkinlik/yeni"
+                href={panelHref('/organizator-panel/etkinlik/yeni')}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
               >
@@ -114,7 +115,7 @@ export function ProfileDropdown() {
                 Etkinlik Oluştur
               </Link>
               <Link
-                href="/organizator-panel/baslangic"
+                href={panelHref('/organizator-panel/baslangic')}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               >

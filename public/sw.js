@@ -1,6 +1,6 @@
 /* BiletFeed organizer scanner — offline shell cache */
-const CACHE = 'bf-scanner-v1';
-const SHELL = ['/organizator-panel/tarayici', '/organizator-panel/baslangic'];
+const CACHE = 'bf-scanner-v2';
+const SHELL = ['/tarayici', '/baslangic'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -23,7 +23,7 @@ self.addEventListener('fetch', (event) => {
   if (SHELL.some((p) => url.pathname.startsWith(p))) {
     event.respondWith(
       fetch(event.request).catch(() =>
-        caches.match(event.request).then((r) => r || caches.match('/organizator-panel/tarayici'))
+        caches.match(event.request).then((r) => r || caches.match('/tarayici'))
       )
     );
   }

@@ -1,4 +1,5 @@
 import { sanitizeRedirectPath } from '@/lib/auth/safe-redirect';
+import { panelHref } from '@/lib/config/domain';
 
 const AUTH_PATHS = ['/giris', '/kayit', '/sifremi-unuttum'];
 
@@ -11,7 +12,11 @@ export function isAuthPath(pathname: string): boolean {
 export function getPostLoginPath(pathname: string, search: string): string {
   const params = new URLSearchParams(search);
   const fallback = pathname === '/kayit' ? '/ilgi-alanlari' : '/';
-  return sanitizeRedirectPath(params.get('redirect'), fallback);
+  const target = sanitizeRedirectPath(params.get('redirect'), fallback);
+  if (target.startsWith('/organizator-panel')) {
+    return panelHref(target);
+  }
+  return target;
 }
 
 /** Giriş/kayıt sayfasındaysa ana sayfaya yönlendir (tek sefer). */

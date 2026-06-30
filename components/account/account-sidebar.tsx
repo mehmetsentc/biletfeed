@@ -7,6 +7,7 @@ import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useAccountMode } from '@/hooks/use-account-mode';
 import { cn } from '@/lib/utils';
+import { panelHref } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function AccountSidebar() {
@@ -27,7 +28,7 @@ export function AccountSidebar() {
   const panelItem =
     isModeLocked && isOrganizerMode
       ? {
-          href: '/organizator-panel/baslangic' as const,
+          href: panelHref('/organizator-panel/baslangic'),
           icon: LayoutDashboard,
           label: 'Organizatör Panel'
         }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { siteConfig } from '@/lib/config/site';
+import { panelHref } from '@/lib/config/domain';
 
 export function OrganizatorSetupForm() {
   const [name, setName] = useState('');
@@ -44,7 +45,7 @@ export function OrganizatorSetupForm() {
 
       if (!res.ok) throw new Error(data.error || 'Kurulum başarısız');
 
-      window.location.href = '/organizator-panel/baslangic';
+      window.location.href = panelHref('/organizator-panel/baslangic');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hata oluştu');
       setLoading(false);
