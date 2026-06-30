@@ -19,6 +19,7 @@ import {
   Ticket,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
 
 export const ORGANIZATOR_BRAND = 'Biletfeed Organizatör';
@@ -55,6 +56,11 @@ export function OrganizatorSidebar({
       )}
     >
       <div className="border-b border-white/10 p-4">
+        <Logo
+          href="/organizator-panel/baslangic"
+          variant="on-dark"
+          className="mb-4 max-w-[160px]"
+        />
         <p className="text-[10px] font-semibold uppercase tracking-widest text-organizer-chrome-muted">
           Organizasyon
         </p>

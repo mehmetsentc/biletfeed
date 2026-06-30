@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
-import { ORGANIZATOR_BRAND } from '@/components/organizator-panel/sidebar';
+import { Logo } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
-import { siteConfig } from '@/lib/config/site';
 
 export function OrganizatorHeader({
   displayName,
@@ -25,13 +24,8 @@ export function OrganizatorHeader({
         >
           <Menu className="size-5" />
         </Button>
-        <Link href="/organizator-panel/baslangic" className="flex items-center gap-2">
-          <span className="text-lg font-bold tracking-tight text-primary">
-            {siteConfig.name.split(' ')[0]}
-          </span>
-          <span className="text-organizer-chrome hidden text-sm sm:inline">
-            {ORGANIZATOR_BRAND.replace('Biletfeed ', '')}
-          </span>
+        <Link href="/organizator-panel/baslangic" className="flex items-center">
+          <Logo href="/organizator-panel/baslangic" variant="on-dark" className="max-w-[140px]" />
         </Link>
       </div>
 

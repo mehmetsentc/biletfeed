@@ -4,7 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
-import { BiletFeedWordmark } from '@/components/brand/biletfeed-wordmark';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 import { siteConfig } from '@/lib/config/site';
 import { cn } from '@/lib/utils';
@@ -14,15 +13,15 @@ interface LogoProps {
   href?: string;
   size?: 'default' | 'large';
   /**
-   * on-dark — siyah/koyu header zemin
-   * on-light — açık zemin
+   * on-dark — koyu zemin (açık renkli logo)
+   * on-light — açık zemin (koyu renkli logo)
    * auto — next-themes ile otomatik
    */
   variant?: 'on-dark' | 'on-light' | 'auto';
 }
 
-const LOGO_WIDTH = 182;
-const LOGO_HEIGHT = 50;
+/** Yatay logo oranı — light_tema_logo.png / dark_tema_logo.png */
+const LOGO_ASPECT = 2001 / 436;
 
 function resolveLogoSrc(variant: 'on-dark' | 'on-light'): string {
   return variant === 'on-dark'
@@ -42,7 +41,8 @@ export function Logo({
   useEffect(() => setMounted(true), []);
 
   const isLarge = size === 'large';
-  const height = isLarge ? 58 : 44;
+  const height = isLarge ? 52 : 40;
+  const width = Math.round(height * LOGO_ASPECT);
 
   let logoVariant: 'on-dark' | 'on-light' = 'on-dark';
   if (variant === 'auto') {
@@ -61,25 +61,32 @@ export function Logo({
         className
       )}
     >
-      <BiletFeedWordmark variant={logoVariant} height={height} />
+      <Image
+        src={resolveLogoSrc(logoVariant)}
+        alt={siteConfig.name}
+        width={width}
+        height={height}
+        className="h-auto w-auto max-h-[52px] object-contain object-left"
+        style={{ maxHeight: height, width: 'auto' }}
+        priority
+      />
     </Link>
   );
 }
 
-/** PNG logo — e-posta, OG, basılı materyal (vektör yerine raster gerekirse) */
+/** PNG logo — e-posta, OG, basılı materyal */
 export function LogoImage({
   variant = 'on-dark',
   className,
   priority,
-  width = LOGO_WIDTH,
-  height = LOGO_HEIGHT
+  height = 44
 }: {
   variant?: 'on-dark' | 'on-light';
   className?: string;
   priority?: boolean;
-  width?: number;
   height?: number;
 }) {
+  const width = Math.round(height * LOGO_ASPECT);
   const src = resolveLogoSrc(variant);
 
   return (
@@ -88,7 +95,7 @@ export function LogoImage({
       alt={siteConfig.name}
       width={width}
       height={height}
-      className={className}
+      className={cn('h-auto object-contain', className)}
       priority={priority}
     />
   );

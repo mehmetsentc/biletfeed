@@ -27,7 +27,7 @@ export const brandLogos = {
   favicon: '/brand/favicon.png'
 } as const;
 
-export const brandAssetsVersion = '12';
+export const brandAssetsVersion = '13';
 
 export function brandAssetUrl(path: string): string {
   return `${path}?v=${brandAssetsVersion}`;

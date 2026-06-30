@@ -15,12 +15,11 @@ import {
   BarChart3,
   Image,
   FileText,
-  ArrowLeft,
   Ticket
 } from 'lucide-react';
 import { getTranslations } from '@/lib/i18n';
+import { Logo } from '@/components/brand/logo';
 import { cn } from '@/lib/utils';
-import { siteConfig } from '@/lib/config/site';
 
 const t = getTranslations();
 
@@ -57,14 +56,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           className="flex h-16 items-center border-b px-6"
           style={{ borderColor: 'var(--admin-sidebar-border)' }}
         >
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm transition-colors"
-            style={{ color: 'var(--admin-sidebar-fg)' }}
-          >
-            <ArrowLeft className="size-4" />
-            {siteConfig.name}
-          </Link>
+          <Logo href="/admin" variant="on-dark" className="max-w-[150px]" />
         </div>
         <nav className="space-y-1 p-4">
           {adminLinks.map((link) => {
