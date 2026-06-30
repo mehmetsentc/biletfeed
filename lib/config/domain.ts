@@ -25,18 +25,59 @@ export function isOrganizerPanelSubdomain(
   );
 }
 
+/** Production kök domain — env'den çözülür (biletfeed.com) */
+export function resolveProductionRootHost(): string | null {
+  const rawCandidates = [
+    process.env.NEXT_PUBLIC_CANONICAL_HOST,
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NEXT_PUBLIC_SITE_URL
+  ].filter((v): v is string => Boolean(v));
+
+  for (const candidate of rawCandidates) {
+    try {
+      const host = candidate.includes('://')
+        ? new URL(candidate).hostname
+        : candidate.split(':')[0];
+      const normalized = host.replace(/^www\./, '');
+      if (
+        normalized !== 'localhost' &&
+        !normalized.endsWith('.vercel.app') &&
+        normalized.includes('.')
+      ) {
+        return normalized;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  const fallback = canonicalHost.split(':')[0].replace(/^www\./, '');
+  if (
+    fallback !== 'localhost' &&
+    !fallback.endsWith('.vercel.app') &&
+    fallback.includes('.')
+  ) {
+    return fallback;
+  }
+
+  return null;
+}
+
 /** Üretim ortamında gerçek domain (localhost değil) */
 export function isProductionHost(): boolean {
-  const host = canonicalHost.split(':')[0];
-  return host !== 'localhost' && host.includes('.');
+  if (process.env.NODE_ENV !== 'production') return false;
+  return resolveProductionRootHost() !== null;
 }
 
 /** Üretim panel URL'si — https://panel.biletfeed.com/... */
 export function getPanelUrl(path = ''): string {
-  const host = canonicalHost.split(':')[0];
+  const rootHost = resolveProductionRootHost();
+  const devHost = canonicalHost.split(':')[0];
   const port = canonicalHost.includes(':')
     ? `:${canonicalHost.split(':')[1]}`
     : '';
+  const host = rootHost ?? devHost;
   const panelHost =
     host === 'localhost' ? `panel.localhost${port}` : `${PANEL_SUBDOMAIN}.${host}`;
 
@@ -70,8 +111,8 @@ export function panelHref(path: string): string {
 /** Oturum çerezi — tüm alt alan adlarında paylaşım (.biletfeed.com) */
 export function getCookieDomain(): string | undefined {
   if (!isProductionHost()) return undefined;
-  const host = canonicalHost.split(':')[0];
-  if (host === 'localhost' || !host.includes('.')) return undefined;
+  const host = resolveProductionRootHost();
+  if (!host) return undefined;
   return `.${host}`;
 }
 

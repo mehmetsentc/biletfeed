@@ -5,6 +5,7 @@ import {
   isOrganizerPanelSubdomain,
   isProductionHost,
   protocol,
+  resolveProductionRootHost,
   rootDomain,
 } from '@/lib/config/domain';
 
@@ -26,7 +27,8 @@ function extractSubdomain(request: NextRequest): string | null {
     return null;
   }
 
-  const rootDomainFormatted = rootDomain.split(':')[0];
+  const rootDomainFormatted =
+    resolveProductionRootHost() ?? rootDomain.split(':')[0];
 
   if (hostname.includes('---') && hostname.endsWith('.vercel.app')) {
     const parts = hostname.split('---');
@@ -80,10 +82,22 @@ function redirectToCanonical(request: NextRequest): NextResponse | null {
   return null;
 }
 
+function isStaticAssetPath(pathname: string): boolean {
+  return (
+    pathname.startsWith('/brand/') ||
+    pathname.startsWith('/images/') ||
+    /\.(png|jpe?g|gif|webp|svg|ico|woff2?|ttf|css|js|map)$/i.test(pathname)
+  );
+}
+
 function handleOrganizerPanelSubdomain(
   request: NextRequest,
   pathname: string
 ): NextResponse {
+  if (isStaticAssetPath(pathname)) {
+    return NextResponse.next();
+  }
+
   if (pathname === '/') {
     return NextResponse.redirect(
       new URL('/baslangic', request.url)

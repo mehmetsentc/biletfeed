@@ -1,10 +1,10 @@
 import type { NextRequest } from 'next/server';
-import { ORGANIZER_PANEL_SUBDOMAINS, canonicalHost } from '@/lib/config/domain';
+import { ORGANIZER_PANEL_SUBDOMAINS, canonicalHost, resolveProductionRootHost } from '@/lib/config/domain';
 
 function collectExpectedOrigins(host: string): Set<string> {
   const expected = new Set<string>();
   const hostname = host.split(':')[0];
-  const rootHost = canonicalHost.split(':')[0];
+  const rootHost = resolveProductionRootHost() ?? canonicalHost.split(':')[0].replace(/^www\./, '');
 
   for (const proto of ['https', 'http']) {
     expected.add(`${proto}://${host}`);
