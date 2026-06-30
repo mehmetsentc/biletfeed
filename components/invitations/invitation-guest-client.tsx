@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Calendar, MapPin, Ticket, Download } from 'lucide-react';
-import { TicketQR } from '@/components/tickets/ticket-qr';
-import { brandTheme } from '@/lib/config/brand-theme';
+import { Download } from 'lucide-react';
+import { TicketWebView } from '@/components/tickets/design/ticket-web-view';
+import { ticketWebPrintStyles } from '@/components/tickets/design/ticket-print-styles';
+import { formatTicketDate, formatTicketTime } from '@/lib/tickets/design/format';
 
 type InvitationData = {
   guestName: string;
@@ -34,256 +35,74 @@ export function InvitationGuestClient({
 }) {
   const [downloading, setDownloading] = useState(false);
 
-  const eventDate = new Date(invitation.event.startDate).toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-  const eventTime = new Date(invitation.event.startDate).toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  const isValid = invitation.ticketStatus === 'VALID';
-
   return (
-    <div
-      className="min-h-screen px-4 py-10"
-      style={{
-        background: `linear-gradient(135deg, ${brandTheme.black} 0%, ${brandTheme.surfaceElevated} 50%, ${brandTheme.black} 100%)`
-      }}
-    >
-      <div className="mx-auto max-w-md">
-
-        {/* Wordmark */}
-        <div className="mb-8 text-center">
-          <Link href="/" className="inline-block text-lg font-bold tracking-tight text-white">
-            bilet<span style={{ color: brandTheme.orange }}>feed</span>
-          </Link>
-        </div>
-
-        {/* Main card */}
-        <div
-          className="overflow-hidden rounded-3xl shadow-2xl"
-          style={{ border: `1px solid ${brandTheme.orangeBorder}`, background: brandTheme.surfaceElevated }}
-        >
-          {/* Cover image with gradient overlay */}
-          {invitation.event.coverImage && (
-            <div className="relative h-52 overflow-hidden">
-              <img
-                src={invitation.event.coverImage}
-                alt={invitation.event.title}
-                className="h-full w-full object-cover"
-              />
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    'linear-gradient(to bottom, rgba(19,25,31,0) 30%, rgba(19,25,31,0.95) 100%)'
+    <div className="min-h-screen bg-[#0c1017] px-4 py-10">
+      <div className="mx-auto max-w-lg">
+        <TicketWebView
+          data={{
+            kind: 'invitation',
+            brand: 'biletfeed',
+            eventTitle: invitation.event.title,
+            coverImageUrl: invitation.event.coverImage,
+            eventDate: formatTicketDate(invitation.event.startDate),
+            eventTime: formatTicketTime(invitation.event.startDate),
+            venue: invitation.event.venue,
+            city: invitation.event.city,
+            ticketTypeName: invitation.ticketTypeName,
+            holderName: invitation.guestName,
+            ticketCode: invitation.ticketCode,
+            qrDataUrl: '',
+            qrData: invitation.qrData,
+            status: invitation.ticketStatus,
+            personalMessage: invitation.personalMessage
+          }}
+          ctaHref={`/etkinlik/${invitation.event.slug}`}
+          footer={
+            <>
+              <button
+                type="button"
+                disabled={downloading}
+                onClick={async () => {
+                  setDownloading(true);
+                  try {
+                    const res = await fetch(`/api/invitations/${encodeURIComponent(inviteToken)}/pdf`);
+                    if (!res.ok) throw new Error('PDF indirilemedi');
+                    const blob = await res.blob();
+                    const objectUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    link.download =
+                      res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ??
+                      `BiletFeed-${invitation.ticketCode}.pdf`;
+                    link.click();
+                    URL.revokeObjectURL(objectUrl);
+                  } catch {
+                    window.alert('Davetiye PDF indirilemedi. Lütfen tekrar deneyin.');
+                  } finally {
+                    setDownloading(false);
+                  }
                 }}
-              />
-              {/* Davetiye badge over image */}
-              <div className="absolute bottom-4 left-5">
-                <span
-                  className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
-                  style={{
-                    background: brandTheme.orangeSoft,
-                    color: brandTheme.orange,
-                    border: `1px solid ${brandTheme.orangeBorder}`
-                  }}
-                >
-                  ✦ Davetiye
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Gold top stripe (shown when no image) */}
-          {!invitation.event.coverImage && (
-            <div
-              className="flex items-center justify-center py-6"
-              style={{
-                background: `linear-gradient(135deg, ${brandTheme.orange}, ${brandTheme.orangeHover})`
-              }}
-            >
-              <span className="text-xs font-bold uppercase tracking-widest text-black">
-                ✦ Davetiye
-              </span>
-            </div>
-          )}
-
-          {/* Content */}
-          <div className="px-6 pb-8 pt-5">
-
-            {/* Event title + greeting */}
-            <h1 className="text-xl font-bold text-white leading-tight">
-              {invitation.event.title}
-            </h1>
-            <p className="mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Sayın{' '}
-              <span className="font-semibold text-white">{invitation.guestName}</span>,
-              sizi aramızda görmekten mutluluk duyacağız.
-            </p>
-
-            {/* Personal message */}
-            {invitation.personalMessage && (
-              <div
-                className="mt-4 rounded-xl px-4 py-3"
-                style={{
-                  background: brandTheme.orangeSoft,
-                  borderLeft: `3px solid ${brandTheme.orange}`
-                }}
+                className="no-print mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] py-3 text-sm font-medium text-white/55 transition-opacity hover:opacity-80 disabled:opacity-60"
               >
-                <p className="text-sm italic" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                  &ldquo;{invitation.personalMessage}&rdquo;
-                </p>
-              </div>
-            )}
-
-            {/* Event details */}
-            <div
-              className="mt-5 rounded-2xl px-4 py-3 space-y-2.5"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-            >
-              <div className="flex items-start gap-3 text-sm">
-                <Calendar
-                  className="mt-0.5 size-4 shrink-0"
-                  style={{ color: brandTheme.orange }}
-                />
-                <div>
-                  <span className="text-white">{eventDate}</span>
-                  <span className="ml-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    {eventTime}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <MapPin className="size-4 shrink-0" style={{ color: brandTheme.orange }} />
-                <span style={{ color: 'rgba(255,255,255,0.75)' }}>
-                  {invitation.event.venue}, {invitation.event.city}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <Ticket className="size-4 shrink-0" style={{ color: brandTheme.orange }} />
-                <span style={{ color: 'rgba(255,255,255,0.75)' }}>
-                  {invitation.ticketTypeName}
-                </span>
-              </div>
-            </div>
-
-            {/* Tear-off divider */}
-            <div className="relative my-6">
-              <div
-                className="absolute -left-6 top-1/2 size-5 -translate-y-1/2 rounded-full"
-                style={{ background: 'var(--ticket-page-bg)' }}
-              />
-              <div
-                className="border-t border-dashed"
-                style={{ borderColor: 'rgba(255,255,255,0.12)' }}
-              />
-              <div
-                className="absolute -right-6 top-1/2 size-5 -translate-y-1/2 rounded-full"
-                style={{ background: 'var(--ticket-page-bg)' }}
-              />
-            </div>
-
-            {/* QR section */}
-            <div className="flex flex-col items-center">
-              {isValid ? (
-                <div
-                  className="rounded-2xl bg-white p-4 shadow-lg"
-                  style={{ boxShadow: `0 0 40px ${brandTheme.orangeSoft}` }}
-                >
-                  <TicketQR data={invitation.qrData} size={190} />
-                </div>
-              ) : (
-                <div
-                  className="flex size-[200px] items-center justify-center rounded-2xl"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-                >
-                  <p className="text-center text-sm px-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                    Bilet kullanılmış veya geçersiz
-                  </p>
-                </div>
-              )}
-
-              <p
-                className="mt-4 font-mono text-base tracking-widest"
-                style={{ color: 'rgba(255,255,255,0.8)' }}
+                <Download className="size-4" />
+                {downloading ? 'İndiriliyor…' : 'Davetiye İndir (PDF)'}
+              </button>
+              <Link
+                href={`/davetiye/${inviteToken}/print`}
+                target="_blank"
+                className="no-print mt-2 flex w-full items-center justify-center rounded-xl py-2.5 text-xs font-medium text-white/45 hover:text-white/70"
               >
-                {invitation.ticketCode}
-              </p>
-              {isValid && (
-                <p className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                  Girişte bu QR kodu gösterin
-                </p>
-              )}
-            </div>
+                Yazdır
+              </Link>
+            </>
+          }
+        />
 
-            {/* CTA button */}
-            <Link
-              href={`/etkinlik/${invitation.event.slug}`}
-              className="mt-7 flex w-full items-center justify-center rounded-2xl py-3.5 text-sm font-semibold text-black transition-opacity hover:opacity-90 no-print"
-              style={{
-                background: `linear-gradient(135deg, ${brandTheme.orange}, ${brandTheme.orangeHover})`
-              }}
-            >
-              Etkinlik Detayları
-            </Link>
-
-            <button
-              type="button"
-              disabled={downloading}
-              onClick={async () => {
-                setDownloading(true);
-                try {
-                  const res = await fetch(`/api/invitations/${encodeURIComponent(inviteToken)}/pdf`);
-                  if (!res.ok) throw new Error('PDF indirilemedi');
-                  const blob = await res.blob();
-                  const objectUrl = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = objectUrl;
-                  link.download =
-                    res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ??
-                    `BiletFeed-${invitation.ticketCode}.pdf`;
-                  link.click();
-                  URL.revokeObjectURL(objectUrl);
-                } catch {
-                  window.alert('Davetiye PDF indirilemedi. Lütfen tekrar deneyin.');
-                } finally {
-                  setDownloading(false);
-                }
-              }}
-              className="no-print mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-60"
-              style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}
-            >
-              <Download className="size-4" />
-              {downloading ? 'İndiriliyor…' : 'Davetiye İndir'}
-            </button>
-            <Link
-              href={`/davetiye/${inviteToken}/print`}
-              target="_blank"
-              className="no-print mt-2 flex w-full items-center justify-center rounded-2xl py-2.5 text-xs font-medium text-white/45 hover:text-white/70"
-            >
-              Yazdır
-            </Link>
-          </div>
-        </div>
-
-        <p className="mt-6 text-center text-xs no-print" style={{ color: 'rgba(255,255,255,0.2)' }}>
+        <p className="mt-6 text-center text-xs text-white/20 no-print">
           biletfeed.com · Güvenli etkinlik ve bilet platformu
         </p>
       </div>
-
-      {/* Print CSS */}
-      <style>{`
-        @media print {
-          body { background: var(--ticket-page-bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .no-print { display: none !important; }
-          nav, footer, header { display: none !important; }
-        }
-      `}</style>
+      <style>{ticketWebPrintStyles()}</style>
     </div>
   );
 }

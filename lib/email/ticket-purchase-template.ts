@@ -6,6 +6,12 @@ import {
   emailLogoBar,
   emailShell
 } from '@/lib/email/email-shared';
+import {
+  emailTicketInfoGrid,
+  emailTicketLegalFooter,
+  emailTicketReferenceBlock
+} from '@/lib/email/ticket-email-blocks';
+import { barcodeToDataUrl } from '@/lib/tickets/design/barcode';
 
 function esc(s: string): string {
   return s
@@ -35,7 +41,7 @@ export interface TicketPurchaseEmailParams {
   rules?: string;
 }
 
-/** Profesyonel bilet satın alma onay e-postası — davetiye şablonu ile uyumlu dark tema */
+/** Profesyonel bilet satın alma onay e-postası — receipt-style dark tema */
 export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): string {
   const {
     customerName,
@@ -69,18 +75,31 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
     )
     .join('');
 
+  const primaryCode = ticketCodes[0] ?? '';
+  const barcodeUrl = primaryCode
+    ? barcodeToDataUrl(primaryCode, { width: 220, height: 44, barColor: '#FF8A00' })
+    : '';
+
   const codesBlock =
-    ticketCodes.length > 0
-      ? `
-      <div style="text-align:center;margin:0 0 28px;">
-        <p style="margin:0 0 8px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Bilet Kod${ticketCodes.length > 1 ? 'ları' : 'u'}</p>
-        ${ticketCodes
-          .map(
-            (code) =>
-              `<p style="margin:4px 0;font-family:monospace;font-size:18px;font-weight:700;letter-spacing:2px;color:${EMAIL_BRAND.accent};">${esc(code)}</p>`
-          )
-          .join('')}
-      </div>`
+    ticketCodes.length > 0 && primaryCode
+      ? emailTicketReferenceBlock({
+          codeLabel: ticketCodes.length > 1 ? 'Bilet Kodları (İlki)' : 'Bilet Kodu',
+          ticketCode: primaryCode,
+          barcodeDataUrl: barcodeUrl,
+          hint:
+            ticketCodes.length > 1
+              ? `Toplam ${ticketCodes.length} bilet. Tüm kodlar hesabınızda görüntülenebilir.`
+              : 'Girişte QR kodunuzu veya bilet kodunuzu gösterin.'
+        }) +
+        (ticketCodes.length > 1
+          ? ticketCodes
+              .slice(1)
+              .map(
+                (code) =>
+                  `<p style="margin:4px 0;text-align:center;font-family:monospace;font-size:16px;font-weight:700;letter-spacing:2px;color:${EMAIL_BRAND.accent};">${esc(code)}</p>`
+              )
+              .join('')
+          : '')
       : '';
 
   const secondaryButtons = [
@@ -105,6 +124,14 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
       </tr>`
     : '';
 
+  const infoGrid = emailTicketInfoGrid([
+    { label: 'Tarih & Saat', value: eventDate },
+    { label: 'Konum', value: `${eventVenue}${eventCity ? `, ${eventCity}` : ''}` },
+    { label: 'Organizatör', value: organizerName },
+    { label: 'Sipariş No', value: orderNumber },
+    { label: 'Toplam', value: totalLabel }
+  ]);
+
   const content = `
     ${emailLogoBar()}
     ${coverBlock}
@@ -123,44 +150,14 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
           Etkinlik günü QR kodunuzu girişte göstermeniz yeterli.
         </p>
 
-        <table width="100%" cellpadding="0" cellspacing="0"
-               style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:24px;">
-          <tr>
-            <td style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Tarih & Saat</p>
-              <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">📅 ${esc(eventDate)}</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Konum</p>
-              <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">📍 ${esc(eventVenue)}${eventCity ? `, ${esc(eventCity)}` : ''}</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Organizatör</p>
-              <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">${esc(organizerName)}</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:14px 20px;">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Sipariş No</p>
-              <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.85);font-family:monospace;">${esc(orderNumber)}</p>
-            </td>
-          </tr>
-        </table>
+        ${infoGrid}
 
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:4px 16px;">
           <tr>
-            <th align="left" style="padding:0 0 8px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Biletler</th>
-            <th align="right" style="padding:0 0 8px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Tutar</th>
+            <th align="left" style="padding:12px 0 8px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Biletler</th>
+            <th align="right" style="padding:12px 0 8px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Tutar</th>
           </tr>
           ${ticketRows}
-          <tr>
-            <td style="padding:14px 0 0;font-size:15px;font-weight:700;color:#fff;">Toplam</td>
-            <td style="padding:14px 0 0;text-align:right;font-size:15px;font-weight:700;color:${EMAIL_BRAND.accent};">${esc(totalLabel)}</td>
-          </tr>
         </table>
 
         ${codesBlock}
@@ -184,7 +181,9 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
           <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.55);line-height:1.5;">${esc(rules.slice(0, 400))}${rules.length > 400 ? '…' : ''}</p>
         </div>` : ''}
 
-        <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);text-align:center;line-height:1.6;">
+        ${emailTicketLegalFooter('ticket')}
+
+        <p style="margin:16px 0 0;font-size:12px;color:rgba(255,255,255,0.35);text-align:center;line-height:1.6;">
           Destek: <a href="mailto:${platformContact.email}" style="color:${EMAIL_BRAND.accent};text-decoration:none;">${platformContact.email}</a>
           · ${platformContact.supportHours}
         </p>

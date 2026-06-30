@@ -6,6 +6,12 @@ import {
   emailLogoBar,
   emailShell
 } from '@/lib/email/email-shared';
+import {
+  emailTicketInfoGrid,
+  emailTicketLegalFooter,
+  emailTicketReferenceBlock
+} from '@/lib/email/ticket-email-blocks';
+import { barcodeToDataUrl } from '@/lib/tickets/design/barcode';
 
 /** Elegant HTML email template for event invitations. */
 export function buildInvitationEmail(params: {
@@ -49,7 +55,7 @@ export function buildInvitationEmail(params: {
 
   const personalBlock = personalMessage
     ? `
-      <div style="margin:0 0 24px;padding:16px 20px;background:rgba(255,145,0,0.08);border-left:3px solid ${EMAIL_BRAND.accent};border-radius:0 8px 8px 0;">
+      <div style="margin:0 0 24px;padding:16px 20px;background:rgba(255,138,0,0.08);border-left:3px solid ${EMAIL_BRAND.accent};border-radius:0 8px 8px 0;">
         <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.75);font-style:italic;line-height:1.6;">
           "${personalMessage}"
         </p>
@@ -68,6 +74,23 @@ export function buildInvitationEmail(params: {
       </tr>`
     : '';
 
+  const barcodeUrl = barcodeToDataUrl(ticketCode, { width: 220, height: 44, barColor: '#FF8A00' });
+
+  const infoGrid = emailTicketInfoGrid([
+    { label: 'Etkinlik', value: eventTitle },
+    { label: 'Tarih & Saat', value: eventDate },
+    { label: 'Konum', value: `${eventVenue}, ${eventCity}` },
+    { label: 'Davetiye Türü', value: ticketTypeName },
+    { label: 'Katılımcı', value: guestName }
+  ]);
+
+  const referenceBlock = emailTicketReferenceBlock({
+    codeLabel: 'Davetiye Kodu',
+    ticketCode,
+    barcodeDataUrl: barcodeUrl,
+    hint: 'Girişte QR kodunuzu veya davetiye kodunuzu gösterin.'
+  });
+
   const content = `
     ${emailLogoBar()}
     ${coverBlock}
@@ -85,37 +108,8 @@ export function buildInvitationEmail(params: {
           Sizi aramızda görmekten büyük mutluluk duyacağız.
         </p>
         ${personalBlock}
-        <table width="100%" cellpadding="0" cellspacing="0"
-               style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:28px;">
-          <tr>
-            <td style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Etkinlik</p>
-              <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#fff;">${eventTitle}</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Tarih &amp; Saat</p>
-              <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">📅 ${eventDate}</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Konum</p>
-              <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">📍 ${eventVenue}, ${eventCity}</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:14px 20px;">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Bilet Türü</p>
-              <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">🎟 ${ticketTypeName}</p>
-            </td>
-          </tr>
-        </table>
-        <div style="text-align:center;margin-bottom:28px;">
-          <p style="margin:0 0 8px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Davetiye Kodu</p>
-          <p style="margin:0;font-family:monospace;font-size:20px;font-weight:700;letter-spacing:3px;color:${EMAIL_BRAND.accent};">${ticketCode}</p>
-        </div>
+        ${infoGrid}
+        ${referenceBlock}
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td align="center">
@@ -127,6 +121,7 @@ export function buildInvitationEmail(params: {
           </tr>
           ${calendarBlock}
         </table>
+        ${emailTicketLegalFooter('invitation')}
       </td>
     </tr>
     ${emailFooter({
