@@ -257,7 +257,7 @@ export function EventManagementTable({
                 >
                   <td className="px-5 py-4">
                     <Link
-                      href={`/etkinlik/${event.slug}`}
+                      href={`/organizator-panel/etkinlik/${event.id}`}
                       className="group block max-w-[280px]"
                     >
                       <p className="font-semibold text-foreground transition-colors group-hover:text-primary">
@@ -305,7 +305,7 @@ export function EventManagementTable({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Link
-                    href={`/etkinlik/${event.slug}`}
+                    href={`/organizator-panel/etkinlik/${event.id}`}
                     className="text-base font-semibold text-foreground hover:text-primary"
                   >
                     {event.title}
