@@ -21,6 +21,7 @@ export default async function OrganizatorEventDetailPage({ params }: PageProps) 
   return (
     <EventDetailDashboard
       publicUrl={getSiteUrl(`/etkinlik/${detail.event.slug}`)}
+      organizerUrl={getSiteUrl(`/organizator/${detail.event.organizerSlug}`)}
       data={{
         ...detail,
         event: {

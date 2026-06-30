@@ -12,6 +12,7 @@ export async function getOrganizerEventDetail(
       city: true,
       venue: true,
       category: true,
+      organizer: { select: { name: true, slug: true } },
       ticketTypes: {
         where: { deletedAt: null },
         orderBy: { price: 'asc' }
@@ -24,6 +25,7 @@ export async function getOrganizerEventDetail(
   const [
     paidOrders,
     revenueAgg,
+    orderCount,
     recentTickets,
     checkedIn,
     invitationCount
@@ -42,6 +44,9 @@ export async function getOrganizerEventDetail(
     prisma.order.aggregate({
       where: { eventId, status: 'paid', deletedAt: null },
       _sum: { total: true, subtotal: true, commission: true }
+    }),
+    prisma.order.count({
+      where: { eventId, status: 'paid', deletedAt: null }
     }),
     prisma.purchasedTicket.findMany({
       where: { eventId, deletedAt: null, status: { in: ['VALID', 'USED'] } },
@@ -90,6 +95,10 @@ export async function getOrganizerEventDetail(
     };
   });
 
+  const revenue = revenueAgg._sum.total ?? 0;
+  const commission = revenueAgg._sum.commission ?? 0;
+  const netOrganizer = Math.max(0, revenue - commission);
+
   return {
     event: {
       id: event.id,
@@ -107,16 +116,20 @@ export async function getOrganizerEventDetail(
       venue: event.venue?.name ?? null,
       venueAddress: event.venue?.address ?? null,
       category: event.category.name,
-      displayId: event.id.replace(/-/g, '').slice(0, 5).toUpperCase()
+      displayId: event.id.replace(/-/g, '').slice(0, 5).toUpperCase(),
+      organizerName: event.organizer.name,
+      organizerSlug: event.organizer.slug
     },
     stats: {
       ticketSold,
       ticketCapacity,
       occupancyPct,
-      revenue: revenueAgg._sum.total ?? 0,
+      emptyPct: ticketCapacity > 0 ? 100 - occupancyPct : 100,
+      revenue,
       subtotal: revenueAgg._sum.subtotal ?? 0,
-      commission: revenueAgg._sum.commission ?? 0,
-      orderCount: paidOrders.length,
+      commission,
+      netOrganizer,
+      orderCount,
       checkedIn,
       invitationCount,
       waitingEntry: Math.max(0, ticketSold - checkedIn)

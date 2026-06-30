@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   CalendarDays,
   ChevronLeft,
@@ -133,6 +134,7 @@ export function EventManagementTable({
   events: OrganizatorEventRow[];
   organizationName: string;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 8;
@@ -253,7 +255,10 @@ export function EventManagementTable({
               {pageEvents.map((event) => (
                 <tr
                   key={event.id}
-                  className="transition-colors hover:bg-muted/30"
+                  className="cursor-pointer transition-colors hover:bg-muted/30"
+                  onClick={() =>
+                    router.push(`/organizator-panel/etkinlik/${event.id}`)
+                  }
                 >
                   <td className="px-5 py-4">
                     <Link
@@ -301,7 +306,20 @@ export function EventManagementTable({
         {/* Mobil kartlar */}
         <div className="divide-y divide-border lg:hidden">
           {pageEvents.map((event) => (
-            <article key={event.id} className="space-y-4 px-5 py-5">
+            <article
+              key={event.id}
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer space-y-4 px-5 py-5 outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              onClick={() =>
+                router.push(`/organizator-panel/etkinlik/${event.id}`)
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  router.push(`/organizator-panel/etkinlik/${event.id}`);
+                }
+              }}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Link
