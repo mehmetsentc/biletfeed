@@ -20,8 +20,8 @@ interface LogoProps {
   variant?: 'on-dark' | 'on-light' | 'auto';
 }
 
-/** Yatay logo oranı — light_tema_logo.png / dark_tema_logo.png */
-const LOGO_ASPECT = 2001 / 436;
+/** Yatay logo oranı — 1024×223 px kaynak dosyalar */
+const LOGO_ASPECT = 1024 / 223;
 
 function resolveLogoSrc(variant: 'on-dark' | 'on-light'): string {
   return variant === 'on-dark'
@@ -41,13 +41,13 @@ export function Logo({
   useEffect(() => setMounted(true), []);
 
   const isLarge = size === 'large';
-  const height = isLarge ? 52 : 40;
+  const height = isLarge ? 48 : 38;
   const width = Math.round(height * LOGO_ASPECT);
 
-  let logoVariant: 'on-dark' | 'on-light' = 'on-dark';
+  let logoVariant: 'on-dark' | 'on-light' = 'on-light';
   if (variant === 'auto') {
     logoVariant =
-      mounted && resolvedTheme === 'light' ? 'on-light' : 'on-dark';
+      mounted && resolvedTheme === 'dark' ? 'on-dark' : 'on-light';
   } else {
     logoVariant = variant;
   }
@@ -66,9 +66,9 @@ export function Logo({
         alt={siteConfig.name}
         width={width}
         height={height}
-        className="h-auto w-auto max-h-[52px] object-contain object-left"
-        style={{ maxHeight: height, width: 'auto' }}
+        unoptimized
         priority
+        className="block h-[38px] w-auto max-w-[min(100%,200px)] object-contain object-left lg:h-[42px]"
       />
     </Link>
   );
@@ -95,6 +95,7 @@ export function LogoImage({
       alt={siteConfig.name}
       width={width}
       height={height}
+      unoptimized
       className={cn('h-auto object-contain', className)}
       priority={priority}
     />
