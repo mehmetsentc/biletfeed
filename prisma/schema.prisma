@@ -205,9 +205,10 @@ model Organizer {
   contactEmail   String?         @map("contact_email")
   contactPhone   String?         @map("contact_phone")
   notifyEmail    Boolean         @default(true) @map("notify_email")
-  notifySms      Boolean         @default(false) @map("notify_sms")
-  verified       Boolean         @default(false)
-  deletedAt      DateTime?       @map("deleted_at")
+  notifySms          Boolean         @default(false) @map("notify_sms")
+  accountHolderName  String?         @map("account_holder_name")
+  verified           Boolean         @default(false)
+  deletedAt          DateTime?       @map("deleted_at")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
@@ -219,12 +220,34 @@ model Organizer {
   venues         Venue[]
   supportTickets OrganizerSupportTicket[]
   invitations    EventInvitation[]
-  payouts        OrganizerPayout[]
-  coupons        Coupon[]
+  payouts         OrganizerPayout[]
+  coupons         Coupon[]
+  billingProfiles OrganizerBillingProfile[]
 
   @@index([status])
   @@index([deletedAt])
   @@map("organizers")
+}
+
+model OrganizerBillingProfile {
+  id                String    @id @default(uuid()) @db.Uuid
+  organizerId       String    @map("organizer_id") @db.Uuid
+  label             String    @default("TRY Hesabı")
+  iban              String
+  currency          Currency  @default(TRY)
+  companyLegalName  String    @map("company_legal_name")
+  taxOffice         String    @map("tax_office")
+  taxNumber         String    @map("tax_number")
+  invoiceAddress    String    @map("invoice_address")
+  deletedAt         DateTime? @map("deleted_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@index([organizerId])
+  @@index([deletedAt])
+  @@map("organizer_billing_profiles")
 }
 
 model City {
