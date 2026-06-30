@@ -29,13 +29,18 @@ function formatMoney(amount: number, currency: string): string {
 }
 
 /** Bilet satın alma sonrası profesyonel onay e-postası — idempotent */
-export async function sendTicketPurchaseEmail(orderId: string): Promise<void> {
+export async function sendTicketPurchaseEmail(
+  orderId: string,
+  options?: { force?: boolean }
+): Promise<void> {
   await ensureDbConnection();
 
-  const alreadySent = await prisma.emailDelivery.findFirst({
-    where: { orderId, template: 'ticket_purchase', status: 'sent' }
-  });
-  if (alreadySent) return;
+  if (!options?.force) {
+    const alreadySent = await prisma.emailDelivery.findFirst({
+      where: { orderId, template: 'ticket_purchase', status: 'sent' }
+    });
+    if (alreadySent) return;
+  }
 
   const order = await prisma.order.findFirst({
     where: { id: orderId, status: 'paid', deletedAt: null },

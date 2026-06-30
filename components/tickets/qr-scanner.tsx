@@ -73,9 +73,48 @@ interface QrScannerProps {
   variant?: 'default' | 'entry';
   /** Kamera modunda otomatik başlat */
   autoStart?: boolean;
+  /** Sadece bu etkinliğe ait biletleri kabul et */
+  eventId?: string;
+  /** Cihaz tarayıcı kimliği (check-in audit) */
+  scannerId?: string;
 }
 
-export function QrScanner({ variant = 'default', autoStart = false }: QrScannerProps) {
+function playScanSound(status: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (status === 'VALID') {
+      osc.frequency.value = 880;
+      gain.gain.value = 0.15;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } else if (status === 'USED') {
+      osc.frequency.value = 440;
+      gain.gain.value = 0.12;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } else {
+      osc.frequency.value = 220;
+      gain.gain.value = 0.12;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    }
+    window.setTimeout(() => void ctx.close(), 500);
+  } catch {
+    /* ses desteklenmiyorsa sessiz devam */
+  }
+}
+
+export function QrScanner({
+  variant = 'default',
+  autoStart = false,
+  eventId,
+  scannerId,
+}: QrScannerProps) {
   const isEntry = variant === 'entry';
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const scanLockRef = useRef(false);
@@ -87,8 +126,10 @@ export function QrScanner({ variant = 'default', autoStart = false }: QrScannerP
   const [useManual, setUseManual] = useState(false);
 
   const playFeedback = useCallback((status: string) => {
+    playScanSound(status);
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       if (status === 'VALID') navigator.vibrate(80);
+      else if (status === 'USED') navigator.vibrate([40, 30, 40]);
       else navigator.vibrate([60, 40, 60]);
     }
   }, []);
@@ -106,7 +147,12 @@ export function QrScanner({ variant = 'default', autoStart = false }: QrScannerP
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ ...payload, markUsed: true }),
+          body: JSON.stringify({
+            ...payload,
+            markUsed: true,
+            eventId,
+            scannerId,
+          }),
         });
         const data = (await res.json()) as ScanResult;
         if (!res.ok) {
@@ -121,7 +167,17 @@ export function QrScanner({ variant = 'default', autoStart = false }: QrScannerP
           setScanning(false);
         }
       } catch {
-        setError('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          const { enqueueScan } = await import('@/lib/tickets/offline-scan-queue');
+          await enqueueScan({
+            ...payload,
+            eventId,
+            scannerId: scannerId ?? 'unknown',
+          });
+          setError('Çevrimdışı — tarama kuyruğa alındı. Bağlantı gelince senkronize edilir.');
+        } else {
+          setError('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
+        }
       } finally {
         setLoading(false);
         window.setTimeout(() => {
@@ -129,7 +185,7 @@ export function QrScanner({ variant = 'default', autoStart = false }: QrScannerP
         }, 1200);
       }
     },
-    [playFeedback]
+    [playFeedback, eventId, scannerId]
   );
 
   const onScanSuccess = useCallback(
@@ -145,6 +201,28 @@ export function QrScanner({ variant = 'default', autoStart = false }: QrScannerP
       scannerRef.current = null;
     }
     setScanning(false);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncQueue = () => {
+      void import('@/lib/tickets/offline-scan-queue').then(({ flushScanQueue }) =>
+        flushScanQueue(async (payload) => {
+          const res = await fetch('/api/tickets/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload),
+          });
+          return res.json() as Promise<{ status: string }>;
+        })
+      );
+    };
+
+    window.addEventListener('online', syncQueue);
+    if (navigator.onLine) syncQueue();
+    return () => window.removeEventListener('online', syncQueue);
   }, []);
 
   useEffect(() => {
@@ -198,8 +276,44 @@ export function QrScanner({ variant = 'default', autoStart = false }: QrScannerP
     if (!useManual) setScanning(true);
   };
 
+  const entryOverlayClass =
+    result?.status === 'VALID'
+      ? 'bg-emerald-600'
+      : result?.status === 'USED'
+        ? 'bg-amber-500'
+        : result
+          ? 'bg-red-600'
+          : '';
+
   return (
     <div className={cn('mx-auto w-full max-w-lg space-y-4', isEntry && 'max-w-none')}>
+      {isEntry && result && entryOverlayClass && (
+        <div
+          className={cn(
+            'fixed inset-0 z-50 flex flex-col items-center justify-center px-6 text-center text-white transition-colors duration-300',
+            entryOverlayClass
+          )}
+          role="alert"
+          aria-live="assertive"
+        >
+          <StatusIcon className="mb-4 size-24" strokeWidth={1.5} />
+          <p className="text-3xl font-bold">{config?.label}</p>
+          <p className="mt-2 max-w-sm text-lg opacity-90">{result.message}</p>
+          {result.ticket && (
+            <p className="mt-4 text-sm font-medium opacity-80">
+              {result.ticket.holderName} · {result.ticket.ticketType}
+            </p>
+          )}
+          <Button
+            type="button"
+            className="mt-10 h-14 min-w-[200px] bg-white text-lg font-bold text-black hover:bg-white/90"
+            onClick={handleNext}
+          >
+            Sonraki bilet
+          </Button>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Button
           type="button"
@@ -329,7 +443,7 @@ export function QrScanner({ variant = 'default', autoStart = false }: QrScannerP
         </div>
       )}
 
-      {result && config && (
+      {result && config && !isEntry && (
         <div
           className={cn(
             'rounded-2xl border-2 p-5 transition-colors',

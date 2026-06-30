@@ -20,13 +20,16 @@ interface AdminTicketRow {
 export function AdminTicketSearch() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [results, setResults] = useState<AdminTicketRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function search() {
     if (!query.trim()) return;
     setLoading(true);
     setError(null);
+    setMessage(null);
     try {
       const res = await fetch(`/api/admin/tickets?q=${encodeURIComponent(query.trim())}`);
       const data = await res.json();
@@ -37,6 +40,31 @@ export function AdminTicketSearch() {
       setResults([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function runAction(ticketId: string, action: 'force_check_in' | 'cancel' | 'regenerate_qr') {
+    setActionLoading(`${ticketId}-${action}`);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/admin/tickets/${ticketId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || 'İşlem başarısız');
+      setMessage(
+        action === 'regenerate_qr'
+          ? `QR yenilendi: ${data.ticketCode ?? ticketId}`
+          : data.message || 'İşlem tamamlandı'
+      );
+      void search();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Hata');
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -55,6 +83,7 @@ export function AdminTicketSearch() {
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+      {message && <p className="text-sm text-emerald-600">{message}</p>}
 
       <div className="overflow-hidden rounded-lg border">
         <table className="w-full text-sm">
@@ -65,6 +94,7 @@ export function AdminTicketSearch() {
               <th className="p-3 font-medium">Sahip</th>
               <th className="p-3 font-medium">Durum</th>
               <th className="p-3 font-medium">Giriş</th>
+              <th className="p-3 font-medium">İşlemler</th>
             </tr>
           </thead>
           <tbody>
@@ -84,11 +114,39 @@ export function AdminTicketSearch() {
                   </Badge>
                 </td>
                 <td className="p-3">{ticket.entryCount}</td>
+                <td className="p-3">
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!!actionLoading}
+                      onClick={() => void runAction(ticket.id, 'force_check_in')}
+                    >
+                      Giriş
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!!actionLoading || ticket.status !== 'VALID'}
+                      onClick={() => void runAction(ticket.id, 'cancel')}
+                    >
+                      İptal
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={!!actionLoading}
+                      onClick={() => void runAction(ticket.id, 'regenerate_qr')}
+                    >
+                      QR Yenile
+                    </Button>
+                  </div>
+                </td>
               </tr>
             ))}
             {results.length === 0 && !loading && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
                   Sonuç yok. Arama yapın.
                 </td>
               </tr>

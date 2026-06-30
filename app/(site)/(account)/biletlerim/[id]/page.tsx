@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { SettingsPageHeader } from '@/components/account/settings-form';
 import { PremiumTicketCard } from '@/components/tickets/premium-ticket-card';
 import { TicketActions } from '@/components/tickets/ticket-actions';
+import { TicketTransferForm } from '@/components/tickets/ticket-transfer-form';
 import { getTicketById } from '@/lib/services/tickets';
 import { formatEventDate, formatEventTime } from '@/lib/data/mock-events';
 import { verifySessionCookie } from '@/lib/auth/session';
@@ -63,6 +64,10 @@ export default async function TicketDetailPage({ params }: Props) {
           venue={ticket.venue}
           city={ticket.city}
         />
+
+        {ticket.status === 'VALID' && !ticket.isInvitation && (
+          <TicketTransferForm ticketId={ticket.id} />
+        )}
 
         <Link
           href="/biletlerim"

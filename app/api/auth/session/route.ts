@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { buildSignedSessionToken } from '@/lib/auth/session-crypto';
+import { getCookieDomain } from '@/lib/config/domain';
 import {
   bootstrapRoleForEmail,
   isBootstrapSuperAdminEmail
@@ -127,14 +128,18 @@ export async function POST(request: NextRequest) {
     const role = await syncUserToDB(uid, email);
     const sessionCookie = buildSimpleSession(uid, email, role, SESSION_EXPIRES_MS);
 
-    const response = NextResponse.json({ success: true, role });
-    response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
+    const cookieDomain = getCookieDomain();
+    const cookieOptions = {
       maxAge: SESSION_EXPIRES_MS / 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    });
+      sameSite: 'lax' as const,
+      path: '/',
+      ...(cookieDomain ? { domain: cookieDomain } : {})
+    };
+
+    const response = NextResponse.json({ success: true, role });
+    response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, cookieOptions);
     return response;
   } catch (err) {
     const message =
@@ -150,7 +155,12 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
+  const cookieDomain = getCookieDomain();
   const response = NextResponse.json({ success: true });
-  response.cookies.set(SESSION_COOKIE_NAME, '', { maxAge: 0, path: '/' });
+  response.cookies.set(SESSION_COOKIE_NAME, '', {
+    maxAge: 0,
+    path: '/',
+    ...(cookieDomain ? { domain: cookieDomain } : {})
+  });
   return response;
 }

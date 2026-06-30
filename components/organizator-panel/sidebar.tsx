@@ -15,6 +15,7 @@ import {
   ShoppingBag,
   Sparkles,
   Star,
+  Tag,
   Ticket,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ const navItems = [
   { href: '/organizator-panel/tarayici', label: 'Bilet Tara', icon: ScanLine },
   { href: '/organizator-panel/siparisler', label: 'Satışlar', icon: ShoppingBag },
   { href: '/organizator-panel/biletler', label: 'Biletler', icon: Ticket },
+  { href: '/organizator-panel/kuponlar', label: 'Kuponlar', icon: Tag },
   { href: '/organizator-panel/organizasyon', label: 'Organizasyon', icon: Star },
   { href: '/organizator-panel/mekanlar', label: 'Mekanlar', icon: MapPin },
   { href: '/organizator-panel/moderasyon', label: 'Moderasyon', icon: Sparkles },

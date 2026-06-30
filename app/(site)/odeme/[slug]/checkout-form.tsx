@@ -38,12 +38,42 @@ export function CheckoutForm({
   const [selectedTypeId, setSelectedTypeId] = useState(ticketTypes[0]?.id ?? '');
   const [attendeeName, setAttendeeName] = useState('');
   const [attendeeEmail, setAttendeeEmail] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const selectedType =
     ticketTypes.find((t) => t.id === selectedTypeId) ?? ticketTypes[0];
   const unitPrice = selectedType?.price ?? event.price;
-  const total = event.isFree ? 0 : unitPrice * quantity;
+  const subtotal = event.isFree ? 0 : unitPrice * quantity;
+  const total = Math.max(0, subtotal - couponDiscount);
   const isPaid = total > 0;
+
+  async function applyCoupon() {
+    setCouponError(null);
+    if (!couponCode.trim()) return;
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: couponCode.trim(),
+          eventSlug: event.slug,
+          quantity,
+          ticketTypeId: selectedType?.id
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Geçersiz kupon');
+      setCouponDiscount(data.discount);
+      setCouponApplied(true);
+    } catch (e) {
+      setCouponApplied(false);
+      setCouponDiscount(0);
+      setCouponError(e instanceof Error ? e.message : 'Kupon uygulanamadı');
+    }
+  }
 
   async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
@@ -59,7 +89,8 @@ export function CheckoutForm({
           quantity,
           ticketTypeId: selectedType?.id,
           attendeeName: attendeeName.trim() || undefined,
-          attendeeEmail: attendeeEmail.trim() || undefined
+          attendeeEmail: attendeeEmail.trim() || undefined,
+          couponCode: couponApplied ? couponCode.trim() : undefined
         })
       });
       const data = await res.json();
@@ -102,7 +133,10 @@ export function CheckoutForm({
           </div>
         )}
         <div className="lg:col-span-3 space-y-6">
-          <StepIndicator current={step} />
+          <StepIndicator
+            current={step}
+            labels={['Bilet', 'Katılımcı', 'Kupon', 'Özet', 'Ödeme']}
+          />
 
           {step === 1 && (
             <div className="space-y-4 rounded-2xl border bg-card p-6">
@@ -182,7 +216,43 @@ export function CheckoutForm({
 
           {step === 3 && (
             <div className="space-y-4 rounded-2xl border bg-card p-6">
-              <h2 className="font-semibold">3. Sipariş Özeti</h2>
+              <h2 className="font-semibold">3. Kupon (isteğe bağlı)</h2>
+              <div className="flex gap-2">
+                <Input
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value.toUpperCase());
+                    setCouponApplied(false);
+                    setCouponDiscount(0);
+                  }}
+                  placeholder="Kupon kodu"
+                />
+                <Button type="button" variant="outline" onClick={() => void applyCoupon()}>
+                  Uygula
+                </Button>
+              </div>
+              {couponError && (
+                <p className="text-sm text-destructive">{couponError}</p>
+              )}
+              {couponApplied && (
+                <p className="text-sm text-emerald-600">
+                  Kupon uygulandı — {couponDiscount} ₺ indirim
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setStep(2)}>
+                  Geri
+                </Button>
+                <Button onClick={() => setStep(4)} className="flex-1">
+                  Devam Et
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-4 rounded-2xl border bg-card p-6">
+              <h2 className="font-semibold">4. Sipariş Özeti</h2>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Etkinlik</span>
@@ -200,6 +270,12 @@ export function CheckoutForm({
                   <span className="text-muted-foreground">Bilet adedi</span>
                   <span>{quantity}</span>
                 </div>
+                {couponApplied && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Kupon indirimi</span>
+                    <span>-{couponDiscount} ₺</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between text-base font-bold">
                   <span>Toplam</span>
@@ -209,24 +285,24 @@ export function CheckoutForm({
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(2)}>
+                <Button variant="outline" onClick={() => setStep(3)}>
                   Geri
                 </Button>
-                <Button onClick={() => setStep(4)} className="flex-1">
+                <Button onClick={() => setStep(5)} className="flex-1">
                   {isPaid ? 'Ödemeye Geç' : 'Bileti Onayla'}
                 </Button>
               </div>
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <form
               onSubmit={handleCheckout}
               className="space-y-4 rounded-2xl border bg-card p-6"
             >
               <h2 className="flex items-center gap-2 font-semibold">
                 <ShieldCheck className="size-5" />
-                4. {isPaid ? 'Güvenli Ödeme' : 'Onay'}
+                5. {isPaid ? 'Güvenli Ödeme' : 'Onay'}
               </h2>
 
               {isPaid ? (
@@ -255,7 +331,7 @@ export function CheckoutForm({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setStep(3)}
+                  onClick={() => setStep(4)}
                 >
                   Geri
                 </Button>

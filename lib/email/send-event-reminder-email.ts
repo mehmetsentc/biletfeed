@@ -27,6 +27,8 @@ export type EventReminderWindow = {
   minMsBeforeStart?: number;
   /** Hatırlatma penceresi bitişi (ms) — varsayılan 25 saat */
   maxMsBeforeStart?: number;
+  /** E-posta şablon anahtarı */
+  template?: string;
 };
 
 /**
@@ -40,6 +42,7 @@ export async function sendEventReminderEmails(
 
   const minMs = window.minMsBeforeStart ?? 23 * 60 * 60 * 1000;
   const maxMs = window.maxMsBeforeStart ?? 25 * 60 * 60 * 1000;
+  const template = window.template ?? 'event_reminder';
   const now = Date.now();
   const rangeStart = new Date(now + minMs);
   const rangeEnd = new Date(now + maxMs);
@@ -83,7 +86,7 @@ export async function sendEventReminderEmails(
     }
 
     const alreadySent = await prisma.emailDelivery.findFirst({
-      where: { orderId: order.id, template: 'event_reminder', status: 'sent' }
+      where: { orderId: order.id, template, status: 'sent' }
     });
     if (alreadySent) {
       skipped += 1;
@@ -131,7 +134,7 @@ export async function sendEventReminderEmails(
     await queueEmail({
       to: order.user.email,
       subject: `Hatırlatma: ${event.title} ${whenLabel}`,
-      template: 'event_reminder',
+      template,
       html,
       orderId: order.id
     });

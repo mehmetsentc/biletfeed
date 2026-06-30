@@ -1,8 +1,10 @@
 import type { NextRequest } from 'next/server';
+import { ORGANIZER_PANEL_SUBDOMAINS, canonicalHost } from '@/lib/config/domain';
 
 function collectExpectedOrigins(host: string): Set<string> {
   const expected = new Set<string>();
   const hostname = host.split(':')[0];
+  const rootHost = canonicalHost.split(':')[0];
 
   for (const proto of ['https', 'http']) {
     expected.add(`${proto}://${host}`);
@@ -10,6 +12,14 @@ function collectExpectedOrigins(host: string): Set<string> {
       expected.add(`${proto}://${hostname.slice(4)}`);
     } else {
       expected.add(`${proto}://www.${hostname}`);
+    }
+
+    for (const sub of ORGANIZER_PANEL_SUBDOMAINS) {
+      if (rootHost !== 'localhost') {
+        expected.add(`${proto}://${sub}.${rootHost}`);
+      } else {
+        expected.add(`${proto}://${sub}.localhost`);
+      }
     }
   }
 

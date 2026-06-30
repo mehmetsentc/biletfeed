@@ -29,7 +29,8 @@ const SECTIONS: { title: string; settings: Setting[] }[] = [
     title: 'Özellik Bayrakları',
     settings: [
       { label: 'AI Özellikleri', key: 'NEXT_PUBLIC_ENABLE_AI', value: 'false', type: 'toggle', hint: 'Yapay zeka destekli özellikleri etkinleştir' },
-      { label: 'Subdomain Desteği', key: 'NEXT_PUBLIC_ENABLE_SUBDOMAINS', value: 'false', type: 'toggle', hint: 'organizator.biletfeed.com subdomain yönlendirme' }
+      { label: 'Subdomain Desteği', key: 'NEXT_PUBLIC_ENABLE_SUBDOMAINS', value: 'true', type: 'toggle', hint: 'panel.biletfeed.com organizatör paneli' },
+      { label: 'Panel URL', key: 'NEXT_PUBLIC_PANEL_URL', value: 'https://panel.biletfeed.com', type: 'text', hint: 'Organizatör paneli alt alanı' },
     ]
   },
   {

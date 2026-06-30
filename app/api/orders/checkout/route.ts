@@ -12,7 +12,8 @@ const bodySchema = z.object({
   quantity: z.number().int().min(1).max(10),
   ticketTypeId: z.string().uuid().optional(),
   attendeeName: z.string().min(2).max(120).optional(),
-  attendeeEmail: z.string().email().optional()
+  attendeeEmail: z.string().email().optional(),
+  couponCode: z.string().max(50).optional()
 });
 
 export async function POST(request: NextRequest) {
@@ -41,7 +42,8 @@ export async function POST(request: NextRequest) {
       quantity: parsed.data.quantity,
       ticketTypeId: parsed.data.ticketTypeId,
       attendeeName: parsed.data.attendeeName,
-      attendeeEmail: parsed.data.attendeeEmail
+      attendeeEmail: parsed.data.attendeeEmail,
+      couponCode: parsed.data.couponCode
     });
 
     const allowedOrigins = [getAppBaseUrl()];

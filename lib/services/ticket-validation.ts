@@ -90,6 +90,7 @@ export async function validateTicketInput(input: {
   validationToken?: string;
   ticketId?: string;
   qrRaw?: string;
+  eventId?: string;
   scannerUid: string;
   scannerRole?: string;
   markUsed?: boolean;
@@ -132,12 +133,12 @@ export async function validateTicketInput(input: {
     return { status: 'INVALID', message: 'Bilet bulunamadı' };
   }
 
-  if (validationToken && !verifyValidationToken(ticket.id, ticket.eventId, validationToken)) {
-    return { status: 'INVALID', message: 'Bilet doğrulanamadı' };
-  }
-
-  if (!validationToken) {
-    return { status: 'INVALID', message: 'Bilet doğrulama kodu gerekli' };
+  if (input.eventId && ticket.eventId !== input.eventId) {
+    return {
+      status: 'INVALID',
+      message: 'Bu bilet seçili etkinliğe ait değil',
+      ticket: toSummary(ticket),
+    };
   }
 
   const canScan = await canManageEventTickets(
@@ -148,6 +149,22 @@ export async function validateTicketInput(input: {
   if (!canScan) {
     return { status: 'INVALID', message: 'Bu bilet için yetkiniz yok' };
   }
+
+  if (validationToken) {
+    if (
+      !verifyValidationToken(
+        ticket.id,
+        ticket.eventId,
+        validationToken,
+        ticket.tokenNonce
+      )
+    ) {
+      return { status: 'INVALID', message: 'Bilet doğrulanamadı' };
+    }
+  } else if (!ticketCode) {
+    return { status: 'INVALID', message: 'Geçersiz QR kodu' };
+  }
+  // Organizatör manuel BF kodu: token yok ama yetki doğrulandı — kapı girişi
 
   const summary = toSummary(ticket);
   const policy = ticket.event.entryPolicy;

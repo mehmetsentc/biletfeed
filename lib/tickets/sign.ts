@@ -14,18 +14,24 @@ function getTicketSecret(): string {
   return 'dev-secret-change-in-production';
 }
 
-export function generateValidationToken(ticketId: string, eventId: string): string {
+export function generateValidationToken(
+  ticketId: string,
+  eventId: string,
+  nonce?: string | null
+): string {
   const secret = getTicketSecret();
-  return createHmac('sha256', secret).update(`${ticketId}:${eventId}`).digest('hex');
+  const payload = nonce ? `${ticketId}:${eventId}:${nonce}` : `${ticketId}:${eventId}`;
+  return createHmac('sha256', secret).update(payload).digest('hex');
 }
 
 export function verifyValidationToken(
   ticketId: string,
   eventId: string,
-  token: string
+  token: string,
+  nonce?: string | null
 ): boolean {
   if (!token) return false;
-  const expected = generateValidationToken(ticketId, eventId);
+  const expected = generateValidationToken(ticketId, eventId, nonce);
   try {
     const a = Buffer.from(expected, 'hex');
     const b = Buffer.from(token, 'hex');
@@ -33,6 +39,18 @@ export function verifyValidationToken(
   } catch {
     return false;
   }
+}
+
+/** QR token yenileme — eski QR geçersiz olur */
+export function rotateValidationToken(
+  ticketId: string,
+  eventId: string
+): { token: string; nonce: string } {
+  const nonce = randomBytes(16).toString('hex');
+  return {
+    nonce,
+    token: generateValidationToken(ticketId, eventId, nonce)
+  };
 }
 
 export function buildTicketQrPayload(input: {

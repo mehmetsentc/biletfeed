@@ -14,6 +14,8 @@ export interface MockPurchasedTicket {
   attendeeName?: string;
   eventEndDate?: string;
   qrData: string;
+  isInvitation?: boolean;
+  transferStatus?: 'pending' | 'completed';
 }
 
 export const mockPurchasedTickets: MockPurchasedTicket[] = [

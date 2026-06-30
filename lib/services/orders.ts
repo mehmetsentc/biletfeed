@@ -14,6 +14,8 @@ import { processOrderAccounting } from '@/lib/accounting/fulfillment';
 import { createCreditNoteForRefund } from '@/lib/accounting/invoice';
 import { sendTicketPurchaseEmail } from '@/lib/email/send-ticket-purchase-email';
 import { sendRefundNotificationEmail } from '@/lib/email/send-refund-email';
+import { validateCoupon, incrementCouponUsage } from '@/lib/services/coupons';
+import { notifyTicketPurchase } from '@/lib/services/notifications';
 import type { PaymentProviderName } from '@/lib/payments/types';
 
 export interface CheckoutResult {
@@ -108,6 +110,7 @@ export async function createCheckout(params: {
   ticketTypeId?: string;
   attendeeName?: string;
   attendeeEmail?: string;
+  couponCode?: string;
 }): Promise<CheckoutResult> {
   const { user, event, ticketType, qty, subtotal, commission } =
     await loadCheckoutContext(params);
@@ -115,7 +118,25 @@ export async function createCheckout(params: {
   const attendeeName = params.attendeeName?.trim() || user.displayName || undefined;
   const attendeeEmail = params.attendeeEmail?.trim() || user.email;
 
-  if (subtotal <= 0 || event.isFree) {
+  let discount = 0;
+  let appliedCouponId: string | undefined;
+  let appliedCouponCode: string | undefined;
+
+  if (params.couponCode?.trim()) {
+    const coupon = await validateCoupon({
+      code: params.couponCode,
+      eventId: event.id,
+      organizerId: event.organizerId,
+      subtotal
+    });
+    discount = coupon.discount;
+    appliedCouponId = coupon.couponId;
+    appliedCouponCode = coupon.code;
+  }
+
+  const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
+
+  if (total <= 0 || event.isFree) {
     const orderId = await fulfillFreeOrder({
       userId: user.id,
       eventId: event.id,
@@ -124,7 +145,10 @@ export async function createCheckout(params: {
       quantity: qty,
       unitPrice: ticketType.price,
       attendeeName,
-      attendeeEmail
+      attendeeEmail,
+      discount,
+      couponCode: appliedCouponCode,
+      couponId: appliedCouponId
     });
     return {
       orderId,
@@ -151,11 +175,13 @@ export async function createCheckout(params: {
         eventId: event.id,
         organizerId: event.organizerId,
         subtotal,
+        discount,
         commission,
-        total: subtotal,
+        total,
         status: 'pending',
         paymentProvider: providerName,
         expiresAt: pendingExpiresAt(),
+        couponCode: appliedCouponCode ?? null,
         attendeeName: attendeeName ?? null,
         attendeeEmail: attendeeEmail ?? null,
         items: {
@@ -182,7 +208,7 @@ export async function createCheckout(params: {
 
   const payment = await startPaymentCheckout({
     orderId: order.id,
-    amount: subtotal,
+    amount: total,
     currency: 'TRY',
     buyer: {
       id: user.id,
@@ -223,8 +249,13 @@ async function fulfillFreeOrder(params: {
   unitPrice: number;
   attendeeName?: string;
   attendeeEmail?: string;
+  discount?: number;
+  couponCode?: string;
+  couponId?: string;
 }): Promise<string> {
   const subtotal = params.unitPrice * params.quantity;
+  const discount = params.discount ?? 0;
+  const total = Math.max(0, subtotal - discount);
 
   const order = await prisma.$transaction(async (tx) => {
     const ticketType = await tx.ticketType.findUnique({
@@ -240,11 +271,15 @@ async function fulfillFreeOrder(params: {
         eventId: params.eventId,
         organizerId: params.organizerId,
         subtotal,
-        total: subtotal,
+        discount,
+        total,
         status: 'paid',
         paymentProvider: 'free',
         paymentId: `free_${Date.now()}`,
         paidAt: new Date(),
+        couponCode: params.couponCode ?? null,
+        attendeeName: params.attendeeName ?? null,
+        attendeeEmail: params.attendeeEmail ?? null,
         items: {
           create: {
             ticketTypeId: params.ticketTypeId,
@@ -286,6 +321,17 @@ async function fulfillFreeOrder(params: {
   void sendTicketPurchaseEmail(order.id).catch((err) => {
     console.error('[email] free order confirmation', order.id, err);
   });
+
+  if (params.couponId) {
+    void incrementCouponUsage(params.couponId).catch(() => {});
+  }
+
+  void prisma.event
+    .findUnique({ where: { id: params.eventId }, select: { title: true } })
+    .then((ev) => {
+      if (ev) void notifyTicketPurchase(params.userId, ev.title, order.id);
+    })
+    .catch(() => {});
 
   return order.id;
 }
@@ -409,6 +455,21 @@ export async function fulfillPaidOrder(params: {
     return { orderId: order.id, ticketCount, alreadyFulfilled: false };
   }).then(async (result) => {
     if (!result.alreadyFulfilled) {
+      const order = await prisma.order.findUnique({
+        where: { id: result.orderId },
+        select: { couponCode: true, userId: true, event: { select: { title: true } } }
+      });
+      if (order?.couponCode) {
+        const coupon = await prisma.coupon.findFirst({
+          where: { code: order.couponCode, deletedAt: null }
+        });
+        if (coupon) void incrementCouponUsage(coupon.id).catch(() => {});
+      }
+      if (order) {
+        void notifyTicketPurchase(order.userId, order.event.title, result.orderId).catch(
+          () => {}
+        );
+      }
       void processOrderAccounting(result.orderId).catch((err) => {
         console.error('[accounting] paid order', result.orderId, err);
       });

@@ -11,12 +11,14 @@ import { formatEventDate } from '@/lib/data/mock-events';
 import type { MockPurchasedTicket } from '@/lib/data/mock-user';
 import { cn } from '@/lib/utils';
 
-type TicketTab = 'active' | 'past' | 'refunds';
+type TicketTab = 'active' | 'past' | 'refunds' | 'invitations' | 'transferred';
 
 const tabs: { id: TicketTab; label: string }[] = [
-  { id: 'active', label: 'Aktif Etkinlikler' },
-  { id: 'past', label: 'Geçmiş Etkinlikler' },
-  { id: 'refunds', label: 'İade Taleplerim' }
+  { id: 'active', label: 'Aktif' },
+  { id: 'past', label: 'Geçmiş' },
+  { id: 'invitations', label: 'Davetiyeler' },
+  { id: 'transferred', label: 'Devirler' },
+  { id: 'refunds', label: 'İadeler' }
 ];
 
 const emptyCopy: Record<TicketTab, { title: string; description: string }> = {
@@ -31,6 +33,14 @@ const emptyCopy: Record<TicketTab, { title: string; description: string }> = {
   refunds: {
     title: 'İade talebi bulunamadı',
     description: 'İade sürecindeki biletleriniz burada görünür.'
+  },
+  invitations: {
+    title: 'Davetiye bulunamadı',
+    description: 'Organizatörlerden aldığınız davetiyeler burada listelenir.'
+  },
+  transferred: {
+    title: 'Devir kaydı yok',
+    description: 'Devrettiğiniz veya size devredilen biletler burada görünür.'
   }
 };
 
@@ -45,7 +55,8 @@ function statusLabel(ticket: MockPurchasedTicket, isPast: boolean): string {
 function filterTickets(
   tickets: MockPurchasedTicket[],
   tab: TicketTab,
-  search: string
+  search: string,
+  transferTicketIds: Set<string>
 ): MockPurchasedTicket[] {
   const now = Date.now();
   const q = search.trim().toLowerCase();
@@ -55,6 +66,7 @@ function filterTickets(
     case 'active':
       filtered = tickets.filter(
         (ticket) =>
+          !transferTicketIds.has(ticket.id) &&
           (ticket.status === 'VALID' || ticket.status === 'USED') &&
           new Date(ticket.eventEndDate ?? ticket.eventDate).getTime() >= now
       );
@@ -67,6 +79,12 @@ function filterTickets(
             ticket.status !== 'REFUNDED' &&
             new Date(ticket.eventEndDate ?? ticket.eventDate).getTime() < now)
       );
+      break;
+    case 'invitations':
+      filtered = tickets.filter((ticket) => ticket.isInvitation);
+      break;
+    case 'transferred':
+      filtered = tickets.filter((ticket) => transferTicketIds.has(ticket.id));
       break;
     case 'refunds':
       filtered = tickets.filter(
@@ -111,13 +129,20 @@ function TicketCard({ ticket }: { ticket: MockPurchasedTicket }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold leading-snug">{ticket.eventTitle}</h3>
-          <Badge
-            variant={
-              ticket.status === 'VALID' && !isPast ? 'success' : 'secondary'
-            }
-          >
-            {statusLabel(ticket, isPast)}
-          </Badge>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {ticket.isInvitation && (
+              <Badge variant="outline" className="text-[10px]">
+                Davetiye
+              </Badge>
+            )}
+            <Badge
+              variant={
+                ticket.status === 'VALID' && !isPast ? 'success' : 'secondary'
+              }
+            >
+              {statusLabel(ticket, isPast)}
+            </Badge>
+          </div>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{ticket.ticketType}</p>
         <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -140,15 +165,21 @@ function TicketCard({ ticket }: { ticket: MockPurchasedTicket }) {
 }
 
 export function MyTicketsPageClient({
-  tickets
+  tickets,
+  transferredTicketIds = []
 }: {
   tickets: MockPurchasedTicket[];
+  transferredTicketIds?: string[];
 }) {
   const [tab, setTab] = useState<TicketTab>('active');
   const [search, setSearch] = useState('');
+  const transferSet = useMemo(
+    () => new Set(transferredTicketIds),
+    [transferredTicketIds]
+  );
   const filteredTickets = useMemo(
-    () => filterTickets(tickets, tab, search),
-    [tickets, tab, search]
+    () => filterTickets(tickets, tab, search, transferSet),
+    [tickets, tab, search, transferSet]
   );
   const empty = emptyCopy[tab];
 

@@ -1,5 +1,11 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { rootDomain, protocol, canonicalHost } from '@/lib/config/domain';
+import {
+  canonicalHost,
+  getPanelUrl,
+  isOrganizerPanelSubdomain,
+  protocol,
+  rootDomain,
+} from '@/lib/config/domain';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/organizator-panel'];
 const SESSION_COOKIE_NAME = 'session';
@@ -58,6 +64,29 @@ function redirectToCanonical(request: NextRequest): NextResponse | null {
   return null;
 }
 
+function handleOrganizerPanelSubdomain(
+  request: NextRequest,
+  pathname: string
+): NextResponse {
+  if (pathname === '/') {
+    return NextResponse.redirect(
+      new URL('/organizator-panel/baslangic', request.url)
+    );
+  }
+
+  if (
+    pathname.startsWith('/organizator-panel') ||
+    pathname.startsWith('/giris') ||
+    pathname.startsWith('/api')
+  ) {
+    return NextResponse.next();
+  }
+
+  return NextResponse.redirect(
+    new URL('/organizator-panel/baslangic', request.url)
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const canonicalRedirect = redirectToCanonical(request);
   if (canonicalRedirect) return canonicalRedirect;
@@ -65,25 +94,20 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const subdomain = extractSubdomain(request);
 
-  if (subdomain) {
-    if (subdomain === 'organizer') {
-      if (pathname === '/') {
-        return NextResponse.redirect(
-          new URL('/organizator-panel/baslangic', request.url)
-        );
-      }
-      if (
-        pathname.startsWith('/organizator-panel') ||
-        pathname.startsWith('/giris') ||
-        pathname.startsWith('/api')
-      ) {
-        return NextResponse.next();
-      }
-      return NextResponse.redirect(
-        new URL(`/organizator-panel/baslangic`, request.url)
-      );
-    }
+  // Ana domain → panel alt alanına yönlendir (OtelEvent panel.otelevent.com modeli)
+  if (
+    !subdomain &&
+    process.env.NODE_ENV === 'production' &&
+    pathname.startsWith('/organizator-panel')
+  ) {
+    return NextResponse.redirect(getPanelUrl(pathname), 302);
+  }
 
+  if (isOrganizerPanelSubdomain(subdomain)) {
+    return handleOrganizerPanelSubdomain(request, pathname);
+  }
+
+  if (subdomain) {
     if (
       pathname.startsWith('/admin') ||
       pathname.startsWith('/dashboard') ||
@@ -111,10 +135,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
   }
-
-  // Giriş sayfasında çerez varlığına göre sunucu yönlendirmesi yapma —
-  // geçersiz/eskimiş çerezler /admin ↔ /giris döngüsüne yol açar.
-  // Yönlendirme istemci tarafında oturum doğrulandıktan sonra yapılır.
 
   return NextResponse.next();
 }

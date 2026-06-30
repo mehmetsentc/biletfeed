@@ -6,7 +6,8 @@ import {
   Calendar,
   Download,
   Share2,
-  Printer
+  Printer,
+  Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +40,24 @@ export function TicketActions({
 }: TicketActionsProps) {
   const [sharing, setSharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [walletMsg, setWalletMsg] = useState<string | null>(null);
+
+  async function addToWallet(platform: 'apple' | 'google') {
+    setWalletMsg(null);
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/wallet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ platform })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setWalletMsg(data.message);
+    } catch (e) {
+      setWalletMsg(e instanceof Error ? e.message : 'Wallet hatası');
+    }
+  }
 
   const printUrl =
     validationToken &&
@@ -95,6 +114,27 @@ export function TicketActions({
 
   return (
     <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => void addToWallet('apple')}
+        >
+          <Wallet className="size-4" />
+          Apple Wallet
+        </Button>
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => void addToWallet('google')}
+        >
+          <Wallet className="size-4" />
+          Google Wallet
+        </Button>
+      </div>
+      {walletMsg && (
+        <p className="text-xs text-muted-foreground">{walletMsg}</p>
+      )}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Button
           className="gap-2"

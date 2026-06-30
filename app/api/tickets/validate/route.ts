@@ -10,7 +10,9 @@ const postSchema = z.object({
   validationToken: z.string().optional(),
   ticketId: z.string().optional(),
   qrRaw: z.string().optional(),
-  markUsed: z.boolean().optional()
+  eventId: z.string().uuid().optional(),
+  scannerId: z.string().max(128).optional(),
+  markUsed: z.boolean().optional(),
 });
 
 /** QR kod URL'si tarandığında GET ile de doğrulama yapılabilir (salt okunur). */
@@ -64,6 +66,8 @@ export async function POST(request: NextRequest) {
     scannerUid: session.uid,
     scannerRole: session.role,
     markUsed: parsed.data.markUsed ?? true,
+    scannerId: parsed.data.scannerId,
+    eventId: parsed.data.eventId,
     ipAddress:
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       request.headers.get('x-real-ip') ||

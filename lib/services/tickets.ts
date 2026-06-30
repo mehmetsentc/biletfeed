@@ -24,6 +24,7 @@ function mapTicket(t: {
   };
   ticketType: { name: string; price: number };
   user: { displayName: string };
+  invitation?: { id: string } | null;
 }): MockPurchasedTicket {
   return {
     id: t.id,
@@ -40,6 +41,7 @@ function mapTicket(t: {
     price: t.ticketType.price,
     status: t.status as MockPurchasedTicket['status'],
     attendeeName: t.attendeeName ?? undefined,
+    isInvitation: !!t.invitation,
     qrData: buildTicketQrPayload({
       ticketId: t.id,
       ticketCode: t.ticketCode,
@@ -66,7 +68,8 @@ export async function getPurchasedTicketsByUser(
       include: {
         event: { include: { city: true, venue: true } },
         ticketType: true,
-        user: { select: { displayName: true } }
+        user: { select: { displayName: true } },
+        invitation: { select: { id: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -171,7 +174,7 @@ export async function getPublicTicketByCode(
   });
 
   if (!ticket) return null;
-  if (!verifyValidationToken(ticket.id, ticket.eventId, validationToken)) return null;
+  if (!verifyValidationToken(ticket.id, ticket.eventId, validationToken, ticket.tokenNonce)) return null;
 
   return {
     ticketCode: ticket.ticketCode,

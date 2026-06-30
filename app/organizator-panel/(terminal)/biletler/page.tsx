@@ -8,6 +8,7 @@ import {
 } from '@/lib/services/organizer-dashboard';
 import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
 import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';
+import { OrganizerTicketActions } from '@/components/organizator-panel/organizer-ticket-actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -54,6 +55,7 @@ export default async function OrganizatorTicketsPage() {
               <th className="p-3 font-medium">Tür</th>
               <th className="p-3 font-medium">Sahip</th>
               <th className="p-3 font-medium">Durum</th>
+              <th className="p-3 font-medium text-right">İşlemler</th>
             </tr>
           </thead>
           <tbody>
@@ -80,11 +82,18 @@ export default async function OrganizatorTicketsPage() {
                         : ticket.status}
                   </Badge>
                 </td>
+                <td className="p-3 text-right">
+                  <OrganizerTicketActions
+                    ticketId={ticket.id}
+                    ticketCode={ticket.ticketCode}
+                    status={ticket.status}
+                  />
+                </td>
               </tr>
             ))}
             {tickets.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
                   Henüz bilet satışı yok.
                 </td>
               </tr>
