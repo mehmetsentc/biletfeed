@@ -25,6 +25,12 @@ export function isOrganizerPanelSubdomain(
   );
 }
 
+/** Üretim ortamında gerçek domain (localhost değil) */
+export function isProductionHost(): boolean {
+  const host = canonicalHost.split(':')[0];
+  return host !== 'localhost' && host.includes('.');
+}
+
 /** Üretim panel URL'si — https://panel.biletfeed.com/... */
 export function getPanelUrl(path = ''): string {
   const host = canonicalHost.split(':')[0];
@@ -33,12 +39,37 @@ export function getPanelUrl(path = ''): string {
     : '';
   const panelHost =
     host === 'localhost' ? `panel.localhost${port}` : `${PANEL_SUBDOMAIN}.${host}`;
-  return `${protocol}://${panelHost}${path}`;
+
+  if (!path || path === '/') {
+    return `${protocol}://${panelHost}/baslangic`;
+  }
+
+  const normalized = path.startsWith('/organizator-panel')
+    ? path.replace(/^\/organizator-panel/, '') || '/baslangic'
+    : path.startsWith('/')
+      ? path
+      : `/${path}`;
+
+  return `${protocol}://${panelHost}${normalized}`;
+}
+
+/** Organizatör panel linki — production'da panel alt alanı, dev'de göreli yol */
+export function panelHref(path: string): string {
+  const stripped = path.startsWith('/organizator-panel')
+    ? path.replace(/^\/organizator-panel/, '') || '/baslangic'
+    : path.startsWith('/')
+      ? path
+      : `/${path}`;
+  const devPath = stripped.startsWith('/organizator-panel')
+    ? stripped
+    : `/organizator-panel${stripped}`;
+  if (!isProductionHost()) return devPath;
+  return getPanelUrl(stripped);
 }
 
 /** Oturum çerezi — tüm alt alan adlarında paylaşım (.biletfeed.com) */
 export function getCookieDomain(): string | undefined {
-  if (process.env.NODE_ENV !== 'production') return undefined;
+  if (!isProductionHost()) return undefined;
   const host = canonicalHost.split(':')[0];
   if (host === 'localhost' || !host.includes('.')) return undefined;
   return `.${host}`;

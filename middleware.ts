@@ -3,6 +3,7 @@ import {
   canonicalHost,
   getPanelUrl,
   isOrganizerPanelSubdomain,
+  isProductionHost,
   protocol,
   rootDomain,
 } from '@/lib/config/domain';
@@ -40,8 +41,23 @@ function extractSubdomain(request: NextRequest): string | null {
   return isSubdomain ? hostname.replace(`.${rootDomainFormatted}`, '') : null;
 }
 
+function redirectOrganizerPanelToSubdomain(
+  request: NextRequest,
+  pathname: string
+): NextResponse | null {
+  if (!isProductionHost()) return null;
+  if (!pathname.startsWith('/organizator-panel')) return null;
+
+  const subdomain = extractSubdomain(request);
+  if (subdomain) return null;
+
+  const cleanPath =
+    pathname.replace(/^\/organizator-panel/, '') || '/baslangic';
+  return NextResponse.redirect(getPanelUrl(cleanPath), 308);
+}
+
 function redirectToCanonical(request: NextRequest): NextResponse | null {
-  if (process.env.NODE_ENV !== 'production') return null;
+  if (!isProductionHost()) return null;
 
   const host = request.headers.get('host') || '';
   const hostname = host.split(':')[0];
@@ -70,38 +86,36 @@ function handleOrganizerPanelSubdomain(
 ): NextResponse {
   if (pathname === '/') {
     return NextResponse.redirect(
-      new URL('/organizator-panel/baslangic', request.url)
+      new URL('/baslangic', request.url)
     );
   }
 
   if (
     pathname.startsWith('/organizator-panel') ||
     pathname.startsWith('/giris') ||
-    pathname.startsWith('/api')
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next')
   ) {
     return NextResponse.next();
   }
 
-  return NextResponse.redirect(
-    new URL('/organizator-panel/baslangic', request.url)
-  );
+  // panel.biletfeed.com/tarayici → /organizator-panel/tarayici
+  const panelPath = pathname.startsWith('/')
+    ? `/organizator-panel${pathname}`
+    : `/organizator-panel/${pathname}`;
+  return NextResponse.rewrite(new URL(panelPath, request.url));
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  const panelRedirect = redirectOrganizerPanelToSubdomain(request, pathname);
+  if (panelRedirect) return panelRedirect;
+
   const canonicalRedirect = redirectToCanonical(request);
   if (canonicalRedirect) return canonicalRedirect;
 
-  const { pathname } = request.nextUrl;
   const subdomain = extractSubdomain(request);
-
-  // Ana domain → panel alt alanına yönlendir (OtelEvent panel.otelevent.com modeli)
-  if (
-    !subdomain &&
-    process.env.NODE_ENV === 'production' &&
-    pathname.startsWith('/organizator-panel')
-  ) {
-    return NextResponse.redirect(getPanelUrl(pathname), 302);
-  }
 
   if (isOrganizerPanelSubdomain(subdomain)) {
     return handleOrganizerPanelSubdomain(request, pathname);
