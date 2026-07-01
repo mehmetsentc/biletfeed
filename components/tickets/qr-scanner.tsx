@@ -1,34 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, AlertCircle, Camera, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { QrCameraReader } from '@/components/tickets/qr-camera-reader';
+import {
+  useTicketScanValidation,
+  type ScanResult
+} from '@/hooks/use-ticket-scan-validation';
 import { cn } from '@/lib/utils';
-
-type ScanStatus =
-  | 'VALID'
-  | 'USED'
-  | 'REFUNDED'
-  | 'CANCELLED'
-  | 'EXPIRED'
-  | 'INVALID';
-
-type ScanResult = {
-  status: ScanStatus | string;
-  message: string;
-  ticket?: {
-    code: string;
-    eventTitle: string;
-    ticketType: string;
-    holderName: string;
-    entryCount?: number;
-    isInvitation?: boolean;
-    guestEmail?: string | null;
-    guestPhone?: string | null;
-    inviteStatus?: string;
-  };
-};
 
 const statusConfig: Record<
   string,
@@ -38,43 +19,43 @@ const statusConfig: Record<
     icon: CheckCircle2,
     cardClass: 'border-emerald-500/40 bg-emerald-500/15',
     iconClass: 'text-emerald-400',
-    label: 'Giriş yapıldı',
+    label: 'Giriş yapıldı'
   },
   USED: {
     icon: AlertCircle,
     cardClass: 'border-amber-500/40 bg-amber-500/15',
     iconClass: 'text-amber-400',
-    label: 'Daha önce kullanıldı',
+    label: 'Daha önce kullanıldı'
   },
   REFUNDED: {
     icon: XCircle,
     cardClass: 'border-red-500/40 bg-red-500/15',
     iconClass: 'text-red-400',
-    label: 'İade edilmiş',
+    label: 'İade edilmiş'
   },
   CANCELLED: {
     icon: XCircle,
     cardClass: 'border-red-500/40 bg-red-500/15',
     iconClass: 'text-red-400',
-    label: 'İptal edilmiş',
+    label: 'İptal edilmiş'
   },
   EXPIRED: {
     icon: AlertCircle,
     cardClass: 'border-amber-500/40 bg-amber-500/15',
     iconClass: 'text-amber-400',
-    label: 'Süresi dolmuş',
+    label: 'Süresi dolmuş'
   },
   INVALID: {
     icon: XCircle,
     cardClass: 'border-red-500/40 bg-red-500/15',
     iconClass: 'text-red-400',
-    label: 'Geçersiz bilet',
-  },
+    label: 'Geçersiz bilet'
+  }
 };
 
 function TicketScanDetails({
   ticket,
-  compact = false,
+  compact = false
 }: {
   ticket: NonNullable<ScanResult['ticket']>;
   compact?: boolean;
@@ -94,12 +75,8 @@ function TicketScanDetails({
       <p className={cn('font-semibold', compact && 'text-base')}>{ticket.holderName}</p>
       <p className="opacity-80">{ticket.ticketType}</p>
       {!compact && <p className="font-semibold opacity-90">{ticket.eventTitle}</p>}
-      {ticket.guestEmail && (
-        <p className="opacity-75">{ticket.guestEmail}</p>
-      )}
-      {ticket.guestPhone && (
-        <p className="opacity-75">{ticket.guestPhone}</p>
-      )}
+      {ticket.guestEmail && <p className="opacity-75">{ticket.guestEmail}</p>}
+      {ticket.guestPhone && <p className="opacity-75">{ticket.guestPhone}</p>}
       <p className="font-mono text-xs opacity-70">{ticket.code}</p>
       {ticket.entryCount != null && ticket.entryCount > 0 && (
         <p className="text-xs opacity-60">Giriş sayısı: {ticket.entryCount}</p>
@@ -109,44 +86,12 @@ function TicketScanDetails({
 }
 
 interface QrScannerProps {
-  /** Tam ekran giriş tarayıcısı (koyu tema) */
   variant?: 'default' | 'entry';
-  /** Kamera modunda otomatik başlat */
   autoStart?: boolean;
-  /** Sadece bu etkinliğe ait biletleri kabul et */
   eventId?: string;
-  /** Cihaz tarayıcı kimliği (check-in audit) */
   scannerId?: string;
-}
-
-function playScanSound(status: string) {
-  if (typeof window === 'undefined') return;
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    if (status === 'VALID') {
-      osc.frequency.value = 880;
-      gain.gain.value = 0.15;
-      osc.start();
-      osc.stop(ctx.currentTime + 0.12);
-    } else if (status === 'USED') {
-      osc.frequency.value = 440;
-      gain.gain.value = 0.12;
-      osc.start();
-      osc.stop(ctx.currentTime + 0.2);
-    } else {
-      osc.frequency.value = 220;
-      gain.gain.value = 0.12;
-      osc.start();
-      osc.stop(ctx.currentTime + 0.35);
-    }
-    window.setTimeout(() => void ctx.close(), 500);
-  } catch {
-    /* ses desteklenmiyorsa sessiz devam */
-  }
+  /** Kamera açılamazsa manuel moda geç */
+  defaultManual?: boolean;
 }
 
 export function QrScanner({
@@ -154,98 +99,26 @@ export function QrScanner({
   autoStart = false,
   eventId,
   scannerId,
+  defaultManual = false
 }: QrScannerProps) {
   const isEntry = variant === 'entry';
-  const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
-  const scanLockRef = useRef(false);
-  const [scanning, setScanning] = useState(false);
+  const [useManual, setUseManual] = useState(defaultManual);
+  const [cameraActive, setCameraActive] = useState(false);
   const [manualCode, setManualCode] = useState('');
-  const [result, setResult] = useState<ScanResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [useManual, setUseManual] = useState(false);
+
+  const stopCamera = useCallback(() => setCameraActive(false), []);
+
+  const { validate, result, loading, error, clearResult } = useTicketScanValidation({
+    eventId,
+    scannerId,
+    onValidated: stopCamera
+  });
 
   useEffect(() => {
-    if (autoStart) setScanning(true);
-  }, [autoStart]);
-
-  const playFeedback = useCallback((status: string) => {
-    playScanSound(status);
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      if (status === 'VALID') navigator.vibrate(80);
-      else if (status === 'USED') navigator.vibrate([40, 30, 40]);
-      else navigator.vibrate([60, 40, 60]);
+    if (autoStart && !defaultManual) {
+      setCameraActive(true);
     }
-  }, []);
-
-  const validate = useCallback(
-    async (payload: { qrRaw?: string; ticketCode?: string }) => {
-      if (scanLockRef.current) return;
-      scanLockRef.current = true;
-      setLoading(true);
-      setResult(null);
-      setError(null);
-
-      try {
-        const res = await fetch('/api/tickets/validate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            ...payload,
-            markUsed: true,
-            eventId,
-            scannerId,
-          }),
-        });
-        const data = (await res.json()) as ScanResult;
-        if (!res.ok) {
-          setError(data.message || 'Doğrulama başarısız');
-          return;
-        }
-        setResult(data);
-        playFeedback(data.status);
-        if (scannerRef.current) {
-          await scannerRef.current.stop().catch(() => {});
-          scannerRef.current = null;
-          setScanning(false);
-        }
-      } catch {
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-          const { enqueueScan } = await import('@/lib/tickets/offline-scan-queue');
-          await enqueueScan({
-            ...payload,
-            eventId,
-            scannerId: scannerId ?? 'unknown',
-          });
-          setError('Çevrimdışı — tarama kuyruğa alındı. Bağlantı gelince senkronize edilir.');
-        } else {
-          setError('Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
-        }
-      } finally {
-        setLoading(false);
-        window.setTimeout(() => {
-          scanLockRef.current = false;
-        }, 1200);
-      }
-    },
-    [playFeedback, eventId, scannerId]
-  );
-
-  const onScanSuccess = useCallback(
-    (decoded: string) => {
-      void validate({ qrRaw: decoded });
-    },
-    [validate]
-  );
-
-  const stopScanner = useCallback(async () => {
-    if (scannerRef.current) {
-      await scannerRef.current.stop().catch(() => {});
-      scannerRef.current = null;
-    }
-    setScanning(false);
-  }, []);
+  }, [autoStart, defaultManual]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -257,7 +130,7 @@ export function QrScanner({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify(payload),
+            body: JSON.stringify(payload)
           });
           return res.json() as Promise<{ status: string }>;
         })
@@ -269,62 +142,29 @@ export function QrScanner({
     return () => window.removeEventListener('online', syncQueue);
   }, []);
 
-  useEffect(() => {
-    if (!scanning || useManual || typeof window === 'undefined') return;
+  const submitManual = useCallback(() => {
+    const value = manualCode.trim();
+    if (!value) return;
+    void validate(
+      value.startsWith('http') || value.startsWith('{')
+        ? { qrRaw: value }
+        : { ticketCode: value }
+    );
+  }, [manualCode, validate]);
 
-    let cancelled = false;
-    const readerId = 'bf-qr-reader';
+  const handleCameraFailed = useCallback(() => {
+    setCameraActive(false);
+    setUseManual(true);
+  }, []);
 
-    async function start() {
-      try {
-        await new Promise<void>((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        });
-        if (cancelled || !document.getElementById(readerId)) return;
-
-        const { Html5Qrcode } = await import('html5-qrcode');
-        if (cancelled || !document.getElementById(readerId)) return;
-
-        const scanner = new Html5Qrcode(readerId);
-        scannerRef.current = scanner;
-        await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (text) => {
-            if (!cancelled && !scanLockRef.current) onScanSuccess(text);
-          },
-          () => {}
-        );
-      } catch {
-        if (!cancelled) {
-          setError('Kamera açılamadı. Tarayıcı izni verin veya manuel kod girin.');
-          setUseManual(true);
-          setScanning(false);
-        }
-      }
-    }
-
-    void start();
-
-    return () => {
-      cancelled = true;
-      const active = scannerRef.current;
-      scannerRef.current = null;
-      if (active) {
-        void active.stop().catch(() => {});
-      }
-    };
-  }, [scanning, useManual, onScanSuccess]);
+  const handleNext = () => {
+    clearResult();
+    setManualCode('');
+    if (!useManual) setCameraActive(true);
+  };
 
   const config = result ? statusConfig[result.status] ?? statusConfig.INVALID : null;
   const StatusIcon = config?.icon ?? XCircle;
-
-  const handleNext = () => {
-    setResult(null);
-    setManualCode('');
-    setError(null);
-    if (!useManual) setScanning(true);
-  };
 
   const entryOverlayClass =
     result?.status === 'VALID'
@@ -375,9 +215,8 @@ export function QrScanner({
           )}
           onClick={() => {
             setUseManual(false);
-            setResult(null);
-            setError(null);
-            setScanning(true);
+            clearResult();
+            setCameraActive(true);
           }}
         >
           <Camera className="size-5" strokeWidth={2} />
@@ -392,9 +231,9 @@ export function QrScanner({
             isEntry && !useManual && 'border-white/20 bg-transparent text-white hover:bg-white/10'
           )}
           onClick={() => {
-            void stopScanner();
+            setCameraActive(false);
             setUseManual(true);
-            setResult(null);
+            clearResult();
           }}
         >
           <Keyboard className="size-5" strokeWidth={2} />
@@ -402,33 +241,36 @@ export function QrScanner({
         </Button>
       </div>
 
-      {!useManual && scanning && (
-        <div
-          id="bf-qr-reader"
-          className={cn(
-            'overflow-hidden rounded-2xl border-2 border-primary/30 bg-black',
-            isEntry && 'min-h-[min(52vh,420px)]'
+      {!useManual && (
+        <>
+          {cameraActive ? (
+            <QrCameraReader
+              active={cameraActive}
+              isEntry={isEntry}
+              onScan={(decoded) => void validate({ qrRaw: decoded })}
+              onFailed={handleCameraFailed}
+            />
+          ) : (
+            !result && (
+              <Button
+                type="button"
+                className={cn(
+                  'h-14 w-full text-base font-semibold',
+                  isEntry && 'bg-primary text-primary-foreground shadow-lg'
+                )}
+                onClick={() => setCameraActive(true)}
+              >
+                Taramayı başlat
+              </Button>
+            )
           )}
-        />
-      )}
-
-      {!useManual && !scanning && !result && (
-        <Button
-          type="button"
-          className={cn(
-            'h-14 w-full text-base font-semibold',
-            isEntry && 'bg-primary text-primary-foreground shadow-lg'
-          )}
-          onClick={() => setScanning(true)}
-        >
-          Taramayı başlat
-        </Button>
+        </>
       )}
 
       {useManual && (
         <div className="space-y-3">
           <Input
-            placeholder="Bilet kodu veya QR bağlantısı"
+            placeholder="Bilet kodu (örn. BF-XXXX) veya QR bağlantısı"
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
             className={cn(
@@ -438,14 +280,9 @@ export function QrScanner({
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
+            inputMode="text"
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && manualCode.trim()) {
-                void validate(
-                  manualCode.startsWith('http') || manualCode.startsWith('{')
-                    ? { qrRaw: manualCode }
-                    : { ticketCode: manualCode.trim() }
-                );
-              }
+              if (e.key === 'Enter') submitManual();
             }}
           />
           <Button
@@ -455,13 +292,7 @@ export function QrScanner({
               'h-12 w-full font-semibold',
               isEntry && 'bg-primary text-primary-foreground'
             )}
-            onClick={() =>
-              void validate(
-                manualCode.startsWith('http') || manualCode.startsWith('{')
-                  ? { qrRaw: manualCode }
-                  : { ticketCode: manualCode.trim() }
-              )
-            }
+            onClick={submitManual}
           >
             Bileti doğrula
           </Button>
@@ -513,9 +344,7 @@ export function QrScanner({
             type="button"
             className={cn(
               'mt-5 h-12 w-full text-base font-semibold',
-              isEntry
-                ? 'bg-white text-black hover:bg-white/90'
-                : ''
+              isEntry ? 'bg-white text-black hover:bg-white/90' : ''
             )}
             variant={isEntry ? 'secondary' : 'outline'}
             onClick={handleNext}

@@ -2,62 +2,22 @@
 
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getOrCreateScannerId } from '@/lib/tickets/offline-scan-queue';
 
 const QrScanner = dynamic(
-  () =>
-    import('@/components/tickets/qr-scanner').then((m) => m.QrScanner),
+  () => import('@/components/tickets/qr-scanner').then((m) => m.QrScanner),
   {
     ssr: false,
     loading: () => (
-      <div className="flex min-h-[50vh] items-center justify-center text-sm text-white/70">
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-white/70">
         Tarayıcı yükleniyor…
       </div>
-    ),
+    )
   }
 );
-
-class ScannerErrorBoundary extends Component<
-  { children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-
-  static getDerivedStateFromError(): { failed: boolean } {
-    return { failed: true };
-  }
-
-  componentDidCatch(error: Error, info: ErrorInfo): void {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('QR scanner render error', error, info);
-    }
-  }
-
-  render() {
-    if (this.state.failed) {
-      return (
-        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-6 text-center text-sm text-red-200">
-          <p className="font-semibold">Tarayıcı açılamadı</p>
-          <p className="mt-2 opacity-90">
-            Sayfayı yenileyin veya manuel bilet kodu girin. Kamera için Safari/Chrome
-            kullanın.
-          </p>
-          <Button
-            type="button"
-            className="mt-4 bg-white text-black hover:bg-white/90"
-            onClick={() => this.setState({ failed: false })}
-          >
-            Tekrar dene
-          </Button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 type OrganizerEvent = {
   id: string;
@@ -161,20 +121,18 @@ export function TicketEntryScanner() {
       )}
 
       <main className="flex flex-1 flex-col px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <ScannerErrorBoundary>
-          {scannerId ? (
-            <QrScanner
-              variant="entry"
-              autoStart={cameraReady}
-              eventId={eventId === 'all' ? undefined : eventId}
-              scannerId={scannerId}
-            />
-          ) : (
-            <div className="flex min-h-[50vh] items-center justify-center text-sm text-white/70">
-              Tarayıcı hazırlanıyor…
-            </div>
-          )}
-        </ScannerErrorBoundary>
+        {scannerId ? (
+          <QrScanner
+            variant="entry"
+            autoStart={cameraReady}
+            eventId={eventId === 'all' ? undefined : eventId}
+            scannerId={scannerId}
+          />
+        ) : (
+          <div className="flex min-h-[40vh] items-center justify-center text-sm text-white/70">
+            Tarayıcı hazırlanıyor…
+          </div>
+        )}
       </main>
     </div>
   );
