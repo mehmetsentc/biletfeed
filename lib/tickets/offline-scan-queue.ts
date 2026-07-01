@@ -107,13 +107,25 @@ export async function flushScanQueue(
   return { synced, failed };
 }
 
+let memoryScannerId: string | null = null;
+
 export function getOrCreateScannerId(): string {
   if (typeof window === 'undefined') return 'server';
+  if (memoryScannerId) return memoryScannerId;
+
   const key = 'bf-scanner-id';
-  let id = localStorage.getItem(key);
-  if (!id) {
-    id = crypto.randomUUID();
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      memoryScannerId = stored;
+      return stored;
+    }
+    const id = crypto.randomUUID();
     localStorage.setItem(key, id);
+    memoryScannerId = id;
+    return id;
+  } catch {
+    memoryScannerId = memoryScannerId ?? crypto.randomUUID();
+    return memoryScannerId;
   }
-  return id;
 }

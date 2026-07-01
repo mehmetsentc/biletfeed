@@ -8,6 +8,7 @@ import {
   SESSION_EXPIRES_MS
 } from '@/lib/auth/session';
 import { ROLES } from '@/lib/auth/roles';
+import { getCookieDomain } from '@/lib/config/domain';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerProfile } from '@/lib/services/organizer-onboarding';
 import { updateOrganizerSettings } from '@/lib/services/organizer-panel';
@@ -67,12 +68,14 @@ export async function POST(request: NextRequest) {
       ROLES.ORGANIZER,
       SESSION_EXPIRES_MS
     );
+    const cookieDomain = getCookieDomain();
     response.cookies.set(SESSION_COOKIE_NAME, refreshed, {
       maxAge: SESSION_EXPIRES_MS / 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/'
+      path: '/',
+      ...(cookieDomain ? { domain: cookieDomain } : {})
     });
     return response;
   } catch (err) {

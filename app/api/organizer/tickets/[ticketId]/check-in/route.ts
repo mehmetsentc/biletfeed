@@ -26,6 +26,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const result = await organizerManualCheckIn(
       ticketId,
       ctx.session.uid,
+      ctx.organizer.id,
       parsed.success ? parsed.data.scannerId : undefined
     );
     return NextResponse.json(result);

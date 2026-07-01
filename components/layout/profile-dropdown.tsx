@@ -13,7 +13,7 @@ import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useAccountMode } from '@/hooks/use-account-mode';
 import { isAccountAreaActive } from '@/lib/account/navigation';
-import { panelHref } from '@/lib/config/domain';
+import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -64,14 +64,15 @@ export function ProfileDropdown() {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-[var(--header-fg)] transition-colors hover:text-primary sm:gap-2.5 sm:pr-3',
-          isProfileActive && 'text-primary'
+          'group flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-[var(--header-fg)] transition-all duration-200 ease-[var(--ease-out)] hover:bg-[var(--header-hover)] hover:text-primary sm:gap-2.5 sm:pr-3',
+          isProfileActive && 'text-primary',
+          open && 'bg-[var(--header-hover)] text-primary'
         )}
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <Avatar className="size-8 border border-[var(--header-border)] sm:size-9">
-          <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary sm:text-sm">
+        <Avatar className="size-8 border border-[var(--header-border)] shadow-[var(--shadow-xs)] transition-transform duration-200 group-hover:scale-[1.02] sm:size-9">
+          <AvatarFallback className="bg-primary/12 text-xs font-bold text-primary sm:text-sm">
             {initials}
           </AvatarFallback>
         </Avatar>
@@ -87,7 +88,7 @@ export function ProfileDropdown() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 min-w-[240px] overflow-hidden rounded-xl border border-border bg-background py-2 shadow-xl"
+          className="absolute right-0 top-full z-50 mt-2 min-w-[240px] overflow-hidden rounded-[var(--radius-card)] border border-border/80 bg-background/95 py-2 shadow-[var(--shadow-lg)] backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-200"
         >
           <div className="border-b border-border px-4 py-3 sm:hidden">
             <p className="truncate text-sm font-semibold">{displayName}</p>
@@ -108,6 +109,7 @@ export function ProfileDropdown() {
               <div className="my-1 border-t border-border" />
               <Link
                 href={panelHref('/organizator-panel/etkinlik/yeni')}
+                {...PANEL_EXTERNAL_LINK_PROPS}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
               >
@@ -116,6 +118,7 @@ export function ProfileDropdown() {
               </Link>
               <Link
                 href={panelHref('/organizator-panel/baslangic')}
+                {...PANEL_EXTERNAL_LINK_PROPS}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               >

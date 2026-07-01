@@ -2,6 +2,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Tag } from 'lucide-react';
 import { FavoriteButton } from '@/components/events/favorite-button';
+import { CategoryBadge } from '@/components/events/category-badge';
+import { SourceBadge } from '@/components/events/source-badge';
 import {
   type MockEvent,
   formatEventMonthDay,
@@ -29,59 +31,61 @@ export function EventifyCard({
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md',
+        'card-premium group relative overflow-hidden rounded-[var(--radius-card)] border border-border/80 bg-card',
         className
       )}
     >
-      {/* Favori butonu Link'in DIŞINDA — tıklamada navigasyon tetiklenmesin */}
       <FavoriteButton
-        className="absolute right-3 top-3 z-20 !bg-card/90 !text-foreground shadow-md hover:!bg-card"
+        className="absolute right-3 top-3 z-20 !bg-card/90 !text-foreground shadow-[var(--shadow-sm)] backdrop-blur-sm transition-transform duration-200 hover:!bg-card hover:scale-105"
         icon="star"
         eventId={event.id}
         initialActive={isFavorite}
       />
       <Link href={`/etkinlik/${event.slug}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-t-[var(--radius-image)]">
           <Image
             src={event.coverImage}
             alt={event.title}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:scale-[1.03]"
             sizes="(max-width:768px) 100vw, 33vw"
           />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
           {countryBadge && (
-            <span className="absolute left-3 top-3 rounded bg-black/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-              {countryBadge}
+            <span className="absolute left-3 top-3 z-10">
+              <SourceBadge label={countryBadge} />
             </span>
           )}
-          <span className="absolute bottom-3 left-3 rounded bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
-            {event.category}
+          <span className="absolute bottom-3 left-3 z-10">
+            <CategoryBadge slug={event.categorySlug} label={event.category} />
           </span>
         </div>
 
-        <div className="flex gap-4 p-4">
-          <div className="flex w-14 shrink-0 flex-col items-center border-r pr-4 text-center">
-            <span className="text-xs font-bold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+        <div className="flex gap-4 p-4 md:p-5">
+          <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-2xl border border-border/60 bg-muted/30 px-2 py-2.5 text-center backdrop-blur-sm">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
               {month}
             </span>
-            <span className="text-2xl font-extrabold leading-none">{day}</span>
+            <span className="text-2xl font-extrabold leading-none text-foreground">{day}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="line-clamp-2 font-bold leading-snug group-hover:text-primary">
+            <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground transition-colors duration-200 group-hover:text-primary">
               {event.title}
             </h3>
-            <p className="mt-1 truncate text-sm text-muted-foreground">
-              {event.isOnline || event.citySlug === 'online' ? 'Online' : `${event.venue}, ${event.city}`}
+            <p className="mt-1 truncate text-sm font-medium text-muted-foreground">
+              {event.isOnline || event.citySlug === 'online'
+                ? 'Online'
+                : `${event.venue}, ${event.city}`}
             </p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <p className="mt-0.5 text-sm font-medium text-muted-foreground/90">
               {formatEventTimeRange(event)}
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1 font-medium text-emerald-600">
+            <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <Tag className="size-3" />
                 {formatPrice(event)}
               </span>
-              <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
+              <span className="inline-flex items-center gap-1 text-primary/80">
                 <Star className="size-3" />
                 {interested} ilgi
               </span>

@@ -47,15 +47,15 @@ export default async function HomePage() {
       <HomeCityEvents initial={cityBundle} />
 
       {online.length > 0 && (
-        <section className="border-y bg-muted/30 py-12 md:py-16">
+        <section className="border-y border-border/80 bg-muted/30 py-14 md:py-20">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-bold md:text-3xl">
+            <h2 className="text-2xl font-extrabold tracking-tight md:text-3xl">
               En İyi Online Etkinlikler
             </h2>
-            <p className="mt-2 text-muted-foreground">
+            <p className="mt-3 text-base font-medium text-muted-foreground">
               Evden katılabileceğiniz etkinlikleri keşfedin
             </p>
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
               {online.slice(0, 6).map((event) => (
                 <EventifyCard key={event.id} event={event} />
               ))}

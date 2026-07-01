@@ -36,7 +36,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
     <>
       <header
         className={cn(
-          'sticky top-0 z-50 border-b border-[var(--header-border)] bg-[var(--header-bg)] lg:hidden',
+          'glass-header sticky top-0 z-50 border-b lg:hidden',
           'text-[var(--header-fg)]'
         )}
       >

@@ -71,6 +71,7 @@ export async function organizerResendTicketEmail(
 export async function organizerManualCheckIn(
   ticketId: string,
   organizerUid: string,
+  organizerId: string,
   scannerId?: string
 ) {
   const ticket = await prisma.purchasedTicket.findFirst({
@@ -84,6 +85,7 @@ export async function organizerManualCheckIn(
     ticketId: ticket.id,
     scannerUid: organizerUid,
     scannerRole: 'ROLE_ORGANIZER',
+    scannerOrganizerId: organizerId,
     markUsed: true,
     scannerId
   });

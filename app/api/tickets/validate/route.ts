@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
+import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { validateTicketInput } from '@/lib/services/ticket-validation';
 import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
@@ -15,13 +16,30 @@ const postSchema = z.object({
   markUsed: z.boolean().optional(),
 });
 
+/** Panel erişimi olan organizatör veya admin — ROLE_ORGANIZER şart değil */
+async function resolveScannerAuth() {
+  const session = await verifySessionCookie();
+  if (!session) return null;
+
+  const organizer = await getOrganizerForSession(session.uid);
+  if (organizer) {
+    return { session, scannerOrganizerId: organizer.id };
+  }
+
+  if (sessionHasRole(session, 'ROLE_ADMIN')) {
+    return { session, scannerOrganizerId: undefined };
+  }
+
+  return null;
+}
+
 /** QR kod URL'si tarandığında GET ile de doğrulama yapılabilir (salt okunur). */
 export async function GET(request: NextRequest) {
   const limited = rateLimitOrNull(request, 'ticket-validate', 60, 60_000);
   if (limited) return limited;
 
-  const session = await verifySessionCookie();
-  if (!session || !sessionHasRole(session, 'ROLE_ORGANIZER')) {
+  const auth = await resolveScannerAuth();
+  if (!auth) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
   }
 
@@ -30,9 +48,10 @@ export async function GET(request: NextRequest) {
     ticketCode: searchParams.get('code') || undefined,
     validationToken: searchParams.get('token') || undefined,
     ticketId: searchParams.get('id') || undefined,
-    scannerUid: session.uid,
-    scannerRole: session.role,
-    markUsed: false
+    scannerUid: auth.session.uid,
+    scannerRole: auth.session.role,
+    scannerOrganizerId: auth.scannerOrganizerId,
+    markUsed: false,
   });
 
   return NextResponse.json(result);
@@ -46,25 +65,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const session = await verifySessionCookie();
-  if (
-    !session ||
-    (!sessionHasRole(session, 'ROLE_ORGANIZER') &&
-      !sessionHasRole(session, 'ROLE_ADMIN'))
-  ) {
+  const auth = await resolveScannerAuth();
+  if (!auth) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
   }
 
   const json = await request.json();
   const parsed = postSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 400 });
+    return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
   }
 
   const result = await validateTicketInput({
     ...parsed.data,
-    scannerUid: session.uid,
-    scannerRole: session.role,
+    scannerUid: auth.session.uid,
+    scannerRole: auth.session.role,
+    scannerOrganizerId: auth.scannerOrganizerId,
     markUsed: parsed.data.markUsed ?? true,
     scannerId: parsed.data.scannerId,
     eventId: parsed.data.eventId,
@@ -72,7 +88,7 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       request.headers.get('x-real-ip') ||
       undefined,
-    device: request.headers.get('user-agent') || undefined
+    device: request.headers.get('user-agent') || undefined,
   });
 
   return NextResponse.json(result);

@@ -158,12 +158,16 @@ export function QrScanner({
   const isEntry = variant === 'entry';
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const scanLockRef = useRef(false);
-  const [scanning, setScanning] = useState(autoStart);
+  const [scanning, setScanning] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useManual, setUseManual] = useState(false);
+
+  useEffect(() => {
+    if (autoStart) setScanning(true);
+  }, [autoStart]);
 
   const playFeedback = useCallback((status: string) => {
     playScanSound(status);
@@ -273,6 +277,11 @@ export function QrScanner({
 
     async function start() {
       try {
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+        if (cancelled || !document.getElementById(readerId)) return;
+
         const { Html5Qrcode } = await import('html5-qrcode');
         if (cancelled || !document.getElementById(readerId)) return;
 
@@ -280,7 +289,7 @@ export function QrScanner({
         scannerRef.current = scanner;
         await scanner.start(
           { facingMode: 'environment' },
-          { fps: 12, qrbox: { width: 280, height: 280 } },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
           (text) => {
             if (!cancelled && !scanLockRef.current) onScanSuccess(text);
           },
@@ -299,9 +308,10 @@ export function QrScanner({
 
     return () => {
       cancelled = true;
-      if (scannerRef.current) {
-        void scannerRef.current.stop().catch(() => {});
-        scannerRef.current = null;
+      const active = scannerRef.current;
+      scannerRef.current = null;
+      if (active) {
+        void active.stop().catch(() => {});
       }
     };
   }, [scanning, useManual, onScanSuccess]);

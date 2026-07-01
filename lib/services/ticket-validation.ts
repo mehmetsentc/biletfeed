@@ -1,6 +1,7 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { verifyValidationToken, parseQrPayload } from '@/lib/tickets/sign';
 import { canManageEventTickets } from '@/lib/auth/organizer-api';
+import type { UserRole } from '@/types';
 import type { EntryPolicy } from '@prisma/client';
 
 export type TicketValidationStatus =
@@ -110,7 +111,8 @@ export async function validateTicketInput(input: {
   qrRaw?: string;
   eventId?: string;
   scannerUid: string;
-  scannerRole?: string;
+  scannerRole?: UserRole;
+  scannerOrganizerId?: string;
   markUsed?: boolean;
   device?: string;
   ipAddress?: string;
@@ -136,6 +138,7 @@ export async function validateTicketInput(input: {
       event: {
         select: {
           id: true,
+          organizerId: true,
           title: true,
           listingType: true,
           endDate: true,
@@ -146,6 +149,7 @@ export async function validateTicketInput(input: {
       user: { select: { displayName: true } },
       invitation: {
         select: {
+          organizerId: true,
           guestName: true,
           guestEmail: true,
           guestPhone: true,
@@ -167,11 +171,22 @@ export async function validateTicketInput(input: {
     };
   }
 
-  const canScan = await canManageEventTickets(
-    input.scannerUid,
-    ticket.eventId,
-    input.scannerRole
+  const ownedOrganizerIds = new Set(
+    [
+      ticket.event.organizerId,
+      ticket.invitation?.organizerId
+    ].filter((id): id is string => Boolean(id))
   );
+
+  const canScan =
+    (input.scannerOrganizerId != null &&
+      ownedOrganizerIds.has(input.scannerOrganizerId)) ||
+    (await canManageEventTickets(
+      input.scannerUid,
+      ticket.eventId,
+      input.scannerRole,
+      input.scannerOrganizerId
+    ));
   if (!canScan) {
     return { status: 'INVALID', message: 'Bu bilet için yetkiniz yok' };
   }

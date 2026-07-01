@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, Ticket, User } from 'lucide-react';
+import { useAuth } from '@/components/providers/auth-provider';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -44,6 +45,8 @@ const navItems = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const accountHref = user ? '/profil' : '/kayit?redirect=%2Fprofil';
 
   return (
     <nav
@@ -56,11 +59,12 @@ export function MobileBottomNav() {
     >
       <div className="flex items-stretch justify-around px-1 pb-2 pt-1.5">
         {navItems.map((item) => {
+          const href = item.href === '/profil' ? accountHref : item.href;
           const active = item.match(pathname);
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={href}
               className={cn(
                 'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5',
                 'text-[10px] font-semibold transition-colors duration-200',

@@ -10,19 +10,19 @@ export function HomeHeroMobile() {
         alt=""
         fill
         priority
-        className="object-cover opacity-35"
+        className="animate-hero-ken-burns object-cover opacity-35"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/90 via-[#000000]/75 to-[#000000]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/92 via-[#000000]/72 to-[#000000]" />
 
-      <div className="relative px-4 pb-6 pt-5">
+      <div className="relative px-4 pb-8 pt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-primary">
           Bilet Feed
         </p>
-        <h1 className="mt-2 text-2xl font-extrabold leading-tight text-white">
+        <h1 className="mt-2 max-w-[16rem] text-2xl font-extrabold leading-[1.2] tracking-tight text-white">
           Canlı etkinlikleri keşfet
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-white/75">
+        <p className="mt-2 max-w-xs text-sm font-medium leading-relaxed text-white/80">
           Konser, tiyatro, festival — şehrinde ve online.
         </p>
       </div>
@@ -39,19 +39,19 @@ export function HomeHeroTablet() {
         alt=""
         fill
         priority
-        className="object-cover opacity-38"
+        className="animate-hero-ken-burns object-cover opacity-38"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#000000]/95 via-[#000000]/70 to-[#000000]/50" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#000000]/96 via-[#000000]/72 to-[#000000]/45" />
 
-      <div className="container relative mx-auto flex min-h-[420px] items-center px-6 py-12">
+      <div className="container relative mx-auto flex min-h-[420px] items-center px-6 py-14">
         <div className="max-w-lg">
-          <p className="text-sm font-medium text-primary">Kaçırmayın!</p>
-          <h1 className="mt-3 text-4xl font-extrabold leading-tight text-white">
+          <p className="text-sm font-semibold text-primary">Kaçırmayın!</p>
+          <h1 className="mt-3 max-w-md text-4xl font-extrabold leading-[1.15] tracking-tight text-white">
             Yakınınızdaki{' '}
             <span className="text-primary">canlı etkinlikleri</span> keşfedin
           </h1>
-          <div className="mt-7">
+          <div className="mt-8">
             <HeroSearch variant="figma" />
           </div>
         </div>
@@ -69,19 +69,19 @@ export function HomeHeroDesktop() {
         alt=""
         fill
         priority
-        className="object-cover opacity-40"
+        className="animate-hero-ken-burns object-cover opacity-40"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/80 via-[#000000]/60 to-[#000000]/90" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/85 via-[#000000]/55 to-[#000000]/92" />
 
-      <div className="container relative mx-auto px-4 py-24">
+      <div className="container relative mx-auto px-4 py-28">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="text-lg font-medium text-white/90">Kaçırmayın!</p>
-          <h1 className="mt-4 text-5xl font-extrabold leading-tight tracking-tight text-white lg:text-6xl">
+          <p className="text-lg font-semibold text-white/90">Kaçırmayın!</p>
+          <h1 className="mx-auto mt-4 max-w-3xl text-5xl font-extrabold leading-[1.12] tracking-tight text-white lg:text-6xl">
             Yakınınızdaki ve dünya çapındaki{' '}
             <span className="text-primary">canlı etkinlikleri</span> keşfedin.
           </h1>
-          <div className="mt-10">
+          <div className="mt-12">
             <HeroSearch variant="figma" />
           </div>
         </div>

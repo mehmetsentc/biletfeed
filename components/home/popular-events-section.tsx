@@ -73,23 +73,23 @@ export function PopularEventsSection({
   const display = filtered.slice(0, 6);
 
   return (
-    <section className="bg-background py-12 md:py-16">
+    <section className="bg-background py-14 md:py-20">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold md:text-3xl">
+        <h2 className="text-2xl font-extrabold tracking-tight md:text-3xl">
           {cityName}&apos;da Popüler Etkinlikler
         </h2>
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-7 flex flex-wrap gap-2.5">
           {filters.map((f) => (
             <button
               key={f.id}
               type="button"
               onClick={() => setActive(f.id)}
               className={cn(
-                'rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+                'rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-[var(--duration-normal)] ease-[var(--ease-out)]',
                 active === f.id
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-background text-foreground hover:border-primary/50'
+                  ? '-translate-y-0.5 border-primary bg-primary text-primary-foreground shadow-[var(--shadow-sm)]'
+                  : 'border-border/80 bg-card/80 text-foreground shadow-[var(--shadow-xs)] backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-sm)]'
               )}
             >
               {f.label}
@@ -98,7 +98,7 @@ export function PopularEventsSection({
         </div>
 
         {display.length > 0 ? (
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
             {display.map((event) => (
               <EventifyCard key={event.id} event={event} />
             ))}

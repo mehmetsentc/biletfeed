@@ -1,17 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { LayoutDashboard } from 'lucide-react';
 import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useAccountMode } from '@/hooks/use-account-mode';
 import { cn } from '@/lib/utils';
-import { panelHref } from '@/lib/config/domain';
+import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function AccountSidebar() {
-  const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { isOrganizerMode, isModeLocked } = useAccountMode();
@@ -67,11 +66,10 @@ export function AccountSidebar() {
             <div className="my-2 border-t border-border" />
             <Link
               href={panelItem.href}
+              {...PANEL_EXTERNAL_LINK_PROPS}
               className={cn(
                 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                pathname.startsWith(panelItem.href)
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               <panelItem.icon className="size-4 shrink-0" strokeWidth={1.75} />

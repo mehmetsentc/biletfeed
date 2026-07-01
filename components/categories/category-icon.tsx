@@ -40,7 +40,7 @@ export function CategoryIcon({
         'flex shrink-0 items-center justify-center rounded-full',
         'bg-muted dark:bg-card',
         showRing &&
-          'ring-2 ring-primary/25 transition-all duration-200 group-hover:ring-primary/50 group-hover:shadow-[0_0_20px_color-mix(in_srgb,var(--bf-orange)_25%,transparent)]',
+          'shadow-[var(--shadow-xs)] ring-2 ring-primary/20 transition-all duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:-translate-y-0.5 group-hover:scale-[1.04] group-hover:ring-primary/45 group-hover:shadow-[0_8px_28px_color-mix(in_srgb,var(--bf-orange)_22%,transparent)]',
         containerSizes[size],
         className
       )}

@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'rounded-[var(--radius-button)] bg-primary text-primary-foreground shadow-[var(--shadow-sm)] hover:bg-[var(--bf-orange-hover)] active:bg-[var(--bf-orange-pressed)] hover:shadow-[var(--shadow-md)]',
+          'btn-gradient-primary rounded-[var(--radius-button)] text-primary-foreground shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] active:translate-y-0 hover:-translate-y-px',
         destructive:
           'rounded-[var(--radius-button)] bg-destructive text-destructive-foreground shadow-[var(--shadow-sm)] hover:bg-destructive/90',
         outline:

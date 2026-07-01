@@ -4,6 +4,7 @@ import { Calendar, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FavoriteButton } from '@/components/events/favorite-button';
+import { CategoryBadge } from '@/components/events/category-badge';
 import {
   type MockEvent,
   formatEventDate,
@@ -108,19 +109,20 @@ export function EventCard({
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-[10px] border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10',
+        'card-premium group relative overflow-hidden rounded-[var(--radius-card)] border border-border/80 bg-card',
         className
       )}
     >
       <Link href={`/etkinlik/${event.slug}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-t-[var(--radius-image)]">
           <Image
             src={event.coverImage}
             alt={event.title}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:scale-[1.03]"
             sizes="(max-width:768px) 100vw, (max-width:1200px) 50vw, 33vw"
           />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
           {event.discountPercent && event.discountPercent > 0 && (
             <Badge className="absolute left-3 top-3 bg-primary text-primary-foreground">
               %{event.discountPercent} indirim
@@ -132,16 +134,14 @@ export function EventCard({
             </Badge>
           )}
         </div>
-        <div className="p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <Badge variant="secondary" className="text-xs">
-              {event.category}
-            </Badge>
+        <div className="p-4 md:p-5">
+          <div className="mb-2.5 flex items-center justify-between gap-2">
+            <CategoryBadge slug={event.categorySlug} label={event.category} />
             <span className="text-sm font-bold text-primary">
               {formatPrice(event)}
             </span>
           </div>
-          <h3 className="line-clamp-2 font-semibold leading-snug group-hover:text-primary">
+          <h3 className="line-clamp-2 text-base font-bold leading-snug transition-colors duration-200 group-hover:text-primary">
             {event.title}
           </h3>
           <div className="mt-3 flex flex-col gap-1 text-sm text-muted-foreground">

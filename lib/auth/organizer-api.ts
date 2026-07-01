@@ -1,3 +1,4 @@
+import type { UserRole } from '@/types';
 import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
@@ -11,17 +12,33 @@ export async function getOrganizerForSession(firebaseUid: string) {
 export async function canManageEventTickets(
   firebaseUid: string,
   eventId: string,
-  role?: string
+  role?: UserRole,
+  organizerId?: string
 ): Promise<boolean> {
-  if (role && sessionHasRole({ uid: firebaseUid, role: role as never }, 'ROLE_ADMIN')) {
+  if (role && sessionHasRole({ uid: firebaseUid, role }, 'ROLE_ADMIN')) {
     return true;
   }
 
-  const organizer = await getOrganizerForSession(firebaseUid);
-  if (!organizer) return false;
+  await ensureDbConnection();
+
+  if (organizerId) {
+    const event = await prisma.event.findFirst({
+      where: { id: eventId, organizerId, deletedAt: null },
+      select: { id: true }
+    });
+    if (event) return true;
+  }
 
   const event = await prisma.event.findFirst({
-    where: { id: eventId, organizerId: organizer.id, deletedAt: null }
+    where: {
+      id: eventId,
+      deletedAt: null,
+      organizer: {
+        deletedAt: null,
+        owner: { firebaseUid, deletedAt: null }
+      }
+    },
+    select: { id: true }
   });
   return Boolean(event);
 }

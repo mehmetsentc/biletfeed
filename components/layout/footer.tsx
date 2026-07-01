@@ -3,7 +3,7 @@ import { ArrowRight, CalendarPlus } from 'lucide-react';
 import { CookiePreferencesButton } from '@/components/consent/cookie-preferences-button';
 import { AppStoreBadges } from '@/components/footer/app-store-badges';
 import { siteConfig } from '@/lib/config/site';
-import { panelHref } from '@/lib/config/domain';
+import { panelHref, supportHref } from '@/lib/config/domain';
 import { getCategories } from '@/lib/services/events';
 
 const companyLinks = [
@@ -20,7 +20,8 @@ const companyLinks = [
 ];
 
 const helpLinks = [
-  { href: '/yardim', label: 'Hesap Desteği' },
+  { href: supportHref('/'), label: 'Hesap Desteği' },
+  { href: supportHref('/destek-talebi'), label: 'Destek Talebi' },
   { href: panelHref('/organizator-panel/etkinlik/yeni'), label: 'Etkinlik Listeleme' },
   { href: '/biletlerim', label: 'Bilet Satın Alma' },
   { href: '/kosullar', label: 'Bilet Koşulları' }
@@ -69,7 +70,7 @@ export async function Footer() {
               </h3>
               <ul className="space-y-2.5">
                 {helpLinks.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href}
                       className="text-sm font-medium text-white/90 transition-colors hover:text-primary"
@@ -123,7 +124,7 @@ export async function Footer() {
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wide">
                 Uygulamayı İndir
               </h3>
-              <AppStoreBadges className="flex-col items-start gap-3 [&_a]:opacity-90 [&_a:hover]:opacity-100" />
+              <AppStoreBadges variant="dark" className="flex-col items-start gap-3" />
             </div>
           </div>
 

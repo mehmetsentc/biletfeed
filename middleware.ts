@@ -2,8 +2,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import {
   canonicalHost,
   getPanelUrl,
+  getSupportUrl,
   isOrganizerPanelSubdomain,
   isProductionHost,
+  isSupportSubdomain,
   protocol,
   resolveProductionRootHost,
   rootDomain,
@@ -58,6 +60,20 @@ function redirectOrganizerPanelToSubdomain(
   return NextResponse.redirect(getPanelUrl(cleanPath), 308);
 }
 
+function redirectSupportToSubdomain(
+  request: NextRequest,
+  pathname: string
+): NextResponse | null {
+  if (!isProductionHost()) return null;
+  if (!pathname.startsWith('/destek')) return null;
+
+  const subdomain = extractSubdomain(request);
+  if (subdomain) return null;
+
+  const cleanPath = pathname.replace(/^\/destek/, '') || '/';
+  return NextResponse.redirect(getSupportUrl(cleanPath), 308);
+}
+
 function redirectToCanonical(request: NextRequest): NextResponse | null {
   if (!isProductionHost()) return null;
 
@@ -88,6 +104,30 @@ function isStaticAssetPath(pathname: string): boolean {
     pathname.startsWith('/images/') ||
     /\.(png|jpe?g|gif|webp|svg|ico|woff2?|ttf|css|js|map)$/i.test(pathname)
   );
+}
+
+function handleSupportSubdomain(
+  request: NextRequest,
+  pathname: string
+): NextResponse {
+  if (isStaticAssetPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (
+    pathname.startsWith('/destek') ||
+    pathname.startsWith('/giris') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next')
+  ) {
+    return NextResponse.next();
+  }
+
+  // destek.biletfeed.com/kategori/sss → /destek/kategori/sss
+  const supportPath = pathname.startsWith('/')
+    ? `/destek${pathname}`
+    : `/destek/${pathname}`;
+  return NextResponse.rewrite(new URL(supportPath, request.url));
 }
 
 function handleOrganizerPanelSubdomain(
@@ -126,10 +166,20 @@ export async function middleware(request: NextRequest) {
   const panelRedirect = redirectOrganizerPanelToSubdomain(request, pathname);
   if (panelRedirect) return panelRedirect;
 
+  const supportRedirect = redirectSupportToSubdomain(request, pathname);
+  if (supportRedirect) return supportRedirect;
+
   const canonicalRedirect = redirectToCanonical(request);
   if (canonicalRedirect) return canonicalRedirect;
 
   const subdomain = extractSubdomain(request);
+
+  if (isSupportSubdomain(subdomain)) {
+    if (pathname === '/') {
+      return NextResponse.rewrite(new URL('/destek', request.url));
+    }
+    return handleSupportSubdomain(request, pathname);
+  }
 
   if (isOrganizerPanelSubdomain(subdomain)) {
     return handleOrganizerPanelSubdomain(request, pathname);

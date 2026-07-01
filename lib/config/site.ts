@@ -1,4 +1,9 @@
-import { getSiteUrl, canonicalHost, getPanelUrl } from '@/lib/config/domain';
+import {
+  getSiteUrl,
+  canonicalHost,
+  getPanelUrl,
+  getSupportUrl
+} from '@/lib/config/domain';
 import { brandTheme } from '@/lib/config/brand-theme';
 
 export const siteConfig = {
@@ -25,7 +30,8 @@ export const siteConfig = {
     twitter: process.env.NEXT_PUBLIC_TWITTER_URL,
     instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL,
     facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL,
-    organizerPanel: process.env.NEXT_PUBLIC_PANEL_URL || getPanelUrl()
+    organizerPanel: process.env.NEXT_PUBLIC_PANEL_URL || getPanelUrl(),
+    supportCenter: process.env.NEXT_PUBLIC_SUPPORT_URL || getSupportUrl()
   }
 } as const;
 

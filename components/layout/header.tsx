@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { CitySelectorButton } from '@/components/location/city-selector-button';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -14,21 +15,34 @@ export function Header() {
   const pathname = usePathname();
   const { user, loading } = useAuth();
   const isHome = pathname === '/';
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full border-b border-[var(--header-border)] bg-[var(--header-bg)] text-[var(--header-fg)]',
-        !isHome && 'shadow-lg'
+        'glass-header sticky top-0 z-50 w-full border-b text-[var(--header-fg)] transition-[box-shadow,background-color] duration-[var(--duration-normal)] ease-[var(--ease-out)]',
+        scrolled || !isHome ? 'shadow-[var(--shadow-glass)]' : 'shadow-none'
       )}
     >
-      <div className="container mx-auto flex h-14 items-center justify-between px-4 md:h-16">
+      <div
+        className={cn(
+          'container mx-auto flex items-center justify-between px-4 transition-[height] duration-[var(--duration-normal)] ease-[var(--ease-out)] md:px-6',
+          scrolled ? 'h-14' : 'h-14 md:h-16'
+        )}
+      >
         <Logo
           variant="auto"
-          className="ring-[var(--header-border)] hover:ring-primary/80"
+          className="ml-0.5 shrink-0 md:ml-1"
         />
 
-        <nav className="flex items-center gap-6">
+        <nav className="hidden items-center gap-7 md:flex">
           <CitySelectorButton className="hidden lg:inline-flex" />
           {mainNavLinks.map((link) => {
             const active =
@@ -38,21 +52,19 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
+                data-active={active ? 'true' : 'false'}
                 className={cn(
-                  'relative pb-1 text-sm font-semibold text-[var(--header-fg)] transition-colors hover:text-primary',
+                  'nav-link-premium text-sm font-semibold text-[var(--header-fg)] transition-colors duration-200 hover:text-primary',
                   active && 'text-primary'
                 )}
               >
                 {link.label}
-                {active && (
-                  <span className="absolute -bottom-1 left-0 h-0.5 w-full rounded-full bg-primary" />
-                )}
               </Link>
             );
           })}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {!loading && (
             <div className="flex items-center gap-2">
               {user ? (
@@ -63,7 +75,7 @@ export function Header() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="font-semibold text-[var(--header-fg)] hover:bg-[var(--header-hover)] hover:text-[var(--header-fg)]"
+                      className="font-semibold text-[var(--header-fg)] transition-colors duration-200 hover:bg-[var(--header-hover)] hover:text-[var(--header-fg)]"
                     >
                       Giriş Yap
                     </Button>
@@ -71,7 +83,7 @@ export function Header() {
                   <Link href="/kayit">
                     <Button
                       size="sm"
-                      className="rounded-md bg-primary px-5 font-bold text-primary-foreground hover:bg-primary/90"
+                      className="btn-gradient-primary rounded-[var(--radius-button)] px-5 font-bold text-primary-foreground shadow-[var(--shadow-sm)] transition-[transform,box-shadow] duration-200 hover:shadow-[var(--shadow-md)]"
                     >
                       Kayıt Ol
                     </Button>

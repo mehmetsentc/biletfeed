@@ -3,7 +3,13 @@ import { Apple, Play } from 'lucide-react';
 import { mobileAppConfig } from '@/lib/config/mobile-app';
 import { cn } from '@/lib/utils';
 
-export function AppStoreBadges({ className }: { className?: string }) {
+type AppStoreBadgesProps = {
+  className?: string;
+  /** Siyah footer gibi koyu arka planlarda kullanın */
+  variant?: 'light' | 'dark';
+};
+
+export function AppStoreBadges({ className, variant = 'light' }: AppStoreBadgesProps) {
   const iosUrl = mobileAppConfig.storeUrls.ios.trim();
   const androidUrl = mobileAppConfig.storeUrls.android.trim();
   const fallbackUrl = mobileAppConfig.appInfoUrl;
@@ -13,6 +19,18 @@ export function AppStoreBadges({ className }: { className?: string }) {
   const iosSoon = !iosUrl;
   const androidSoon = !androidUrl;
 
+  const badgeClass =
+    variant === 'dark'
+      ? 'inline-flex items-center gap-3 rounded-xl border border-white/25 bg-white/10 px-4 py-2.5 text-white transition-colors hover:border-primary/60 hover:bg-white/15'
+      : 'inline-flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-2.5 text-foreground transition-colors hover:border-primary/40 hover:bg-muted/50';
+
+  const labelClass =
+    variant === 'dark'
+      ? 'text-[10px] uppercase tracking-wide text-white/60'
+      : 'text-[10px] uppercase tracking-wide text-muted-foreground';
+
+  const titleClass = variant === 'dark' ? 'text-sm font-semibold text-white' : 'text-sm font-semibold';
+
   return (
     <div className={cn('flex flex-wrap gap-3', className)}>
       <Link
@@ -20,14 +38,12 @@ export function AppStoreBadges({ className }: { className?: string }) {
         target={iosUrl ? '_blank' : undefined}
         rel={iosUrl ? 'noopener noreferrer' : undefined}
         aria-label="BiletFeed App Store"
-        className="inline-flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-2.5 transition-colors hover:border-primary/40 hover:bg-muted/50"
+        className={badgeClass}
       >
-        <Apple className="size-7" strokeWidth={1.5} />
+        <Apple className="size-7 shrink-0" strokeWidth={1.5} />
         <div className="text-left leading-tight">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            {iosSoon ? 'Yakında' : 'İndir'}
-          </p>
-          <p className="text-sm font-semibold">App Store</p>
+          <p className={labelClass}>{iosSoon ? 'Yakında' : 'İndir'}</p>
+          <p className={titleClass}>App Store</p>
         </div>
       </Link>
       <Link
@@ -35,14 +51,12 @@ export function AppStoreBadges({ className }: { className?: string }) {
         target={androidUrl ? '_blank' : undefined}
         rel={androidUrl ? 'noopener noreferrer' : undefined}
         aria-label="BiletFeed Google Play"
-        className="inline-flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-2.5 transition-colors hover:border-primary/40 hover:bg-muted/50"
+        className={badgeClass}
       >
-        <Play className="size-7 fill-current" strokeWidth={1.5} />
+        <Play className="size-7 shrink-0 fill-current" strokeWidth={1.5} />
         <div className="text-left leading-tight">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            {androidSoon ? 'Yakında' : 'İndir'}
-          </p>
-          <p className="text-sm font-semibold">Google Play</p>
+          <p className={labelClass}>{androidSoon ? 'Yakında' : 'İndir'}</p>
+          <p className={titleClass}>Google Play</p>
         </div>
       </Link>
     </div>

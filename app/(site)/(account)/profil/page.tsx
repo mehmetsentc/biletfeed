@@ -13,7 +13,7 @@ import type { AccountMode } from '@/lib/auth/account-mode';
 import { Building2, User as UserIcon, CheckCircle2, Loader2, LayoutDashboard, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
-import { panelHref } from '@/lib/config/domain';
+import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
 type OrganizerInfo = {
@@ -30,6 +30,7 @@ export default function ProfilePage() {
   const { accountMode, isModeLocked, selectAccountMode, isOrganizerMode } =
     useAccountMode();
   const [pendingMode, setPendingMode] = useState<AccountMode | null>(null);
+  const [showOrganizerSetup, setShowOrganizerSetup] = useState(false);
 
   // Organizatör durumu
   const isAlreadyOrganizer = user?.role === 'ROLE_ORGANIZER' || user?.role === 'ROLE_ADMIN' || user?.role === 'ROLE_SUPER_ADMIN';
@@ -44,6 +45,12 @@ export default function ProfilePage() {
   const [orgSubmitting, setOrgSubmitting] = useState(false);
   const [orgError, setOrgError] = useState('');
   const [orgSuccess, setOrgSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user?.email && !orgEmail) {
+      setOrgEmail(user.email);
+    }
+  }, [user?.email, orgEmail]);
 
   // Mevcut organizatör profilini çek
   useEffect(() => {
@@ -64,6 +71,10 @@ export default function ProfilePage() {
       setOrgError('Organizasyon adı zorunludur.');
       return;
     }
+    if (!orgEmail.trim()) {
+      setOrgError('İletişim e-postası zorunludur.');
+      return;
+    }
     setOrgSubmitting(true);
     setOrgError('');
     try {
@@ -81,10 +92,21 @@ export default function ProfilePage() {
         setOrgError(data.error || 'Kayıt başarısız.');
         return;
       }
+
+      await fetch('/api/organizer/profile', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactEmail: orgEmail.trim(),
+          contactPhone: orgPhone.trim() || null
+        })
+      });
+
       setOrgSuccess(true);
       setOrgInfo(data.organizer);
+      setShowOrganizerSetup(false);
       selectAccountMode('organizer');
-      // Session'ı güncelle — role ROLE_ORGANIZER olarak yenilenir
       await syncSession();
     } catch {
       setOrgError('Bir hata oluştu. Lütfen tekrar deneyin.');
@@ -95,11 +117,24 @@ export default function ProfilePage() {
 
   function handleConfirmAccountType() {
     if (!pendingMode) return;
-    selectAccountMode(pendingMode);
+    if (pendingMode === 'organizer') {
+      setShowOrganizerSetup(true);
+      setPendingMode(null);
+      return;
+    }
+    selectAccountMode('user');
     setPendingMode(null);
   }
 
-  const selectedMode = isModeLocked ? accountMode : pendingMode;
+  const needsOrganizerSetup =
+    showOrganizerSetup ||
+    (isModeLocked && isOrganizerMode && !isAlreadyOrganizer && !orgSuccess);
+
+  const selectedMode = isModeLocked
+    ? accountMode
+    : showOrganizerSetup
+      ? 'organizer'
+      : pendingMode;
 
   if (loading) {
     return (
@@ -109,6 +144,10 @@ export default function ProfilePage() {
         <div className="h-64 rounded-xl bg-muted" />
       </div>
     );
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
@@ -133,8 +172,8 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2">
           <button
             type="button"
-            disabled={isModeLocked}
-            onClick={() => !isModeLocked && setPendingMode('user')}
+            disabled={isModeLocked || showOrganizerSetup}
+            onClick={() => !isModeLocked && !showOrganizerSetup && setPendingMode('user')}
             className={cn(
               'flex flex-col items-center gap-2 rounded-xl border-2 p-5 text-sm font-medium transition-all',
               selectedMode === 'user'
@@ -153,8 +192,8 @@ export default function ProfilePage() {
 
           <button
             type="button"
-            disabled={isModeLocked}
-            onClick={() => !isModeLocked && setPendingMode('organizer')}
+            disabled={isModeLocked || showOrganizerSetup}
+            onClick={() => !isModeLocked && !showOrganizerSetup && setPendingMode('organizer')}
             className={cn(
               'flex flex-col items-center gap-2 rounded-xl border-2 p-5 text-sm font-medium transition-all',
               selectedMode === 'organizer'
@@ -172,27 +211,29 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {!isModeLocked && pendingMode && (
+        {!isModeLocked && pendingMode && !showOrganizerSetup && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
             <p className="text-sm text-foreground">
               {pendingMode === 'user'
                 ? 'Kullanıcı hesabı olarak devam edeceksiniz. EventJoy paneli profil menüsünde görünür.'
-                : 'Organizatör hesabı olarak devam edeceksiniz. Organizatör paneli ve etkinlik oluşturma bağlantıları profil menüsünde görünür.'}
+                : 'Organizatör hesabı için organizasyon bilgilerinizi girmeniz gerekecek. Bu seçim kaydedildikten sonra değiştirilemez.'}
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Bu seçim kaydedildikten sonra değiştirilemez.
-            </p>
+            {pendingMode === 'user' && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Bu seçim kaydedildikten sonra değiştirilemez.
+              </p>
+            )}
             <button
               type="button"
               onClick={handleConfirmAccountType}
               className="mt-4 inline-flex h-10 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
             >
-              Seçimi Onayla
+              {pendingMode === 'organizer' ? 'Devam Et' : 'Seçimi Onayla'}
             </button>
           </div>
         )}
 
-        {isModeLocked && accountMode === 'user' && (
+        {isModeLocked && accountMode === 'user' && !showOrganizerSetup && (
           <div className="border-t border-border py-4">
             <Link
               href="/eventjoy/panel"
@@ -204,10 +245,11 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {isOrganizerMode && isModeLocked && (
+        {isOrganizerMode && isModeLocked && !needsOrganizerSetup && (
           <div className="flex flex-col gap-2 border-t border-border py-4 sm:flex-row">
             <Link
               href={panelHref('/organizator-panel/etkinlik/yeni')}
+              {...PANEL_EXTERNAL_LINK_PROPS}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Plus className="size-4" />
@@ -215,6 +257,7 @@ export default function ProfilePage() {
             </Link>
             <Link
               href={panelHref('/organizator-panel/baslangic')}
+              {...PANEL_EXTERNAL_LINK_PROPS}
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
             >
               <LayoutDashboard className="size-4" />
@@ -223,13 +266,13 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {isModeLocked && isOrganizerMode && !isAlreadyOrganizer && !orgSuccess && (
+        {needsOrganizerSetup && (
           <form
             onSubmit={handleOrganizerSubmit}
             className="space-y-0 border-t border-border"
           >
             <p className="py-4 text-sm text-muted-foreground">
-              Organizatör hesabı oluşturmak için kurum/şirket bilgilerinizi girin.
+              Organizatör hesabı için aşağıdaki zorunlu bilgileri doldurun.
               Onayın ardından etkinlik oluşturabilir ve bilet satabilirsiniz.
             </p>
 
@@ -260,7 +303,7 @@ export default function ProfilePage() {
               </div>
               <div className="border-b border-border py-5 md:grid md:grid-cols-[200px_1fr] md:items-center md:gap-4">
                 <label className="text-sm font-semibold text-foreground">
-                  İletişim E-posta
+                  İletişim E-posta <span className="text-destructive">*</span>
                 </label>
                 <Input
                   type="email"
@@ -268,6 +311,7 @@ export default function ProfilePage() {
                   placeholder="iletisim@sirket.com"
                   value={orgEmail}
                   onChange={(e) => setOrgEmail(e.target.value)}
+                  required
                 />
               </div>
               <div className="py-5 md:grid md:grid-cols-[200px_1fr] md:items-center md:gap-4">
@@ -290,11 +334,23 @@ export default function ProfilePage() {
               </p>
             )}
 
-            <div className="py-4">
+            <div className="flex flex-col gap-2 py-4 sm:flex-row">
+              {showOrganizerSetup && !isModeLocked && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOrganizerSetup(false);
+                    setPendingMode('organizer');
+                  }}
+                  className="flex h-11 items-center justify-center rounded-xl border border-border px-6 text-sm font-semibold hover:bg-muted md:h-10 md:rounded-md"
+                >
+                  Geri
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={orgSubmitting}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60 md:h-10 md:w-auto md:rounded-md md:px-8"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60 md:h-10 md:rounded-md md:px-8"
               >
                 {orgSubmitting ? (
                   <>

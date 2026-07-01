@@ -14,7 +14,8 @@ const nextConfig: NextConfig = {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self' https://accounts.google.com https://*.firebaseapp.com",
-      "frame-ancestors 'none'"
+      "frame-ancestors 'none'",
+      "media-src 'self' blob:"
     ].join('; ');
 
     return [
