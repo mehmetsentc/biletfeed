@@ -209,7 +209,7 @@ export async function validateTicketInput(input: {
         where: { id: ticket.event.organizerId },
         select: { name: true }
       }),
-      params.scannerOrganizerId
+      input.scannerOrganizerId
         ? prisma.organizer.findUnique({
             where: { id: input.scannerOrganizerId },
             select: { name: true }
