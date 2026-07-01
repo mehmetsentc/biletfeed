@@ -3,12 +3,14 @@ import {
   canonicalHost,
   getPanelUrl,
   getSupportUrl,
+  isAccountSitePath,
   isOrganizerPanelSubdomain,
   isProductionHost,
   isSupportSubdomain,
   protocol,
   resolveProductionRootHost,
   rootDomain,
+  siteHref,
 } from '@/lib/config/domain';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/organizator-panel'];
@@ -142,6 +144,14 @@ function handleOrganizerPanelSubdomain(
     return NextResponse.redirect(
       new URL('/baslangic', request.url)
     );
+  }
+
+  // panel.biletfeed.com/profil → biletfeed.com/profil (hesap sayfaları ana sitede)
+  if (isAccountSitePath(pathname)) {
+    const target = siteHref(pathname);
+    if (target.startsWith('http')) {
+      return NextResponse.redirect(target);
+    }
   }
 
   if (

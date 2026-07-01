@@ -2,11 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import { Globe, LogOut } from 'lucide-react';
 import { AccountThemeToggle } from '@/components/account/account-theme-toggle';
 import { accountMenuGroups } from '@/lib/account/navigation';
 import { useAccountMode } from '@/hooks/use-account-mode';
+import {
+  accountSiteHref,
+  isOnOrganizerPanelHost
+} from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
+
+function resolveMenuHref(path: string, onPanelHost: boolean): string {
+  return onPanelHost ? accountSiteHref(path) : path;
+}
 
 type AccountMenuListProps = {
   onNavigate?: () => void;
@@ -23,6 +32,12 @@ export function AccountMenuList({
   const { isOrganizerMode, isModeLocked } = useAccountMode();
   const isSidebar = variant === 'sidebar';
   const showUserOnlyItems = !isModeLocked || !isOrganizerMode;
+  const onPanelHost = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      isOnOrganizerPanelHost(window.location.hostname),
+    []
+  );
 
   return (
     <>
@@ -42,10 +57,12 @@ export function AccountMenuList({
             const active = item.isActive?.(pathname) ?? pathname === item.href;
             const Icon = item.icon;
 
+            const href = resolveMenuHref(item.href, onPanelHost);
+
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={href}
                 onClick={onNavigate}
                 className={cn(
                   'flex items-center gap-3 text-sm font-medium transition-colors',

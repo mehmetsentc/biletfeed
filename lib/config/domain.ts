@@ -140,6 +140,43 @@ export function supportHref(path = ''): string {
   return getSupportUrl(normalized);
 }
 
+/** Ana sitede yaşayan hesap sayfaları — panel alt alanında route yok */
+export const ACCOUNT_SITE_PATH_PREFIXES = [
+  '/profil',
+  '/biletlerim',
+  '/favorilerim',
+  '/degerlendirmelerim',
+  '/bildirimler',
+  '/eventjoy'
+] as const;
+
+export function isAccountSitePath(pathname: string): boolean {
+  return ACCOUNT_SITE_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+/** Hesap menüsü linki — panel alt alanındayken biletfeed.com'a yönlendirir */
+export function accountSiteHref(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return siteHref(normalized);
+}
+
+/** İstemci: organizatör panel alt alanında mı? */
+export function isOnOrganizerPanelHost(hostname: string): boolean {
+  const root = resolveProductionRootHost();
+  if (root) {
+    return (
+      hostname === `${PANEL_SUBDOMAIN}.${root}` ||
+      hostname === `organizer.${root}`
+    );
+  }
+  return (
+    hostname.startsWith('panel.localhost') ||
+    hostname.startsWith('organizer.localhost')
+  );
+}
+
 /** Ana site linki — panel/destek alt alanından kök domain'e (biletfeed.com) */
 export function siteHref(path = '/'): string {
   const normalized =
