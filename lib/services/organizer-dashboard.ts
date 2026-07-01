@@ -1,5 +1,9 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { upcomingFilter } from '@/lib/services/events';
+import {
+  matchesSalesCategory,
+  type SalesCategoryFilter
+} from '@/lib/services/ticket-type-category';
 
 export async function getOrganizerStats(organizerId: string) {
   await ensureDbConnection();
@@ -49,30 +53,61 @@ export async function getOrganizerEvents(organizerId: string) {
   });
 }
 
-export async function getOrganizerOrders(organizerId: string) {
+export async function getOrganizerOrders(
+  organizerId: string,
+  category: SalesCategoryFilter = 'all'
+) {
   await ensureDbConnection();
-  return prisma.order.findMany({
-    where: { organizerId, deletedAt: null },
+  const orders = await prisma.order.findMany({
+    where: {
+      organizerId,
+      deletedAt: null,
+      paymentProvider: { not: 'invitation' },
+      ...(category === 'all' ? {} : { status: 'paid' as const })
+    },
     include: {
       event: { select: { title: true, slug: true } },
       user: { select: { displayName: true, email: true } },
-      items: { include: { ticketType: { select: { name: true } } } }
+      items: {
+        include: { ticketType: { select: { name: true, type: true } } }
+      }
     },
     orderBy: { createdAt: 'desc' },
     take: 100
   });
+
+  if (category === 'all') return orders;
+
+  return orders.filter((order) =>
+    order.items.some((item) =>
+      matchesSalesCategory(item.ticketType.type, item.ticketType.name, category)
+    )
+  );
 }
 
-export async function getOrganizerTickets(organizerId: string) {
+export async function getOrganizerTickets(
+  organizerId: string,
+  category: SalesCategoryFilter = 'all'
+) {
   await ensureDbConnection();
-  return prisma.purchasedTicket.findMany({
-    where: { event: { organizerId }, deletedAt: null },
+  const tickets = await prisma.purchasedTicket.findMany({
+    where: {
+      event: { organizerId },
+      deletedAt: null,
+      order: { paymentProvider: { not: 'invitation' } }
+    },
     include: {
       event: { select: { title: true } },
-      ticketType: { select: { name: true } },
+      ticketType: { select: { name: true, type: true } },
       user: { select: { displayName: true } }
     },
     orderBy: { createdAt: 'desc' },
     take: 200
   });
+
+  if (category === 'all') return tickets;
+
+  return tickets.filter((t) =>
+    matchesSalesCategory(t.ticketType.type, t.ticketType.name, category)
+  );
 }

@@ -23,6 +23,10 @@ export interface SendEmailOptions {
   from?: string;
   /** Gönderen türü — from belirtilmediğinde kullanılır */
   sender?: EmailSenderKind;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer | string;
+  }>;
 }
 
 export interface SendEmailResult {
@@ -89,7 +93,18 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
         to: opts.to,
         subject: opts.subject,
         html: opts.html,
-        reply_to: replyTo
+        reply_to: replyTo,
+        ...(opts.attachments?.length
+          ? {
+              attachments: opts.attachments.map((a) => ({
+                filename: a.filename,
+                content:
+                  typeof a.content === 'string'
+                    ? a.content
+                    : a.content.toString('base64')
+              }))
+            }
+          : {})
       })
     });
 

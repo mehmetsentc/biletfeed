@@ -17,10 +17,10 @@ export default async function OrganizatorInvitationsPage({ searchParams }: PageP
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Davetiye Oluşturma</h1>
+        <h1 className="text-2xl font-bold text-foreground">Davetiye Yönetimi</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Misafirlerinize özel QR kodlu davetiye gönderin. Kapı tarayıcısı ile giriş kaydı
-          otomatik oluşturulur.
+          Tekli veya toplu davetiye gönderin. PDF otomatik oluşturulur; e-posta, WhatsApp veya ZIP
+          ile paylaşın.
         </p>
       </div>
       <InvitationsPanel initialEventId={eventId} />

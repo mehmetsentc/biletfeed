@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Copy,
+  Download,
+  FileText,
   Loader2,
   Mail,
   MessageCircle,
@@ -10,6 +12,9 @@ import {
   Send
 } from 'lucide-react';
 import { TicketQR } from '@/components/tickets/ticket-qr';
+import { BulkInvitationsPanel } from '@/components/organizator-panel/bulk-invitations-panel';
+import { MAX_DIRECT_INVITATION_PDFS } from '@/lib/config/invitations';
+import type { InvitationRow } from '@/lib/services/event-invitations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,19 +36,7 @@ type TicketTypeOption = {
   sold: number;
 };
 
-export type InvitationRow = {
-  id: string;
-  guestName: string;
-  guestEmail: string | null;
-  guestPhone: string | null;
-  inviteUrl: string;
-  qrData: string;
-  ticketCode: string;
-  ticketTypeName: string;
-  eventTitle: string;
-  status: string;
-  createdAt: string;
-};
+export type { InvitationRow };
 
 export function InvitationsPanel({
   initialEventId
@@ -66,6 +59,7 @@ export function InvitationsPanel({
   const [guestPhone, setGuestPhone] = useState('');
   const [ticketTypeId, setTicketTypeId] = useState('');
   const [personalMessage, setPersonalMessage] = useState('');
+  const [mode, setMode] = useState<'single' | 'bulk'>('single');
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.id === eventId),
@@ -150,9 +144,10 @@ export function InvitationsPanel({
       setInvitations((prev) => [invitation, ...prev]);
       setSuccess(
         hadEmail
-          ? `${invitation.guestName} için davetiye oluşturuldu ve e-posta gönderildi.`
-          : `${invitation.guestName} için QR kodlu davetiye oluşturuldu.`
+          ? `${invitation.guestName} için davetiye oluşturuldu, PDF e-posta ile gönderildi.`
+          : `${invitation.guestName} için PDF davetiye oluşturuldu.`
       );
+      downloadPdf(invitation);
       setGuestName('');
       setGuestEmail('');
       setGuestPhone('');
@@ -174,7 +169,47 @@ export function InvitationsPanel({
     const text = encodeURIComponent(
       `Merhaba ${invite.guestName}, etkinlik davetiyeniz hazır: ${invite.inviteUrl}`
     );
-    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+    const phone = invite.guestPhone?.replace(/\D/g, '');
+    const url = phone
+      ? `https://wa.me/${phone.startsWith('90') ? phone : `90${phone.replace(/^0/, '')}`}?text=${text}`
+      : `https://wa.me/?text=${text}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function downloadPdf(invite: InvitationRow) {
+    window.open(invite.pdfUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  async function sharePdfsDirect(invites: InvitationRow[]) {
+    if (invites.length > MAX_DIRECT_INVITATION_PDFS) {
+      setError(
+        `Doğrudan paylaşımda en fazla ${MAX_DIRECT_INVITATION_PDFS} PDF gönderilebilir. ZIP indirmeyi kullanın.`
+      );
+      return;
+    }
+    if (!navigator.share) {
+      setError('Tarayıcınız dosya paylaşımını desteklemiyor. PDF indir butonunu kullanın.');
+      return;
+    }
+    try {
+      const files: File[] = [];
+      for (const invite of invites) {
+        const res = await fetch(invite.pdfUrl, { credentials: 'include' });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        files.push(new File([blob], `${invite.ticketCode}.pdf`, { type: 'application/pdf' }));
+      }
+      if (files.length === 0) throw new Error('PDF alınamadı');
+      await navigator.share({
+        title: 'Davetiyeler',
+        text: 'Etkinlik davetiyeleriniz',
+        files
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err.message);
+      }
+    }
   }
 
   if (loading) {
@@ -228,6 +263,35 @@ export function InvitationsPanel({
         </div>
       )}
 
+      <div className="flex gap-2 rounded-lg border border-border bg-muted/30 p-1">
+        <button
+          type="button"
+          onClick={() => setMode('single')}
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+            mode === 'single' ? 'bg-card shadow-sm' : 'text-muted-foreground'
+          }`}
+        >
+          Tekli Gönderim
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('bulk')}
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
+            mode === 'bulk' ? 'bg-card shadow-sm' : 'text-muted-foreground'
+          }`}
+        >
+          Toplu Gönderim
+        </button>
+      </div>
+
+      {mode === 'bulk' ? (
+        <BulkInvitationsPanel
+          eventId={eventId}
+          ticketTypeId={ticketTypeId}
+          disabled={!eventId || !ticketTypeId}
+          onCreated={(rows) => setInvitations((prev) => [...rows, ...prev])}
+        />
+      ) : (
       <div className="grid gap-6 lg:grid-cols-2">
         <form
           onSubmit={handleSendInvitation}
@@ -238,8 +302,7 @@ export function InvitationsPanel({
             <h2 className="text-lg font-semibold text-foreground">Yeni Davetiye</h2>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Misafir adına QR kodlu ücretsiz bilet oluşturulur. Kapı tarayıcısı ile giriş
-            kaydedilir.
+            Misafir adına QR kodlu PDF davetiye oluşturulur. E-posta ile PDF ekli gönderilir.
           </p>
 
           <div className="mt-5 space-y-4">
@@ -352,10 +415,29 @@ export function InvitationsPanel({
                   type="button"
                   variant="outline"
                   size="sm"
+                  onClick={() => downloadPdf(lastInvite)}
+                >
+                  <FileText className="mr-1.5 size-4" />
+                  PDF İndir
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => copyInviteLink(lastInvite.inviteUrl)}
+                >
                 >
                   <Copy className="mr-1.5 size-4" />
                   {copied ? 'Kopyalandı' : 'Linki Kopyala'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void sharePdfsDirect([lastInvite])}
+                >
+                  <Download className="mr-1.5 size-4" />
+                  PDF Paylaş
                 </Button>
                 <Button
                   type="button"
@@ -423,6 +505,15 @@ export function InvitationsPanel({
                       type="button"
                       variant="ghost"
                       size="sm"
+                      onClick={() => downloadPdf(invite)}
+                      title="PDF indir"
+                    >
+                      <FileText className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => copyInviteLink(invite.inviteUrl)}
                     >
                       <Copy className="size-4" />
@@ -434,6 +525,7 @@ export function InvitationsPanel({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

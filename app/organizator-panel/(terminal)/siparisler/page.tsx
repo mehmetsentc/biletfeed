@@ -1,21 +1,53 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerOrders } from '@/lib/services/organizer-dashboard';
+import type { SalesCategoryFilter } from '@/lib/services/ticket-type-category';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-export default async function OrganizatorOrdersPage() {
+interface PageProps {
+  searchParams: Promise<{ category?: string }>;
+}
+
+function parseCategory(raw?: string): SalesCategoryFilter {
+  if (raw === 'ticket' || raw === 'loca') return raw;
+  return 'all';
+}
+
+const CATEGORY_LABELS: Record<SalesCategoryFilter, string> = {
+  all: 'Tüm Siparişler',
+  ticket: 'Bilet Satışları',
+  loca: 'Loca Satışları'
+};
+
+export default async function OrganizatorOrdersPage({ searchParams }: PageProps) {
   const session = await requireOrganizer();
   const organizer = await getOrganizerForSession(session.uid);
   if (!organizer) redirect('/organizator-panel/kurulum');
 
-  const orders = await getOrganizerOrders(organizer.id);
+  const { category: categoryParam } = await searchParams;
+  const category = parseCategory(categoryParam);
+  const orders = await getOrganizerOrders(organizer.id, category);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Siparişler</h1>
+        <h1 className="text-2xl font-bold text-foreground">{CATEGORY_LABELS[category]}</h1>
         <p className="text-sm text-muted-foreground">Sipariş geçmişi ve ödeme durumları</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant={category === 'all' ? 'default' : 'outline'} size="sm">
+          <Link href="/organizator-panel/siparisler">Tümü</Link>
+        </Button>
+        <Button asChild variant={category === 'ticket' ? 'default' : 'outline'} size="sm">
+          <Link href="/organizator-panel/siparisler?category=ticket">Bilet Geliri</Link>
+        </Button>
+        <Button asChild variant={category === 'loca' ? 'default' : 'outline'} size="sm">
+          <Link href="/organizator-panel/siparisler?category=loca">Loca Geliri</Link>
+        </Button>
       </div>
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">

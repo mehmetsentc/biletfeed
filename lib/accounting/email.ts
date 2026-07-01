@@ -17,6 +17,7 @@ export async function queueEmail(params: {
   orderId?: string;
   invoiceId?: string;
   sender?: EmailSenderKind;
+  attachments?: Array<{ filename: string; content: Buffer }>;
 }): Promise<{ id: string; status: string; messageId?: string }> {
   const delivery = await prisma.emailDelivery.create({
     data: {
@@ -56,7 +57,8 @@ export async function queueEmail(params: {
       subject: params.subject,
       html: params.html,
       sender,
-      replyTo: companyLegal.email
+      replyTo: companyLegal.email,
+      attachments: params.attachments
     });
 
     if (!result.ok) {

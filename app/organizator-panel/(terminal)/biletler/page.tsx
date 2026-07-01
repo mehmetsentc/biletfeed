@@ -7,18 +7,37 @@ import {
   getOrganizerStats
 } from '@/lib/services/organizer-dashboard';
 import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
+import type { SalesCategoryFilter } from '@/lib/services/ticket-type-category';
 import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';
 import { OrganizerTicketActions } from '@/components/organizator-panel/organizer-ticket-actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-export default async function OrganizatorTicketsPage() {
+interface PageProps {
+  searchParams: Promise<{ category?: string }>;
+}
+
+function parseCategory(raw?: string): SalesCategoryFilter {
+  if (raw === 'ticket' || raw === 'loca') return raw;
+  return 'all';
+}
+
+const CATEGORY_LABELS: Record<SalesCategoryFilter, string> = {
+  all: 'Tüm Biletler',
+  ticket: 'Satılan Biletler',
+  loca: 'Satılan Localar'
+};
+
+export default async function OrganizatorTicketsPage({ searchParams }: PageProps) {
   const session = await requireOrganizer();
   const organizer = await getOrganizerForSession(session.uid);
   if (!organizer) redirect('/organizator-panel/kurulum');
 
+  const { category: categoryParam } = await searchParams;
+  const category = parseCategory(categoryParam);
+
   const [tickets, stats, checkInStats] = await Promise.all([
-    getOrganizerTickets(organizer.id),
+    getOrganizerTickets(organizer.id, category),
     getOrganizerStats(organizer.id),
     getOrganizerCheckInStats(organizer.id)
   ]);
@@ -27,21 +46,31 @@ export default async function OrganizatorTicketsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Biletler</h1>
+          <h1 className="text-2xl font-bold text-foreground">{CATEGORY_LABELS[category]}</h1>
           <p className="text-sm text-muted-foreground">
-            {stats.soldTickets} satış · {stats.scannedTickets} giriş yapıldı
+            {tickets.length} kayıt · {stats.scannedTickets} giriş yapıldı
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/organizator-panel/tarayici">
-            <Button className="">
-              QR Tarayıcı
-            </Button>
+            <Button>QR Tarayıcı</Button>
           </Link>
           <Button variant="outline" asChild>
             <a href="/api/organizer/tickets/export">CSV İndir</a>
           </Button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant={category === 'all' ? 'default' : 'outline'} size="sm">
+          <Link href="/organizator-panel/biletler">Tümü</Link>
+        </Button>
+        <Button asChild variant={category === 'ticket' ? 'default' : 'outline'} size="sm">
+          <Link href="/organizator-panel/biletler?category=ticket">Bilet</Link>
+        </Button>
+        <Button asChild variant={category === 'loca' ? 'default' : 'outline'} size="sm">
+          <Link href="/organizator-panel/biletler?category=loca">Loca</Link>
+        </Button>
       </div>
 
       <CheckInStatsPanel stats={checkInStats} />
@@ -66,35 +95,19 @@ export default async function OrganizatorTicketsPage() {
                 <td className="p-3">{ticket.ticketType.name}</td>
                 <td className="p-3">{ticket.user.displayName}</td>
                 <td className="p-3">
-                  <Badge
-                    variant={
-                      ticket.status === 'VALID'
-                        ? 'success'
-                        : ticket.status === 'USED'
-                          ? 'secondary'
-                          : 'destructive'
-                    }
-                  >
-                    {ticket.status === 'VALID'
-                      ? 'Geçerli'
-                      : ticket.status === 'USED'
-                        ? 'Kullanıldı'
-                        : ticket.status}
+                  <Badge variant={ticket.status === 'USED' ? 'success' : 'secondary'}>
+                    {ticket.status}
                   </Badge>
                 </td>
                 <td className="p-3 text-right">
-                  <OrganizerTicketActions
-                    ticketId={ticket.id}
-                    ticketCode={ticket.ticketCode}
-                    status={ticket.status}
-                  />
+                  <OrganizerTicketActions ticketCode={ticket.ticketCode} />
                 </td>
               </tr>
             ))}
             {tickets.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                  Henüz bilet satışı yok.
+                  Bu kategoride bilet bulunamadı.
                 </td>
               </tr>
             )}

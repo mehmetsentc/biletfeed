@@ -13,6 +13,7 @@ import {
   buildInvitationEmail
 } from '@/lib/email/invitation-template';
 import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
+import { generateOrganizerInvitationPdf } from '@/lib/services/invitation-pdf';
 
 function createInviteToken(): string {
   return randomBytes(16).toString('hex');
@@ -60,6 +61,7 @@ export type InvitationRow = {
   ticketCode: string;
   ticketTypeName: string;
   eventTitle: string;
+  pdfUrl: string;
 };
 
 function mapInvitation(row: {
@@ -96,7 +98,8 @@ function mapInvitation(row: {
     }),
     ticketCode: row.purchasedTicket.ticketCode,
     ticketTypeName: row.ticketType.name,
-    eventTitle: row.event.title
+    eventTitle: row.event.title,
+    pdfUrl: `/api/organizer/invitations/${row.id}/pdf`
   };
 }
 
@@ -271,6 +274,7 @@ export async function createEventInvitation(params: {
 
     void (async () => {
       const qrDataUrl = await qrToDataUrl(result.inviteUrl);
+      const pdf = await generateOrganizerInvitationPdf(invitation.id, params.organizerId);
       await queueEmail({
         to: params.guestEmail!,
         subject: `Davetiyeniz: ${event.title}`,
@@ -291,7 +295,8 @@ export async function createEventInvitation(params: {
           calendarUrl,
           organizerName: event.organizer.name
         }),
-        orderId
+        orderId,
+        attachments: pdf ? [{ filename: pdf.filename, content: pdf.buffer }] : undefined
       });
     })().catch((err) => {
       console.error('[email] invitation', invitation.id, err);

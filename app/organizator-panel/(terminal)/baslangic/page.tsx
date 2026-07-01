@@ -1,19 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import {
-  CalendarDays,
-  Plus,
-  ScanLine,
-  Ticket,
-  TrendingUp,
-  UserCheck,
-} from 'lucide-react';
+import { Plus, ScanLine } from 'lucide-react';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
-import { getOrganizerStats } from '@/lib/services/organizer-dashboard';
+import { getOrganizerSalesStats } from '@/lib/services/organizer-sales-stats';
 import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
 import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';
-import { DashboardStatCard } from '@/components/organizator-panel/dashboard-stat-card';
+import { SalesStatsGrid } from '@/components/organizator-panel/sales-stats-grid';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -22,16 +15,10 @@ export default async function OrganizatorHomePage() {
   const organizer = await getOrganizerForSession(session.uid);
   if (!organizer) redirect('/organizator-panel/kurulum');
 
-  const [stats, checkIn] = await Promise.all([
-    getOrganizerStats(organizer.id),
-    getOrganizerCheckInStats(organizer.id),
+  const [salesStats, checkIn] = await Promise.all([
+    getOrganizerSalesStats(organizer.id),
+    getOrganizerCheckInStats(organizer.id)
   ]);
-
-  const revenueFormatted = new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: 'TRY',
-    maximumFractionDigits: 0,
-  }).format(stats.revenue);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -39,11 +26,11 @@ export default async function OrganizatorHomePage() {
         <div>
           <p className="text-sm font-medium text-primary">Organizatör Paneli</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground">
-            Merhaba, {organizer.name}
+            Satış &amp; Davetiye Özeti
           </h1>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            Etkinliklerinizi yönetin, bilet satışlarını takip edin ve girişleri QR ile
-            doğrulayın.
+            Bilet ve loca satışları, davetiyeler ve ciro tek ekranda. Kartlara tıklayarak
+            detay listelerine gidebilirsiniz.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -62,34 +49,7 @@ export default async function OrganizatorHomePage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <DashboardStatCard
-          label="Yaklaşan Etkinlik"
-          value={String(stats.eventCount)}
-          hint="Yayında ve gelecek tarihli"
-          icon={CalendarDays}
-        />
-        <DashboardStatCard
-          label="Satılan Bilet"
-          value={String(stats.soldTickets)}
-          hint={`${checkIn.waiting} giriş bekliyor`}
-          icon={Ticket}
-          accent="primary"
-        />
-        <DashboardStatCard
-          label="Gelir"
-          value={revenueFormatted}
-          hint="Ödenen siparişler"
-          icon={TrendingUp}
-        />
-        <DashboardStatCard
-          label="Giriş Yapılan"
-          value={String(stats.scannedTickets)}
-          hint={`%${checkIn.attendancePct} katılım`}
-          icon={UserCheck}
-          accent="success"
-        />
-      </div>
+      <SalesStatsGrid initial={salesStats} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="border shadow-sm lg:col-span-2">
@@ -106,6 +66,9 @@ export default async function OrganizatorHomePage() {
             <CardTitle className="text-lg">Hızlı işlemler</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
+            <Button asChild variant="secondary" className="h-11 justify-start font-medium">
+              <Link href="/organizator-panel/davetiyeler">Davetiye gönder</Link>
+            </Button>
             <Button asChild variant="secondary" className="h-11 justify-start font-medium">
               <Link href="/organizator-panel/etkinlikler">Etkinlikleri yönet</Link>
             </Button>
