@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { verifySessionCookie } from '@/lib/auth/session';
-import { getOrganizerForSession } from '@/lib/auth/organizer-api';
+import { resolveScannerUser } from '@/lib/auth/organizer-api';
 import { OrganizatorShell } from '@/components/organizator-panel/shell';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
@@ -15,10 +15,12 @@ export default async function OrganizatorTerminalLayout({
   }
 
   await ensureDbConnection();
-  const user = await prisma.user.findFirst({
-    where: { firebaseUid: session.uid, deletedAt: null }
-  });
-  const organizer = await getOrganizerForSession(session.uid, session.email);
+  const user = await resolveScannerUser(session.uid, session.email);
+  const organizer = user
+    ? await prisma.organizer.findFirst({
+        where: { ownerId: user.id, deletedAt: null }
+      })
+    : null;
 
   if (!organizer) {
     redirect('/organizator-panel/kurulum');

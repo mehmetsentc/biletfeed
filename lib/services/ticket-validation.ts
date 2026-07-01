@@ -113,6 +113,7 @@ export async function validateTicketInput(input: {
   scannerUid: string;
   scannerEmail?: string;
   scannerRole?: UserRole;
+  scannerUserId?: string;
   scannerOrganizerId?: string;
   markUsed?: boolean;
   device?: string;
@@ -178,6 +179,7 @@ export async function validateTicketInput(input: {
     firebaseUid: input.scannerUid,
     email: input.scannerEmail,
     role: input.scannerRole,
+    scannerUserId: input.scannerUserId,
     scannerOrganizerId: input.scannerOrganizerId,
     eventOrganizerId: ticket.event.organizerId,
     invitationOrganizerId: ticket.invitation?.organizerId,

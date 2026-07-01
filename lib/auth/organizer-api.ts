@@ -18,23 +18,84 @@ function ownerIdentityFilter(firebaseUid: string, email?: string) {
   };
 }
 
-export async function getOrganizerForSession(firebaseUid: string, email?: string) {
+/** DB kullanıcısı — uid/e-posta uyumsuzluğunda firebaseUid senkronize edilir */
+export async function resolveScannerUser(firebaseUid: string, email?: string) {
   await ensureDbConnection();
-
-  const byUid = await prisma.organizer.findFirst({
-    where: { owner: { firebaseUid, deletedAt: null }, deletedAt: null }
-  });
-  if (byUid) return byUid;
-
   const normalizedEmail = normalizeEmail(email);
-  if (!normalizedEmail) return null;
+
+  let user = await prisma.user.findFirst({
+    where: { firebaseUid, deletedAt: null },
+    select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
+  });
+
+  if (!user && normalizedEmail) {
+    user = await prisma.user.findFirst({
+      where: { email: normalizedEmail, deletedAt: null },
+      select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
+    });
+    if (user && user.firebaseUid !== firebaseUid) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { firebaseUid },
+        select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
+      });
+    }
+  }
+
+  return user;
+}
+
+export async function getOrganizerForSession(firebaseUid: string, email?: string) {
+  const user = await resolveScannerUser(firebaseUid, email);
+  if (!user) return null;
 
   return prisma.organizer.findFirst({
-    where: {
-      deletedAt: null,
-      owner: { email: normalizedEmail, deletedAt: null }
-    }
+    where: { ownerId: user.id, deletedAt: null }
   });
+}
+
+export type ScannerContext = {
+  session: NonNullable<Awaited<ReturnType<typeof verifySessionCookie>>>;
+  user: { id: string; firebaseUid: string; email: string; role: UserRole };
+  organizer: { id: string } | null;
+  scannerUserId: string;
+  scannerOrganizerId?: string;
+};
+
+/** QR tarayıcı oturumu — kullanıcı + organizatör tek kaynaktan çözülür */
+export async function resolveScannerContext(): Promise<ScannerContext | null> {
+  const session = await verifySessionCookie();
+  if (!session) return null;
+
+  const user = await resolveScannerUser(session.uid, session.email);
+  if (!user) return null;
+
+  const organizer = await prisma.organizer.findFirst({
+    where: { ownerId: user.id, deletedAt: null },
+    select: { id: true }
+  });
+
+  if (organizer) {
+    return {
+      session,
+      user: { ...user, role: user.role as UserRole },
+      organizer,
+      scannerUserId: user.id,
+      scannerOrganizerId: organizer.id
+    };
+  }
+
+  if (sessionHasRole({ uid: session.uid, role: user.role as UserRole }, 'ROLE_ADMIN')) {
+    return {
+      session,
+      user: { ...user, role: user.role as UserRole },
+      organizer: null,
+      scannerUserId: user.id,
+      scannerOrganizerId: undefined
+    };
+  }
+
+  return null;
 }
 
 /** Oturum sahibi bu etkinliğin organizatörü mü? */
@@ -44,14 +105,14 @@ export async function isEventOwnedByFirebaseUid(
   email?: string
 ): Promise<boolean> {
   await ensureDbConnection();
+  const user = await resolveScannerUser(firebaseUid, email);
+  if (!user) return false;
+
   const event = await prisma.event.findFirst({
     where: {
       id: eventId,
       deletedAt: null,
-      organizer: {
-        deletedAt: null,
-        owner: ownerIdentityFilter(firebaseUid, email)
-      }
+      organizer: { deletedAt: null, ownerId: user.id }
     },
     select: { id: true }
   });
@@ -64,6 +125,7 @@ export async function canScannerAccessTicket(params: {
   firebaseUid: string;
   email?: string;
   role?: UserRole;
+  scannerUserId?: string;
   scannerOrganizerId?: string;
   eventOrganizerId: string;
   invitationOrganizerId?: string | null;
@@ -76,6 +138,44 @@ export async function canScannerAccessTicket(params: {
     return true;
   }
 
+  await ensureDbConnection();
+
+  const user =
+    params.scannerUserId != null
+      ? { id: params.scannerUserId }
+      : await resolveScannerUser(params.firebaseUid, params.email);
+
+  if (!user) return false;
+
+  // En güvenilir yol: etkinlik/davetiye/sipariş organizatörünün ownerId'si
+  const ownerMatch = await prisma.purchasedTicket.findFirst({
+    where: {
+      id: params.ticketId,
+      deletedAt: null,
+      OR: [
+        {
+          event: {
+            deletedAt: null,
+            organizer: { deletedAt: null, ownerId: user.id }
+          }
+        },
+        {
+          invitation: {
+            deletedAt: null,
+            organizer: { deletedAt: null, ownerId: user.id }
+          }
+        },
+        {
+          order: {
+            organizer: { deletedAt: null, ownerId: user.id }
+          }
+        }
+      ]
+    },
+    select: { id: true }
+  });
+  if (ownerMatch) return true;
+
   const ownedOrganizerIds = new Set(
     [params.eventOrganizerId, params.invitationOrganizerId, params.orderOrganizerId].filter(
       (id): id is string => Boolean(id)
@@ -86,11 +186,9 @@ export async function canScannerAccessTicket(params: {
     return true;
   }
 
-  await ensureDbConnection();
-
   const ownerWhere = ownerIdentityFilter(params.firebaseUid, params.email);
 
-  const match = await prisma.purchasedTicket.findFirst({
+  const identityMatch = await prisma.purchasedTicket.findFirst({
     where: {
       id: params.ticketId,
       deletedAt: null,
@@ -117,7 +215,7 @@ export async function canScannerAccessTicket(params: {
     select: { id: true }
   });
 
-  return Boolean(match);
+  return Boolean(identityMatch);
 }
 
 export async function canManageEventTickets(
@@ -149,16 +247,13 @@ export async function requireOrganizerSession() {
   const session = await verifySessionCookie();
   if (!session) return null;
 
-  const organizer = await getOrganizerForSession(session.uid, session.email);
-  if (!organizer) return null;
+  const user = await resolveScannerUser(session.uid, session.email);
+  if (!user) return null;
 
-  // Panel erişimi organizatör profili ile — çerezdeki rol gecikmiş olabilir
-  if (
-    !sessionHasRole(session, 'ROLE_ORGANIZER') &&
-    !sessionHasRole(session, 'ROLE_ADMIN')
-  ) {
-    return null;
-  }
+  const organizer = await prisma.organizer.findFirst({
+    where: { ownerId: user.id, deletedAt: null }
+  });
+  if (!organizer) return null;
 
   return { session, organizer };
 }

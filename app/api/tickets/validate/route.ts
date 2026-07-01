@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
-import { getOrganizerForSession } from '@/lib/auth/organizer-api';
+import { resolveScannerContext } from '@/lib/auth/organizer-api';
 import { validateTicketInput } from '@/lib/services/ticket-validation';
 import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
@@ -16,21 +15,15 @@ const postSchema = z.object({
   markUsed: z.boolean().optional(),
 });
 
-/** Panel erişimi olan organizatör veya admin — ROLE_ORGANIZER şart değil */
+/** Panel erişimi olan organizatör veya admin */
 async function resolveScannerAuth() {
-  const session = await verifySessionCookie();
-  if (!session) return null;
-
-  const organizer = await getOrganizerForSession(session.uid, session.email);
-  if (organizer) {
-    return { session, scannerOrganizerId: organizer.id };
-  }
-
-  if (sessionHasRole(session, 'ROLE_ADMIN')) {
-    return { session, scannerOrganizerId: undefined };
-  }
-
-  return null;
+  const ctx = await resolveScannerContext();
+  if (!ctx) return null;
+  return {
+    session: ctx.session,
+    scannerUserId: ctx.scannerUserId,
+    scannerOrganizerId: ctx.scannerOrganizerId
+  };
 }
 
 /** QR kod URL'si tarandığında GET ile de doğrulama yapılabilir (salt okunur). */
@@ -51,6 +44,7 @@ export async function GET(request: NextRequest) {
     scannerUid: auth.session.uid,
     scannerEmail: auth.session.email,
     scannerRole: auth.session.role,
+    scannerUserId: auth.scannerUserId,
     scannerOrganizerId: auth.scannerOrganizerId,
     markUsed: false,
   });
@@ -82,6 +76,7 @@ export async function POST(request: NextRequest) {
     scannerUid: auth.session.uid,
     scannerEmail: auth.session.email,
     scannerRole: auth.session.role,
+    scannerUserId: auth.scannerUserId,
     scannerOrganizerId: auth.scannerOrganizerId,
     markUsed: parsed.data.markUsed ?? true,
     scannerId: parsed.data.scannerId,
