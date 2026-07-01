@@ -18,7 +18,7 @@ export default async function OrganizatorTerminalLayout({
   const user = await prisma.user.findFirst({
     where: { firebaseUid: session.uid, deletedAt: null }
   });
-  const organizer = await getOrganizerForSession(session.uid);
+  const organizer = await getOrganizerForSession(session.uid, session.email);
 
   if (!organizer) {
     redirect('/organizator-panel/kurulum');

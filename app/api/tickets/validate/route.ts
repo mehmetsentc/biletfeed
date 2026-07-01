@@ -21,7 +21,7 @@ async function resolveScannerAuth() {
   const session = await verifySessionCookie();
   if (!session) return null;
 
-  const organizer = await getOrganizerForSession(session.uid);
+  const organizer = await getOrganizerForSession(session.uid, session.email);
   if (organizer) {
     return { session, scannerOrganizerId: organizer.id };
   }
@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     validationToken: searchParams.get('token') || undefined,
     ticketId: searchParams.get('id') || undefined,
     scannerUid: auth.session.uid,
+    scannerEmail: auth.session.email,
     scannerRole: auth.session.role,
     scannerOrganizerId: auth.scannerOrganizerId,
     markUsed: false,
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
   const result = await validateTicketInput({
     ...parsed.data,
     scannerUid: auth.session.uid,
+    scannerEmail: auth.session.email,
     scannerRole: auth.session.role,
     scannerOrganizerId: auth.scannerOrganizerId,
     markUsed: parsed.data.markUsed ?? true,

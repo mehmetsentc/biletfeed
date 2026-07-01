@@ -1,9 +1,6 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { verifyValidationToken, parseQrPayload } from '@/lib/tickets/sign';
-import {
-  canManageEventTickets,
-  isEventOwnedByFirebaseUid
-} from '@/lib/auth/organizer-api';
+import { canScannerAccessTicket } from '@/lib/auth/organizer-api';
 import type { UserRole } from '@/types';
 import type { EntryPolicy } from '@prisma/client';
 
@@ -114,6 +111,7 @@ export async function validateTicketInput(input: {
   qrRaw?: string;
   eventId?: string;
   scannerUid: string;
+  scannerEmail?: string;
   scannerRole?: UserRole;
   scannerOrganizerId?: string;
   markUsed?: boolean;
@@ -158,7 +156,8 @@ export async function validateTicketInput(input: {
           guestPhone: true,
           status: true
         }
-      }
+      },
+      order: { select: { organizerId: true } }
     }
   });
 
@@ -174,36 +173,16 @@ export async function validateTicketInput(input: {
     };
   }
 
-  const ownedOrganizerIds = new Set(
-    [
-      ticket.event.organizerId,
-      ticket.invitation?.organizerId
-    ].filter((id): id is string => Boolean(id))
-  );
-
-  let canScan =
-    (input.scannerOrganizerId != null &&
-      ownedOrganizerIds.has(input.scannerOrganizerId)) ||
-    (await isEventOwnedByFirebaseUid(ticket.eventId, input.scannerUid)) ||
-    (await canManageEventTickets(
-      input.scannerUid,
-      ticket.eventId,
-      input.scannerRole,
-      input.scannerOrganizerId
-    ));
-
-  if (!canScan && ticket.invitation?.organizerId) {
-    await ensureDbConnection();
-    const invOwner = await prisma.organizer.findFirst({
-      where: {
-        id: ticket.invitation.organizerId,
-        deletedAt: null,
-        owner: { firebaseUid: input.scannerUid, deletedAt: null }
-      },
-      select: { id: true }
-    });
-    canScan = Boolean(invOwner);
-  }
+  const canScan = await canScannerAccessTicket({
+    ticketId: ticket.id,
+    firebaseUid: input.scannerUid,
+    email: input.scannerEmail,
+    role: input.scannerRole,
+    scannerOrganizerId: input.scannerOrganizerId,
+    eventOrganizerId: ticket.event.organizerId,
+    invitationOrganizerId: ticket.invitation?.organizerId,
+    orderOrganizerId: ticket.order.organizerId
+  });
 
   if (!canScan) {
     return { status: 'INVALID', message: 'Bu bilet için yetkiniz yok' };
