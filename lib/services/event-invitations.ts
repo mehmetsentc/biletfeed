@@ -12,6 +12,7 @@ import {
   buildInvitationCalendarUrl,
   buildInvitationEmail
 } from '@/lib/email/invitation-template';
+import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
 
 function createInviteToken(): string {
   return randomBytes(16).toString('hex');
@@ -244,11 +245,14 @@ export async function createEventInvitation(params: {
 
   // Auto-send email to guest if they provided an address
   if (params.guestEmail) {
-    const eventDate = new Date(event.startDate).toLocaleDateString('tr-TR', {
+    const start = new Date(event.startDate);
+    const eventDate = start.toLocaleDateString('tr-TR', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
-      year: 'numeric',
+      year: 'numeric'
+    });
+    const eventTime = start.toLocaleTimeString('tr-TR', {
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -265,26 +269,31 @@ export async function createEventInvitation(params: {
       inviteUrl: result.inviteUrl
     });
 
-    void queueEmail({
-      to: params.guestEmail,
-      subject: `Davetiyeniz: ${event.title}`,
-      template: 'event_invitation',
-      html: buildInvitationEmail({
-        guestName: params.guestName,
-        eventTitle: event.title,
-        eventDate,
-        eventVenue: venueName,
-        eventCity: cityName,
-        coverImage: event.coverImage ?? '',
-        ticketTypeName: ticketType.name,
-        ticketCode: result.ticketCode,
-        personalMessage: params.personalMessage,
-        inviteUrl: result.inviteUrl,
-        calendarUrl,
-        organizerName: event.organizer.name
-      }),
-      orderId
-    }).catch((err) => {
+    void (async () => {
+      const qrDataUrl = await qrToDataUrl(result.inviteUrl);
+      await queueEmail({
+        to: params.guestEmail!,
+        subject: `Davetiyeniz: ${event.title}`,
+        template: 'event_invitation',
+        html: buildInvitationEmail({
+          guestName: params.guestName,
+          eventTitle: event.title,
+          eventDate,
+          eventTime,
+          eventVenue: venueName,
+          eventCity: cityName,
+          coverImage: event.coverImage ?? '',
+          ticketTypeName: ticketType.name,
+          ticketCode: result.ticketCode,
+          qrDataUrl,
+          personalMessage: params.personalMessage,
+          inviteUrl: result.inviteUrl,
+          calendarUrl,
+          organizerName: event.organizer.name
+        }),
+        orderId
+      });
+    })().catch((err) => {
       console.error('[email] invitation', invitation.id, err);
     });
   }

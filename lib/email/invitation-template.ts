@@ -6,41 +6,44 @@ import {
   emailLogoBar,
   emailShell
 } from '@/lib/email/email-shared';
-import {
-  emailTicketInfoGrid,
-  emailTicketLegalFooter,
-  emailTicketReferenceBlock
-} from '@/lib/email/ticket-email-blocks';
-import { barcodeToDataUrl } from '@/lib/tickets/design/barcode';
+import { buildTicketReceiptEmailCard } from '@/lib/email/ticket-receipt-email';
 
 /** Elegant HTML email template for event invitations. */
 export function buildInvitationEmail(params: {
   guestName: string;
   eventTitle: string;
   eventDate: string;
+  eventTime: string;
   eventVenue: string;
   eventCity: string;
   coverImage: string;
   ticketTypeName: string;
   ticketCode: string;
+  qrDataUrl: string;
   personalMessage?: string;
   inviteUrl: string;
   calendarUrl?: string;
   organizerName?: string;
+  categoryLabel?: string;
+  sectorGate?: string;
 }): string {
   const {
     guestName,
     eventTitle,
     eventDate,
+    eventTime,
     eventVenue,
     eventCity,
     coverImage,
     ticketTypeName,
     ticketCode,
+    qrDataUrl,
     personalMessage,
     inviteUrl,
     calendarUrl,
-    organizerName
+    organizerName,
+    categoryLabel,
+    sectorGate
   } = params;
 
   const coverBlock = coverImage
@@ -48,14 +51,14 @@ export function buildInvitationEmail(params: {
       <tr>
         <td>
           <img src="${coverImage}" alt="${eventTitle}"
-               width="560" style="display:block;width:100%;height:auto;max-height:240px;object-fit:cover;" />
+               width="560" style="display:block;width:100%;height:auto;max-height:200px;object-fit:cover;" />
         </td>
       </tr>`
     : '';
 
   const personalBlock = personalMessage
     ? `
-      <div style="margin:0 0 24px;padding:16px 20px;background:rgba(255,138,0,0.08);border-left:3px solid ${EMAIL_BRAND.accent};border-radius:0 8px 8px 0;">
+      <div style="margin:0 0 20px;padding:14px 18px;background:rgba(255,138,0,0.08);border-left:3px solid ${EMAIL_BRAND.accent};border-radius:0 8px 8px 0;">
         <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.75);font-style:italic;line-height:1.6;">
           "${personalMessage}"
         </p>
@@ -74,21 +77,20 @@ export function buildInvitationEmail(params: {
       </tr>`
     : '';
 
-  const barcodeUrl = barcodeToDataUrl(ticketCode, { width: 220, height: 44, barColor: '#FF8A00' });
-
-  const infoGrid = emailTicketInfoGrid([
-    { label: 'Etkinlik', value: eventTitle },
-    { label: 'Tarih & Saat', value: eventDate },
-    { label: 'Konum', value: `${eventVenue}, ${eventCity}` },
-    { label: 'Davetiye Türü', value: ticketTypeName },
-    { label: 'Katılımcı', value: guestName }
-  ]);
-
-  const referenceBlock = emailTicketReferenceBlock({
-    codeLabel: 'Davetiye Kodu',
+  const receiptCard = buildTicketReceiptEmailCard({
+    kind: 'invitation',
+    eventTitle,
+    eventDate,
+    eventTime,
+    venue: eventVenue,
+    city: eventCity,
+    ticketTypeName,
+    holderName: guestName,
     ticketCode,
-    barcodeDataUrl: barcodeUrl,
-    hint: 'Girişte QR kodunuzu veya davetiye kodunuzu gösterin.'
+    qrDataUrl,
+    personalMessage,
+    categoryLabel,
+    sectorGate
   });
 
   const content = `
@@ -96,20 +98,19 @@ export function buildInvitationEmail(params: {
     ${coverBlock}
     ${emailAccentBar()}
     <tr>
-      <td style="padding:32px 28px;">
-        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${EMAIL_BRAND.accent};">
+      <td style="padding:28px 24px;">
+        <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${EMAIL_BRAND.accent};">
           ✦ Davetiye
         </p>
         <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#fff;line-height:1.3;">
           Sayın ${guestName},
         </h1>
-        <p style="margin:0 0 24px;font-size:15px;color:rgba(255,255,255,0.65);line-height:1.6;">
+        <p style="margin:0 0 20px;font-size:15px;color:rgba(255,255,255,0.65);line-height:1.6;">
           <strong style="color:#fff;">${eventTitle}</strong> etkinliğine davetlisiniz.
-          Sizi aramızda görmekten büyük mutluluk duyacağız.
+          Aşağıdaki dijital davetiyenizi girişte göstermeniz yeterli.
         </p>
         ${personalBlock}
-        ${infoGrid}
-        ${referenceBlock}
+        ${receiptCard}
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td align="center">
@@ -121,7 +122,6 @@ export function buildInvitationEmail(params: {
           </tr>
           ${calendarBlock}
         </table>
-        ${emailTicketLegalFooter('invitation')}
       </td>
     </tr>
     ${emailFooter({

@@ -1,7 +1,12 @@
 'use client';
 
-import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
+import { platformContact } from '@/lib/config/contact';
 import { ticketPrintTokens as p } from '@/lib/tickets/design/print-tokens';
+import {
+  admissionRulesTr,
+  bilingualFieldLabels,
+  ticketKindLabels
+} from '@/lib/tickets/design/ticket-receipt-shared';
 import {
   ticketCompanyAddressLine,
   ticketCompanyContactLine,
@@ -17,10 +22,10 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     <div style={{ minWidth: 0 }}>
       <p
         style={{
-          fontSize: 9,
+          fontSize: 8,
           color: p.textMuted,
           fontWeight: 700,
-          letterSpacing: 1,
+          letterSpacing: 0.8,
           textTransform: 'uppercase',
           margin: '0 0 4px'
         }}
@@ -32,30 +37,49 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BrandLogo({ brand }: { brand: TicketDocumentData['brand'] }) {
+function BrandLogo({
+  brand,
+  logoSrc
+}: {
+  brand: TicketDocumentData['brand'];
+  logoSrc?: string | null;
+}) {
   if (brand === 'eventjoy') {
     return (
-      <span style={{ fontSize: 18, fontWeight: 800, color: p.headerText, letterSpacing: '-0.5px' }}>
-        Event<span style={{ color: '#4a2f00' }}>Joy</span>
+      <span style={{ fontSize: 18, fontWeight: 800, color: p.text, letterSpacing: '-0.5px' }}>
+        Event<span style={{ color: p.accent }}>Joy</span>
       </span>
+    );
+  }
+
+  if (logoSrc) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logoSrc}
+        alt="BiletFeed"
+        width={150}
+        height={38}
+        style={{ display: 'block', height: 32, width: 'auto' }}
+      />
     );
   }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={brandAssetUrl(brandLogos.forLightSurface)}
+      src="/brand/logo-dark.png?v=16"
       alt="BiletFeed"
-      width={140}
-      height={36}
-      style={{ display: 'block', height: 28, width: 'auto' }}
+      width={150}
+      height={38}
+      style={{ display: 'block', height: 32, width: 'auto' }}
     />
   );
 }
 
 function PerforatedLine() {
   return (
-    <div style={{ position: 'relative', margin: '20px 0' }}>
+    <div style={{ position: 'relative', margin: '18px 0' }}>
       <div
         style={{
           position: 'absolute',
@@ -85,29 +109,47 @@ function PerforatedLine() {
   );
 }
 
-function admissionRulesTr(isInvitation: boolean): string[] {
-  if (isInvitation) {
-    return [
-      '• Dışarıdan yiyecek ve içecek getirilemez.',
-      '• Profesyonel kamera, kayıt ve ses cihazı alınmaz.',
-      '• Davetiye kişiye özeldir; devredilemez ve iade edilemez.',
-      '• Girişte QR kod veya davetiye kodu gösterilmelidir.'
-    ];
-  }
-  return [
-    '• Dışarıdan yiyecek ve içecek getirilemez.',
-    '• Profesyonel kamera, kayıt ve ses cihazı alınmaz.',
-    '• Bilet kişiye özeldir; devredilemez ve iade edilemez.',
-    '• Bilet yalnızca bir kez kullanılabilir.'
-  ];
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <tr>
+      <td
+        style={{
+          padding: '6px 10px',
+          border: `1px solid ${p.border}`,
+          fontSize: 9,
+          fontWeight: 700,
+          color: p.textMuted,
+          textTransform: 'uppercase',
+          background: p.accentSoft,
+          width: '40%'
+        }}
+      >
+        {label}
+      </td>
+      <td
+        style={{
+          padding: '6px 10px',
+          border: `1px solid ${p.border}`,
+          fontSize: 11,
+          fontWeight: 600,
+          color: p.text
+        }}
+      >
+        {value}
+      </td>
+    </tr>
+  );
 }
 
 export function TicketDocument({
   data,
-  rootId = 'ticket-document'
+  rootId = 'ticket-document',
+  logoSrc
 }: {
   data: TicketDocumentData;
   rootId?: string;
+  /** Sunucu/önizleme — gömülü base64 logo */
+  logoSrc?: string;
 }) {
   const {
     kind,
@@ -126,16 +168,15 @@ export function TicketDocument({
     categoryLabel,
     sectorGate,
     description,
-    inviteUrl
+    inviteUrl,
+    orderNumber
   } = data;
 
   const isValid = status === 'VALID';
-  const isInvitation = kind === 'invitation';
-  const kindLabel = isInvitation ? 'DAVETİYE' : 'ETKİNLİK BİLETİ';
-  const kindLabelEn = isInvitation ? 'INVITATION' : 'EVENT TICKET';
-  const codeLabel = isInvitation ? 'Davetiye Kodu' : 'Bilet Kodu';
+  const labels = ticketKindLabels(kind);
   const barcodeUrl = barcodeToDataUrl(ticketCode, { width: 200, height: 36, barColor: p.text });
   const verticalBarcodeUrl = barcodeToDataUrl(ticketCode, { width: 110, height: 32, barColor: p.text });
+  const rules = admissionRulesTr(kind);
 
   return (
     <div
@@ -152,41 +193,40 @@ export function TicketDocument({
         overflow: 'hidden'
       }}
     >
-      {/* Header */}
       <div
         style={{
-          background: p.headerBg,
-          padding: '12px 20px',
+          background: p.pageBg,
+          padding: '14px 20px 0',
+          borderBottom: `3px solid ${p.accent}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: 12
         }}
       >
-        <BrandLogo brand={brand} />
+        <BrandLogo brand={brand} logoSrc={logoSrc} />
         <div style={{ textAlign: 'right' }}>
           <span
             style={{
               display: 'block',
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: 700,
-              letterSpacing: 2,
-              color: p.headerText,
+              letterSpacing: 1.5,
+              color: p.text,
               textTransform: 'uppercase'
             }}
           >
-            {kindLabel}
+            {labels.tr}
           </span>
-          <span style={{ fontSize: 9, color: `${p.headerText}99` }}>biletfeed.com</span>
+          <span style={{ fontSize: 8, color: p.textMuted, fontWeight: 600 }}>biletfeed.com</span>
         </div>
       </div>
 
       <div style={{ padding: '16px 20px' }}>
-        {/* Admission strip */}
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
           <div
             style={{
-              padding: 8,
+              padding: 6,
               border: `1px solid ${p.border}`,
               borderRadius: 4,
               flexShrink: 0
@@ -197,11 +237,11 @@ export function TicketDocument({
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 9, fontWeight: 700, color: p.text, margin: '0 0 8px', letterSpacing: 0.5 }}>
+            <p style={{ fontSize: 9, fontWeight: 700, color: p.text, margin: '0 0 6px', letterSpacing: 0.5 }}>
               GİRİŞ KURALLARI
             </p>
-            {admissionRulesTr(isInvitation).map((line) => (
-              <p key={line} style={{ fontSize: 10, color: p.textSecondary, margin: '0 0 4px', lineHeight: 1.4 }}>
+            {rules.map((line) => (
+              <p key={line} style={{ fontSize: 9, color: p.textSecondary, margin: '0 0 3px', lineHeight: 1.4 }}>
                 {line}
               </p>
             ))}
@@ -216,25 +256,13 @@ export function TicketDocument({
               height={110}
               style={{ display: 'block', transform: 'rotate(-90deg)', transformOrigin: 'center', margin: '40px auto 4px' }}
             />
-            <p style={{ fontSize: 8, color: p.textMuted, margin: 0, wordBreak: 'break-all' }}>{ticketCode}</p>
+            <p style={{ fontSize: 7, color: p.textMuted, margin: 0, wordBreak: 'break-all' }}>{ticketCode}</p>
           </div>
         </div>
 
         <PerforatedLine />
 
-        {/* Main body */}
-        <div style={{ position: 'relative', paddingLeft: 20 }}>
-          <div style={{ position: 'absolute', left: 0, top: 8 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={verticalBarcodeUrl}
-              alt=""
-              width={24}
-              height={90}
-              style={{ display: 'block', transform: 'rotate(-90deg)', transformOrigin: 'center' }}
-            />
-          </div>
-
+        <div style={{ position: 'relative' }}>
           <p
             style={{
               position: 'absolute',
@@ -248,7 +276,7 @@ export function TicketDocument({
               textTransform: 'uppercase'
             }}
           >
-            {kindLabelEn}
+            {labels.en}
           </p>
 
           <h1
@@ -257,16 +285,16 @@ export function TicketDocument({
               fontWeight: 800,
               lineHeight: 1.25,
               color: p.text,
-              margin: '0 0 6px',
+              margin: '0 0 8px',
               textTransform: 'uppercase',
-              paddingRight: 100
+              paddingRight: 90
             }}
           >
             {eventTitle}
           </h1>
 
-          <p style={{ fontSize: 11, color: p.textSecondary, margin: '0 0 14px' }}>
-            {isInvitation ? (
+          <p style={{ fontSize: 11, color: p.textSecondary, margin: '0 0 10px' }}>
+            {kind === 'invitation' ? (
               <>
                 <strong style={{ color: p.text }}>{holderName}</strong> adına düzenlenmiştir
               </>
@@ -280,7 +308,7 @@ export function TicketDocument({
           {personalMessage && (
             <div
               style={{
-                marginBottom: 14,
+                marginBottom: 12,
                 padding: '8px 12px',
                 background: p.accentSoft,
                 borderRadius: 4
@@ -292,23 +320,46 @@ export function TicketDocument({
             </div>
           )}
 
+          <p
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: p.accent,
+              textTransform: 'uppercase',
+              margin: '0 0 12px'
+            }}
+          >
+            {labels.typeLabel}
+          </p>
+
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: '14px 24px',
-              marginBottom: 16
+              gap: '12px 20px',
+              marginBottom: 12
             }}
           >
-            <DetailRow label="Mekan" value={`${venue}, ${city}`} />
-            <DetailRow label="Tarih" value={eventDate} />
-            <DetailRow label="Saat" value={eventTime} />
-            <DetailRow label={isInvitation ? 'Davetiye Türü' : 'Bilet Türü'} value={ticketTypeName} />
-            <DetailRow label="Katılımcı" value={holderName} />
-            <DetailRow label={codeLabel} value={ticketCode} />
-            {categoryLabel && <DetailRow label="Kategori" value={categoryLabel} />}
-            {sectorGate && <DetailRow label="Sektör / Kapı" value={sectorGate} />}
+            <DetailRow label={bilingualFieldLabels.venue} value={`${venue}, ${city}`} />
+            <DetailRow label={bilingualFieldLabels.date} value={eventDate} />
+            <DetailRow label={bilingualFieldLabels.time} value={eventTime} />
+            <DetailRow
+              label={kind === 'invitation' ? 'DAVETİYE TÜRÜ / TYPE' : bilingualFieldLabels.type}
+              value={ticketTypeName}
+            />
+            <DetailRow label={bilingualFieldLabels.holder} value={holderName} />
+            <DetailRow label={labels.codeLabelEn} value={ticketCode} />
+            {categoryLabel && <DetailRow label={bilingualFieldLabels.category} value={categoryLabel} />}
+            {sectorGate && <DetailRow label={bilingualFieldLabels.sector} value={sectorGate} />}
           </div>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+            <tbody>
+              <SummaryRow label="Kod / Code" value={ticketCode} />
+              <SummaryRow label="Kategori / Category" value={categoryLabel ?? ticketTypeName} />
+              {orderNumber && <SummaryRow label="Sipariş / Order" value={orderNumber} />}
+            </tbody>
+          </table>
 
           {description && (
             <p style={{ fontSize: 11, color: p.textSecondary, lineHeight: 1.55, margin: '0 0 12px' }}>{description}</p>
@@ -319,51 +370,56 @@ export function TicketDocument({
               style={{
                 padding: '3px 10px',
                 borderRadius: 3,
-                fontSize: 9,
+                fontSize: 8,
                 fontWeight: 700,
                 letterSpacing: 0.5,
                 background: isValid ? `${p.success}22` : `${p.danger}22`,
                 color: isValid ? p.success : p.danger
               }}
             >
-              {isValid ? 'GEÇERLİ' : 'GEÇERSİZ'}
+              {isValid ? 'GEÇERLİ / VALID' : 'GEÇERSİZ / INVALID'}
             </span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={barcodeUrl} alt="" width={200} height={36} style={{ display: 'block' }} />
+            <img src={barcodeUrl} alt="" width={200} height={36} style={{ display: 'block', marginLeft: 'auto' }} />
           </div>
 
-          <p style={{ fontSize: 10, color: p.textMuted, lineHeight: 1.5, margin: '8px 0 0' }}>
+          <p style={{ fontSize: 9, color: p.textMuted, lineHeight: 1.5, margin: '8px 0 0' }}>
             {inviteUrl
               ? 'Davetiyeyi görüntülemek için QR kodu okutun veya bağlantıyı ziyaret edin.'
-              : isInvitation
+              : kind === 'invitation'
                 ? 'Girişte bu QR kodu veya davetiye kodunu gösterin.'
                 : 'Girişte bu QR kodu veya bilet kodunu gösterin. Bilet yalnızca bir kez kullanılabilir.'}
           </p>
           {inviteUrl && (
-            <p style={{ marginTop: 6, fontSize: 9, color: p.textDim, wordBreak: 'break-all' }}>{inviteUrl}</p>
+            <p style={{ marginTop: 6, fontSize: 8, color: p.textDim, wordBreak: 'break-all' }}>{inviteUrl}</p>
           )}
         </div>
 
         <PerforatedLine />
 
-        {/* Footer */}
-        <div>
-          <p style={{ fontSize: 9, fontWeight: 700, color: p.textMuted, margin: '0 0 8px', letterSpacing: 0.5 }}>
-            ŞARTLAR / TERMS
-          </p>
-          <p style={{ fontSize: 9, color: p.textSecondary, lineHeight: 1.55, margin: '0 0 6px' }}>
-            {ticketTermsTr(kind)}
-          </p>
-          <p style={{ fontSize: 8, color: p.textMuted, lineHeight: 1.5, margin: '0 0 12px', fontStyle: 'italic' }}>
-            {ticketTermsEn(kind)}
-          </p>
-          <div style={{ borderTop: `1px solid ${p.border}`, paddingTop: 10 }}>
-            <p style={{ fontSize: 8, color: p.textDim, margin: '0 0 3px', lineHeight: 1.5 }}>
-              {ticketCompanyLegalLine()}
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'space-between' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 8, fontWeight: 700, color: p.textMuted, margin: '0 0 6px', letterSpacing: 0.5 }}>
+              ŞARTLAR / TERMS
             </p>
-            <p style={{ fontSize: 8, color: p.textDim, margin: '0 0 3px' }}>{ticketCompanyAddressLine()}</p>
-            <p style={{ fontSize: 8, color: p.textDim, margin: 0 }}>{ticketCompanyContactLine()}</p>
-            <p style={{ fontSize: 9, color: p.accent, fontWeight: 700, margin: '8px 0 0', textAlign: 'right' }}>
+            <p style={{ fontSize: 8, color: p.textSecondary, lineHeight: 1.55, margin: '0 0 4px' }}>
+              {ticketTermsTr(kind)}
+            </p>
+            <p style={{ fontSize: 7, color: p.textMuted, lineHeight: 1.5, margin: '0 0 10px', fontStyle: 'italic' }}>
+              {ticketTermsEn(kind)}
+            </p>
+            <div style={{ borderTop: `1px solid ${p.border}`, paddingTop: 8 }}>
+              <p style={{ fontSize: 7, color: p.textDim, margin: '0 0 2px', lineHeight: 1.5 }}>
+                {ticketCompanyLegalLine()}
+              </p>
+              <p style={{ fontSize: 7, color: p.textDim, margin: '0 0 2px' }}>{ticketCompanyAddressLine()}</p>
+              <p style={{ fontSize: 7, color: p.textDim, margin: 0 }}>{ticketCompanyContactLine()}</p>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', alignSelf: 'flex-end', minWidth: 120 }}>
+            <p style={{ fontSize: 8, fontWeight: 700, color: p.textMuted, margin: '0 0 2px' }}>Yardım / Support</p>
+            <p style={{ fontSize: 8, color: p.accent, fontWeight: 600, margin: 0 }}>{platformContact.email}</p>
+            <p style={{ fontSize: 9, color: p.accent, fontWeight: 700, margin: '6px 0 0' }}>
               {brand === 'eventjoy' ? 'EventJoy · ' : ''}biletfeed.com
             </p>
           </div>

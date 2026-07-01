@@ -6,12 +6,7 @@ import {
   emailLogoBar,
   emailShell
 } from '@/lib/email/email-shared';
-import {
-  emailTicketInfoGrid,
-  emailTicketLegalFooter,
-  emailTicketReferenceBlock
-} from '@/lib/email/ticket-email-blocks';
-import { barcodeToDataUrl } from '@/lib/tickets/design/barcode';
+import { buildTicketReceiptEmailCard } from '@/lib/email/ticket-receipt-email';
 
 function esc(s: string): string {
   return s
@@ -25,6 +20,7 @@ export interface TicketPurchaseEmailParams {
   customerName: string;
   eventTitle: string;
   eventDate: string;
+  eventTime: string;
   eventEndDate?: string;
   eventVenue: string;
   eventCity: string;
@@ -34,6 +30,7 @@ export interface TicketPurchaseEmailParams {
   totalLabel: string;
   ticketLines: Array<{ name: string; quantity: number; unitPrice: string }>;
   ticketCodes: string[];
+  qrDataUrl: string;
   ticketsUrl: string;
   eventUrl: string;
   printUrl?: string;
@@ -41,12 +38,13 @@ export interface TicketPurchaseEmailParams {
   rules?: string;
 }
 
-/** Profesyonel bilet satın alma onay e-postası — receipt-style dark tema */
+/** Profesyonel bilet satın alma onay e-postası — iTicket tarzı beyaz bilet kartı */
 export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): string {
   const {
     customerName,
     eventTitle,
     eventDate,
+    eventTime,
     eventVenue,
     eventCity,
     coverImage,
@@ -55,6 +53,7 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
     totalLabel,
     ticketLines,
     ticketCodes,
+    qrDataUrl,
     ticketsUrl,
     eventUrl,
     printUrl,
@@ -76,30 +75,38 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
     .join('');
 
   const primaryCode = ticketCodes[0] ?? '';
-  const barcodeUrl = primaryCode
-    ? barcodeToDataUrl(primaryCode, { width: 220, height: 44, barColor: '#FF8A00' })
+  const primaryType = ticketLines[0]?.name ?? 'Bilet';
+
+  const receiptCard = primaryCode
+    ? buildTicketReceiptEmailCard({
+        kind: 'ticket',
+        eventTitle,
+        eventDate,
+        eventTime,
+        venue: eventVenue,
+        city: eventCity,
+        ticketTypeName: primaryType,
+        holderName: customerName || 'Misafir',
+        ticketCode: primaryCode,
+        qrDataUrl,
+        orderNumber,
+        categoryLabel: primaryType
+      })
     : '';
 
-  const codesBlock =
-    ticketCodes.length > 0 && primaryCode
-      ? emailTicketReferenceBlock({
-          codeLabel: ticketCodes.length > 1 ? 'Bilet Kodları (İlki)' : 'Bilet Kodu',
-          ticketCode: primaryCode,
-          barcodeDataUrl: barcodeUrl,
-          hint:
-            ticketCodes.length > 1
-              ? `Toplam ${ticketCodes.length} bilet. Tüm kodlar hesabınızda görüntülenebilir.`
-              : 'Girişte QR kodunuzu veya bilet kodunuzu gösterin.'
-        }) +
-        (ticketCodes.length > 1
-          ? ticketCodes
-              .slice(1)
-              .map(
-                (code) =>
-                  `<p style="margin:4px 0;text-align:center;font-family:monospace;font-size:16px;font-weight:700;letter-spacing:2px;color:${EMAIL_BRAND.accent};">${esc(code)}</p>`
-              )
-              .join('')
-          : '')
+  const extraCodes =
+    ticketCodes.length > 1
+      ? `
+        <div style="margin:0 0 20px;padding:12px 16px;background:rgba(255,255,255,0.04);border-radius:8px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:11px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1px;">Diğer Bilet Kodları</p>
+          ${ticketCodes
+            .slice(1)
+            .map(
+              (code) =>
+                `<p style="margin:4px 0;font-family:monospace;font-size:16px;font-weight:700;letter-spacing:2px;color:${EMAIL_BRAND.accent};">${esc(code)}</p>`
+            )
+            .join('')}
+        </div>`
       : '';
 
   const secondaryButtons = [
@@ -119,48 +126,59 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
       <tr>
         <td>
           <img src="${esc(coverImage)}" alt="${esc(eventTitle)}"
-               width="560" style="display:block;width:100%;height:auto;max-height:240px;object-fit:cover;" />
+               width="560" style="display:block;width:100%;height:auto;max-height:200px;object-fit:cover;" />
         </td>
       </tr>`
     : '';
-
-  const infoGrid = emailTicketInfoGrid([
-    { label: 'Tarih & Saat', value: eventDate },
-    { label: 'Konum', value: `${eventVenue}${eventCity ? `, ${eventCity}` : ''}` },
-    { label: 'Organizatör', value: organizerName },
-    { label: 'Sipariş No', value: orderNumber },
-    { label: 'Toplam', value: totalLabel }
-  ]);
 
   const content = `
     ${emailLogoBar()}
     ${coverBlock}
     ${emailAccentBar()}
     <tr>
-      <td style="padding:32px 28px;">
-        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${EMAIL_BRAND.accent};">
+      <td style="padding:28px 24px;">
+        <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${EMAIL_BRAND.accent};">
           ✦ Bilet Onayı
         </p>
 
         <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#fff;line-height:1.3;">
           Tebrikler${customerName ? `, ${esc(customerName)}` : ''}!
         </h1>
-        <p style="margin:0 0 24px;font-size:15px;color:rgba(255,255,255,0.65);line-height:1.6;">
+        <p style="margin:0 0 20px;font-size:15px;color:rgba(255,255,255,0.65);line-height:1.6;">
           <strong style="color:#fff;">${esc(eventTitle)}</strong> etkinliği için biletiniz hazır.
-          Etkinlik günü QR kodunuzu girişte göstermeniz yeterli.
+          Aşağıdaki dijital biletinizi girişte göstermeniz yeterli.
         </p>
 
-        ${infoGrid}
-
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:4px 16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
           <tr>
-            <th align="left" style="padding:12px 0 8px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Biletler</th>
-            <th align="right" style="padding:12px 0 8px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Tutar</th>
+            <td style="padding:12px 16px 4px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;">Sipariş</td>
+                  <td align="right" style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;">Toplam</td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 0 12px;font-size:14px;font-weight:600;color:#fff;">${esc(orderNumber)}</td>
+                  <td align="right" style="padding:4px 0 12px;font-size:14px;font-weight:700;color:${EMAIL_BRAND.accent};">${esc(totalLabel)}</td>
+                </tr>
+              </table>
+            </td>
           </tr>
-          ${ticketRows}
+          <tr>
+            <td style="padding:0 16px 12px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <th align="left" style="padding:8px 0;font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;">Biletler</th>
+                  <th align="right" style="padding:8px 0;font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;">Tutar</th>
+                </tr>
+                ${ticketRows}
+              </table>
+            </td>
+          </tr>
         </table>
 
-        ${codesBlock}
+        ${receiptCard}
+        ${extraCodes}
 
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:16px;">
           <tr>
@@ -175,15 +193,17 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
 
         <p style="margin:0 0 20px;text-align:center;">${secondaryButtons}</p>
 
-        ${rules ? `
+        ${
+          rules
+            ? `
         <div style="margin:0 0 20px;padding:14px 16px;background:rgba(255,255,255,0.03);border-radius:8px;">
           <p style="margin:0 0 6px;font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Önemli Notlar</p>
           <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.55);line-height:1.5;">${esc(rules.slice(0, 400))}${rules.length > 400 ? '…' : ''}</p>
-        </div>` : ''}
+        </div>`
+            : ''
+        }
 
-        ${emailTicketLegalFooter('ticket')}
-
-        <p style="margin:16px 0 0;font-size:12px;color:rgba(255,255,255,0.35);text-align:center;line-height:1.6;">
+        <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.35);text-align:center;line-height:1.6;">
           Destek: <a href="mailto:${platformContact.email}" style="color:${EMAIL_BRAND.accent};text-decoration:none;">${platformContact.email}</a>
           · ${platformContact.supportHours}
         </p>

@@ -3,8 +3,10 @@ import { getSiteUrl } from '@/lib/config/domain';
 import { queueEmail } from '@/lib/accounting/email';
 import { buildGoogleCalendarUrl } from '@/lib/email/calendar';
 import { buildTicketPurchaseEmail } from '@/lib/email/ticket-purchase-template';
+import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
+import { buildTicketQrPayload } from '@/lib/tickets/sign';
 
-function formatEventDateTime(start: Date, end: Date): string {
+function formatEventDateTime(start: Date, end: Date): { date: string; time: string; full: string } {
   const date = start.toLocaleDateString('tr-TR', {
     weekday: 'long',
     day: 'numeric',
@@ -19,7 +21,11 @@ function formatEventDateTime(start: Date, end: Date): string {
     hour: '2-digit',
     minute: '2-digit'
   });
-  return `${date} · ${startTime} – ${endTime}`;
+  return {
+    date,
+    time: `${startTime} – ${endTime}`,
+    full: `${date} · ${startTime} – ${endTime}`
+  };
 }
 
 function formatMoney(amount: number, currency: string): string {
@@ -97,11 +103,22 @@ export async function sendTicketPurchaseEmail(
   });
 
   const currency = event.currency ?? 'TRY';
+  const eventDt = formatEventDateTime(event.startDate, event.endDate);
+
+  const qrPayload =
+    firstTicket &&
+    buildTicketQrPayload({
+      ticketCode: firstTicket.ticketCode,
+      validationToken: firstTicket.validationToken,
+      ticketId: firstTicket.id
+    });
+  const qrDataUrl = qrPayload ? await qrToDataUrl(qrPayload) : '';
 
   const html = buildTicketPurchaseEmail({
     customerName: order.user.displayName?.trim() ?? '',
     eventTitle: event.title,
-    eventDate: formatEventDateTime(event.startDate, event.endDate),
+    eventDate: eventDt.date,
+    eventTime: eventDt.time,
     eventVenue: venueName,
     eventCity: cityName,
     coverImage: event.coverImage ?? '',
@@ -114,6 +131,7 @@ export async function sendTicketPurchaseEmail(
       unitPrice: formatMoney(item.unitPrice * item.quantity, currency)
     })),
     ticketCodes: order.purchasedTickets.map((t) => t.ticketCode),
+    qrDataUrl,
     ticketsUrl: getSiteUrl('/biletlerim'),
     eventUrl: getSiteUrl(`/etkinlik/${event.slug}`),
     printUrl,

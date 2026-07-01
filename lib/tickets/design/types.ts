@@ -30,4 +30,6 @@ export type TicketDocumentData = {
   inviteUrl?: string | null;
   /** Opsiyonel fiyat etiketi */
   priceLabel?: string | null;
+  /** Opsiyonel sipariş referansı */
+  orderNumber?: string | null;
 };

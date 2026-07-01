@@ -1,4 +1,5 @@
-import { brandAssetUrl, brandLogos, brandTheme } from '@/lib/config/brand-theme';
+import { brandTheme } from '@/lib/config/brand-theme';
+import { emailHeaderLogoSrc } from '@/lib/brand/embed-logo';
 import { platformContact } from '@/lib/config/contact';
 import { getSiteUrl } from '@/lib/config/domain';
 
@@ -10,9 +11,9 @@ export const EMAIL_BRAND = {
   accentDark: brandTheme.orangeHover
 } as const;
 
-/** E-posta istemcileri için mutlak logo URL'si (koyu zemin) */
+/** E-posta istemcileri için logo (gömülü base64 — her zaman görünür) */
 export function emailLogoUrl(): string {
-  return getSiteUrl(brandAssetUrl(brandLogos.forDarkSurface));
+  return emailHeaderLogoSrc();
 }
 
 export function formatEventDateTimeTr(startDate: Date): string {

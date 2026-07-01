@@ -41,3 +41,7 @@ firebase-service-account.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated ticket preview (npm run preview:ticket)
+public/ticket-preview/*.html
+public/ticket-preview/reference-iticket.png

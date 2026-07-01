@@ -12,7 +12,7 @@ echo "  🌐  Tarayıcıda localhost sekmelerini kapat"
 echo "  ✅  Port açılınca → http://localhost:3000"
 echo ""
 
-if [ -d .next/cache/webpack ]; then
+if [ -d .next/cache/webpack ] && [ "${DEV_SKIP_CACHE_WIPE:-}" != "1" ]; then
   echo "  → Webpack cache temizleniyor..."
   rm -rf .next/cache/webpack
 fi
