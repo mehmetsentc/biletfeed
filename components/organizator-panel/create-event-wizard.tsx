@@ -9,10 +9,7 @@ import {
   Calendar,
   Clock,
   FileText,
-  Globe,
   ImageIcon,
-  MapPin,
-  Monitor,
   Plus,
   Sparkles,
   Ticket,
@@ -26,8 +23,7 @@ import {
   WizardFormRow,
   WizardFormSection,
   WizardOptionCards,
-  WizardSelect,
-  WizardTextarea
+  WizardSelect
 } from '@/components/organizator-panel/wizard-form';
 import { categories } from '@/lib/data/mock-events';
 import {
@@ -36,7 +32,18 @@ import {
   type CitySlug
 } from '@/lib/location/cities';
 import type { EventWizardInitialData } from '@/lib/organizator/event-wizard-data';
+import { EVENT_WIZARD_STEPS } from '@/lib/organizator/event-wizard-constants';
+import { WizardStepVenue } from '@/components/organizator-panel/event-wizard/wizard-step-venue';
+import { WizardStepContent } from '@/components/organizator-panel/event-wizard/wizard-step-content';
+import { WizardStepParticipation } from '@/components/organizator-panel/event-wizard/wizard-step-participation';
+import { WizardStepPublish } from '@/components/organizator-panel/event-wizard/wizard-step-publish';
+import type {
+  AttendeeQuestionRow,
+  PerformerRow
+} from '@/components/organizator-panel/event-wizard/types';
 import { cn } from '@/lib/utils';
+
+const TOTAL_STEPS = EVENT_WIZARD_STEPS.length;
 
 type EventTypeMode = 'single' | 'recurring';
 type LocationMode = '' | 'venue' | 'online' | 'hybrid';
@@ -109,16 +116,20 @@ function sessionToIso(session: SessionRow, useEnd = false): string | null {
 }
 
 const createStepHints = [
-  'Etkinlik bilgilerini, tarihini ve konumunu girin.',
-  'Kapak görseli yükleyerek etkinliğinizi öne çıkarın.',
-  'Bilet türü, fiyat ve kontenjan ayarlarını yapın.',
-  'Son kontrolü yapıp etkinliğinizi yayınlayın.'
+  'Etkinlik adı, kategori ve tarih bilgilerini girin.',
+  'Mekan, adres ve etiketleri belirleyin.',
+  'Katılımcıları ve etkinlik açıklamasını ekleyin.',
+  'Kapak görseli ve bilet kategorilerini ayarlayın.',
+  'Katılımcı soruları ve gizlilik seçeneklerini yapılandırın.',
+  'Son kontrolü yapın; taslak kaydedin veya yayınlayın.'
 ];
 
 const editStepHints = [
-  'Etkinlik bilgilerini, tarihini ve konumunu güncelleyin.',
-  'Kapak görselini değiştirebilirsiniz.',
-  'Bilet kategorilerini ve kontenjanı düzenleyin.',
+  'Etkinlik adı, kategori ve tarih bilgilerini güncelleyin.',
+  'Mekan, adres ve etiketleri düzenleyin.',
+  'Katılımcıları ve açıklamayı güncelleyin.',
+  'Kapak görseli ve bilet kategorilerini düzenleyin.',
+  'Katılımcı soruları ve gizlilik ayarlarını güncelleyin.',
   'Değişiklikleri kaydetmeden önce son kontrolü yapın.'
 ];
 
@@ -147,6 +158,16 @@ export function CreateOrganizerEventWizard({
   );
   const [location, setLocation] = useState<LocationMode>(initialData?.location ?? 'venue');
   const [venueName, setVenueName] = useState(initialData?.venueName ?? '');
+  const [venueAddress, setVenueAddress] = useState('');
+  const [venueDetail, setVenueDetail] = useState('');
+  const [onlineUrl, setOnlineUrl] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [performers, setPerformers] = useState<PerformerRow[]>([]);
+  const [attendeeQuestions, setAttendeeQuestions] = useState<AttendeeQuestionRow[]>([]);
+  const [preventQuestionCopy, setPreventQuestionCopy] = useState(false);
+  const [accessPassword, setAccessPassword] = useState('');
+  const [hiddenFromSearch, setHiddenFromSearch] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [previewImage, setPreviewImage] = useState<string | null>(initialData?.coverImage ?? null);
   const imageFileRef = useRef<File | null>(null);
@@ -195,12 +216,11 @@ export function CreateOrganizerEventWizard({
     setTicketCategories((prev) => prev.filter((c) => c.id !== id));
   }
 
-  async function publish() {
+  async function saveEvent(targetStatus: 'draft' | 'published') {
     setError(null);
     const first = sessions[0];
     const startDate = sessionToIso(first);
 
-    // endDate: festival = endDate field; others = endTime of same day
     let endDate: string | null;
     if (isFestival && first.endDate) {
       const endTime = first.endTime || first.startTime || '23:59';
@@ -215,6 +235,14 @@ export function CreateOrganizerEventWizard({
     }
     if (!startDate || !endDate) {
       setError('Geçerli bir başlangıç tarihi ve saati girin.');
+      return;
+    }
+    if (location !== 'online' && !venueName.trim()) {
+      setError('Lütfen etkinlik mekanını seçin veya girin.');
+      return;
+    }
+    if (!isEdit && targetStatus === 'published' && !termsAccepted) {
+      setError('Yayınlamak için organizatör kullanıcı sözleşmesini kabul etmelisiniz.');
       return;
     }
     const validCategories = ticketCategories.filter((c) => c.name.trim() && c.capacity);
@@ -254,6 +282,7 @@ export function CreateOrganizerEventWizard({
 
       const totalCapacity = validCategories.reduce((sum, c) => sum + Number(c.capacity), 0);
       const minPrice = ticketType === 'free' ? 0 : Math.min(...validCategories.map((c) => Number(c.price) || 0));
+      const isOnline = location === 'online' || location === 'hybrid';
 
       const payload = {
         title: title.trim(),
@@ -261,19 +290,34 @@ export function CreateOrganizerEventWizard({
         categorySlug: category,
         citySlug,
         venueName: location === 'online' ? 'Online' : venueName.trim() || undefined,
+        venueAddress: venueAddress.trim() || undefined,
+        venueDetail: venueDetail.trim() || undefined,
         startDate,
         endDate,
         isFree: ticketType === 'free',
         price: minPrice,
         capacity: totalCapacity,
         coverImage: coverImageUrl,
+        isOnline,
+        onlineUrl: onlineUrl.trim() || undefined,
+        tags,
+        performers: performers.map((p) => ({ name: p.name, type: p.type })),
+        attendeeQuestions: attendeeQuestions.map((q) => ({
+          question: q.question,
+          required: q.required
+        })),
+        preventQuestionCopy,
+        accessPassword: accessPassword.trim() || undefined,
+        hiddenFromSearch,
         ticketCategories: validCategories.map((c) => ({
           ...(c.ticketTypeId ? { id: c.ticketTypeId } : {}),
           name: c.name.trim(),
           description: c.description.trim(),
           price: ticketType === 'free' ? 0 : Number(c.price),
           capacity: Number(c.capacity)
-        }))
+        })),
+        status: targetStatus,
+        ...(targetStatus === 'published' ? { organizerTermsAccepted: true } : {})
       };
 
       const res = await fetch(
@@ -281,15 +325,11 @@ export function CreateOrganizerEventWizard({
         {
           method: isEdit ? 'PATCH' : 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(
-            isEdit
-              ? payload
-              : { ...payload, status: 'published' }
-          )
+          body: JSON.stringify(payload)
         }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || (isEdit ? 'Kayıt başarısız' : 'Yayınlama başarısız'));
+      if (!res.ok) throw new Error(data.error || (isEdit ? 'Kayıt başarısız' : 'Kayıt başarısız'));
 
       router.push(isEdit && eventId ? `/organizator-panel/etkinlik/${eventId}` : '/organizator-panel/etkinlikler');
     } catch (err) {
@@ -333,13 +373,13 @@ export function CreateOrganizerEventWizard({
               </div>
             </div>
             <span className="inline-flex w-fit shrink-0 items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              Adım {step} / 4
+              Adım {step} / {TOTAL_STEPS}
             </span>
           </div>
         </div>
 
         <div className="border-b border-border bg-muted/20 px-5 py-6 md:px-8">
-          <EventWizardStepper current={step} />
+          <EventWizardStepper current={step} steps={[...EVENT_WIZARD_STEPS]} />
         </div>
 
         <div className="space-y-6 p-5 md:p-8">
@@ -521,72 +561,42 @@ export function CreateOrganizerEventWizard({
                   )}
                 </div>
               </WizardFormSection>
-
-              <WizardFormSection
-                title="Konum"
-                description="Etkinliğin nerede gerçekleşeceğini seçin."
-                icon={MapPin}
-              >
-                <WizardFormRow label="Etkinlik formatı" required>
-                  <WizardOptionCards
-                    value={location}
-                    onChange={(v) => setLocation(v as LocationMode)}
-                    options={[
-                      {
-                        id: 'venue',
-                        title: 'Fiziksel mekan',
-                        description: 'Salon, açık hava, stadyum',
-                        icon: MapPin
-                      },
-                      {
-                        id: 'online',
-                        title: 'Online',
-                        description: 'Canlı yayın veya webinar',
-                        icon: Monitor
-                      },
-                      {
-                        id: 'hybrid',
-                        title: 'Hibrit',
-                        description: 'Hem fiziksel hem online',
-                        icon: Globe
-                      }
-                    ]}
-                  />
-                </WizardFormRow>
-                {location !== 'online' && (
-                  <WizardFormRow label="Mekan adı">
-                    <Input
-                      value={venueName}
-                      onChange={(e) => setVenueName(e.target.value)}
-                      placeholder="Örn: Volkswagen Arena"
-                      className="h-11 rounded-lg"
-                    />
-                  </WizardFormRow>
-                )}
-              </WizardFormSection>
-
-              <WizardFormSection
-                title="Açıklama"
-                description="Katılımcılara etkinliğinizi tanıtın."
-                icon={FileText}
-              >
-                <WizardFormRow label="Etkinlik Açıklaması" required alignTop>
-                  <WizardTextarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Etkinliğinizin özel yanlarını ve diğer önemli detayları açıklayın."
-                  />
-                </WizardFormRow>
-              </WizardFormSection>
             </div>
           )}
 
           {step === 2 && (
-            <WizardFormSection
-              title="Etkinlik Görseli"
-              description="Kapak görseli etkinliğinizin keşfedilme oranını artırır."
-              icon={ImageIcon}
-            >
+            <WizardStepVenue
+              location={location}
+              onLocationChange={setLocation}
+              venueName={venueName}
+              onVenueNameChange={setVenueName}
+              venueAddress={venueAddress}
+              onVenueAddressChange={setVenueAddress}
+              venueDetail={venueDetail}
+              onVenueDetailChange={setVenueDetail}
+              onlineUrl={onlineUrl}
+              onOnlineUrlChange={setOnlineUrl}
+              tags={tags}
+              onTagsChange={setTags}
+            />
+          )}
+
+          {step === 3 && (
+            <WizardStepContent
+              description={description}
+              onDescriptionChange={setDescription}
+              performers={performers}
+              onPerformersChange={setPerformers}
+            />
+          )}
+
+          {step === 4 && (
+            <div className="space-y-6">
+              <WizardFormSection
+                title="Etkinlik Görseli"
+                description="Kapak görseli etkinliğinizin keşfedilme oranını artırır. Tavsiye: 1920×1080 px, max. 10 MB."
+                icon={ImageIcon}
+              >
               <div className="py-5">
                 <label
                   className={cn(
@@ -633,9 +643,7 @@ export function CreateOrganizerEventWizard({
                 </label>
               </div>
             </WizardFormSection>
-          )}
 
-          {step === 3 && (
             <WizardFormSection
               title="Bilet Kategorileri"
               description="Her kategori için ad, fiyat, kontenjan ve açıklama belirleyin."
@@ -750,51 +758,49 @@ export function CreateOrganizerEventWizard({
                 )}
               </div>
             </WizardFormSection>
+            </div>
           )}
 
-          {step === 4 && (
-            <WizardFormSection
-              title="Önizleme"
-              description="Yayınlamadan önce son kontrolü yapın."
-              icon={Sparkles}
-            >
-              <div className="space-y-5 py-5">
-                {previewImage && (
-                  <div className="relative aspect-video overflow-hidden rounded-xl border border-border">
-                    <Image
-                      src={previewImage}
-                      alt="Kapak"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="rounded-xl border border-border bg-muted/20 p-5">
-                  <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                    {categoryName}
-                  </span>
-                  <h3 className="mt-3 text-xl font-bold text-foreground">
-                    {title || 'Etkinlik Başlığı'}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {cityName}
-                    {venueName ? ` · ${venueName}` : ''}
-                  </p>
-                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                    {description || 'Açıklama eklenmedi.'}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {ticketCategories.filter((c) => c.name).map((c) => (
-                      <span key={c.id} className="rounded-lg bg-background px-3 py-1.5 text-sm font-medium ring-1 ring-border">
-                        {c.name}
-                        {ticketType === 'paid' && c.price ? ` · ${c.price} ₺` : ticketType === 'free' ? ' · Ücretsiz' : ''}
-                        {c.capacity ? ` · ${c.capacity} kişi` : ''}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </WizardFormSection>
+          {step === 5 && (
+            <WizardStepParticipation
+              attendeeQuestions={attendeeQuestions}
+              onAttendeeQuestionsChange={setAttendeeQuestions}
+              preventQuestionCopy={preventQuestionCopy}
+              onPreventQuestionCopyChange={setPreventQuestionCopy}
+              accessPassword={accessPassword}
+              onAccessPasswordChange={setAccessPassword}
+              hiddenFromSearch={hiddenFromSearch}
+              onHiddenFromSearchChange={setHiddenFromSearch}
+            />
+          )}
+
+          {step === 6 && (
+            <WizardStepPublish
+              isEdit={isEdit}
+              previewImage={previewImage}
+              title={title}
+              categoryName={categoryName}
+              cityName={cityName}
+              venueName={location === 'online' ? 'Online' : venueName}
+              description={description}
+              tags={tags}
+              performers={performers}
+              attendeeQuestions={attendeeQuestions}
+              ticketSummary={ticketCategories
+                .filter((c) => c.name)
+                .map((c) => ({
+                  name: c.name,
+                  priceLabel:
+                    ticketType === 'paid' && c.price
+                      ? `${c.price} ₺`
+                      : ticketType === 'free'
+                        ? 'Ücretsiz'
+                        : '',
+                  capacity: c.capacity ? `${c.capacity} kişi` : ''
+                }))}
+              termsAccepted={termsAccepted}
+              onTermsAcceptedChange={setTermsAccepted}
+            />
           )}
         </div>
       </div>
@@ -813,21 +819,42 @@ export function CreateOrganizerEventWizard({
           ) : (
             <div className="hidden sm:block" />
           )}
-          <Button
-            onClick={() => (step < 4 ? setStep(step + 1) : publish())}
-            className="min-w-[160px] bg-primary px-8 text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
-            disabled={publishing}
-          >
-            {publishing
-              ? isEdit
-                ? 'Kaydediliyor…'
-                : 'Yayınlanıyor…'
-              : step < 4
-                ? 'Kaydet ve Devam Et'
-                : isEdit
-                  ? 'Değişiklikleri Kaydet'
-                  : 'Etkinliği Yayınla'}
-          </Button>
+
+          {step < TOTAL_STEPS ? (
+            <Button
+              onClick={() => setStep(step + 1)}
+              className="min-w-[160px] bg-primary px-8 text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
+              disabled={publishing}
+            >
+              Kaydet ve Devam Et
+            </Button>
+          ) : isEdit ? (
+            <Button
+              onClick={() => saveEvent('published')}
+              className="min-w-[160px] bg-primary px-8 text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
+              disabled={publishing}
+            >
+              {publishing ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
+            </Button>
+          ) : (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => saveEvent('draft')}
+                disabled={publishing}
+                className="min-w-[140px]"
+              >
+                {publishing ? 'Kaydediliyor…' : 'Taslak Olarak Kaydet'}
+              </Button>
+              <Button
+                onClick={() => saveEvent('published')}
+                disabled={publishing || !termsAccepted}
+                className="min-w-[140px] bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
+              >
+                {publishing ? 'Yayınlanıyor…' : 'Etkinliği Yayınla'}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

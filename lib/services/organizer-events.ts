@@ -1,6 +1,10 @@
 import type { EventStatus, EventType } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { uniqueSlug } from '@/lib/utils/slug';
+import {
+  buildEventExtrasData,
+  type OrganizerEventExtras
+} from '@/lib/organizator/event-metadata';
 
 export interface TicketCategoryInput {
   id?: string;
@@ -10,26 +14,7 @@ export interface TicketCategoryInput {
   capacity: number;
 }
 
-export interface UpdateOrganizerEventInput {
-  organizerId: string;
-  eventId: string;
-  title?: string;
-  description?: string;
-  categorySlug?: string;
-  citySlug?: string;
-  venueName?: string;
-  venueAddress?: string;
-  startDate?: Date;
-  endDate?: Date;
-  isFree?: boolean;
-  price?: number;
-  capacity?: number;
-  coverImage?: string;
-  status?: EventStatus;
-  ticketCategories?: TicketCategoryInput[];
-}
-
-export interface CreateOrganizerEventInput {
+export interface CreateOrganizerEventInput extends OrganizerEventExtras {
   organizerId: string;
   title: string;
   description: string;
@@ -45,6 +30,25 @@ export interface CreateOrganizerEventInput {
   coverImage?: string;
   status?: EventStatus;
   eventType?: EventType;
+  ticketCategories?: TicketCategoryInput[];
+}
+
+export interface UpdateOrganizerEventInput extends OrganizerEventExtras {
+  organizerId: string;
+  eventId: string;
+  title?: string;
+  description?: string;
+  categorySlug?: string;
+  citySlug?: string;
+  venueName?: string;
+  venueAddress?: string;
+  startDate?: Date;
+  endDate?: Date;
+  isFree?: boolean;
+  price?: number;
+  capacity?: number;
+  coverImage?: string;
+  status?: EventStatus;
   ticketCategories?: TicketCategoryInput[];
 }
 
@@ -114,6 +118,7 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
 
   const price = input.isFree ? 0 : input.price;
   const now = new Date();
+  const extras = buildEventExtrasData(input);
 
   return prisma.$transaction(async (tx) => {
     const event = await tx.event.create({
@@ -138,6 +143,12 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
         basePrice: price,
         capacity: input.capacity,
         listingType: 'internal',
+        tags: extras.tags,
+        rules: extras.rules,
+        faqs: extras.faqs,
+        seo: extras.seo,
+        isOnline: extras.isOnline,
+        onlineUrl: extras.onlineUrl,
         ticketTypes: {
           create: (input.ticketCategories && input.ticketCategories.length > 0
             ? input.ticketCategories.map((cat, i) => {
@@ -216,6 +227,36 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
 
   const now = new Date();
 
+  const extrasData: Record<string, unknown> = {};
+  if (input.tags !== undefined) extrasData.tags = input.tags;
+  if (input.venueDetail !== undefined) extrasData.rules = input.venueDetail.trim();
+  if (input.isOnline !== undefined) extrasData.isOnline = input.isOnline;
+  if (input.onlineUrl !== undefined) extrasData.onlineUrl = input.onlineUrl?.trim() || null;
+  if (input.attendeeQuestions !== undefined) extrasData.faqs = input.attendeeQuestions;
+
+  const hasSeoUpdate =
+    input.performers !== undefined ||
+    input.preventQuestionCopy !== undefined ||
+    input.accessPassword !== undefined ||
+    input.hiddenFromSearch !== undefined ||
+    input.organizerTermsAccepted;
+
+  if (hasSeoUpdate) {
+    const built = buildEventExtrasData({
+      performers: input.performers,
+      preventQuestionCopy: input.preventQuestionCopy,
+      accessPassword: input.accessPassword,
+      hiddenFromSearch: input.hiddenFromSearch,
+      venueDetail: input.venueDetail,
+      organizerTermsAccepted: input.organizerTermsAccepted
+    });
+    const existingSeo =
+      typeof event.seo === 'object' && event.seo !== null && !Array.isArray(event.seo)
+        ? (event.seo as Record<string, unknown>)
+        : {};
+    extrasData.seo = { ...existingSeo, ...built.seo };
+  }
+
   return prisma.$transaction(async (tx) => {
     const updated = await tx.event.update({
       where: { id: input.eventId },
@@ -232,6 +273,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
         ...(input.capacity !== undefined && { capacity: input.capacity }),
         ...(input.coverImage && { coverImage: input.coverImage }),
         ...(input.status && { status: input.status }),
+        ...extrasData,
         cityId,
         categoryId,
         venueId

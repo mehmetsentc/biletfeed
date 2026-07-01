@@ -16,6 +16,16 @@ const ticketCategorySchema = z.object({
   capacity: z.number().int().min(1)
 });
 
+const performerSchema = z.object({
+  name: z.string().min(1).max(200),
+  type: z.enum(['person', 'group'])
+});
+
+const attendeeQuestionSchema = z.object({
+  question: z.string().min(1).max(300),
+  required: z.boolean().default(true)
+});
+
 const patchSchema = z.object({
   status: z.enum(['draft', 'published', 'pending', 'cancelled']).optional(),
   title: z.string().min(3).max(200).optional(),
@@ -30,7 +40,17 @@ const patchSchema = z.object({
   price: z.number().min(0).optional(),
   capacity: z.number().int().min(1).max(1000000).optional(),
   coverImage: z.string().url().optional(),
-  ticketCategories: z.array(ticketCategorySchema).min(1).optional()
+  ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  venueDetail: z.string().max(2000).optional(),
+  isOnline: z.boolean().optional(),
+  onlineUrl: z.string().url().max(500).optional().or(z.literal('')),
+  performers: z.array(performerSchema).max(50).optional(),
+  attendeeQuestions: z.array(attendeeQuestionSchema).max(30).optional(),
+  preventQuestionCopy: z.boolean().optional(),
+  accessPassword: z.string().max(100).optional(),
+  hiddenFromSearch: z.boolean().optional(),
+  organizerTermsAccepted: z.boolean().optional()
 });
 
 interface RouteParams {
@@ -81,6 +101,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const data = parsed.data;
+
+  if (
+    data.status === 'published' &&
+    data.organizerTermsAccepted !== true
+  ) {
+    return NextResponse.json(
+      { error: 'Yayınlamak için organizatör sözleşmesini kabul etmelisiniz.' },
+      { status: 400 }
+    );
+  }
+
   const hasContentUpdate = Object.keys(data).some((key) => key !== 'status');
 
   try {
@@ -101,7 +132,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         ...(data.capacity !== undefined && { capacity: data.capacity }),
         ...(data.coverImage && { coverImage: data.coverImage }),
         ...(data.status && { status: data.status }),
-        ...(data.ticketCategories && { ticketCategories: data.ticketCategories })
+        ...(data.ticketCategories && { ticketCategories: data.ticketCategories }),
+        ...(data.tags !== undefined && { tags: data.tags }),
+        ...(data.venueDetail !== undefined && { venueDetail: data.venueDetail }),
+        ...(data.isOnline !== undefined && { isOnline: data.isOnline }),
+        ...(data.onlineUrl !== undefined && { onlineUrl: data.onlineUrl || undefined }),
+        ...(data.performers !== undefined && { performers: data.performers }),
+        ...(data.attendeeQuestions !== undefined && {
+          attendeeQuestions: data.attendeeQuestions
+        }),
+        ...(data.preventQuestionCopy !== undefined && {
+          preventQuestionCopy: data.preventQuestionCopy
+        }),
+        ...(data.accessPassword !== undefined && { accessPassword: data.accessPassword }),
+        ...(data.hiddenFromSearch !== undefined && {
+          hiddenFromSearch: data.hiddenFromSearch
+        }),
+        ...(data.organizerTermsAccepted !== undefined && {
+          organizerTermsAccepted: data.organizerTermsAccepted
+        })
       });
       return NextResponse.json({ success: true, event });
     }

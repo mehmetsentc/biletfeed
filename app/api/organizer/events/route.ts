@@ -12,6 +12,29 @@ const ticketCategorySchema = z.object({
   capacity: z.number().int().min(1)
 });
 
+const performerSchema = z.object({
+  name: z.string().min(1).max(200),
+  type: z.enum(['person', 'group'])
+});
+
+const attendeeQuestionSchema = z.object({
+  question: z.string().min(1).max(300),
+  required: z.boolean().default(true)
+});
+
+const eventExtrasSchema = {
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  venueDetail: z.string().max(2000).optional(),
+  isOnline: z.boolean().optional(),
+  onlineUrl: z.string().url().max(500).optional().or(z.literal('')),
+  performers: z.array(performerSchema).max(50).optional(),
+  attendeeQuestions: z.array(attendeeQuestionSchema).max(30).optional(),
+  preventQuestionCopy: z.boolean().optional(),
+  accessPassword: z.string().max(100).optional(),
+  hiddenFromSearch: z.boolean().optional(),
+  organizerTermsAccepted: z.boolean().optional()
+};
+
 const createSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().min(10).max(10000),
@@ -26,7 +49,8 @@ const createSchema = z.object({
   capacity: z.number().int().min(1).max(1000000),
   coverImage: z.string().url().optional(),
   status: z.enum(['draft', 'published', 'pending']).optional(),
-  ticketCategories: z.array(ticketCategorySchema).min(1).optional()
+  ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
+  ...eventExtrasSchema
 });
 
 export async function GET() {
@@ -55,6 +79,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
   }
 
+  if (
+    parsed.data.status === 'published' &&
+    parsed.data.organizerTermsAccepted !== true
+  ) {
+    return NextResponse.json(
+      { error: 'Yayınlamak için organizatör sözleşmesini kabul etmelisiniz.' },
+      { status: 400 }
+    );
+  }
+
   try {
     const event = await createOrganizerEvent({
       organizerId: ctx.organizer.id,
@@ -71,7 +105,17 @@ export async function POST(request: NextRequest) {
       capacity: parsed.data.capacity,
       coverImage: parsed.data.coverImage,
       status: parsed.data.status,
-      ticketCategories: parsed.data.ticketCategories
+      ticketCategories: parsed.data.ticketCategories,
+      tags: parsed.data.tags,
+      venueDetail: parsed.data.venueDetail,
+      isOnline: parsed.data.isOnline,
+      onlineUrl: parsed.data.onlineUrl || undefined,
+      performers: parsed.data.performers,
+      attendeeQuestions: parsed.data.attendeeQuestions,
+      preventQuestionCopy: parsed.data.preventQuestionCopy,
+      accessPassword: parsed.data.accessPassword,
+      hiddenFromSearch: parsed.data.hiddenFromSearch,
+      organizerTermsAccepted: parsed.data.organizerTermsAccepted
     });
 
     return NextResponse.json({ success: true, event });

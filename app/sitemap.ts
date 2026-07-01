@@ -18,6 +18,7 @@ const staticRoutes = [
   '/sss',
   '/kosullar',
   '/gizlilik',
+  '/organizator-sozlesmesi',
   '/cerezler',
   '/iade-iptal',
   '/mesafeli-satis',
