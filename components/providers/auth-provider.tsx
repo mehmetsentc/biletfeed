@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode
 } from 'react';
 import {
@@ -30,6 +31,7 @@ import {
   SessionEstablishError
 } from '@/lib/auth/client-session';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
+import { clearAuthTransientStorage } from '@/lib/auth/logout-cleanup';
 import type { User } from '@/types';
 import { ROLES } from '@/lib/auth/roles';
 
@@ -112,6 +114,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionReady, setSessionReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const isConfigured = isFirebaseConfigured();
+  const authGenerationRef = useRef(0);
+
+  const isStaleAuth = useCallback(
+    (generation: number, uid: string, currentUid: string | undefined) =>
+      authGenerationRef.current !== generation || currentUid !== uid,
+    []
+  );
 
   useEffect(() => {
     if (!isConfigured) {
@@ -122,7 +131,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let unsubscribe: (() => void) | undefined;
     let cancelled = false;
 
-    // Redirect sonucu persistence kurulmadan önce işlenmeli
     const auth = getFirebaseAuth();
     void Promise.all([
       import('@/lib/firebase/google-auth'),
@@ -164,19 +172,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
 
       unsubscribe = onAuthStateChanged(readyAuth, (fbUser) => {
-        setFirebaseUser(fbUser);
-
         if (fbUser) {
+          const generation = ++authGenerationRef.current;
+          const uid = fbUser.uid;
+
+          setFirebaseUser(fbUser);
           setUser(buildFallbackUser(fbUser));
           setSessionReady(false);
           setSessionError(null);
           setLoading(false);
-          void handleSignedInUser(fbUser).then(({ profile, sessionReady: ready, sessionError: err }) => {
-            setUser(profile);
-            setSessionReady(ready);
-            setSessionError(err ?? null);
-          });
+
+          void handleSignedInUser(fbUser).then(
+            ({ profile, sessionReady: ready, sessionError: err }) => {
+              const currentUid = readyAuth.currentUser?.uid;
+              if (isStaleAuth(generation, uid, currentUid)) return;
+
+              setUser(profile);
+              setSessionReady(ready);
+              setSessionError(err ?? null);
+            }
+          );
         } else {
+          authGenerationRef.current += 1;
+          setFirebaseUser(null);
           setUser(null);
           setSessionReady(false);
           setSessionError(null);
@@ -189,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [isConfigured]);
+  }, [isConfigured, isStaleAuth]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     const auth = await ensureAuthReady();
@@ -230,23 +248,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const fbUser = auth.currentUser;
     if (!fbUser) return false;
 
+    const generation = authGenerationRef.current;
+    const uid = fbUser.uid;
+
     setSessionReady(false);
     setSessionError(null);
     const { profile, sessionReady: ready, sessionError: err } =
       await handleSignedInUser(fbUser);
+
+    if (isStaleAuth(generation, uid, auth.currentUser?.uid)) return false;
+
     setUser(profile);
     setSessionReady(ready);
     setSessionError(err ?? null);
     return ready;
-  }, []);
+  }, [isStaleAuth]);
 
   const signOut = useCallback(async () => {
+    authGenerationRef.current += 1;
+    setUser(null);
+    setFirebaseUser(null);
     setSessionReady(false);
+    setSessionError(null);
+    setLoading(false);
+    clearAuthTransientStorage();
+
     try {
-      await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
+      await fetch('/api/auth/session', {
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
     } catch {
       // ignore
     }
+
     const auth = await ensureAuthReady();
     await firebaseSignOut(auth);
   }, []);

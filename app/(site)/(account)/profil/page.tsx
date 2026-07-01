@@ -52,9 +52,24 @@ export default function ProfilePage() {
     }
   }, [user?.email, orgEmail]);
 
+  // Hesap değişiminde organizatör state'ini sıfırla
+  useEffect(() => {
+    setOrgInfo(null);
+    setOrgLoading(false);
+    setOrgName('');
+    setOrgDesc('');
+    setOrgEmail(user?.email || '');
+    setOrgPhone('');
+    setOrgSubmitting(false);
+    setOrgError('');
+    setOrgSuccess(false);
+    setPendingMode(null);
+    setShowOrganizerSetup(false);
+  }, [user?.uid, user?.email]);
+
   // Mevcut organizatör profilini çek
   useEffect(() => {
-    if (!isAlreadyOrganizer || !isOrganizerMode || !isModeLocked) return;
+    if (!user?.uid || !isAlreadyOrganizer || !isOrganizerMode || !isModeLocked) return;
     setOrgLoading(true);
     fetch('/api/organizer/profile', { credentials: 'same-origin' })
       .then((r) => r.json())
@@ -63,7 +78,7 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setOrgLoading(false));
-  }, [isAlreadyOrganizer, isOrganizerMode, isModeLocked]);
+  }, [user?.uid, isAlreadyOrganizer, isOrganizerMode, isModeLocked]);
 
   async function handleOrganizerSubmit(e: React.FormEvent) {
     e.preventDefault();

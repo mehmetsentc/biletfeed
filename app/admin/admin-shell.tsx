@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { getTranslations } from '@/lib/i18n';
 import { Logo } from '@/components/brand/logo';
+import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { cn } from '@/lib/utils';
 
 const t = getTranslations();
@@ -88,9 +89,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
       </aside>
-      <main className="flex-1 overflow-auto bg-[var(--bf-surface)]">
-        <div className="p-6 md:p-8">{children}</div>
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-14 shrink-0 items-center justify-end border-b bg-background px-4 md:px-6">
+          <ProfileDropdown />
+        </header>
+        <main className="flex-1 overflow-auto bg-[var(--bf-surface)]">
+          <div className="p-6 md:p-8">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

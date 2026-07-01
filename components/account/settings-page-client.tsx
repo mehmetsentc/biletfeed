@@ -185,8 +185,7 @@ export function SettingsPageClient() {
 
   async function handleSignOut() {
     await signOut();
-    router.push('/');
-    router.refresh();
+    window.location.assign('/giris');
   }
 
   function handleDeleteAccount() {

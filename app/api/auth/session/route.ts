@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { buildSignedSessionToken } from '@/lib/auth/session-crypto';
-import { getCookieDomain } from '@/lib/config/domain';
+import {
+  SESSION_COOKIE_NAME,
+  getSessionCookieOptions
+} from '@/lib/auth/session-cookie';
 import {
   bootstrapRoleForEmail,
   isBootstrapSuperAdminEmail
@@ -9,9 +12,6 @@ import {
 import { ROLES } from '@/lib/auth/roles';
 import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
 import { rateLimitOrNull } from '@/lib/security/rate-limit';
-
-// lib/auth/session'dan import etmiyoruz — firebase-admin transitif bağımlılığını kırmak için
-const SESSION_COOKIE_NAME = 'session';
 
 const SESSION_EXPIRES_MS = 60 * 60 * 24 * 5 * 1000; // 5 gün
 
@@ -128,18 +128,12 @@ export async function POST(request: NextRequest) {
     const role = await syncUserToDB(uid, email);
     const sessionCookie = buildSimpleSession(uid, email, role, SESSION_EXPIRES_MS);
 
-    const cookieDomain = getCookieDomain();
-    const cookieOptions = {
-      maxAge: SESSION_EXPIRES_MS / 1000,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
-      path: '/',
-      ...(cookieDomain ? { domain: cookieDomain } : {})
-    };
-
     const response = NextResponse.json({ success: true, role });
-    response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, cookieOptions);
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      sessionCookie,
+      getSessionCookieOptions(SESSION_EXPIRES_MS / 1000)
+    );
     return response;
   } catch (err) {
     const message =
@@ -155,12 +149,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const cookieDomain = getCookieDomain();
   const response = NextResponse.json({ success: true });
-  response.cookies.set(SESSION_COOKIE_NAME, '', {
-    maxAge: 0,
-    path: '/',
-    ...(cookieDomain ? { domain: cookieDomain } : {})
-  });
+  response.cookies.set(
+    SESSION_COOKIE_NAME,
+    '',
+    getSessionCookieOptions(0)
+  );
   return response;
 }

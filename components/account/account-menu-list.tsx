@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { Globe, LogOut } from 'lucide-react';
+import { AccountThemeToggle } from '@/components/account/account-theme-toggle';
 import { accountMenuGroups } from '@/lib/account/navigation';
 import { useAccountMode } from '@/hooks/use-account-mode';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,23 @@ export function AccountMenuList({
         </div>
       ))}
 
+      <div
+        className={cn(
+          'border-t border-border',
+          isSidebar ? 'my-2' : 'my-1'
+        )}
+      />
+      <AccountThemeToggle variant={variant} />
+      <div
+        className={cn(
+          'flex items-center gap-3 text-sm font-medium text-muted-foreground',
+          isSidebar ? 'rounded-xl px-3 py-2.5' : 'px-4 py-2.5'
+        )}
+      >
+        <Globe className="size-4 shrink-0" strokeWidth={1.75} />
+        Türkçe
+      </div>
+
       {onSignOut && (
         <>
           <div
@@ -78,7 +96,7 @@ export function AccountMenuList({
             type="button"
             onClick={onSignOut}
             className={cn(
-              'flex w-full items-center gap-3 text-sm font-medium text-destructive transition-colors hover:bg-muted',
+              'flex w-full items-center gap-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10',
               isSidebar ? 'rounded-xl px-3 py-2.5' : 'px-4 py-2.5'
             )}
           >

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   ChevronDown,
   LayoutDashboard,
@@ -19,13 +19,13 @@ import { cn } from '@/lib/utils';
 
 export function ProfileDropdown() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, signOut } = useAuth();
   const { isOrganizerMode, isModeLocked } = useAccountMode();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const displayName = user?.displayName || 'Hesabım';
+  const email = user?.email || '';
   const initials = useMemo(
     () =>
       displayName
@@ -54,8 +54,7 @@ export function ProfileDropdown() {
   async function handleSignOut() {
     setOpen(false);
     await signOut();
-    router.push('/');
-    router.refresh();
+    window.location.assign('/giris');
   }
 
   return (
@@ -76,7 +75,9 @@ export function ProfileDropdown() {
             {initials}
           </AvatarFallback>
         </Avatar>
-        <span className="hidden text-sm font-semibold sm:inline">Hesabım</span>
+        <span className="hidden max-w-[7rem] truncate text-sm font-semibold sm:inline">
+          {displayName}
+        </span>
         <ChevronDown
           className={cn(
             'size-4 transition-transform',
@@ -88,14 +89,12 @@ export function ProfileDropdown() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-2 min-w-[240px] overflow-hidden rounded-[var(--radius-card)] border border-border/80 bg-background/95 py-2 shadow-[var(--shadow-lg)] backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-200"
+          className="absolute right-0 top-full z-50 mt-2 min-w-[260px] overflow-hidden rounded-[var(--radius-card)] border border-border/80 bg-background/95 py-2 shadow-[var(--shadow-lg)] backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-200"
         >
-          <div className="border-b border-border px-4 py-3 sm:hidden">
+          <div className="border-b border-border px-4 py-3">
             <p className="truncate text-sm font-semibold">{displayName}</p>
-            {user.email && (
-              <p className="truncate text-xs text-muted-foreground">
-                {user.email}
-              </p>
+            {email && (
+              <p className="truncate text-xs text-muted-foreground">{email}</p>
             )}
           </div>
 

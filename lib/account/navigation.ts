@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  Bell,
   Calendar,
   Contact,
   Heart,
@@ -46,8 +47,13 @@ export const accountMenuGroups: AccountMenuGroup[] = [
           p === '/profil/ayarlar' ||
           p === '/profil/email' ||
           p === '/profil/sifre' ||
-          p === '/bildirimler' ||
           p === '/profil/ilgi-alanlari'
+      },
+      {
+        href: '/bildirimler',
+        label: 'Bildirimler',
+        icon: Bell,
+        isActive: (p) => p === '/bildirimler'
       },
       {
         href: '/eventjoy/panel',
@@ -84,7 +90,7 @@ export const accountMenuGroups: AccountMenuGroup[] = [
     items: [
       {
         href: '/profil/destek',
-        label: 'Destek',
+        label: 'Yardım',
         icon: LifeBuoy,
         isActive: (p) =>
           p === '/profil/destek' || p === '/yardim' || p === '/iletisim' || p === '/sss'

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -14,12 +14,18 @@ export type NotificationItem = {
 };
 
 export function NotificationsPageClient({
+  userId,
   initialNotifications
 }: {
+  userId: string;
   initialNotifications: NotificationItem[];
 }) {
   const [items, setItems] = useState(initialNotifications);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setItems(initialNotifications);
+  }, [userId, initialNotifications]);
 
   async function markAllRead() {
     setLoading(true);

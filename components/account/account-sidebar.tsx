@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard } from 'lucide-react';
 import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -11,7 +11,6 @@ import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function AccountSidebar() {
-  const router = useRouter();
   const { user, signOut } = useAuth();
   const { isOrganizerMode, isModeLocked } = useAccountMode();
 
@@ -35,8 +34,7 @@ export function AccountSidebar() {
 
   async function handleSignOut() {
     await signOut();
-    router.push('/');
-    router.refresh();
+    window.location.assign('/giris');
   }
 
   return (

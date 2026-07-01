@@ -5,6 +5,8 @@ import { verifySessionCookie } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = createPageMetadata({
   title: 'Biletlerim',
   path: '/biletlerim'
@@ -22,6 +24,10 @@ export default async function MyTicketsPage() {
   const transferredTicketIds = transfers.map((t) => t.ticketId);
 
   return (
-    <MyTicketsPageClient tickets={tickets} transferredTicketIds={transferredTicketIds} />
+    <MyTicketsPageClient
+      key={session.uid}
+      tickets={tickets}
+      transferredTicketIds={transferredTicketIds}
+    />
   );
 }

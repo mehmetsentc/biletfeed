@@ -16,8 +16,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/auth-guard';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
+import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { getTranslations } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { siteConfig } from '@/lib/config/site';
@@ -50,12 +49,17 @@ export default function DashboardLayout({
     <AuthGuard requiredRole="ROLE_ORGANIZER">
       {isWizard ? (
         <div className="flex min-h-screen flex-col bg-background">
-          <Header />
+          <header className="sticky top-0 z-50 flex h-14 items-center justify-end border-b bg-background px-4 md:px-8">
+            <ProfileDropdown />
+          </header>
           <main className="flex-1 px-4 py-8 md:px-8 md:py-10">{children}</main>
-          <Footer />
         </div>
       ) : (
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen flex-col">
+          <header className="flex h-14 shrink-0 items-center justify-end border-b bg-background px-4 lg:px-6">
+            <ProfileDropdown />
+          </header>
+          <div className="flex min-h-0 flex-1">
           <aside className="hidden w-64 shrink-0 border-r bg-muted/30 lg:block">
             <div className="flex h-16 items-center border-b px-6">
               <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -88,6 +92,7 @@ export default function DashboardLayout({
             </div>
             <div className="p-6">{children}</div>
           </main>
+          </div>
         </div>
       )}
     </AuthGuard>

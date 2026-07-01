@@ -5,6 +5,8 @@ import { verifySessionCookie } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = createPageMetadata({
   title: 'Bildirimler',
   path: '/bildirimler'
@@ -22,7 +24,10 @@ export default async function NotificationsPage() {
         title="Bildirimler"
         description="Hesap ve etkinlik güncellemeleri"
       />
-      <NotificationsPageClient initialNotifications={notifications} />
+      <NotificationsPageClient
+        userId={session.uid}
+        initialNotifications={notifications}
+      />
     </div>
   );
 }

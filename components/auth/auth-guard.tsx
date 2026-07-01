@@ -18,20 +18,22 @@ export function AuthGuard({
   requiredRole = 'ROLE_USER',
   fallbackUrl = '/giris'
 }: AuthGuardProps) {
-  const { user, loading } = useAuth();
+  const { user, loading, sessionReady } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
         router.replace(fallbackUrl);
+      } else if (!sessionReady) {
+        // Oturum çerezi henüz hazır değil — yönlendirme yapma
       } else if (!hasRole(user.role, requiredRole)) {
         router.replace('/');
       }
     }
-  }, [user, loading, requiredRole, fallbackUrl, router]);
+  }, [user, loading, sessionReady, requiredRole, fallbackUrl, router]);
 
-  if (loading) {
+  if (loading || (user && !sessionReady)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="space-y-4 w-full max-w-md p-8">
@@ -43,7 +45,7 @@ export function AuthGuard({
     );
   }
 
-  if (!user || !hasRole(user.role, requiredRole)) {
+  if (!user || !sessionReady || !hasRole(user.role, requiredRole)) {
     return null;
   }
 
