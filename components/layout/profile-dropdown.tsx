@@ -24,18 +24,21 @@ export function ProfileDropdown() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const displayName = user?.displayName || 'Hesabım';
+  const displayName =
+    user?.displayName || user?.email?.split('@')[0] || 'Hesabım';
   const email = user?.email || '';
-  const initials = useMemo(
-    () =>
-      displayName
-        .split(' ')
+  const initials = useMemo(() => {
+    const source = user?.displayName || user?.email || 'BF';
+    return (
+      source
+        .split(/[\s@]+/)
+        .filter(Boolean)
         .map((part) => part[0])
         .join('')
         .slice(0, 2)
-        .toUpperCase() || 'BF',
-    [displayName]
-  );
+        .toUpperCase() || 'BF'
+    );
+  }, [user?.displayName, user?.email]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
