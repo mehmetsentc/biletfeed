@@ -1,5 +1,6 @@
 import {
   OAuthProvider,
+  signInWithCredential,
   signInWithPopup,
   signInWithRedirect,
   type Auth,
@@ -12,11 +13,11 @@ import {
   resetRedirectResultCache
 } from '@/lib/firebase/oauth-redirect';
 
-export type AppleSignInMode = 'popup' | 'redirect';
+export type AppleSignInMode = 'popup' | 'redirect' | 'native';
 
 export type AppleSignInResult = {
   mode: AppleSignInMode;
-  /** Popup akışında kullanıcı oturumu hemen hazır */
+  /** Popup / native akışında kullanıcı oturumu hemen hazır */
   completed: boolean;
 };
 
@@ -44,9 +45,7 @@ export function consumeAppleRedirectResult(
 
 export function wasAppleRedirectPending(): boolean {
   if (typeof window === 'undefined') return false;
-
   if (localStorage.getItem(REDIRECT_PENDING_KEY) === '1') return true;
-
   const startedAt = Number(localStorage.getItem(REDIRECT_PENDING_AT_KEY) || 0);
   return startedAt > 0 && Date.now() - startedAt < REDIRECT_PENDING_TTL_MS;
 }
@@ -61,6 +60,12 @@ export function markAppleRedirectPending() {
   if (typeof window === 'undefined') return;
   localStorage.setItem(REDIRECT_PENDING_KEY, '1');
   localStorage.setItem(REDIRECT_PENDING_AT_KEY, String(Date.now()));
+}
+
+/** Capacitor ortamında mı çalışıyor? */
+function isCapacitor(): boolean {
+  return typeof window !== 'undefined' &&
+    !!(window as unknown as Record<string, unknown>)['Capacitor'];
 }
 
 function getAuthErrorCode(err: unknown): string {
@@ -78,18 +83,11 @@ const POPUP_FALLBACK_CODES = new Set([
 
 async function waitForAuthUser(auth: Auth, ms = 1200): Promise<boolean> {
   if (auth.currentUser) return true;
-
   return new Promise((resolve) => {
     const started = Date.now();
     const tick = () => {
-      if (auth.currentUser) {
-        resolve(true);
-        return;
-      }
-      if (Date.now() - started >= ms) {
-        resolve(false);
-        return;
-      }
+      if (auth.currentUser) { resolve(true); return; }
+      if (Date.now() - started >= ms) { resolve(false); return; }
       window.setTimeout(tick, 100);
     };
     tick();
@@ -97,26 +95,52 @@ async function waitForAuthUser(auth: Auth, ms = 1200): Promise<boolean> {
 }
 
 /**
+ * Capacitor native Apple Sign In — @capacitor-community/apple-sign-in
+ * Apple'ın ASAuthorizationAppleIDRequest API'sını kullanır.
+ * Tarayıcı AÇILMAZ — App Store Guideline 4 ile uyumlu.
+ */
+async function signInWithAppleNative(auth: Auth): Promise<AppleSignInResult> {
+  // Dynamic import — web build'de bundle'a girmez
+  const { SignInWithApple } = await import(
+    /* webpackIgnore: true */
+    '@capacitor-community/apple-sign-in'
+  );
+
+  const result = await SignInWithApple.authorize({
+    clientId: 'com.biletfeed.app',
+    redirectURI: 'https://biletfeed.com',
+    scopes: 'email name',
+    state: crypto.randomUUID(),
+    nonce: crypto.randomUUID()
+  });
+
+  const { identityToken } = result.response;
+  if (!identityToken) throw new Error('Apple identityToken alınamadı');
+
+  const provider = new OAuthProvider('apple.com');
+  const credential = provider.credential({ idToken: identityToken });
+  await signInWithCredential(auth, credential);
+  return { mode: 'native', completed: true };
+}
+
+/**
  * Apple redirect dönüşünü işler. AuthProvider mount sırasında, onAuthStateChanged
- * öncesinde çağrılmalıdır.
+ * öncesinde çağrılmalıdır. (Yalnızca web akışı için geçerli)
  */
 export async function finishAppleRedirectSignIn(
   auth: Auth
 ): Promise<string | null> {
+  // Capacitor'da redirect akışı kullanılmaz
+  if (isCapacitor()) return null;
+
   const pending = wasAppleRedirectPending();
 
   try {
     const result = await consumeAppleRedirectResult(auth);
 
-    if (result?.user) {
-      clearAppleRedirectPending();
-      return null;
-    }
+    if (result?.user) { clearAppleRedirectPending(); return null; }
 
-    if (await waitForAuthUser(auth)) {
-      clearAppleRedirectPending();
-      return null;
-    }
+    if (await waitForAuthUser(auth)) { clearAppleRedirectPending(); return null; }
 
     if (pending) {
       clearAppleRedirectPending();
@@ -131,13 +155,19 @@ export async function finishAppleRedirectSignIn(
 }
 
 /**
- * Önce popup dener (COOP: same-origin-allow-popups). Popup engellenirse redirect'e düşer.
+ * Ana giriş fonksiyonu:
+ * - Capacitor (iOS uygulama): native ASAuthorizationAppleIDRequest — tarayıcı açmaz
+ * - Web: önce popup, engellenirse redirect
  */
 export async function signInWithApple(auth: Auth): Promise<AppleSignInResult> {
-  if (auth.currentUser) {
-    return { mode: 'popup', completed: true };
+  if (auth.currentUser) return { mode: 'popup', completed: true };
+
+  // ── Capacitor: native Sign In with Apple ──────────────────────────────────
+  if (isCapacitor()) {
+    return signInWithAppleNative(auth);
   }
 
+  // ── Web: popup → redirect fallback ───────────────────────────────────────
   const provider = createAppleProvider();
 
   try {
@@ -145,9 +175,7 @@ export async function signInWithApple(auth: Auth): Promise<AppleSignInResult> {
     return { mode: 'popup', completed: true };
   } catch (err) {
     const code = getAuthErrorCode(err);
-    if (!POPUP_FALLBACK_CODES.has(code)) {
-      throw err;
-    }
+    if (!POPUP_FALLBACK_CODES.has(code)) throw err;
 
     resetAppleRedirectResultCache();
     markAppleRedirectPending();
