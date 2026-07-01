@@ -426,7 +426,6 @@ export function InvitationsPanel({
                   size="sm"
                   onClick={() => copyInviteLink(lastInvite.inviteUrl)}
                 >
-                >
                   <Copy className="mr-1.5 size-4" />
                   {copied ? 'Kopyalandı' : 'Linki Kopyala'}
                 </Button>
