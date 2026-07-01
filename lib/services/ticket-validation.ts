@@ -204,10 +204,27 @@ export async function validateTicketInput(input: {
   });
 
   if (!canScan) {
+    const [eventOrganizer, scannerOrganizer] = await Promise.all([
+      prisma.organizer.findUnique({
+        where: { id: ticket.event.organizerId },
+        select: { name: true }
+      }),
+      params.scannerOrganizerId
+        ? prisma.organizer.findUnique({
+            where: { id: input.scannerOrganizerId },
+            select: { name: true }
+          })
+        : Promise.resolve(null)
+    ]);
+
+    const eventOrgName = eventOrganizer?.name ?? 'bu organizatör';
+    const scannerOrgName = scannerOrganizer?.name;
+
     return {
       status: 'INVALID',
-      message:
-        'Bu bilet için yetkiniz yok. Panelde doğru organizatör hesabıyla giriş yaptığınızdan ve etkinliğin size ait olduğundan emin olun.'
+      message: scannerOrgName
+        ? `Bu bilet "${eventOrgName}" etkinliğine ait. Şu an "${scannerOrgName}" hesabıyla giriş yaptınız. Doğru organizatör hesabıyla panelde oturum açın.`
+        : 'Bu bilet için yetkiniz yok. Panelde doğru organizatör hesabıyla giriş yaptığınızdan ve etkinliğin size ait olduğundan emin olun.'
     };
   }
 

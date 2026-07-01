@@ -23,6 +23,40 @@ export async function resolveScannerUser(firebaseUid: string, email?: string) {
   await ensureDbConnection();
   const normalizedEmail = normalizeEmail(email);
 
+  // E-posta organizatör sahibine aitse onu önceliklendir (kapı taraması / panel)
+  if (normalizedEmail) {
+    const organizerOwner = await prisma.user.findFirst({
+      where: {
+        email: normalizedEmail,
+        deletedAt: null,
+        ownedOrganizer: { is: { deletedAt: null } }
+      },
+      select: {
+        id: true,
+        firebaseUid: true,
+        email: true,
+        role: true,
+        displayName: true
+      }
+    });
+    if (organizerOwner) {
+      if (organizerOwner.firebaseUid !== firebaseUid) {
+        return prisma.user.update({
+          where: { id: organizerOwner.id },
+          data: { firebaseUid },
+          select: {
+            id: true,
+            firebaseUid: true,
+            email: true,
+            role: true,
+            displayName: true
+          }
+        });
+      }
+      return organizerOwner;
+    }
+  }
+
   let user = await prisma.user.findFirst({
     where: { firebaseUid, deletedAt: null },
     select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
@@ -156,6 +190,26 @@ export async function canScannerAccessTicket(params: {
       params.role === 'ROLE_SUPER_ADMIN')
   ) {
     return true;
+  }
+
+  // Doğrudan organizatör eşleşmesi — en hızlı ve güvenilir yol
+  if (
+    params.scannerOrganizerId &&
+    params.eventOrganizerId === params.scannerOrganizerId
+  ) {
+    return true;
+  }
+
+  if (params.scannerUserId && params.eventId) {
+    const ownsEvent = await prisma.event.findFirst({
+      where: {
+        id: params.eventId,
+        deletedAt: null,
+        organizer: { deletedAt: null, ownerId: params.scannerUserId }
+      },
+      select: { id: true }
+    });
+    if (ownsEvent) return true;
   }
 
   const ticketOrganizerIds = [

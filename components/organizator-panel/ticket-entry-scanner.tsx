@@ -71,11 +71,29 @@ export function TicketEntryScanner() {
   const [eventId, setEventId] = useState<string>('all');
   const [scannerId, setScannerId] = useState<string | undefined>();
   const [cameraReady, setCameraReady] = useState(false);
+  const [scannerAccount, setScannerAccount] = useState<{
+    email: string;
+    organizerName: string;
+  } | null>(null);
 
   useEffect(() => {
     setScannerId(getOrCreateScannerId());
     const timer = window.setTimeout(() => setCameraReady(true), 150);
     return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    void fetch('/api/organizer/profile', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data: { organizer?: { name: string }; user?: { email: string } }) => {
+        if (data.organizer?.name && data.user?.email) {
+          setScannerAccount({
+            email: data.user.email,
+            organizerName: data.organizer.name
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -111,6 +129,15 @@ export function TicketEntryScanner() {
           </p>
         </div>
       </header>
+
+      {scannerAccount && (
+        <div className="border-b border-white/10 px-4 py-2 text-xs text-white/60">
+          Giriş: <span className="text-white/90">{scannerAccount.email}</span>
+          {' · '}
+          Organizasyon:{' '}
+          <span className="font-medium text-primary">{scannerAccount.organizerName}</span>
+        </div>
+      )}
 
       {events.length > 0 && (
         <div className="border-b border-white/10 px-4 py-3">

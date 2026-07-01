@@ -13,6 +13,7 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerProfile } from '@/lib/services/organizer-onboarding';
 import { updateOrganizerSettings } from '@/lib/services/organizer-panel';
 import { requireOrganizerApi } from '@/lib/auth/organizer-route';
+import { resolveScannerUser } from '@/lib/auth/organizer-api';
 
 const patchSchema = z.object({
   name: z.string().min(2).max(120).optional(),
@@ -114,9 +115,17 @@ export async function GET() {
   }
 
   await ensureDbConnection();
+  const user = await resolveScannerUser(session.uid, session.email);
+  if (!user) {
+    return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
+  }
+
   const organizer = await prisma.organizer.findFirst({
-    where: { owner: { firebaseUid: session.uid, deletedAt: null }, deletedAt: null }
+    where: { ownerId: user.id, deletedAt: null }
   });
 
-  return NextResponse.json({ organizer });
+  return NextResponse.json({
+    organizer,
+    user: { email: user.email, displayName: user.displayName }
+  });
 }
