@@ -9,12 +9,10 @@ import { ROLES, isSuperAdmin } from '@/lib/auth/roles';
 import {
   type AdminPermission,
   hasAdminPermission,
-  resolveAdminPathPermission
-} from '@/lib/auth/admin-permissions';
-import {
-  getAdminAccessByFirebaseUid,
+  resolveAdminPathPermission,
   type AdminAccessContext
-} from '@/lib/services/admin-access';
+} from '@/lib/auth/admin-permissions';
+import { getAdminAccessByFirebaseUid } from '@/lib/services/admin-access';
 
 export async function requireAdminSession(): Promise<SessionUser | null> {
   const session = await verifySessionCookie();
