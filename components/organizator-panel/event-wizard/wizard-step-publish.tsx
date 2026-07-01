@@ -1,12 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { Sparkles } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { WizardFormSection } from '@/components/organizator-panel/wizard-form';
 import { ORGANIZER_AGREEMENT_VERSION } from '@/lib/organizator/event-wizard-constants';
-import { siteHref } from '@/lib/config/domain';
+import { getSiteUrl } from '@/lib/config/domain';
 import type { AttendeeQuestionRow, PerformerRow } from '@/components/organizator-panel/event-wizard/types';
 
 interface WizardStepPublishProps {
@@ -124,14 +123,15 @@ export function WizardStepPublish({
               </Label>
               <br />
               Etkinliği {isEdit ? 'kaydetmek' : 'yayınlamak'},{' '}
-              <Link
-                href={siteHref('/organizator-sozlesmesi')}
+              <a
+                href={getSiteUrl('/organizator-sozlesmesi')}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="font-medium text-primary underline-offset-2 hover:underline"
               >
                 Organizatör Kullanıcı Sözleşmesi
-              </Link>
+              </a>
               &apos;ni (sürüm {ORGANIZER_AGREEMENT_VERSION}) kabul ettiğiniz anlamına gelir.
             </span>
           </label>

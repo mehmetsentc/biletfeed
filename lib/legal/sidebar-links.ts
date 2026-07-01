@@ -2,6 +2,7 @@ export const legalSidebarLinks = [
   { label: 'Hakkımızda', href: '/hakkimizda' },
   { label: 'Gizlilik Politikası', href: '/gizlilik' },
   { label: 'Kullanıcı Sözleşmesi', href: '/kullanici-sozlesmesi' },
+  { label: 'Organizatör Sözleşmesi', href: '/organizator-sozlesmesi' },
   { label: 'Kullanım Koşulları', href: '/kosullar' },
   { label: 'Açık Rıza Beyanı', href: '/acik-riza-beyani' },
   { label: 'Ticari Elektronik İleti', href: '/ticari-elektronik-ileti' },

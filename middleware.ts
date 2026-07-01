@@ -3,7 +3,8 @@ import {
   canonicalHost,
   getPanelUrl,
   getSupportUrl,
-  isMainSiteOnlyPath,
+  isAccountSitePath,
+  isLegalSitePath,
   isOrganizerPanelSubdomain,
   isProductionHost,
   isSupportSubdomain,
@@ -146,12 +147,17 @@ function handleOrganizerPanelSubdomain(
     );
   }
 
-  // panel.biletfeed.com/profil → biletfeed.com/profil (hesap + yasal sayfalar ana sitede)
-  if (isMainSiteOnlyPath(pathname)) {
+  // panel.biletfeed.com/profil → biletfeed.com/profil (hesap sayfaları ana sitede)
+  if (isAccountSitePath(pathname)) {
     const target = siteHref(pathname);
     if (target.startsWith('http')) {
       return NextResponse.redirect(target);
     }
+  }
+
+  // panel.biletfeed.com/organizator-sozlesmesi → doğrudan yasal sayfa (404 rewrite yok)
+  if (isLegalSitePath(pathname)) {
+    return NextResponse.next();
   }
 
   if (
