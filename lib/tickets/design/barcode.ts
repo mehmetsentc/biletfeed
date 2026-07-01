@@ -89,6 +89,8 @@ type PdfDoc = {
   fillColor(color: string): PdfDoc;
   rect(x: number, y: number, w: number, h: number): PdfDoc;
   fill(): PdfDoc;
+  translate(x: number, y: number): PdfDoc;
+  rotate(angle: number, options?: { origin?: [number, number] }): PdfDoc;
 };
 
 export function drawBarcodePdf(
@@ -111,5 +113,22 @@ export function drawBarcodePdf(
       doc.fill();
     }
   }
+  doc.restore();
+}
+
+/** Dikey barkod — bilet kenarı (iTicket tarzı) */
+export function drawVerticalBarcodePdf(
+  doc: PdfDoc,
+  centerX: number,
+  centerY: number,
+  text: string,
+  barLength: number,
+  barThickness: number,
+  color = '#111111'
+): void {
+  doc.save();
+  doc.translate(centerX, centerY);
+  doc.rotate(-90);
+  drawBarcodePdf(doc, -barLength / 2, -barThickness / 2, text, barLength, barThickness, color);
   doc.restore();
 }

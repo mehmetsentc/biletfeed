@@ -123,9 +123,25 @@ export async function validateTicketInput(input: {
   await ensureDbConnection();
 
   const parsed = input.qrRaw ? parseQrPayload(input.qrRaw) : {};
-  const ticketCode = input.ticketCode || parsed.ticketCode;
-  const validationToken = input.validationToken || parsed.validationToken;
-  const ticketId = input.ticketId || parsed.ticketId;
+  let ticketCode = input.ticketCode || parsed.ticketCode;
+  let validationToken = input.validationToken || parsed.validationToken;
+  let ticketId = input.ticketId || parsed.ticketId;
+
+  if (!ticketCode && !ticketId && parsed.inviteToken) {
+    const invitation = await prisma.eventInvitation.findFirst({
+      where: { inviteToken: parsed.inviteToken, deletedAt: null },
+      select: {
+        purchasedTicket: {
+          select: { id: true, ticketCode: true, validationToken: true }
+        }
+      }
+    });
+    if (invitation?.purchasedTicket) {
+      ticketId = invitation.purchasedTicket.id;
+      ticketCode = invitation.purchasedTicket.ticketCode;
+      validationToken = invitation.purchasedTicket.validationToken;
+    }
+  }
 
   if (!ticketCode && !ticketId) {
     return { status: 'INVALID', message: 'Geçersiz QR kodu' };
@@ -176,6 +192,7 @@ export async function validateTicketInput(input: {
 
   const canScan = await canScannerAccessTicket({
     ticketId: ticket.id,
+    eventId: ticket.eventId,
     firebaseUid: input.scannerUid,
     email: input.scannerEmail,
     role: input.scannerRole,
@@ -187,7 +204,11 @@ export async function validateTicketInput(input: {
   });
 
   if (!canScan) {
-    return { status: 'INVALID', message: 'Bu bilet için yetkiniz yok' };
+    return {
+      status: 'INVALID',
+      message:
+        'Bu bilet için yetkiniz yok. Panelde doğru organizatör hesabıyla giriş yaptığınızdan ve etkinliğin size ait olduğundan emin olun.'
+    };
   }
 
   if (validationToken) {

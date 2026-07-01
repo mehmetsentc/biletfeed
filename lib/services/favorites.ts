@@ -1,6 +1,5 @@
 import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
 import type { MockEvent } from '@/lib/data/mock-events';
-import type { MockOrganizer } from '@/lib/data/mock-organizers';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 
 export type FavoriteVenue = {
@@ -10,6 +9,10 @@ export type FavoriteVenue = {
   city: string;
   image?: string;
 };
+export {
+  getFollowedOrganizersByFirebaseUid,
+  getFollowedVenuesByFirebaseUid as getFavoriteVenuesByFirebaseUid
+} from '@/lib/services/follows';
 
 async function resolveUserId(firebaseUid: string): Promise<string | null> {
   if (!isDatabaseConfigured()) return null;
@@ -44,51 +47,6 @@ export async function getFavoriteEventsByFirebaseUid(
   } catch {
     return [];
   }
-}
-
-export async function getFollowedOrganizersByFirebaseUid(
-  firebaseUid: string
-): Promise<MockOrganizer[]> {
-  if (!isDatabaseConfigured()) return [];
-
-  try {
-    const userId = await resolveUserId(firebaseUid);
-    if (!userId) return [];
-
-    const rows = await prisma.follower.findMany({
-      where: { userId },
-      include: {
-        organizer: {
-          include: { _count: { select: { events: true } } }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return rows
-      .filter((row) => row.organizer.deletedAt === null)
-      .map((row) => ({
-        id: row.organizer.id,
-        slug: row.organizer.slug,
-        name: row.organizer.name,
-        description: row.organizer.description,
-        logo: row.organizer.logo ?? undefined,
-        coverImage:
-          row.organizer.coverImage ??
-          'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80',
-        followerCount: row.organizer.followerCount,
-        eventCount: row.organizer._count.events,
-        verified: row.organizer.verified
-      }));
-  } catch {
-    return [];
-  }
-}
-
-export async function getFavoriteVenuesByFirebaseUid(
-  _firebaseUid: string
-): Promise<FavoriteVenue[]> {
-  return [];
 }
 
 /**

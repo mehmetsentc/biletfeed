@@ -7,6 +7,7 @@ import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCity } from '@/components/providers/city-provider';
 import { toCategoryNavLinks, type CategoryNavItem } from '@/lib/categories/nav-links';
+import { corporateMobileLinks } from '@/lib/layout/corporate-links';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -198,12 +199,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                 Kurumsal
               </p>
-              {[
-                { label: 'Hakkımızda', href: '/hakkimizda' },
-                { label: 'İletişim', href: '/iletisim' },
-                { label: 'Gizlilik', href: '/gizlilik-politikasi' },
-                { label: 'Kullanım Koşulları', href: '/kullanim-kosullari' },
-              ].map((link) => (
+              {corporateMobileLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}

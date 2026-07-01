@@ -6,6 +6,9 @@ import {
 } from '@/lib/data/mock-events';
 import { getEventBySlug, getAllEvents } from '@/lib/services/events';
 import { getOrganizerBySlug } from '@/lib/services/organizers';
+import { verifySessionCookie } from '@/lib/auth/session';
+import { getFollowedOrganizerIds } from '@/lib/services/follows';
+import { getFavoriteEventIds } from '@/lib/services/favorites';
 import { EventDetailActions } from '@/components/events/event-detail-actions';
 import { EventDateTime } from '@/components/events/event-date-time';
 import { EventLocationSection } from '@/components/events/event-location-section';
@@ -54,6 +57,16 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   if (!event) notFound();
 
   const organizer = await getOrganizerBySlug(event.organizerSlug);
+  const session = await verifySessionCookie();
+  const [followedOrganizerIds, favoriteEventIds] = session
+    ? await Promise.all([
+        getFollowedOrganizerIds(session.uid),
+        getFavoriteEventIds(session.uid)
+      ])
+    : [new Set<string>(), new Set<string>()];
+  const isFollowingOrganizer =
+    organizer != null && followedOrganizerIds.has(organizer.id);
+  const isFavorite = favoriteEventIds.has(event.id);
   const allEvents = await getAllEvents();
   const related = allEvents
     .filter((e) => e.categorySlug === event.categorySlug && e.id !== event.id)
@@ -112,7 +125,12 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               {event.title}
             </h1>
           </div>
-          <EventDetailActions title={event.title} slug={event.slug} />
+          <EventDetailActions
+            title={event.title}
+            shareUrl={eventUrl}
+            eventId={event.id}
+            initialFavorite={isFavorite}
+          />
         </div>
 
         <div className="mt-5">
@@ -129,7 +147,12 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               city={event.city}
               isOnline={isOnline}
             />
-            {organizer && <EventHostedBy organizer={organizer} />}
+            {organizer && (
+              <EventHostedBy
+                organizer={organizer}
+                initialFollowing={isFollowingOrganizer}
+              />
+            )}
 
             <section>
               <h2 className="text-xl font-bold">Etkinlik Açıklaması</h2>

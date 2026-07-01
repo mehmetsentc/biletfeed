@@ -13,6 +13,7 @@ const navItems = [
     icon: Home,
     match: (p: string) =>
       p === '/' ||
+      p.startsWith('/feed') ||
       p.startsWith('/etkinlikler') ||
       p.startsWith('/etkinlik/') ||
       p.startsWith('/kategoriler') ||

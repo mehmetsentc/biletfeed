@@ -163,6 +163,67 @@ enum RevenueRecognitionStatus {
   recognized
 }
 
+enum FeedPostStatus {
+  discovered
+  processing
+  review
+  scheduled
+  published
+  rejected
+  archived
+}
+
+enum FeedPostType {
+  concert_news
+  festival_news
+  music_news
+  entertainment_news
+  artist_news
+  event_announcement
+  behind_the_scenes
+  event_recap
+  top_list
+  weekend_guide
+  city_guide
+  venue_guide
+  ticket_alert
+  trending_story
+  ai_opinion
+  interview
+  photo_story
+  video_story
+  organizer_update
+}
+
+enum FeedEditorialStage {
+  discovery
+  duplicate_check
+  analysis
+  rewrite
+  seo
+  categorization
+  tagging
+  image_selection
+  review
+  publish
+}
+
+enum FeedMediaType {
+  image
+  video
+  embed
+  reel
+}
+
+enum FeedQueueStatus {
+  pending
+  processing
+  completed
+  failed
+  rejected
+  duplicate
+}
+
 model User {
   id           String    @id @default(uuid()) @db.Uuid
   firebaseUid  String    @unique @map("firebase_uid")
@@ -177,6 +238,7 @@ model User {
   ownedOrganizer   Organizer?        @relation("UserOrganizer")
   favorites        Favorite[]
   followers        Follower[]        @relation("FollowerUser")
+  venueFollows     VenueFollow[]
   notifications    Notification[]
   orders           Order[]
   purchasedTickets PurchasedTicket[]
@@ -184,6 +246,12 @@ model User {
   supportTickets   UserSupportTicket[]
   billingProfile   UserBillingProfile?
   invoices         Invoice[]
+  feedPosts        FeedPost[]        @relation("FeedPostAuthor")
+  feedLikes        FeedLike[]
+  feedBookmarks    FeedBookmark[]
+  feedComments     FeedComment[]
+  feedViews        FeedView[]
+  feedMemories     FeedMemory[]
 
   @@index([role])
   @@index([deletedAt])
@@ -223,6 +291,7 @@ model Organizer {
   payouts         OrganizerPayout[]
   coupons         Coupon[]
   billingProfiles OrganizerBillingProfile[]
+  feedPosts       FeedPost[]
 
   @@index([status])
   @@index([deletedAt])
@@ -263,6 +332,7 @@ model City {
 
   events Event[]
   venues Venue[]
+  feedPosts FeedPost[]
 
   @@index([deletedAt])
   @@map("cities")
@@ -304,9 +374,11 @@ model Venue {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  city      City       @relation(fields: [cityId], references: [id])
-  organizer Organizer? @relation(fields: [organizerId], references: [id])
+  city      City          @relation(fields: [cityId], references: [id])
+  organizer Organizer?    @relation(fields: [organizerId], references: [id])
   events    Event[]
+  feedPosts FeedPost[]
+  followers VenueFollow[]
 
   @@index([cityId])
   @@index([organizerId])
@@ -370,6 +442,8 @@ model Event {
   payouts          OrganizerPayout[]
   checkIns         TicketCheckIn[]
   coupons          Coupon[]
+  feedPosts        FeedPost[]
+  feedMemories     FeedMemory[]
 
   @@index([status])
   @@index([organizerId])
@@ -451,6 +525,7 @@ model Order {
   couponCode      String?     @map("coupon_code")
   attendeeName    String?     @map("attendee_name")
   attendeeEmail   String?     @map("attendee_email")
+  attendeeTcKimlik String?    @map("attendee_tc_kimlik")
   deletedAt       DateTime?   @map("deleted_at")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
@@ -499,6 +574,7 @@ model PurchasedTicket {
   status          PurchasedTicketStatus @default(VALID)
   attendeeName    String?               @map("attendee_name")
   attendeeEmail   String?               @map("attendee_email")
+  attendeeTcKimlik String?              @map("attendee_tc_kimlik")
   downloadCount   Int                   @default(0) @map("download_count")
   entryCount      Int                   @default(0) @map("entry_count")
   scannedAt       DateTime?             @map("scanned_at")
@@ -864,6 +940,21 @@ model Follower {
   @@map("followers")
 }
 
+model VenueFollow {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  venueId   String   @map("venue_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, venueId])
+  @@index([userId])
+  @@index([venueId])
+  @@map("venue_follows")
+}
+
 model Notification {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
@@ -956,4 +1047,257 @@ model NewsletterSubscriber {
   @@index([deletedAt])
   @@index([citySlug])
   @@map("newsletter_subscribers")
+}
+
+// ─── Event Feed & AI Editor ───────────────────────────────────────────────
+
+model FeedCategory {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique
+  name        String
+  description String?
+  coverImage  String?   @map("cover_image")
+  sortOrder   Int       @default(0) @map("sort_order")
+  isActive    Boolean   @default(true) @map("is_active")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  posts FeedPost[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("feed_categories")
+}
+
+model FeedPost {
+  id                 String            @id @default(uuid()) @db.Uuid
+  slug               String            @unique
+  title              String
+  headline           String?
+  summary            String
+  content            String            @db.Text
+  excerpt            String?
+  contentType        FeedPostType      @map("content_type")
+  status             FeedPostStatus    @default(discovered)
+  editorialStage     FeedEditorialStage? @map("editorial_stage")
+  coverImage         String            @map("cover_image")
+  authorName         String            @default("BiletFeed Editör") @map("author_name")
+  authorId           String?           @map("author_id") @db.Uuid
+  readingTimeMinutes Int               @default(3) @map("reading_time_minutes")
+  viewCount          Int               @default(0) @map("view_count")
+  likeCount          Int               @default(0) @map("like_count")
+  commentCount       Int               @default(0) @map("comment_count")
+  bookmarkCount      Int               @default(0) @map("bookmark_count")
+  shareCount         Int               @default(0) @map("share_count")
+  sourceUrl          String?           @map("source_url")
+  sourceName         String?           @map("source_name")
+  sourceAttribution  String?           @map("source_attribution")
+  aiProvider         String?           @map("ai_provider")
+  aiModel            String?           @map("ai_model")
+  aiMetadata         Json              @default("{}") @map("ai_metadata")
+  duplicateOfId      String?           @map("duplicate_of_id") @db.Uuid
+  reviewNotes        String?           @map("review_notes")
+  seo                Json              @default("{}")
+  tags               String[]          @default([])
+  isFeatured         Boolean           @default(false) @map("is_featured")
+  trendingScore      Float             @default(0) @map("trending_score")
+  publishedAt        DateTime?         @map("published_at")
+  feedCategoryId     String?           @map("feed_category_id") @db.Uuid
+  eventId            String?           @map("event_id") @db.Uuid
+  organizerId        String?           @map("organizer_id") @db.Uuid
+  cityId             String?           @map("city_id") @db.Uuid
+  venueId            String?           @map("venue_id") @db.Uuid
+  artistName         String?           @map("artist_name")
+  deletedAt          DateTime?         @map("deleted_at")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  author       User?         @relation("FeedPostAuthor", fields: [authorId], references: [id])
+  feedCategory FeedCategory? @relation(fields: [feedCategoryId], references: [id])
+  event        Event?        @relation(fields: [eventId], references: [id])
+  organizer    Organizer?    @relation(fields: [organizerId], references: [id])
+  city         City?         @relation(fields: [cityId], references: [id])
+  venue        Venue?        @relation(fields: [venueId], references: [id])
+  duplicateOf  FeedPost?     @relation("FeedDuplicates", fields: [duplicateOfId], references: [id])
+  duplicates   FeedPost[]    @relation("FeedDuplicates")
+  media        FeedMedia[]
+  views        FeedView[]
+  likes        FeedLike[]
+  bookmarks    FeedBookmark[]
+  comments     FeedComment[]
+  queueItems   FeedEditorialQueue[]
+
+  @@index([status])
+  @@index([contentType])
+  @@index([publishedAt])
+  @@index([isFeatured])
+  @@index([trendingScore])
+  @@index([eventId])
+  @@index([feedCategoryId])
+  @@index([deletedAt])
+  @@map("feed_posts")
+}
+
+model FeedMedia {
+  id        String        @id @default(uuid()) @db.Uuid
+  postId    String        @map("post_id") @db.Uuid
+  type      FeedMediaType
+  url       String
+  thumbnail String?
+  alt       String?
+  caption   String?
+  sortOrder Int           @default(0) @map("sort_order")
+  featured  Boolean       @default(false)
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  post FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("feed_media")
+}
+
+model FeedView {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  ipHash    String?  @map("ip_hash")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User?    @relation(fields: [userId], references: [id])
+
+  @@index([postId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("feed_views")
+}
+
+model FeedLike {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@map("feed_likes")
+}
+
+model FeedBookmark {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@map("feed_bookmarks")
+}
+
+model FeedComment {
+  id        String    @id @default(uuid()) @db.Uuid
+  postId    String    @map("post_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  body      String
+  isHidden  Boolean   @default(false) @map("is_hidden")
+  parentId  String?   @map("parent_id") @db.Uuid
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  post   FeedPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent FeedComment?  @relation("FeedCommentReplies", fields: [parentId], references: [id])
+  replies FeedComment[] @relation("FeedCommentReplies")
+
+  @@index([postId])
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("feed_comments")
+}
+
+model FeedEditorialQueue {
+  id            String            @id @default(uuid()) @db.Uuid
+  sourceUrl     String            @map("source_url")
+  sourceTitle   String            @map("source_title")
+  sourceSnippet String?           @map("source_snippet")
+  sourceName    String?           @map("source_name")
+  status        FeedQueueStatus   @default(pending)
+  stage         FeedEditorialStage @default(discovery)
+  postId        String?           @map("post_id") @db.Uuid
+  aiAnalysis    Json              @default("{}") @map("ai_analysis")
+  errorMessage  String?           @map("error_message")
+  contentHash   String?           @map("content_hash")
+  scheduledAt   DateTime?         @map("scheduled_at")
+  processedAt   DateTime?         @map("processed_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  post FeedPost? @relation(fields: [postId], references: [id])
+
+  @@unique([contentHash])
+  @@index([status])
+  @@index([stage])
+  @@index([createdAt])
+  @@map("feed_editorial_queue")
+}
+
+model FeedTrending {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  score      Float    @default(0)
+  period     String   @default("daily")
+  windowStart DateTime @map("window_start")
+  windowEnd   DateTime @map("window_end")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, period])
+  @@index([score])
+  @@map("feed_trending")
+}
+
+model FeedMemory {
+  id          String    @id @default(uuid()) @db.Uuid
+  eventId     String    @map("event_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  type        String
+  body        String?
+  mediaUrl    String?   @map("media_url")
+  isVerified  Boolean   @default(false) @map("is_verified")
+  isFeatured  Boolean   @default(false) @map("is_featured")
+  likeCount   Int       @default(0) @map("like_count")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("feed_memories")
+}
+
+model FeedDiscoverySource {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  url           String
+  sourceType    String    @default("rss") @map("source_type")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastFetchedAt DateTime? @map("last_fetched_at")
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@map("feed_discovery_sources")
 }

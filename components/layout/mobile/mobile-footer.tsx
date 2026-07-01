@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { siteConfig } from '@/lib/config/site';
+import { corporateMobileLinks } from '@/lib/layout/corporate-links';
 
 const quickLinks = [
-  { href: '/hakkimizda', label: 'Hakkımızda' },
-  { href: '/iletisim', label: 'İletişim' },
-  { href: '/sss', label: 'SSS' },
-  { href: '/gizlilik', label: 'Gizlilik' }
+  ...corporateMobileLinks.filter((link) => link.href !== '/kosullar'),
+  { href: '/sss', label: 'SSS' }
 ];
 
 export function MobileFooter() {

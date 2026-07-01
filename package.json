@@ -14,6 +14,7 @@
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:migrate:deploy": "tsx scripts/migrate-deploy.ts",
+    "prisma": "dotenv -e .env.local -- prisma",
     "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "db:setup": "npm run db:push && npm run db:seed",

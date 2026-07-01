@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import path from 'path';
+import { corporateLegacyRedirects } from '@/lib/layout/corporate-links';
 
 const nextConfig: NextConfig = {
   async headers() {
@@ -50,7 +51,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     const panelBase =
       process.env.NEXT_PUBLIC_PANEL_URL || 'https://panel.biletfeed.com';
+    const legacyCorporate = corporateLegacyRedirects.map((item) => ({
+      ...item,
+      permanent: true
+    }));
     return [
+      ...legacyCorporate,
       {
         source: '/dashboard',
         destination: `${panelBase}/baslangic`,

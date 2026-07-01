@@ -8,6 +8,7 @@ import { getCategories, getCities } from '@/lib/services/events';
 const staticRoutes = [
   '',
   '/etkinlikler',
+  '/feed',
   '/kategoriler',
   '/sehirler',
   '/mekanlar',
@@ -73,7 +74,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   try {
-    const [events, organizers] = await Promise.all([
+    const [events, organizers, feedPosts] = await Promise.all([
       prisma.event.findMany({
         where: { status: 'published', deletedAt: null, startDate: { gte: now } },
         select: { slug: true, updatedAt: true }
@@ -81,6 +82,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       prisma.organizer.findMany({
         where: { deletedAt: null, status: 'approved' },
         select: { slug: true, updatedAt: true }
+      }),
+      prisma.feedPost.findMany({
+        where: { status: 'published', deletedAt: null },
+        select: { slug: true, updatedAt: true, publishedAt: true }
       })
     ]);
 
@@ -98,6 +103,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: o.updatedAt,
         changeFrequency: 'weekly' as const,
         priority: 0.7
+      })),
+      ...feedPosts.map((p) => ({
+        url: `${baseUrl}/feed/${p.slug}`,
+        lastModified: p.publishedAt ?? p.updatedAt,
+        changeFrequency: 'daily' as const,
+        priority: 0.8
       }))
     ];
   } catch {

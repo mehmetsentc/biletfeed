@@ -5,7 +5,11 @@ import { PageHero } from '@/components/layout/page-hero';
 import { EventCard } from '@/components/events/event-card';
 import { getVenueBySlug } from '@/lib/services/venues';
 import { getAllEvents } from '@/lib/services/events';
+import { verifySessionCookie } from '@/lib/auth/session';
+import { getFollowedVenueIds } from '@/lib/services/follows';
+import { VenueProfileActions } from '@/components/venues/venue-profile-actions';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { siteConfig } from '@/lib/config/site';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -29,6 +33,12 @@ export default async function VenueDetailPage({ params }: Props) {
   const events = allEvents.filter(
     (e) => e.venue.toLowerCase().includes(venue.name.split(' ')[0].toLowerCase())
   );
+  const session = await verifySessionCookie();
+  const followedVenueIds = session
+    ? await getFollowedVenueIds(session.uid)
+    : new Set<string>();
+  const isFollowing = followedVenueIds.has(venue.id);
+  const shareUrl = `${siteConfig.url}/mekanlar/${venue.slug}`;
 
   return (
     <>
@@ -55,6 +65,12 @@ export default async function VenueDetailPage({ params }: Props) {
               Kapasite: {venue.capacity.toLocaleString('tr-TR')} · {venue.eventCount} etkinlik
             </div>
             <p className="leading-relaxed text-muted-foreground">{venue.description}</p>
+            <VenueProfileActions
+              venueId={venue.id}
+              venueName={venue.name}
+              shareUrl={shareUrl}
+              initialFollowing={isFollowing}
+            />
           </div>
         </div>
         <h2 className="mb-6 text-xl font-bold">Bu Mekandaki Etkinlikler</h2>

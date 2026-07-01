@@ -3,13 +3,18 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { FollowButton } from '@/components/shared/follow-button';
 import type { MockOrganizer } from '@/lib/data/mock-organizers';
 
 interface EventHostedByProps {
   organizer: MockOrganizer;
+  initialFollowing?: boolean;
 }
 
-export function EventHostedBy({ organizer }: EventHostedByProps) {
+export function EventHostedBy({
+  organizer,
+  initialFollowing = false
+}: EventHostedByProps) {
   return (
     <section>
       <h2 className="text-xl font-bold">Organizatör</h2>
@@ -38,9 +43,13 @@ export function EventHostedBy({ organizer }: EventHostedByProps) {
           <Button variant="outline" className="rounded-md px-6" asChild>
             <Link href={`/organizator/${organizer.slug}`}>İletişim</Link>
           </Button>
-          <Button className="rounded-md bg-[#1a1d23] px-6 text-white hover:bg-[#1a1d23]/90">
-            + Takip Et
-          </Button>
+          <FollowButton
+            type="organizer"
+            targetId={organizer.id}
+            initialActive={initialFollowing}
+            variant="dark"
+            showIcon
+          />
         </div>
       </div>
     </section>

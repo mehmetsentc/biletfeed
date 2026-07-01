@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { HomeFeedTabs } from '@/components/feed/home-feed-tabs';
 import { HomeHeroDesktop, HomeHeroMobile, HomeHeroTablet } from '@/components/home/home-hero';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { EventifyCard } from '@/components/events/eventify-card';
@@ -41,6 +42,10 @@ export default async function HomePage() {
       <HomeHeroMobile />
       <HomeHeroTablet />
       <HomeHeroDesktop />
+
+      <section className="container mx-auto px-4 py-6">
+        <HomeFeedTabs />
+      </section>
 
       <CategoryExplore />
 

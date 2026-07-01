@@ -69,6 +69,7 @@ export function parseQrPayload(raw: string): {
   ticketCode?: string;
   validationToken?: string;
   ticketId?: string;
+  inviteToken?: string;
 } {
   const trimmed = raw.trim();
   try {
@@ -77,17 +78,23 @@ export function parseQrPayload(raw: string): {
       return {
         ticketCode: json.code || json.ticketCode,
         validationToken: json.token || json.validationToken,
-        ticketId: json.id || json.ticketId
+        ticketId: json.id || json.ticketId,
+        inviteToken: json.inviteToken
       };
     }
     if (trimmed.startsWith('http')) {
       const url = new URL(trimmed);
       const pathMatch = url.pathname.match(/\/bilet\/([^/?#]+)/i);
       const pathCode = pathMatch?.[1] ? decodeURIComponent(pathMatch[1]) : undefined;
+      const inviteMatch = url.pathname.match(/\/davetiye\/([^/?#]+)/i);
+      const inviteToken = inviteMatch?.[1]
+        ? decodeURIComponent(inviteMatch[1])
+        : undefined;
       return {
         ticketCode: url.searchParams.get('code') || pathCode || undefined,
         validationToken: url.searchParams.get('token') || undefined,
-        ticketId: url.searchParams.get('id') || undefined
+        ticketId: url.searchParams.get('id') || undefined,
+        inviteToken
       };
     }
   } catch {

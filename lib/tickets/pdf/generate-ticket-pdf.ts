@@ -4,8 +4,8 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import type { TicketPdfInput } from '@/lib/tickets/pdf/types';
 import { registerPdfFonts, pdfFont } from '@/lib/tickets/pdf/fonts';
-import { drawBarcodePdf } from '@/lib/tickets/design/barcode';
-import { ticketDesignTokens as t } from '@/lib/tickets/design/tokens';
+import { drawBarcodePdf, drawVerticalBarcodePdf } from '@/lib/tickets/design/barcode';
+import { ticketPrintTokens as p } from '@/lib/tickets/design/print-tokens';
 import {
   ticketCompanyAddressLine,
   ticketCompanyContactLine,
@@ -16,7 +16,7 @@ import {
 
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
-const LOGO_PATH = path.join(process.cwd(), 'public/brand/logo-light.png');
+const LOGO_PATH = path.join(process.cwd(), 'public/brand/logo-dark.png');
 
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   try {
@@ -54,39 +54,52 @@ export function buildTicketPdfFilename(eventTitle: string, ticketCode: string): 
   return `BiletFeed-${sanitizeFilename(eventTitle)}-${ticketCode}.pdf`;
 }
 
-function drawInfoCell(
-  doc: PdfDoc,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  label: string,
-  value: string
-) {
+function drawPerforatedLine(doc: PdfDoc, x: number, y: number, w: number) {
+  const notchR = 6;
   doc.save();
-  doc.roundedRect(x, y, w, h, 8).fillAndStroke('#1a2230', '#2a3544');
-  doc.fillColor(t.orange).fontSize(7.5).font(pdfFont(true)).text(label.toUpperCase(), x + 10, y + 8, {
-    width: w - 20
-  });
-  doc.fillColor(t.textPrimary).fontSize(9.5).font(pdfFont(true)).text(value, x + 10, y + 20, {
-    width: w - 20,
-    lineGap: 1
-  });
+  doc.fillColor(p.pageBg);
+  doc.circle(x - 2, y, notchR).fill();
+  doc.circle(x + w + 2, y, notchR).fill();
+  doc.strokeColor(p.dash).lineWidth(1).dash(5, { space: 4 });
+  doc.moveTo(x + notchR, y).lineTo(x + w - notchR, y).stroke();
+  doc.undash();
   doc.restore();
+}
+
+function admissionRulesTr(isInvitation: boolean): string[] {
+  if (isInvitation) {
+    return [
+      '• Dışarıdan yiyecek ve içecek getirilemez.',
+      '• Profesyonel kamera, kayıt ve ses cihazı alınmaz.',
+      '• Davetiye kişiye özeldir; devredilemez ve iade edilemez.',
+      '• Girişte QR kod veya davetiye kodu gösterilmelidir.'
+    ];
+  }
+  return [
+    '• Dışarıdan yiyecek ve içecek getirilemez.',
+    '• Profesyonel kamera, kayıt ve ses cihazı alınmaz.',
+    '• Bilet kişiye özeldir; devredilemez ve iade edilemez.',
+    '• Bilet yalnızca bir kez kullanılabilir.'
+  ];
+}
+
+function drawDetailRow(doc: PdfDoc, x: number, y: number, w: number, label: string, value: string) {
+  doc.fillColor(p.textMuted).fontSize(7.5).font(pdfFont(true)).text(label.toUpperCase(), x, y, { width: w });
+  doc.fillColor(p.text).fontSize(10).font(pdfFont(true)).text(value, x, y + 11, { width: w, lineGap: 0.5 });
 }
 
 export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> {
   const qrBuffer = await QRCode.toBuffer(input.qrData, {
-    width: 320,
+    width: 280,
     margin: 1,
-    color: { dark: '#000000', light: '#ffffff' }
+    color: { dark: '#111111', light: '#ffffff' }
   });
 
-  const coverBuffer = input.coverImageUrl ? await fetchImageBuffer(input.coverImageUrl) : null;
   const logoBuffer = loadLogoBuffer();
   const isValid = input.status === 'VALID';
   const isInvitation = input.kind === 'invitation';
   const kindLabel = isInvitation ? 'DAVETİYE' : 'ETKİNLİK BİLETİ';
+  const kindLabelEn = isInvitation ? 'INVITATION' : 'EVENT TICKET';
   const codeLabel = isInvitation ? 'DAVETİYE KODU' : 'BİLET KODU';
 
   return new Promise((resolve, reject) => {
@@ -109,211 +122,190 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
 
     const pageW = doc.page.width;
     const pageH = doc.page.height;
-    const cardX = 36;
-    const cardY = 32;
-    const cardW = pageW - 72;
-    const cardH = pageH - 64;
-    const contentX = cardX + 22;
-    const contentW = cardW - 44;
+    const cardX = 32;
+    const cardY = 28;
+    const cardW = pageW - 64;
+    const pad = 20;
+    const innerX = cardX + pad;
+    const innerW = cardW - pad * 2;
 
-    doc.rect(0, 0, pageW, pageH).fill(t.pageBg);
+    doc.rect(0, 0, pageW, pageH).fill(p.pageBg);
 
+    // Card outline
     doc.save();
-    doc.roundedRect(cardX, cardY, cardW, cardH, 14).fill(t.cardBg);
+    doc.roundedRect(cardX, cardY, cardW, pageH - cardY * 2, 6).lineWidth(1).strokeColor(p.border).stroke();
     doc.restore();
 
     let cursorY = cardY;
 
-    // Header strip
-    const headerH = 48;
+    // ── Header strip ──
+    const headerH = 46;
     doc.save();
-    doc.roundedRect(cardX, cardY, cardW, headerH + 8, 14).clip();
-    doc.rect(cardX, cardY, cardW, headerH).fill(t.orange);
+    doc.roundedRect(cardX, cardY, cardW, headerH + 4, 6).clip();
+    doc.rect(cardX, cardY, cardW, headerH).fill(p.headerBg);
     doc.restore();
 
     if (logoBuffer) {
-      doc.image(logoBuffer, cardX + 18, cardY + 12, { height: 24 });
+      doc.image(logoBuffer, innerX, cardY + 11, { height: 24 });
     } else {
-      doc.fillColor('#000').fontSize(14).font(pdfFont(true)).text('bilet', cardX + 18, cardY + 16, {
-        continued: true
-      });
-      doc.fillColor('#1a1a1a').text('feed');
+      doc.fillColor(p.headerText).fontSize(14).font(pdfFont(true)).text('biletfeed', innerX, cardY + 14);
     }
 
-    doc.fillColor('#000')
-      .fontSize(9)
+    doc.fillColor(p.headerText)
+      .fontSize(8.5)
       .font(pdfFont(true))
-      .text(kindLabel, cardX + cardW - 130, cardY + 18, { width: 118, align: 'right' });
+      .text(kindLabel, cardX + cardW - pad - 100, cardY + 12, { width: 100, align: 'right' });
+
+    doc.fillColor(`${p.headerText}99`)
+      .fontSize(7)
+      .font(pdfFont())
+      .text('biletfeed.com', cardX + cardW - pad - 100, cardY + 26, { width: 100, align: 'right' });
 
     cursorY += headerH + 16;
 
-    // Cover image
-    if (coverBuffer) {
-      const coverH = 130;
-      doc.save();
-      doc.rect(cardX + 1, cursorY, cardW - 2, coverH).clip();
-      doc.image(coverBuffer, cardX, cursorY, { width: cardW, height: coverH, align: 'center', valign: 'center' });
-      doc.save();
-      doc.fillOpacity(0.85);
-      doc.rect(cardX, cursorY + coverH - 50, cardW, 50).fill(t.cardBg);
-      doc.fillOpacity(1);
-      doc.restore();
-      doc.restore();
-      cursorY += coverH + 12;
+    // ── Admission strip (QR + rules + vertical barcode) ──
+    const admissionH = 132;
+    const qrSize = 96;
+    const qrBox = qrSize + 16;
+
+    doc.save();
+    doc.roundedRect(innerX, cursorY, qrBox, qrBox, 4).lineWidth(0.75).strokeColor(p.border).stroke();
+    doc.restore();
+    doc.image(qrBuffer, innerX + 8, cursorY + 8, { width: qrSize, height: qrSize });
+
+    const rulesX = innerX + qrBox + 16;
+    const rulesW = innerW - qrBox - 16 - 44;
+
+    doc.fillColor(p.text).fontSize(8).font(pdfFont(true)).text('GİRİŞ KURALLARI', rulesX, cursorY + 4);
+    let ruleY = cursorY + 18;
+    for (const line of admissionRulesTr(isInvitation)) {
+      doc.fillColor(p.textSecondary).fontSize(7.5).font(pdfFont()).text(line, rulesX, ruleY, { width: rulesW, lineGap: 0.5 });
+      ruleY += 14;
     }
 
-    // Title section
-    if (isInvitation) {
-      doc.fillColor(t.orange).fontSize(8).font(pdfFont(true)).text('SAYIN DAVETLİ', contentX, cursorY);
-      cursorY += 14;
-    }
+    const vBarX = cardX + cardW - pad - 18;
+    drawVerticalBarcodePdf(doc, vBarX, cursorY + admissionH / 2, input.ticketCode, 110, 32, p.text);
+    doc.fillColor(p.textMuted)
+      .fontSize(6.5)
+      .font(pdfFont())
+      .text(input.ticketCode, vBarX - 28, cursorY + admissionH - 10, { width: 80, align: 'center' });
 
-    doc.fillColor(t.textPrimary).fontSize(17).font(pdfFont(true)).text(input.eventTitle, contentX, cursorY, {
-      width: contentW - 80,
+    cursorY += admissionH + 8;
+    drawPerforatedLine(doc, innerX, cursorY, innerW);
+    cursorY += 18;
+
+    // ── Main ticket body ──
+    const bodyLeftBarX = innerX + 6;
+    drawVerticalBarcodePdf(doc, bodyLeftBarX, cursorY + 72, input.ticketCode, 90, 24, p.text);
+
+    const bodyX = innerX + 28;
+    const bodyW = innerW - 100;
+
+    // Watermark
+    doc.save();
+    doc.fillColor(p.watermark).fontSize(28).font(pdfFont(true));
+    doc.text(kindLabelEn, cardX + cardW - pad - 8, cursorY + 20, {
+      width: 120,
+      align: 'right',
+      characterSpacing: 2
+    });
+    doc.restore();
+
+    doc.fillColor(p.text).fontSize(18).font(pdfFont(true)).text(input.eventTitle.toUpperCase(), bodyX, cursorY, {
+      width: bodyW,
       lineGap: 1
     });
-
-    const badgeLabel = isValid ? 'Geçerli' : 'Geçersiz';
-    const badgeColor = isValid ? t.success : t.danger;
-    const badgeW = 68;
-    const badgeH = 20;
-    const badgeX = cardX + cardW - badgeW - 22;
-    doc.save();
-    doc.fillOpacity(0.15);
-    doc.roundedRect(badgeX, cursorY, badgeW, badgeH, 10).fill(badgeColor);
-    doc.fillOpacity(1);
-    doc.restore();
-    doc.fillColor(badgeColor).fontSize(7.5).font(pdfFont(true)).text(badgeLabel, badgeX, cursorY + 6, {
-      width: badgeW,
-      align: 'center'
-    });
-
-    cursorY += doc.heightOfString(input.eventTitle, { width: contentW - 80, lineGap: 1 }) + 6;
+    const titleH = doc.heightOfString(input.eventTitle.toUpperCase(), { width: bodyW, lineGap: 1 });
+    cursorY += titleH + 8;
 
     const holderLine = isInvitation
-      ? `${input.holderName} adına düzenlenmiştir.`
+      ? `${input.holderName} adına düzenlenmiştir`
       : `Sayın ${input.holderName}`;
-    doc.fillColor(t.textSecondary).fontSize(9.5).font(pdfFont()).text(holderLine, contentX, cursorY, {
-      width: contentW
-    });
+    doc.fillColor(p.textSecondary).fontSize(9).font(pdfFont()).text(holderLine, bodyX, cursorY, { width: bodyW });
     cursorY += 16;
 
     if (input.personalMessage?.trim()) {
       doc.save();
-      doc.roundedRect(contentX, cursorY, contentW, 40, 6).fill(`${t.orange}18`);
+      doc.roundedRect(bodyX, cursorY, bodyW, 34, 4).fill(p.accentSoft);
       doc.restore();
-      doc.fillColor('#cccccc')
-        .fontSize(8.5)
+      doc.fillColor(p.textSecondary)
+        .fontSize(8)
         .font(pdfFont())
-        .text(`"${input.personalMessage.trim()}"`, contentX + 10, cursorY + 10, {
-          width: contentW - 20,
-          lineGap: 1
-        });
-      cursorY += 48;
+        .text(`"${input.personalMessage.trim()}"`, bodyX + 10, cursorY + 10, { width: bodyW - 20, lineGap: 0.5 });
+      cursorY += 42;
     }
 
-    // 3-column info grid
-    const gridItems = [
-      { label: 'Tarih', value: input.eventDate },
-      { label: 'Saat', value: input.eventTime },
-      { label: 'Mekan', value: `${input.venue}, ${input.city}` },
-      { label: isInvitation ? 'Davetiye Türü' : 'Bilet Türü', value: input.ticketTypeName },
-      { label: 'Katılımcı', value: input.holderName }
-    ];
+    const colW = (bodyW - 16) / 2;
+    const row1Y = cursorY;
+    drawDetailRow(doc, bodyX, row1Y, colW, 'Mekan', `${input.venue}, ${input.city}`);
+    drawDetailRow(doc, bodyX + colW + 16, row1Y, colW, 'Tarih', input.eventDate);
 
-    const cols = 3;
-    const gap = 8;
-    const cellW = (contentW - gap * (cols - 1)) / cols;
-    const cellH = 40;
+    const row2Y = row1Y + 36;
+    drawDetailRow(doc, bodyX, row2Y, colW, 'Saat', input.eventTime);
+    drawDetailRow(
+      doc,
+      bodyX + colW + 16,
+      row2Y,
+      colW,
+      isInvitation ? 'Davetiye Türü' : 'Bilet Türü',
+      input.ticketTypeName
+    );
 
-    gridItems.forEach((item, index) => {
-      const col = index % cols;
-      const row = Math.floor(index / cols);
-      drawInfoCell(
-        doc,
-        contentX + col * (cellW + gap),
-        cursorY + row * (cellH + gap),
-        cellW,
-        cellH,
-        item.label,
-        item.value
-      );
+    const row3Y = row2Y + 36;
+    drawDetailRow(doc, bodyX, row3Y, colW, 'Katılımcı', input.holderName);
+    drawDetailRow(doc, bodyX + colW + 16, row3Y, colW, codeLabel, input.ticketCode);
+
+    cursorY = row3Y + 44;
+
+    // Status badge
+    const badgeLabel = isValid ? 'GEÇERLİ' : 'GEÇERSİZ';
+    const badgeColor = isValid ? p.success : p.danger;
+    doc.save();
+    doc.roundedRect(bodyX, cursorY, 72, 18, 3).fill(`${badgeColor}22`);
+    doc.restore();
+    doc.fillColor(badgeColor).fontSize(7.5).font(pdfFont(true)).text(badgeLabel, bodyX, cursorY + 5, {
+      width: 72,
+      align: 'center'
     });
 
-    const gridRows = Math.ceil(gridItems.length / cols);
-    cursorY += gridRows * (cellH + gap) + 12;
+    // Horizontal barcode under details
+    drawBarcodePdf(doc, bodyX + 90, cursorY - 2, input.ticketCode, Math.min(bodyW - 90, 200), 26, p.text);
 
-    // Dashed divider
-    doc.save();
-    doc.strokeColor(t.divider).lineWidth(1).dash(4, { space: 4 });
-    doc.moveTo(contentX, cursorY).lineTo(contentX + contentW, cursorY).stroke();
-    doc.undash();
-    doc.restore();
-    cursorY += 18;
+    cursorY += 28;
+    drawPerforatedLine(doc, innerX, cursorY, innerW);
+    cursorY += 14;
 
-    // QR + reference section
-    const qrSize = 120;
-    doc.save();
-    doc.roundedRect(contentX, cursorY, qrSize + 20, qrSize + 20, 12).fill('#ffffff');
-    doc.restore();
-    doc.image(qrBuffer, contentX + 10, cursorY + 10, { width: qrSize, height: qrSize });
+    // ── Footer terms ──
+    doc.fillColor(p.textMuted).fontSize(7).font(pdfFont(true)).text('ŞARTLAR / TERMS', innerX, cursorY);
+    cursorY += 12;
 
-    const infoX = contentX + qrSize + 36;
-    const infoW = contentW - qrSize - 36;
-
-    doc.fillColor(t.textMuted).fontSize(7.5).font(pdfFont(true)).text(codeLabel, infoX, cursorY + 4);
-    doc.fillColor(t.textPrimary).fontSize(15).font(pdfFont(true)).text(input.ticketCode, infoX, cursorY + 16, {
-      width: infoW,
-      characterSpacing: 1.5
-    });
-
-    drawBarcodePdf(doc, infoX, cursorY + 38, input.ticketCode, Math.min(infoW, 180), 28, '#ffffff');
-
-    doc.fillColor(t.textMuted)
-      .fontSize(8)
-      .font(pdfFont())
-      .text(
-        isInvitation
-          ? 'Girişte bu QR kodu veya davetiye kodunu gösterin.'
-          : 'Girişte bu QR kodu veya bilet kodunu gösterin. Bilet yalnızca bir kez kullanılabilir.',
-        infoX,
-        cursorY + 72,
-        { width: infoW, lineGap: 1 }
-      );
-
-    doc.save();
-    doc.roundedRect(infoX, cursorY + 98, infoW, 2.5, 2).fill(t.orange);
-    doc.restore();
-
-    cursorY += qrSize + 36;
-
-    // Terms footer
-    doc.strokeColor('#ffffff18').lineWidth(0.5);
-    doc.moveTo(contentX, cursorY).lineTo(contentX + contentW, cursorY).stroke();
-    cursorY += 10;
-
-    doc.fillColor(t.textMuted).fontSize(7).font(pdfFont()).text(ticketTermsTr(input.kind), contentX, cursorY, {
-      width: contentW,
+    doc.fillColor(p.textSecondary).fontSize(6.5).font(pdfFont()).text(ticketTermsTr(input.kind), innerX, cursorY, {
+      width: innerW,
       lineGap: 0.5
     });
-    cursorY += doc.heightOfString(ticketTermsTr(input.kind), { width: contentW, lineGap: 0.5 }) + 4;
+    cursorY += doc.heightOfString(ticketTermsTr(input.kind), { width: innerW, lineGap: 0.5 }) + 4;
 
-    doc.fillColor(t.textDim).fontSize(6.5).font(pdfFont()).text(ticketTermsEn(input.kind), contentX, cursorY, {
-      width: contentW,
+    doc.fillColor(p.textMuted).fontSize(6).font(pdfFont()).text(ticketTermsEn(input.kind), innerX, cursorY, {
+      width: innerW,
       lineGap: 0.5
     });
-    cursorY += doc.heightOfString(ticketTermsEn(input.kind), { width: contentW, lineGap: 0.5 }) + 6;
+    cursorY += doc.heightOfString(ticketTermsEn(input.kind), { width: innerW, lineGap: 0.5 }) + 8;
 
-    doc.fillColor(t.textDim).fontSize(6.5).font(pdfFont()).text(ticketCompanyLegalLine(), contentX, cursorY, {
-      width: contentW
+    doc.save();
+    doc.moveTo(innerX, cursorY).lineTo(innerX + innerW, cursorY).lineWidth(0.5).strokeColor(p.border).stroke();
+    doc.restore();
+    cursorY += 8;
+
+    doc.fillColor(p.textDim).fontSize(6).font(pdfFont()).text(ticketCompanyLegalLine(), innerX, cursorY, {
+      width: innerW
     });
-    cursorY += 9;
-    doc.text(ticketCompanyAddressLine(), contentX, cursorY, { width: contentW });
-    cursorY += 9;
-    doc.text(ticketCompanyContactLine(), contentX, cursorY, { width: contentW });
+    cursorY += 8;
+    doc.text(ticketCompanyAddressLine(), innerX, cursorY, { width: innerW });
+    cursorY += 8;
+    doc.text(ticketCompanyContactLine(), innerX, cursorY, { width: innerW });
 
-    doc.fillColor(t.textDim).fontSize(6.5).font(pdfFont()).text('biletfeed.com', contentX, cursorY + 12, {
-      width: contentW,
+    doc.fillColor(p.accent).fontSize(7).font(pdfFont(true)).text('biletfeed.com', innerX, cursorY + 10, {
+      width: innerW,
       align: 'right'
     });
 

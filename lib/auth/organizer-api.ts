@@ -28,6 +28,22 @@ export async function resolveScannerUser(firebaseUid: string, email?: string) {
     select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
   });
 
+  // Firebase UID başka bir profile bağlı ama oturum e-postası organizatör hesabına aitse
+  // organizatör hesabını önceliklendir (kapı taramasında sık görülen senaryo)
+  if (user && normalizedEmail && normalizeEmail(user.email) !== normalizedEmail) {
+    const byEmail = await prisma.user.findFirst({
+      where: { email: normalizedEmail, deletedAt: null },
+      select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
+    });
+    if (byEmail) {
+      user = await prisma.user.update({
+        where: { id: byEmail.id },
+        data: { firebaseUid },
+        select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
+      });
+    }
+  }
+
   if (!user && normalizedEmail) {
     user = await prisma.user.findFirst({
       where: { email: normalizedEmail, deletedAt: null },
@@ -66,6 +82,8 @@ export type ScannerContext = {
 export async function resolveScannerContext(): Promise<ScannerContext | null> {
   const session = await verifySessionCookie();
   if (!session) return null;
+
+  await ensureDbConnection();
 
   const user = await resolveScannerUser(session.uid, session.email);
   if (!user) return null;
@@ -122,6 +140,7 @@ export async function isEventOwnedByFirebaseUid(
 /** Bilet/davetiye tarayıcısının bu bilete erişimi var mı? */
 export async function canScannerAccessTicket(params: {
   ticketId: string;
+  eventId?: string;
   firebaseUid: string;
   email?: string;
   role?: UserRole;
@@ -133,9 +152,32 @@ export async function canScannerAccessTicket(params: {
 }): Promise<boolean> {
   if (
     params.role &&
-    sessionHasRole({ uid: params.firebaseUid, role: params.role }, 'ROLE_ADMIN')
+    (sessionHasRole({ uid: params.firebaseUid, role: params.role }, 'ROLE_ADMIN') ||
+      params.role === 'ROLE_SUPER_ADMIN')
   ) {
     return true;
+  }
+
+  const ticketOrganizerIds = [
+    params.eventOrganizerId,
+    params.invitationOrganizerId,
+    params.orderOrganizerId
+  ].filter((id): id is string => Boolean(id));
+
+  if (
+    params.scannerOrganizerId &&
+    ticketOrganizerIds.includes(params.scannerOrganizerId)
+  ) {
+    return true;
+  }
+
+  if (params.eventId) {
+    const ownsEvent = await isEventOwnedByFirebaseUid(
+      params.eventId,
+      params.firebaseUid,
+      params.email
+    );
+    if (ownsEvent) return true;
   }
 
   await ensureDbConnection();
@@ -175,16 +217,6 @@ export async function canScannerAccessTicket(params: {
     select: { id: true }
   });
   if (ownerMatch) return true;
-
-  const ownedOrganizerIds = new Set(
-    [params.eventOrganizerId, params.invitationOrganizerId, params.orderOrganizerId].filter(
-      (id): id is string => Boolean(id)
-    )
-  );
-
-  if (params.scannerOrganizerId && ownedOrganizerIds.has(params.scannerOrganizerId)) {
-    return true;
-  }
 
   const ownerWhere = ownerIdentityFilter(params.firebaseUid, params.email);
 

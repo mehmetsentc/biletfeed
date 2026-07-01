@@ -1,15 +1,16 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { BadgeCheck, Users, Calendar, Share2 } from 'lucide-react';
-import { PageHero } from '@/components/layout/page-hero';
+import { BadgeCheck, Users, Calendar } from 'lucide-react';
 import { EventCard } from '@/components/events/event-card';
-import { Button } from '@/components/ui/button';
+import { OrganizerProfileActions } from '@/components/organizers/organizer-profile-actions';
 import { getOrganizerBySlug } from '@/lib/services/organizers';
 import { getEventsByOrganizer } from '@/lib/services/events';
+import { verifySessionCookie } from '@/lib/auth/session';
+import { getFollowedOrganizerIds } from '@/lib/services/follows';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { buildOrganizerSchema } from '@/lib/seo/schemas';
+import { siteConfig } from '@/lib/config/site';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -29,7 +30,16 @@ export default async function OrganizerPage({ params }: Props) {
   const organizer = await getOrganizerBySlug(slug);
   if (!organizer) notFound();
 
-  const events = await getEventsByOrganizer(slug);
+  const [events, session] = await Promise.all([
+    getEventsByOrganizer(slug),
+    verifySessionCookie()
+  ]);
+
+  const followedIds = session
+    ? await getFollowedOrganizerIds(session.uid)
+    : new Set<string>();
+  const isFollowing = followedIds.has(organizer.id);
+  const shareUrl = `${siteConfig.url}/organizator/${organizer.slug}`;
 
   return (
     <>
@@ -67,12 +77,12 @@ export default async function OrganizerPage({ params }: Props) {
               </span>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button>Takip Et</Button>
-            <Button variant="outline" size="icon">
-              <Share2 className="size-4" />
-            </Button>
-          </div>
+          <OrganizerProfileActions
+            organizerId={organizer.id}
+            organizerName={organizer.name}
+            shareUrl={shareUrl}
+            initialFollowing={isFollowing}
+          />
         </div>
 
         <h2 className="mb-6 mt-10 text-xl font-bold">Etkinlikler</h2>

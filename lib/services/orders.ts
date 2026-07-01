@@ -108,15 +108,17 @@ export async function createCheckout(params: {
   eventSlug: string;
   quantity: number;
   ticketTypeId?: string;
-  attendeeName?: string;
-  attendeeEmail?: string;
+  attendeeName: string;
+  attendeeEmail: string;
+  attendeeTcKimlik: string;
   couponCode?: string;
 }): Promise<CheckoutResult> {
   const { user, event, ticketType, qty, subtotal, commission } =
     await loadCheckoutContext(params);
 
-  const attendeeName = params.attendeeName?.trim() || user.displayName || undefined;
-  const attendeeEmail = params.attendeeEmail?.trim() || user.email;
+  const attendeeName = params.attendeeName.trim();
+  const attendeeEmail = params.attendeeEmail.trim().toLowerCase();
+  const attendeeTcKimlik = params.attendeeTcKimlik;
 
   let discount = 0;
   let appliedCouponId: string | undefined;
@@ -146,6 +148,7 @@ export async function createCheckout(params: {
       unitPrice: ticketType.price,
       attendeeName,
       attendeeEmail,
+      attendeeTcKimlik,
       discount,
       couponCode: appliedCouponCode,
       couponId: appliedCouponId
@@ -182,8 +185,9 @@ export async function createCheckout(params: {
         paymentProvider: providerName,
         expiresAt: pendingExpiresAt(),
         couponCode: appliedCouponCode ?? null,
-        attendeeName: attendeeName ?? null,
-        attendeeEmail: attendeeEmail ?? null,
+        attendeeName,
+        attendeeEmail,
+        attendeeTcKimlik,
         items: {
           create: {
             ticketTypeId: ticketType.id,
@@ -247,8 +251,9 @@ async function fulfillFreeOrder(params: {
   ticketTypeId: string;
   quantity: number;
   unitPrice: number;
-  attendeeName?: string;
-  attendeeEmail?: string;
+  attendeeName: string;
+  attendeeEmail: string;
+  attendeeTcKimlik: string;
   discount?: number;
   couponCode?: string;
   couponId?: string;
@@ -278,8 +283,9 @@ async function fulfillFreeOrder(params: {
         paymentId: `free_${Date.now()}`,
         paidAt: new Date(),
         couponCode: params.couponCode ?? null,
-        attendeeName: params.attendeeName ?? null,
-        attendeeEmail: params.attendeeEmail ?? null,
+        attendeeName: params.attendeeName,
+        attendeeEmail: params.attendeeEmail,
+        attendeeTcKimlik: params.attendeeTcKimlik,
         items: {
           create: {
             ticketTypeId: params.ticketTypeId,
@@ -308,7 +314,8 @@ async function fulfillFreeOrder(params: {
       ticketTypeId: params.ticketTypeId,
       quantity: params.quantity,
       attendeeName: params.attendeeName,
-      attendeeEmail: params.attendeeEmail
+      attendeeEmail: params.attendeeEmail,
+      attendeeTcKimlik: params.attendeeTcKimlik
     });
 
     return created;
@@ -348,6 +355,7 @@ async function issueTickets(
     quantity: number;
     attendeeName?: string | null;
     attendeeEmail?: string | null;
+    attendeeTcKimlik?: string | null;
   }
 ): Promise<void> {
   const ticketType = await tx.ticketType.findUnique({
@@ -379,7 +387,8 @@ async function issueTickets(
         validationToken: generateValidationToken(ticketId, params.eventId),
         status: 'VALID',
         attendeeName: params.attendeeName ?? null,
-        attendeeEmail: params.attendeeEmail ?? null
+        attendeeEmail: params.attendeeEmail ?? null,
+        attendeeTcKimlik: params.attendeeTcKimlik ?? null
       }
     });
   }
@@ -428,7 +437,8 @@ export async function fulfillPaidOrder(params: {
         ticketTypeId: item.ticketTypeId,
         quantity: item.quantity,
         attendeeName: order.attendeeName,
-        attendeeEmail: order.attendeeEmail
+        attendeeEmail: order.attendeeEmail,
+        attendeeTcKimlik: order.attendeeTcKimlik
       });
       ticketCount += item.quantity;
     }
@@ -556,6 +566,9 @@ export async function checkoutEvent(params: {
   firebaseUid: string;
   eventSlug: string;
   quantity: number;
+  attendeeName: string;
+  attendeeEmail: string;
+  attendeeTcKimlik: string;
 }) {
   const result = await createCheckout(params);
   if (result.status === 'pending') {

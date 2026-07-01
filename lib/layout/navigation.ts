@@ -37,6 +37,7 @@ export function shouldShowNewsletterBanner(pathname: string): boolean {
 
 export const mainNavLinks = [
   { href: '/', label: 'Ana Sayfa' },
+  { href: '/feed', label: 'Feed' },
   { href: '/etkinlikler', label: 'Etkinlikler' },
   { href: '/kategoriler', label: 'Kategoriler' },
   { href: '/hakkimizda', label: 'Hakkımızda' },

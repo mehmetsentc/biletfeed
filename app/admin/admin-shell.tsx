@@ -15,7 +15,8 @@ import {
   BarChart3,
   Image,
   FileText,
-  Ticket
+  Ticket,
+  Rss
 } from 'lucide-react';
 import { getTranslations } from '@/lib/i18n';
 import { Logo } from '@/components/brand/logo';
@@ -28,6 +29,7 @@ const adminLinks = [
   { href: '/admin/kullanicilar', label: t.admin.users, icon: Users },
   { href: '/admin/organizatorler', label: t.admin.organizers, icon: Users },
   { href: '/admin/etkinlikler', label: t.admin.events, icon: Calendar },
+  { href: '/admin/feed', label: 'Feed', icon: Rss },
   { href: '/admin/kategoriler', label: t.admin.categories, icon: LayoutGrid },
   { href: '/admin/sehirler', label: t.admin.cities, icon: MapPin },
   { href: '/admin/mekanlar', label: t.admin.venues, icon: Building2 },

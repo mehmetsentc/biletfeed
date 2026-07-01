@@ -1,7 +1,7 @@
 export function ticketPrintStyles(rootId = 'ticket-document'): string {
   return `
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: #0c1017 !important; font-family: -apple-system, 'Segoe UI', sans-serif; }
+    html, body { background: #FFFFFF !important; font-family: -apple-system, 'Segoe UI', sans-serif; }
     @page { size: A4 portrait; margin: 12mm; }
     @media print {
       html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -17,7 +17,7 @@ export function ticketPrintStyles(rootId = 'ticket-document'): string {
 export function ticketWebPrintStyles(): string {
   return `
     @media print {
-      body { background: #0c1017 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { background: #FFFFFF !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .no-print { display: none !important; }
       nav, footer, header { display: none !important; }
     }

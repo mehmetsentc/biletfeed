@@ -14,6 +14,8 @@ import {
   formatEventDate,
   formatPrice
 } from '@/lib/data/mock-events';
+import { validateCheckoutAttendee } from '@/lib/validation/checkout-attendee';
+import { normalizeTcKimlik } from '@/lib/validation/tc-kimlik';
 
 export function CheckoutForm({
   event,
@@ -38,6 +40,8 @@ export function CheckoutForm({
   const [selectedTypeId, setSelectedTypeId] = useState(ticketTypes[0]?.id ?? '');
   const [attendeeName, setAttendeeName] = useState('');
   const [attendeeEmail, setAttendeeEmail] = useState('');
+  const [attendeeTcKimlik, setAttendeeTcKimlik] = useState('');
+  const [attendeeErrors, setAttendeeErrors] = useState<Record<string, string>>({});
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
@@ -49,6 +53,26 @@ export function CheckoutForm({
   const subtotal = event.isFree ? 0 : unitPrice * quantity;
   const total = Math.max(0, subtotal - couponDiscount);
   const isPaid = total > 0;
+
+  function validateParticipantStep(): boolean {
+    const result = validateCheckoutAttendee({
+      attendeeName,
+      attendeeEmail,
+      attendeeTcKimlik
+    });
+    if (!result.success) {
+      setAttendeeErrors(result.errors);
+      return false;
+    }
+    setAttendeeErrors({});
+    return true;
+  }
+
+  function handleParticipantContinue() {
+    if (validateParticipantStep()) {
+      setStep(3);
+    }
+  }
 
   async function applyCoupon() {
     setCouponError(null);
@@ -80,6 +104,21 @@ export function CheckoutForm({
     setLoading(true);
     setError(null);
 
+    setError(null);
+
+    const attendee = validateCheckoutAttendee({
+      attendeeName,
+      attendeeEmail,
+      attendeeTcKimlik
+    });
+    if (!attendee.success) {
+      setAttendeeErrors(attendee.errors);
+      setStep(2);
+      setError('Lütfen katılımcı bilgilerini eksiksiz doldurun.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/orders/checkout', {
         method: 'POST',
@@ -88,8 +127,9 @@ export function CheckoutForm({
           eventSlug: event.slug,
           quantity,
           ticketTypeId: selectedType?.id,
-          attendeeName: attendeeName.trim() || undefined,
-          attendeeEmail: attendeeEmail.trim() || undefined,
+          attendeeName: attendee.data.attendeeName,
+          attendeeEmail: attendee.data.attendeeEmail,
+          attendeeTcKimlik: attendee.data.attendeeTcKimlik,
           couponCode: couponApplied ? couponCode.trim() : undefined
         })
       });
@@ -185,29 +225,78 @@ export function CheckoutForm({
                 Bilet sahibi bilgileri giriş kapısında gösterilir.
               </p>
               <div className="space-y-2">
-                <Label htmlFor="attendeeName">Ad Soyad</Label>
+                <Label htmlFor="attendeeName">
+                  Ad Soyad <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="attendeeName"
                   value={attendeeName}
-                  onChange={(e) => setAttendeeName(e.target.value)}
+                  onChange={(e) => {
+                    setAttendeeName(e.target.value);
+                    if (attendeeErrors.attendeeName) {
+                      setAttendeeErrors((prev) => ({ ...prev, attendeeName: '' }));
+                    }
+                  }}
                   placeholder="Bilet sahibi adı"
+                  required
+                  autoComplete="name"
+                  aria-invalid={Boolean(attendeeErrors.attendeeName)}
                 />
+                {attendeeErrors.attendeeName && (
+                  <p className="text-sm text-destructive">{attendeeErrors.attendeeName}</p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="attendeeEmail">E-posta</Label>
+                <Label htmlFor="attendeeTcKimlik">
+                  TC Kimlik No <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="attendeeTcKimlik"
+                  inputMode="numeric"
+                  value={attendeeTcKimlik}
+                  onChange={(e) => {
+                    setAttendeeTcKimlik(normalizeTcKimlik(e.target.value));
+                    if (attendeeErrors.attendeeTcKimlik) {
+                      setAttendeeErrors((prev) => ({ ...prev, attendeeTcKimlik: '' }));
+                    }
+                  }}
+                  placeholder="11 haneli TC kimlik numarası"
+                  required
+                  maxLength={11}
+                  aria-invalid={Boolean(attendeeErrors.attendeeTcKimlik)}
+                />
+                {attendeeErrors.attendeeTcKimlik && (
+                  <p className="text-sm text-destructive">{attendeeErrors.attendeeTcKimlik}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="attendeeEmail">
+                  E-posta <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="attendeeEmail"
                   type="email"
                   value={attendeeEmail}
-                  onChange={(e) => setAttendeeEmail(e.target.value)}
+                  onChange={(e) => {
+                    setAttendeeEmail(e.target.value);
+                    if (attendeeErrors.attendeeEmail) {
+                      setAttendeeErrors((prev) => ({ ...prev, attendeeEmail: '' }));
+                    }
+                  }}
                   placeholder="bilet@ornek.com"
+                  required
+                  autoComplete="email"
+                  aria-invalid={Boolean(attendeeErrors.attendeeEmail)}
                 />
+                {attendeeErrors.attendeeEmail && (
+                  <p className="text-sm text-destructive">{attendeeErrors.attendeeEmail}</p>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setStep(1)}>
                   Geri
                 </Button>
-                <Button onClick={() => setStep(3)} className="flex-1">
+                <Button type="button" onClick={handleParticipantContinue} className="flex-1">
                   Devam Et
                 </Button>
               </div>
@@ -261,6 +350,22 @@ export function CheckoutForm({
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tarih</span>
                   <span>{formatEventDate(event.startDate)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Katılımcı</span>
+                  <span>{attendeeName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">E-posta</span>
+                  <span>{attendeeEmail}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">TC Kimlik</span>
+                  <span>
+                    {attendeeTcKimlik.length === 11
+                      ? `${attendeeTcKimlik.slice(0, 3)}******${attendeeTcKimlik.slice(-2)}`
+                      : attendeeTcKimlik}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Bilet türü</span>
