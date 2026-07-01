@@ -287,8 +287,10 @@ export function InvitationsPanel({
       {mode === 'bulk' ? (
         <BulkInvitationsPanel
           eventId={eventId}
+          ticketTypes={ticketTypes}
           ticketTypeId={ticketTypeId}
-          disabled={!eventId || !ticketTypeId}
+          onTicketTypeChange={setTicketTypeId}
+          disabled={!eventId || !ticketTypeId || ticketTypes.length === 0}
           onCreated={(rows) => setInvitations((prev) => [...rows, ...prev])}
         />
       ) : (

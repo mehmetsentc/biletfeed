@@ -19,8 +19,8 @@ export default async function OrganizatorInvitationsPage({ searchParams }: PageP
       <div>
         <h1 className="text-2xl font-bold text-foreground">Davetiye Yönetimi</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tekli veya toplu davetiye gönderin. PDF otomatik oluşturulur; e-posta, WhatsApp veya ZIP
-          ile paylaşın.
+          Tekli veya toplu davetiye gönderin. Toplu gönderimde firma/kişi adı ve adet ile
+          çoklu bilet oluşturabilirsiniz. PDF otomatik oluşturulur; e-posta veya ZIP ile paylaşın.
         </p>
       </div>
       <InvitationsPanel initialEventId={eventId} />
