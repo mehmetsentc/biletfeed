@@ -213,14 +213,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!activeUser && sessionUser) {
             const synced = await alignFirebaseWithSessionCookie(readyAuth, null);
             if (synced) return;
-            try {
-              await fetch('/api/auth/session', {
-                method: 'DELETE',
-                credentials: 'same-origin'
-              });
-            } catch {
-              // ignore
-            }
+            // Firebase eşitlemesi başarısız olsa bile geçerli session çerezini silme
+            setUser(sessionUser);
+            setSessionReady(true);
+            setSessionError(null);
+            setLoading(false);
+            return;
           }
 
           if (activeUser) {

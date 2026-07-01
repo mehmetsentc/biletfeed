@@ -8,6 +8,14 @@ import { ORGANIZER_AGREEMENT_VERSION } from '@/lib/organizator/event-wizard-cons
 import { getSiteUrl } from '@/lib/config/domain';
 import type { AttendeeQuestionRow, PerformerRow } from '@/components/organizator-panel/event-wizard/types';
 
+const AGREEMENT_URL = getSiteUrl('/organizator-sozlesmesi');
+
+function openOrganizerAgreement(e: { preventDefault(): void; stopPropagation(): void }) {
+  e.preventDefault();
+  e.stopPropagation();
+  window.open(AGREEMENT_URL, '_blank', 'noopener,noreferrer');
+}
+
 interface WizardStepPublishProps {
   isEdit: boolean;
   previewImage: string | null;
@@ -110,34 +118,36 @@ export function WizardStepPublish({
           description="Etkinliğinizi taslak olarak kaydedebilir veya yayınlayabilirsiniz."
           icon={Sparkles}
         >
-          <label className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={(e) => onTermsAcceptedChange(e.target.checked)}
-              className="mt-1 size-4 rounded border-border"
-            />
-            <span className="text-sm text-muted-foreground">
-              <Label className="text-foreground">
-                Organizatör Kullanıcı Sözleşmesi&apos;ni okudum ve kabul ediyorum
-              </Label>
-              <br />
-              Etkinliği {isEdit ? 'kaydetmek' : 'yayınlamak'},{' '}
-              <a
-                href={getSiteUrl('/organizator-sozlesmesi')}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="font-medium text-primary underline-offset-2 hover:underline"
-              >
-                Organizatör Kullanıcı Sözleşmesi
-              </a>
-              &apos;ni (sürüm {ORGANIZER_AGREEMENT_VERSION}) kabul ettiğiniz anlamına gelir.
-            </span>
-          </label>
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-start gap-3">
+              <input
+                id="organizer-terms-accepted"
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => onTermsAcceptedChange(e.target.checked)}
+                className="mt-1 size-4 shrink-0 rounded border-border"
+              />
+              <div className="min-w-0 text-sm text-muted-foreground">
+                <Label htmlFor="organizer-terms-accepted" className="cursor-pointer text-foreground">
+                  Organizatör Kullanıcı Sözleşmesi&apos;ni okudum ve kabul ediyorum
+                </Label>
+                <p className="mt-1.5">
+                  Etkinliği yayınlamak,{' '}
+                  <button
+                    type="button"
+                    onClick={openOrganizerAgreement}
+                    className="font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    Organizatör Kullanıcı Sözleşmesi
+                  </button>
+                  &apos;ni (sürüm {ORGANIZER_AGREEMENT_VERSION}) kabul ettiğiniz anlamına gelir.
+                </p>
+              </div>
+            </div>
+          </div>
           <p className="text-xs text-muted-foreground">
-            Taslak olarak kaydederseniz etkinlik henüz yayınlanmaz. Hazır olduğunuzda panelden
-            yayınlayabilirsiniz.
+            Taslak olarak kaydederseniz etkinlik henüz yayınlanmaz. Form verileriniz tarayıcı
+            oturumunda otomatik kaydedilir.
           </p>
         </WizardFormSection>
       )}

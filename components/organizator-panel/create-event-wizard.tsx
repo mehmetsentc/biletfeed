@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -42,6 +42,11 @@ import type {
   PerformerRow
 } from '@/components/organizator-panel/event-wizard/types';
 import { cn } from '@/lib/utils';
+import {
+  clearEventWizardDraft,
+  loadEventWizardDraft,
+  saveEventWizardDraft
+} from '@/lib/organizator/event-wizard-draft';
 
 const TOTAL_STEPS = EVENT_WIZARD_STEPS.length;
 
@@ -179,6 +184,99 @@ export function CreateOrganizerEventWizard({
   );
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  useEffect(() => {
+    if (isEdit || draftRestored) return;
+    const draft = loadEventWizardDraft();
+    if (!draft) {
+      setDraftRestored(true);
+      return;
+    }
+    setStep(draft.step);
+    setTitle(draft.title);
+    setCategory(draft.category);
+    setCitySlug(draft.citySlug);
+    setEventTypeMode(draft.eventTypeMode);
+    setSessions(draft.sessions);
+    setLocation(draft.location);
+    setVenueName(draft.venueName);
+    setVenueAddress(draft.venueAddress);
+    setVenueDetail(draft.venueDetail);
+    setOnlineUrl(draft.onlineUrl);
+    setTags(draft.tags);
+    setPerformers(draft.performers);
+    setAttendeeQuestions(draft.attendeeQuestions);
+    setPreventQuestionCopy(draft.preventQuestionCopy);
+    setAccessPassword(draft.accessPassword);
+    setHiddenFromSearch(draft.hiddenFromSearch);
+    setTermsAccepted(draft.termsAccepted);
+    setDescription(draft.description);
+    setTicketType(draft.ticketType);
+    setTicketCategories(
+      draft.ticketCategories.map((c) => ({ ...c, sold: 0 }))
+    );
+    if (draft.previewImageUrl?.startsWith('http')) {
+      setPreviewImage(draft.previewImageUrl);
+    }
+    setDraftRestored(true);
+  }, [isEdit, draftRestored]);
+
+  useEffect(() => {
+    if (isEdit || !draftRestored) return;
+    const timer = window.setTimeout(() => {
+      saveEventWizardDraft({
+        step,
+        title,
+        category,
+        citySlug,
+        eventTypeMode,
+        sessions,
+        location,
+        venueName,
+        venueAddress,
+        venueDetail,
+        onlineUrl,
+        tags,
+        performers,
+        description,
+        ticketType,
+        ticketCategories: ticketCategories.map(({ sold: _sold, ...c }) => c),
+        attendeeQuestions,
+        preventQuestionCopy,
+        accessPassword,
+        hiddenFromSearch,
+        termsAccepted,
+        previewImageUrl: previewImage?.startsWith('http') ? previewImage : null
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    isEdit,
+    draftRestored,
+    step,
+    title,
+    category,
+    citySlug,
+    eventTypeMode,
+    sessions,
+    location,
+    venueName,
+    venueAddress,
+    venueDetail,
+    onlineUrl,
+    tags,
+    performers,
+    description,
+    ticketType,
+    ticketCategories,
+    attendeeQuestions,
+    preventQuestionCopy,
+    accessPassword,
+    hiddenFromSearch,
+    termsAccepted,
+    previewImage
+  ]);
 
   const stepHints = isEdit ? editStepHints : createStepHints;
   const backHref = isEdit && eventId
@@ -330,6 +428,8 @@ export function CreateOrganizerEventWizard({
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || (isEdit ? 'Kayıt başarısız' : 'Kayıt başarısız'));
+
+      if (!isEdit) clearEventWizardDraft();
 
       router.push(isEdit && eventId ? `/organizator-panel/etkinlik/${eventId}` : '/organizator-panel/etkinlikler');
     } catch (err) {
