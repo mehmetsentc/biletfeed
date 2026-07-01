@@ -2,11 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { requireOrganizerSession } from '@/lib/auth/organizer-api';
-import { updateOrganizerEventStatus } from '@/lib/services/organizer-events';
+import {
+  updateOrganizerEvent,
+  updateOrganizerEventStatus
+} from '@/lib/services/organizer-events';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
+const ticketCategorySchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional().default(''),
+  price: z.number().min(0).default(0),
+  capacity: z.number().int().min(1)
+});
+
 const patchSchema = z.object({
-  status: z.enum(['draft', 'published', 'pending', 'cancelled']).optional()
+  status: z.enum(['draft', 'published', 'pending', 'cancelled']).optional(),
+  title: z.string().min(3).max(200).optional(),
+  description: z.string().min(10).max(10000).optional(),
+  categorySlug: z.string().min(1).optional(),
+  citySlug: z.string().min(1).optional(),
+  venueName: z.string().max(200).optional(),
+  venueAddress: z.string().max(300).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  isFree: z.boolean().optional(),
+  price: z.number().min(0).optional(),
+  capacity: z.number().int().min(1).max(1000000).optional(),
+  coverImage: z.string().url().optional(),
+  ticketCategories: z.array(ticketCategorySchema).min(1).optional()
 });
 
 interface RouteParams {
@@ -52,15 +76,44 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const json = await request.json();
   const parsed = patchSchema.safeParse(json);
-  if (!parsed.success || !parsed.data.status) {
+  if (!parsed.success) {
     return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
   }
 
+  const data = parsed.data;
+  const hasContentUpdate = Object.keys(data).some((key) => key !== 'status');
+
   try {
+    if (hasContentUpdate) {
+      const event = await updateOrganizerEvent({
+        organizerId: ctx.organizer.id,
+        eventId: id,
+        ...(data.title && { title: data.title }),
+        ...(data.description && { description: data.description }),
+        ...(data.categorySlug && { categorySlug: data.categorySlug }),
+        ...(data.citySlug && { citySlug: data.citySlug }),
+        ...(data.venueName !== undefined && { venueName: data.venueName }),
+        ...(data.venueAddress !== undefined && { venueAddress: data.venueAddress }),
+        ...(data.startDate && { startDate: new Date(data.startDate) }),
+        ...(data.endDate && { endDate: new Date(data.endDate) }),
+        ...(data.isFree !== undefined && { isFree: data.isFree }),
+        ...(data.price !== undefined && { price: data.price }),
+        ...(data.capacity !== undefined && { capacity: data.capacity }),
+        ...(data.coverImage && { coverImage: data.coverImage }),
+        ...(data.status && { status: data.status }),
+        ...(data.ticketCategories && { ticketCategories: data.ticketCategories })
+      });
+      return NextResponse.json({ success: true, event });
+    }
+
+    if (!data.status) {
+      return NextResponse.json({ error: 'Güncellenecek alan bulunamadı' }, { status: 400 });
+    }
+
     const event = await updateOrganizerEventStatus(
       ctx.organizer.id,
       id,
-      parsed.data.status
+      data.status
     );
     return NextResponse.json({ success: true, event });
   } catch (err) {

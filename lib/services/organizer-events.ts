@@ -3,10 +3,30 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { uniqueSlug } from '@/lib/utils/slug';
 
 export interface TicketCategoryInput {
+  id?: string;
   name: string;
   description?: string;
   price: number;
   capacity: number;
+}
+
+export interface UpdateOrganizerEventInput {
+  organizerId: string;
+  eventId: string;
+  title?: string;
+  description?: string;
+  categorySlug?: string;
+  citySlug?: string;
+  venueName?: string;
+  venueAddress?: string;
+  startDate?: Date;
+  endDate?: Date;
+  isFree?: boolean;
+  price?: number;
+  capacity?: number;
+  coverImage?: string;
+  status?: EventStatus;
+  ticketCategories?: TicketCategoryInput[];
 }
 
 export interface CreateOrganizerEventInput {
@@ -159,6 +179,135 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
     });
 
     return event;
+  });
+}
+
+export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
+  await ensureDbConnection();
+
+  const event = await prisma.event.findFirst({
+    where: {
+      id: input.eventId,
+      organizerId: input.organizerId,
+      deletedAt: null
+    },
+    include: {
+      ticketTypes: { where: { deletedAt: null } }
+    }
+  });
+
+  if (!event) throw new Error('Etkinlik bulunamadı');
+
+  const cityId = input.citySlug
+    ? await resolveCityId(input.citySlug)
+    : event.cityId;
+  const categoryId = input.categorySlug
+    ? await resolveCategoryId(input.categorySlug)
+    : event.categoryId;
+
+  let venueId = event.venueId;
+  if (input.venueName !== undefined) {
+    venueId = await resolveVenueId({
+      cityId,
+      name: input.venueName,
+      address: input.venueAddress
+    });
+  }
+
+  const now = new Date();
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.event.update({
+      where: { id: input.eventId },
+      data: {
+        ...(input.title && { title: input.title.trim() }),
+        ...(input.description && {
+          description: input.description.trim(),
+          shortDescription: input.description.trim().slice(0, 160)
+        }),
+        ...(input.startDate && { startDate: input.startDate }),
+        ...(input.endDate && { endDate: input.endDate }),
+        ...(input.isFree !== undefined && { isFree: input.isFree }),
+        ...(input.price !== undefined && { basePrice: input.isFree ? 0 : input.price }),
+        ...(input.capacity !== undefined && { capacity: input.capacity }),
+        ...(input.coverImage && { coverImage: input.coverImage }),
+        ...(input.status && { status: input.status }),
+        cityId,
+        categoryId,
+        venueId
+      }
+    });
+
+    if (input.ticketCategories) {
+      const keptIds = new Set<string>();
+
+      for (const [index, cat] of input.ticketCategories.entries()) {
+        const displayName = cat.description?.trim()
+          ? `${cat.name} — ${cat.description.trim()}`
+          : cat.name;
+        const price = input.isFree ?? event.isFree ? 0 : cat.price;
+
+        if (cat.id) {
+          const existing = event.ticketTypes.find((t) => t.id === cat.id);
+          if (!existing) continue;
+
+          if (cat.capacity < existing.sold) {
+            throw new Error(
+              `"${cat.name}" kontenjanı satılan bilet sayısından (${existing.sold}) az olamaz`
+            );
+          }
+
+          await tx.ticketType.update({
+            where: { id: cat.id },
+            data: {
+              name: displayName,
+              description: cat.description?.trim() || '',
+              price,
+              capacity: cat.capacity,
+              quantity: cat.capacity,
+              type: index === 0 ? 'general' : 'vip'
+            }
+          });
+          keptIds.add(cat.id);
+        } else {
+          const created = await tx.ticketType.create({
+            data: {
+              eventId: input.eventId,
+              name: displayName,
+              description: cat.description?.trim() || '',
+              type: index === 0 ? 'general' : 'vip',
+              price,
+              currency: 'TRY',
+              quantity: cat.capacity,
+              sold: 0,
+              capacity: cat.capacity,
+              saleStartDate: now,
+              saleEndDate: input.endDate ?? event.endDate,
+              status: 'active'
+            }
+          });
+          keptIds.add(created.id);
+        }
+      }
+
+      for (const ticket of event.ticketTypes) {
+        if (keptIds.has(ticket.id) || ticket.sold > 0) continue;
+        await tx.ticketType.update({
+          where: { id: ticket.id },
+          data: { deletedAt: now, status: 'inactive' }
+        });
+      }
+    }
+
+    return tx.event.findUniqueOrThrow({
+      where: { id: updated.id },
+      include: {
+        city: true,
+        venue: true,
+        category: true,
+        ticketTypes: { where: { deletedAt: null } }
+      }
+    });
   });
 }
 

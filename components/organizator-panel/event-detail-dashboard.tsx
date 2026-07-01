@@ -9,6 +9,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  Eye,
   FileSpreadsheet,
   Link2,
   PauseCircle,
@@ -450,8 +451,14 @@ export function EventDetailDashboard({
           {actionError && <p className="mb-2 text-xs text-destructive">{actionError}</p>}
           <div className="flex flex-col gap-2">
             <Button asChild variant="outline" size="sm" className="justify-start gap-2">
-              <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+              <Link href={`/organizator-panel/etkinlik/${event.id}/duzenle`}>
                 <Pencil className="size-3.5" />
+                Etkinliği düzenle
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="justify-start gap-2">
+              <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                <Eye className="size-3.5" />
                 Etkinliği görüntüle
               </a>
             </Button>

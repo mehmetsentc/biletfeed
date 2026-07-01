@@ -1,12 +1,5 @@
--- CreateEnum (idempotent — önceki yarım migration'dan enum'lar kalabilir)
-DO $$ BEGIN CREATE TYPE "FeedPostStatus" AS ENUM ('discovered', 'processing', 'review', 'scheduled', 'published', 'rejected', 'archived'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE "FeedPostType" AS ENUM ('concert_news', 'festival_news', 'music_news', 'entertainment_news', 'artist_news', 'event_announcement', 'behind_the_scenes', 'event_recap', 'top_list', 'weekend_guide', 'city_guide', 'venue_guide', 'ticket_alert', 'trending_story', 'ai_opinion', 'interview', 'photo_story', 'video_story', 'organizer_update'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE "FeedEditorialStage" AS ENUM ('discovery', 'duplicate_check', 'analysis', 'rewrite', 'seo', 'categorization', 'tagging', 'image_selection', 'review', 'publish'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE "FeedMediaType" AS ENUM ('image', 'video', 'embed', 'reel'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE TYPE "FeedQueueStatus" AS ENUM ('pending', 'processing', 'completed', 'failed', 'rejected', 'duplicate'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- CreateTable
-CREATE TABLE "feed_categories" (
+-- Repair: feed enum'ları önceki yarım migration'da oluşmuştu, tablolar eksik kaldı.
+CREATE TABLE IF NOT EXISTS "feed_categories" (
     "id" UUID NOT NULL,
     "slug" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -17,11 +10,10 @@ CREATE TABLE "feed_categories" (
     "deleted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "feed_categories_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_posts" (
+CREATE TABLE IF NOT EXISTS "feed_posts" (
     "id" UUID NOT NULL,
     "slug" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -63,11 +55,10 @@ CREATE TABLE "feed_posts" (
     "deleted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "feed_posts_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_media" (
+CREATE TABLE IF NOT EXISTS "feed_media" (
     "id" UUID NOT NULL,
     "post_id" UUID NOT NULL,
     "type" "FeedMediaType" NOT NULL,
@@ -78,39 +69,35 @@ CREATE TABLE "feed_media" (
     "sort_order" INTEGER NOT NULL DEFAULT 0,
     "featured" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     CONSTRAINT "feed_media_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_views" (
+CREATE TABLE IF NOT EXISTS "feed_views" (
     "id" UUID NOT NULL,
     "post_id" UUID NOT NULL,
     "user_id" UUID,
     "ip_hash" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     CONSTRAINT "feed_views_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_likes" (
+CREATE TABLE IF NOT EXISTS "feed_likes" (
     "id" UUID NOT NULL,
     "post_id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     CONSTRAINT "feed_likes_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_bookmarks" (
+CREATE TABLE IF NOT EXISTS "feed_bookmarks" (
     "id" UUID NOT NULL,
     "post_id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     CONSTRAINT "feed_bookmarks_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_comments" (
+CREATE TABLE IF NOT EXISTS "feed_comments" (
     "id" UUID NOT NULL,
     "post_id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
@@ -120,11 +107,10 @@ CREATE TABLE "feed_comments" (
     "deleted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "feed_comments_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_editorial_queue" (
+CREATE TABLE IF NOT EXISTS "feed_editorial_queue" (
     "id" UUID NOT NULL,
     "source_url" TEXT NOT NULL,
     "source_title" TEXT NOT NULL,
@@ -140,11 +126,10 @@ CREATE TABLE "feed_editorial_queue" (
     "processed_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "feed_editorial_queue_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_trending" (
+CREATE TABLE IF NOT EXISTS "feed_trending" (
     "id" UUID NOT NULL,
     "entity_type" TEXT NOT NULL,
     "entity_id" TEXT NOT NULL,
@@ -154,11 +139,10 @@ CREATE TABLE "feed_trending" (
     "window_end" TIMESTAMP(3) NOT NULL,
     "metadata" JSONB NOT NULL DEFAULT '{}',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     CONSTRAINT "feed_trending_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_memories" (
+CREATE TABLE IF NOT EXISTS "feed_memories" (
     "id" UUID NOT NULL,
     "event_id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
@@ -170,11 +154,10 @@ CREATE TABLE "feed_memories" (
     "like_count" INTEGER NOT NULL DEFAULT 0,
     "deleted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
     CONSTRAINT "feed_memories_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "feed_discovery_sources" (
+CREATE TABLE IF NOT EXISTS "feed_discovery_sources" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "url" TEXT NOT NULL,
@@ -184,21 +167,33 @@ CREATE TABLE "feed_discovery_sources" (
     "metadata" JSONB NOT NULL DEFAULT '{}',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "feed_discovery_sources_pkey" PRIMARY KEY ("id")
 );
 
--- Indexes & FKs (abbreviated — run prisma migrate for full sync)
-CREATE UNIQUE INDEX "feed_categories_slug_key" ON "feed_categories"("slug");
-CREATE UNIQUE INDEX "feed_posts_slug_key" ON "feed_posts"("slug");
-CREATE UNIQUE INDEX "feed_likes_post_id_user_id_key" ON "feed_likes"("post_id", "user_id");
-CREATE UNIQUE INDEX "feed_bookmarks_post_id_user_id_key" ON "feed_bookmarks"("post_id", "user_id");
-CREATE UNIQUE INDEX "feed_editorial_queue_content_hash_key" ON "feed_editorial_queue"("content_hash");
+CREATE UNIQUE INDEX IF NOT EXISTS "feed_categories_slug_key" ON "feed_categories"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "feed_posts_slug_key" ON "feed_posts"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "feed_likes_post_id_user_id_key" ON "feed_likes"("post_id", "user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "feed_bookmarks_post_id_user_id_key" ON "feed_bookmarks"("post_id", "user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "feed_editorial_queue_content_hash_key" ON "feed_editorial_queue"("content_hash");
 
-ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_feed_category_id_fkey" FOREIGN KEY ("feed_category_id") REFERENCES "feed_categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "events"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_organizer_id_fkey" FOREIGN KEY ("organizer_id") REFERENCES "organizers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "cities"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_venue_id_fkey" FOREIGN KEY ("venue_id") REFERENCES "venues"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_duplicate_of_id_fkey" FOREIGN KEY ("duplicate_of_id") REFERENCES "feed_posts"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_feed_category_id_fkey" FOREIGN KEY ("feed_category_id") REFERENCES "feed_categories"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "events"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_organizer_id_fkey" FOREIGN KEY ("organizer_id") REFERENCES "organizers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "cities"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_venue_id_fkey" FOREIGN KEY ("venue_id") REFERENCES "venues"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "feed_posts" ADD CONSTRAINT "feed_posts_duplicate_of_id_fkey" FOREIGN KEY ("duplicate_of_id") REFERENCES "feed_posts"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

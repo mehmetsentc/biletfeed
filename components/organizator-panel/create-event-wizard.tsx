@@ -35,6 +35,7 @@ import {
   DEFAULT_CITY_SLUG,
   type CitySlug
 } from '@/lib/location/cities';
+import type { EventWizardInitialData } from '@/lib/organizator/event-wizard-data';
 import { cn } from '@/lib/utils';
 
 type EventTypeMode = 'single' | 'recurring';
@@ -50,10 +51,12 @@ interface SessionRow {
 
 interface TicketCategory {
   id: string;
+  ticketTypeId?: string;
   name: string;
   description: string;
   price: string;
   capacity: string;
+  sold: number;
 }
 
 function newSession(): SessionRow {
@@ -72,7 +75,30 @@ function newTicketCategory(): TicketCategory {
     name: '',
     description: '',
     price: '',
-    capacity: ''
+    capacity: '',
+    sold: 0
+  };
+}
+
+function initialTicketCategory(data: EventWizardInitialData['ticketCategories'][number]): TicketCategory {
+  return {
+    id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
+    ticketTypeId: data.ticketTypeId,
+    name: data.name,
+    description: data.description,
+    price: data.price,
+    capacity: data.capacity,
+    sold: data.sold
+  };
+}
+
+function initialSession(data: EventWizardInitialData['sessions'][number]): SessionRow {
+  return {
+    id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
+    startDate: data.startDate,
+    endDate: data.endDate,
+    startTime: data.startTime,
+    endTime: data.endTime
   };
 }
 
@@ -82,30 +108,61 @@ function sessionToIso(session: SessionRow, useEnd = false): string | null {
   return new Date(`${session.startDate}T${time}:00`).toISOString();
 }
 
-const stepHints = [
+const createStepHints = [
   'Etkinlik bilgilerini, tarihini ve konumunu girin.',
   'Kapak görseli yükleyerek etkinliğinizi öne çıkarın.',
   'Bilet türü, fiyat ve kontenjan ayarlarını yapın.',
   'Son kontrolü yapıp etkinliğinizi yayınlayın.'
 ];
 
-export function CreateOrganizerEventWizard() {
+const editStepHints = [
+  'Etkinlik bilgilerini, tarihini ve konumunu güncelleyin.',
+  'Kapak görselini değiştirebilirsiniz.',
+  'Bilet kategorilerini ve kontenjanı düzenleyin.',
+  'Değişiklikleri kaydetmeden önce son kontrolü yapın.'
+];
+
+interface CreateOrganizerEventWizardProps {
+  mode?: 'create' | 'edit';
+  eventId?: string;
+  initialData?: EventWizardInitialData;
+}
+
+export function CreateOrganizerEventWizard({
+  mode = 'create',
+  eventId,
+  initialData
+}: CreateOrganizerEventWizardProps) {
+  const isEdit = mode === 'edit';
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('');
-  const [citySlug, setCitySlug] = useState(DEFAULT_CITY_SLUG);
+  const [title, setTitle] = useState(initialData?.title ?? '');
+  const [category, setCategory] = useState(initialData?.category ?? '');
+  const [citySlug, setCitySlug] = useState<CitySlug>(
+    (initialData?.citySlug as CitySlug) ?? DEFAULT_CITY_SLUG
+  );
   const [eventTypeMode, setEventTypeMode] = useState<EventTypeMode>('single');
-  const [sessions, setSessions] = useState<SessionRow[]>([newSession()]);
-  const [location, setLocation] = useState<LocationMode>('venue');
-  const [venueName, setVenueName] = useState('');
-  const [description, setDescription] = useState('');
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<SessionRow[]>(
+    initialData?.sessions.map(initialSession) ?? [newSession()]
+  );
+  const [location, setLocation] = useState<LocationMode>(initialData?.location ?? 'venue');
+  const [venueName, setVenueName] = useState(initialData?.venueName ?? '');
+  const [description, setDescription] = useState(initialData?.description ?? '');
+  const [previewImage, setPreviewImage] = useState<string | null>(initialData?.coverImage ?? null);
   const imageFileRef = useRef<File | null>(null);
-  const [ticketType, setTicketType] = useState<'free' | 'paid'>('paid');
-  const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>([newTicketCategory()]);
+  const [ticketType, setTicketType] = useState<'free' | 'paid'>(initialData?.ticketType ?? 'paid');
+  const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>(
+    initialData?.ticketCategories.length
+      ? initialData.ticketCategories.map(initialTicketCategory)
+      : [newTicketCategory()]
+  );
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const stepHints = isEdit ? editStepHints : createStepHints;
+  const backHref = isEdit && eventId
+    ? `/organizator-panel/etkinlik/${eventId}`
+    : '/organizator-panel/etkinlikler';
 
   const isFestival = category === 'festival';
 
@@ -130,6 +187,11 @@ export function CreateOrganizerEventWizard() {
   }
 
   function removeTicketCategory(id: string) {
+    const target = ticketCategories.find((c) => c.id === id);
+    if (target && target.sold > 0) {
+      setError('Satışı yapılmış bilet kategorisi silinemez.');
+      return;
+    }
     setTicketCategories((prev) => prev.filter((c) => c.id !== id));
   }
 
@@ -164,6 +226,13 @@ export function CreateOrganizerEventWizard() {
       setError('Ücretli biletler için her kategoriye fiyat girin.');
       return;
     }
+    const belowSold = validCategories.find(
+      (c) => c.sold > 0 && Number(c.capacity) < c.sold
+    );
+    if (belowSold) {
+      setError(`"${belowSold.name}" kontenjanı satılan bilet sayısından az olamaz.`);
+      return;
+    }
 
     setPublishing(true);
     try {
@@ -179,39 +248,50 @@ export function CreateOrganizerEventWizard() {
           const uploadData = await uploadRes.json();
           coverImageUrl = uploadData.url;
         }
+      } else if (isEdit && previewImage?.startsWith('http')) {
+        coverImageUrl = previewImage;
       }
 
       const totalCapacity = validCategories.reduce((sum, c) => sum + Number(c.capacity), 0);
       const minPrice = ticketType === 'free' ? 0 : Math.min(...validCategories.map((c) => Number(c.price) || 0));
 
-      const res = await fetch('/api/organizer/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
-          categorySlug: category,
-          citySlug,
-          venueName: location === 'online' ? 'Online' : venueName.trim() || undefined,
-          startDate,
-          endDate,
-          isFree: ticketType === 'free',
-          price: minPrice,
-          capacity: totalCapacity,
-          coverImage: coverImageUrl,
-          status: 'published',
-          ticketCategories: validCategories.map((c) => ({
-            name: c.name.trim(),
-            description: c.description.trim(),
-            price: ticketType === 'free' ? 0 : Number(c.price),
-            capacity: Number(c.capacity)
-          }))
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Yayınlama başarısız');
+      const payload = {
+        title: title.trim(),
+        description: description.trim(),
+        categorySlug: category,
+        citySlug,
+        venueName: location === 'online' ? 'Online' : venueName.trim() || undefined,
+        startDate,
+        endDate,
+        isFree: ticketType === 'free',
+        price: minPrice,
+        capacity: totalCapacity,
+        coverImage: coverImageUrl,
+        ticketCategories: validCategories.map((c) => ({
+          ...(c.ticketTypeId ? { id: c.ticketTypeId } : {}),
+          name: c.name.trim(),
+          description: c.description.trim(),
+          price: ticketType === 'free' ? 0 : Number(c.price),
+          capacity: Number(c.capacity)
+        }))
+      };
 
-      router.push('/organizator-panel/etkinlikler');
+      const res = await fetch(
+        isEdit && eventId ? `/api/organizer/events/${eventId}` : '/api/organizer/events',
+        {
+          method: isEdit ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            isEdit
+              ? payload
+              : { ...payload, status: 'published' }
+          )
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || (isEdit ? 'Kayıt başarısız' : 'Yayınlama başarısız'));
+
+      router.push(isEdit && eventId ? `/organizator-panel/etkinlik/${eventId}` : '/organizator-panel/etkinlikler');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hata oluştu');
       setPublishing(false);
@@ -231,7 +311,7 @@ export function CreateOrganizerEventWizard() {
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3">
               <Link
-                href="/organizator-panel/etkinlikler"
+                href={backHref}
                 className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background/80 transition-colors hover:bg-muted"
                 aria-label="Geri dön"
               >
@@ -245,7 +325,7 @@ export function CreateOrganizerEventWizard() {
                   </span>
                 </div>
                 <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-                  Yeni Etkinlik Oluştur
+                  {isEdit ? 'Etkinliği Düzenle' : 'Yeni Etkinlik Oluştur'}
                 </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {stepHints[step - 1]}
@@ -579,7 +659,7 @@ export function CreateOrganizerEventWizard() {
                       <p className="text-sm font-semibold text-foreground">
                         Kategori {index + 1}
                       </p>
-                      {ticketCategories.length > 1 && (
+                      {ticketCategories.length > 1 && cat.sold === 0 && (
                         <button
                           type="button"
                           onClick={() => removeTicketCategory(cat.id)}
@@ -588,6 +668,11 @@ export function CreateOrganizerEventWizard() {
                           <Trash2 className="size-3.5" />
                           Kaldır
                         </button>
+                      )}
+                      {cat.sold > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {cat.sold} bilet satıldı
+                        </span>
                       )}
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -734,10 +819,14 @@ export function CreateOrganizerEventWizard() {
             disabled={publishing}
           >
             {publishing
-              ? 'Yayınlanıyor…'
+              ? isEdit
+                ? 'Kaydediliyor…'
+                : 'Yayınlanıyor…'
               : step < 4
                 ? 'Kaydet ve Devam Et'
-                : 'Etkinliği Yayınla'}
+                : isEdit
+                  ? 'Değişiklikleri Kaydet'
+                  : 'Etkinliği Yayınla'}
           </Button>
         </div>
       </div>
