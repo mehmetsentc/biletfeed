@@ -19,6 +19,10 @@ export interface TicketSummary {
   holderName: string;
   scannedAt: string | null;
   entryCount: number;
+  isInvitation?: boolean;
+  guestEmail?: string | null;
+  guestPhone?: string | null;
+  inviteStatus?: string;
 }
 
 export type TicketValidationResult = {
@@ -36,15 +40,29 @@ function toSummary(ticket: {
   event: { title: string };
   ticketType: { name: string };
   user: { displayName: string };
+  invitation?: {
+    guestName: string;
+    guestEmail: string | null;
+    guestPhone: string | null;
+    status: string;
+  } | null;
 }): TicketSummary {
+  const isInvitation = Boolean(ticket.invitation);
   return {
     id: ticket.id,
     code: ticket.ticketCode,
     eventTitle: ticket.event.title,
     ticketType: ticket.ticketType.name,
-    holderName: ticket.attendeeName?.trim() || ticket.user.displayName,
+    holderName:
+      ticket.invitation?.guestName?.trim() ||
+      ticket.attendeeName?.trim() ||
+      ticket.user.displayName,
     scannedAt: ticket.scannedAt?.toISOString() ?? null,
-    entryCount: ticket.entryCount
+    entryCount: ticket.entryCount,
+    isInvitation,
+    guestEmail: ticket.invitation?.guestEmail ?? null,
+    guestPhone: ticket.invitation?.guestPhone ?? null,
+    inviteStatus: ticket.invitation?.status
   };
 }
 
@@ -125,7 +143,15 @@ export async function validateTicketInput(input: {
         }
       },
       ticketType: { select: { name: true } },
-      user: { select: { displayName: true } }
+      user: { select: { displayName: true } },
+      invitation: {
+        select: {
+          guestName: true,
+          guestEmail: true,
+          guestPhone: true,
+          status: true
+        }
+      }
     }
   });
 

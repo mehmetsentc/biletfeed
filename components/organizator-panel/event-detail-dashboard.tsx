@@ -16,6 +16,7 @@ import {
   PlayCircle,
   Plus,
   QrCode,
+  Send,
   Share2,
   ShoppingBag,
   Ticket,
@@ -454,6 +455,14 @@ export function EventDetailDashboard({
                 Etkinliği görüntüle
               </a>
             </Button>
+            {status === 'published' && (
+              <Button asChild variant="outline" size="sm" className="justify-start gap-2">
+                <Link href={`/organizator-panel/davetiyeler?eventId=${event.id}`}>
+                  <Send className="size-3.5" />
+                  Davetiye oluştur
+                </Link>
+              </Button>
+            )}
             {status === 'published' && !isPast && (
               <Button
                 variant="outline"

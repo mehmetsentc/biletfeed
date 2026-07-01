@@ -23,6 +23,10 @@ type ScanResult = {
     ticketType: string;
     holderName: string;
     entryCount?: number;
+    isInvitation?: boolean;
+    guestEmail?: string | null;
+    guestPhone?: string | null;
+    inviteStatus?: string;
   };
 };
 
@@ -67,6 +71,42 @@ const statusConfig: Record<
     label: 'Geçersiz bilet',
   },
 };
+
+function TicketScanDetails({
+  ticket,
+  compact = false,
+}: {
+  ticket: NonNullable<ScanResult['ticket']>;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'space-y-1 rounded-xl bg-black/20 px-3 py-3 text-sm',
+        compact && 'mt-4 text-left text-sm font-medium opacity-90'
+      )}
+    >
+      {ticket.isInvitation && (
+        <p className="mb-2 inline-flex rounded-full bg-violet-500/25 px-2.5 py-0.5 text-xs font-semibold text-violet-200">
+          Davetiye Bileti
+        </p>
+      )}
+      <p className={cn('font-semibold', compact && 'text-base')}>{ticket.holderName}</p>
+      <p className="opacity-80">{ticket.ticketType}</p>
+      {!compact && <p className="font-semibold opacity-90">{ticket.eventTitle}</p>}
+      {ticket.guestEmail && (
+        <p className="opacity-75">{ticket.guestEmail}</p>
+      )}
+      {ticket.guestPhone && (
+        <p className="opacity-75">{ticket.guestPhone}</p>
+      )}
+      <p className="font-mono text-xs opacity-70">{ticket.code}</p>
+      {ticket.entryCount != null && ticket.entryCount > 0 && (
+        <p className="text-xs opacity-60">Giriş sayısı: {ticket.entryCount}</p>
+      )}
+    </div>
+  );
+}
 
 interface QrScannerProps {
   /** Tam ekran giriş tarayıcısı (koyu tema) */
@@ -300,9 +340,9 @@ export function QrScanner({
           <p className="text-3xl font-bold">{config?.label}</p>
           <p className="mt-2 max-w-sm text-lg opacity-90">{result.message}</p>
           {result.ticket && (
-            <p className="mt-4 text-sm font-medium opacity-80">
-              {result.ticket.holderName} · {result.ticket.ticketType}
-            </p>
+            <div className="mt-4 w-full max-w-sm">
+              <TicketScanDetails ticket={result.ticket} compact />
+            </div>
           )}
           <Button
             type="button"
@@ -456,15 +496,7 @@ export function QrScanner({
             <div className="min-w-0 flex-1">
               <p className="text-xl font-bold">{config.label}</p>
               <p className="mt-1 text-sm opacity-90">{result.message}</p>
-              {result.ticket && (
-                <div className="mt-4 space-y-1 rounded-xl bg-black/20 px-3 py-3 text-sm">
-                  <p className="font-semibold">{result.ticket.eventTitle}</p>
-                  <p className="opacity-80">
-                    {result.ticket.ticketType} · {result.ticket.holderName}
-                  </p>
-                  <p className="font-mono text-xs opacity-70">{result.ticket.code}</p>
-                </div>
-              )}
+              {result.ticket && <TicketScanDetails ticket={result.ticket} />}
             </div>
           </div>
           <Button
