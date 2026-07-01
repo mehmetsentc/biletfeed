@@ -229,20 +229,25 @@ export async function validateTicketInput(input: {
   }
 
   if (validationToken) {
-    if (
-      !verifyValidationToken(
-        ticket.id,
-        ticket.eventId,
-        validationToken,
-        ticket.tokenNonce
-      )
-    ) {
+    const tokenValid = verifyValidationToken(
+      ticket.id,
+      ticket.eventId,
+      validationToken,
+      ticket.tokenNonce
+    );
+    const codeFromQr =
+      ticketCode?.trim().toUpperCase() ?? ticket.ticketCode.toUpperCase();
+    const codeMatches = codeFromQr === ticket.ticketCode.toUpperCase();
+
+    // Kapı taraması: organizatör yetkisi doğrulandıysa ve bilet kodu eşleşiyorsa
+    // eski/rotasyon sonrası HMAC token'ı reddetme (manuel kod ile aynı güven seviyesi)
+    if (!tokenValid && !(codeMatches && canScan)) {
       return { status: 'INVALID', message: 'Bilet doğrulanamadı' };
     }
   } else if (!ticketCode) {
     return { status: 'INVALID', message: 'Geçersiz QR kodu' };
   }
-  // Organizatör manuel BF kodu: token yok ama yetki doğrulandı — kapı girişi
+  // Organizatör manuel BF kodu veya yetkili kapı QR taraması
 
   const summary = toSummary(ticket);
   const policy = ticket.event.entryPolicy;
