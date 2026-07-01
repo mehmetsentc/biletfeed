@@ -6,6 +6,7 @@ import { Sparkles } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { WizardFormSection } from '@/components/organizator-panel/wizard-form';
 import { ORGANIZER_AGREEMENT_VERSION } from '@/lib/organizator/event-wizard-constants';
+import { siteHref } from '@/lib/config/domain';
 import type { AttendeeQuestionRow, PerformerRow } from '@/components/organizator-panel/event-wizard/types';
 
 interface WizardStepPublishProps {
@@ -124,8 +125,9 @@ export function WizardStepPublish({
               <br />
               Etkinliği {isEdit ? 'kaydetmek' : 'yayınlamak'},{' '}
               <Link
-                href="/organizator-sozlesmesi"
+                href={siteHref('/organizator-sozlesmesi')}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="font-medium text-primary underline-offset-2 hover:underline"
               >
                 Organizatör Kullanıcı Sözleşmesi

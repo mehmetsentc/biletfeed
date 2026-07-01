@@ -31,7 +31,7 @@ export async function establishClientSession(
     throw new SessionEstablishError(
       data.error || 'Oturum oluşturulamadı',
       res.status,
-      data.code
+      res.status === 429 ? 'rate_limited' : data.code
     );
   }
 }
@@ -42,7 +42,10 @@ export async function establishClientSessionWithRetry(
   try {
     await establishClientSession(firebaseUser);
   } catch (err) {
-    if (err instanceof SessionEstablishError && err.code === 'firebase_admin_missing') {
+    if (
+      err instanceof SessionEstablishError &&
+      (err.code === 'firebase_admin_missing' || err.code === 'rate_limited')
+    ) {
       throw err;
     }
     await new Promise((r) => setTimeout(r, 800));

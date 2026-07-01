@@ -1,9 +1,18 @@
 import { signInWithCustomToken, type Auth, type User as FirebaseUser } from 'firebase/auth';
 import { fetchSessionUser } from '@/lib/auth/session-profile';
 
+const CUSTOM_TOKEN_COOLDOWN_MS = 15_000;
+let lastCustomTokenAttemptAt = 0;
+
 export async function signInWithSessionCustomToken(
   auth: Auth
 ): Promise<boolean> {
+  const now = Date.now();
+  if (now - lastCustomTokenAttemptAt < CUSTOM_TOKEN_COOLDOWN_MS) {
+    return false;
+  }
+  lastCustomTokenAttemptAt = now;
+
   try {
     const res = await fetch('/api/auth/custom-token', {
       method: 'POST',

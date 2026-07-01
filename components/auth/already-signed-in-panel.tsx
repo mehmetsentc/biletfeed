@@ -42,11 +42,25 @@ export function AlreadySignedInPanel() {
     setSyncing(true);
     setError(null);
 
-    // Admin yönlendirmesinde rolü DB'den yenile (bootstrap / süperadmin düzeltmesi)
     const needsFreshSession =
-      target === '/admin' || queryError === 'admin_required' || !sessionReady;
+      target === '/admin' || queryError === 'admin_required';
 
-    if (needsFreshSession) {
+    if (!needsFreshSession) {
+      try {
+        const res = await fetch('/api/auth/me', {
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+        if (res.ok) {
+          window.location.replace(target);
+          return;
+        }
+      } catch {
+        // syncSession ile devam
+      }
+    }
+
+    if (needsFreshSession || !sessionReady) {
       const ok = await syncSession();
       if (!ok) {
         setSyncing(false);

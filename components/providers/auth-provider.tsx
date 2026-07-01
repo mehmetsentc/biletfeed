@@ -100,16 +100,28 @@ function buildFallbackUser(firebaseUser: FirebaseUser): User {
 async function handleSignedInUser(
   fbUser: FirebaseUser
 ): Promise<{ profile: User; sessionReady: boolean; sessionError?: string }> {
+  const existingSession = await fetchSessionUser();
+  if (existingSession?.uid === fbUser.uid) {
+    const profile = await fetchUserProfile(fbUser);
+    return { profile, sessionReady: true };
+  }
+
   try {
     await establishClientSessionWithRetry(fbUser);
     const profile = await fetchUserProfile(fbUser);
     return { profile, sessionReady: true };
   } catch (err) {
-    try {
-      await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
-    } catch {
-      // ignore
+    const isRateLimited =
+      err instanceof SessionEstablishError && err.code === 'rate_limited';
+
+    if (!isRateLimited) {
+      try {
+        await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
+      } catch {
+        // ignore
+      }
     }
+
     const sessionError =
       err instanceof SessionEstablishError
         ? err.code === 'firebase_admin_missing'

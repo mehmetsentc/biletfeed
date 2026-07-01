@@ -111,7 +111,7 @@ async function syncUserToDB(uid: string, email: string): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimitOrNull(request, 'auth-session', 20, 60_000);
+    const limited = rateLimitOrNull(request, 'auth-session', 60, 60_000);
     if (limited) return limited;
 
     if (!isSameOriginRequest(request)) {

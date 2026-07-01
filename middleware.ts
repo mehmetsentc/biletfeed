@@ -3,7 +3,7 @@ import {
   canonicalHost,
   getPanelUrl,
   getSupportUrl,
-  isAccountSitePath,
+  isMainSiteOnlyPath,
   isOrganizerPanelSubdomain,
   isProductionHost,
   isSupportSubdomain,
@@ -146,8 +146,8 @@ function handleOrganizerPanelSubdomain(
     );
   }
 
-  // panel.biletfeed.com/profil → biletfeed.com/profil (hesap sayfaları ana sitede)
-  if (isAccountSitePath(pathname)) {
+  // panel.biletfeed.com/profil → biletfeed.com/profil (hesap + yasal sayfalar ana sitede)
+  if (isMainSiteOnlyPath(pathname)) {
     const target = siteHref(pathname);
     if (target.startsWith('http')) {
       return NextResponse.redirect(target);

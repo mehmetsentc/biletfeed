@@ -10,7 +10,7 @@ import { rateLimitOrNull } from '@/lib/security/rate-limit';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimitOrNull(request, 'auth-custom-token', 30, 60_000);
+  const limited = rateLimitOrNull(request, 'auth-custom-token', 90, 60_000);
   if (limited) return limited;
 
   if (!isSameOriginRequest(request)) {

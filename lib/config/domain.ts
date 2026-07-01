@@ -150,10 +150,40 @@ export const ACCOUNT_SITE_PATH_PREFIXES = [
   '/eventjoy'
 ] as const;
 
+/** Yasal / kurumsal sayfalar — yalnızca ana sitede (panel alt alanında 404 olmasın diye) */
+export const LEGAL_SITE_PATH_PREFIXES = [
+  '/gizlilik',
+  '/kosullar',
+  '/kullanici-sozlesmesi',
+  '/organizator-sozlesmesi',
+  '/uyelik-sozlesmesi',
+  '/cerezler',
+  '/hakkimizda',
+  '/iletisim',
+  '/sss',
+  '/iade-iptal',
+  '/iade-garantisi',
+  '/mesafeli-satis',
+  '/acik-riza-beyani',
+  '/ticari-elektronik-ileti',
+  '/biletfeed-panel'
+] as const;
+
 export function isAccountSitePath(pathname: string): boolean {
   return ACCOUNT_SITE_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
+}
+
+export function isLegalSitePath(pathname: string): boolean {
+  return LEGAL_SITE_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+/** Panel alt alanından ana siteye yönlendirilmesi gereken yollar */
+export function isMainSiteOnlyPath(pathname: string): boolean {
+  return isAccountSitePath(pathname) || isLegalSitePath(pathname);
 }
 
 /** Hesap menüsü linki — panel alt alanındayken biletfeed.com'a yönlendirir */
