@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Plus,
   ScanLine,
+  Send,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -20,23 +21,31 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/brand/logo';
-import { siteConfig } from '@/lib/config/site';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const ORGANIZATOR_BRAND = 'Biletfeed Organizatör';
 
-const navItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  external?: boolean;
+};
+
+const navItems: NavItem[] = [
   { href: '/organizator-panel/baslangic', label: 'Genel Bakış', icon: Home },
   { href: '/organizator-panel/etkinlikler', label: 'Etkinlikler', icon: Calendar },
   { href: '/organizator-panel/tarayici', label: 'Bilet Tara', icon: ScanLine },
   { href: '/organizator-panel/siparisler', label: 'Satışlar', icon: ShoppingBag },
   { href: '/organizator-panel/biletler', label: 'Biletler', icon: Ticket },
+  { href: '/organizator-panel/davetiyeler', label: 'Davetiyeler', icon: Send },
   { href: '/organizator-panel/kuponlar', label: 'Kuponlar', icon: Tag },
   { href: '/organizator-panel/organizasyon', label: 'Organizasyon', icon: Star },
   { href: '/organizator-panel/mekanlar', label: 'Mekanlar', icon: MapPin },
   { href: '/organizator-panel/moderasyon', label: 'Moderasyon', icon: Sparkles },
   { href: '/organizator-panel/iletisim', label: 'İletişim', icon: MessageCircle },
-  { href: `${siteConfig.url}/yardim`, label: 'Yardım', icon: HelpCircle, external: true },
+  { href: '/organizator-panel/yardim', label: 'Yardım', icon: HelpCircle },
   { href: '/organizator-panel/ayarlar', label: 'Ayarlar', icon: Settings },
 ];
 
