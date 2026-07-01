@@ -294,7 +294,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
         if (keptIds.has(ticket.id) || ticket.sold > 0) continue;
         await tx.ticketType.update({
           where: { id: ticket.id },
-          data: { deletedAt: now, status: 'inactive' }
+          data: { deletedAt: now, status: 'paused' }
         });
       }
     }
