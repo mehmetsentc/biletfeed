@@ -100,6 +100,10 @@ async function resolveVenueId(params: {
 export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
   await ensureDbConnection();
 
+  if (input.status === 'published') {
+    throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+  }
+
   const [cityId, categoryId] = await Promise.all([
     resolveCityId(input.citySlug),
     resolveCategoryId(input.categorySlug)
@@ -208,6 +212,10 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
   });
 
   if (!event) throw new Error('Etkinlik bulunamadı');
+
+  if (input.status === 'published') {
+    throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+  }
 
   const cityId = input.citySlug
     ? await resolveCityId(input.citySlug)
@@ -363,6 +371,10 @@ export async function updateOrganizerEventStatus(
     where: { id: eventId, organizerId, deletedAt: null }
   });
   if (!event) throw new Error('Etkinlik bulunamadı');
+
+  if (status === 'published') {
+    throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+  }
 
   return prisma.event.update({
     where: { id: eventId },

@@ -79,12 +79,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
   }
 
+  if (parsed.data.status === 'published') {
+    return NextResponse.json(
+      { error: 'Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.' },
+      { status: 403 }
+    );
+  }
+
   if (
-    parsed.data.status === 'published' &&
+    parsed.data.status === 'pending' &&
     parsed.data.organizerTermsAccepted !== true
   ) {
     return NextResponse.json(
-      { error: 'Yayınlamak için organizatör sözleşmesini kabul etmelisiniz.' },
+      { error: 'Onaya göndermek için organizatör sözleşmesini kabul etmelisiniz.' },
       { status: 400 }
     );
   }

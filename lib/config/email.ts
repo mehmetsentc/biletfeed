@@ -52,6 +52,7 @@ const TEMPLATE_SENDER: Record<string, EmailSenderKind> = {
   invoice_issued: 'invoice',
   order_refund: 'tickets',
   event_reminder: 'tickets',
+  event_approved: 'noreply',
   admin_test: 'default'
 };
 

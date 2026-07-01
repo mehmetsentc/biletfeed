@@ -16,11 +16,17 @@ import {
   Image,
   FileText,
   Ticket,
-  Rss
+  Rss,
+  Clock,
+  Shield
 } from 'lucide-react';
 import { getTranslations } from '@/lib/i18n';
 import { Logo } from '@/components/brand/logo';
 import { ProfileDropdown } from '@/components/layout/profile-dropdown';
+import {
+  canAccessAdminNavPath,
+  type AdminPermission
+} from '@/lib/auth/admin-permissions';
 import { cn } from '@/lib/utils';
 
 const t = getTranslations();
@@ -30,6 +36,7 @@ const adminLinks = [
   { href: '/admin/kullanicilar', label: t.admin.users, icon: Users },
   { href: '/admin/organizatorler', label: t.admin.organizers, icon: Users },
   { href: '/admin/etkinlikler', label: t.admin.events, icon: Calendar },
+  { href: '/admin/etkinlik-onay', label: 'Etkinlik Onay', icon: Clock },
   { href: '/admin/feed', label: 'Feed', icon: Rss },
   { href: '/admin/kategoriler', label: t.admin.categories, icon: LayoutGrid },
   { href: '/admin/sehirler', label: t.admin.cities, icon: MapPin },
@@ -40,11 +47,30 @@ const adminLinks = [
   { href: '/admin/analitik', label: t.admin.analytics, icon: BarChart3 },
   { href: '/admin/bannerlar', label: t.admin.banners, icon: Image },
   { href: '/admin/muhasebe', label: 'Muhasebe', icon: FileText },
-  { href: '/admin/ayarlar', label: t.admin.settings, icon: Settings }
-];
+  { href: '/admin/ayarlar', label: t.admin.settings, icon: Settings },
+  { href: '/admin/yoneticiler', label: 'Admin Yönetimi', icon: Shield, superAdminOnly: true }
+] as const;
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+interface AdminShellProps {
+  children: React.ReactNode;
+  isSuperAdmin: boolean;
+  permissions: AdminPermission[];
+}
+
+export function AdminShell({
+  children,
+  isSuperAdmin,
+  permissions
+}: AdminShellProps) {
   const pathname = usePathname();
+
+  const access = { isSuperAdmin, permissions, userId: '', role: 'ROLE_ADMIN' as const };
+  const visibleLinks = adminLinks.filter((link) => {
+    if ('superAdminOnly' in link && link.superAdminOnly) {
+      return isSuperAdmin;
+    }
+    return canAccessAdminNavPath(access, link.href);
+  });
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -62,7 +88,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <Logo href="/admin" variant="on-dark" className="max-w-[150px]" />
         </div>
         <nav className="space-y-1 p-4">
-          {adminLinks.map((link) => {
+          {visibleLinks.map((link) => {
             const active =
               pathname === link.href ||
               (link.href !== '/admin' && pathname.startsWith(link.href));

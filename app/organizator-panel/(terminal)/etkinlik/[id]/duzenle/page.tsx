@@ -37,6 +37,7 @@ export default async function OrganizatorEditEventPage({ params }: PageProps) {
       mode="edit"
       eventId={event.id}
       initialData={mapEventToWizardInitialData(event)}
+      initialStatus={event.status}
     />
   );
 }

@@ -1,10 +1,10 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { BadgeCheck, Users, Calendar } from 'lucide-react';
-import { EventCard } from '@/components/events/event-card';
+import { OrganizerProfileEventCard } from '@/components/events/organizer-profile-event-card';
 import { OrganizerProfileActions } from '@/components/organizers/organizer-profile-actions';
 import { getOrganizerBySlug } from '@/lib/services/organizers';
-import { getEventsByOrganizer } from '@/lib/services/events';
+import { getEventsByOrganizerForProfile } from '@/lib/services/events';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { getFollowedOrganizerIds } from '@/lib/services/follows';
 import { JsonLd } from '@/lib/seo/json-ld';
@@ -30,10 +30,11 @@ export default async function OrganizerPage({ params }: Props) {
   const organizer = await getOrganizerBySlug(slug);
   if (!organizer) notFound();
 
-  const [events, session] = await Promise.all([
-    getEventsByOrganizer(slug),
-    verifySessionCookie()
-  ]);
+  const session = await verifySessionCookie();
+  const { events, isOwner } = await getEventsByOrganizerForProfile(
+    slug,
+    session?.uid
+  );
 
   const followedIds = session
     ? await getFollowedOrganizerIds(session.uid)
@@ -85,13 +86,24 @@ export default async function OrganizerPage({ params }: Props) {
           />
         </div>
 
-        <h2 className="mb-6 mt-10 text-xl font-bold">Etkinlikler</h2>
+        <h2 className="mb-6 mt-10 text-xl font-bold">
+          Etkinlikler
+          {isOwner && (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              (taslak ve onay bekleyenler yalnızca size görünür)
+            </span>
+          )}
+        </h2>
         {events.length === 0 ? (
           <p className="text-muted-foreground">Henüz etkinlik yok.</p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <OrganizerProfileEventCard
+                key={event.id}
+                event={event}
+                isOwner={isOwner}
+              />
             ))}
           </div>
         )}

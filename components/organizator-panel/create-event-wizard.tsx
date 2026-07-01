@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import type { EventStatus } from '@prisma/client';
 import {
   ArrowLeft,
   Calendar,
@@ -126,7 +127,7 @@ const createStepHints = [
   'Katılımcıları ve etkinlik açıklamasını ekleyin.',
   'Kapak görseli ve bilet kategorilerini ayarlayın.',
   'Katılımcı soruları ve gizlilik seçeneklerini yapılandırın.',
-  'Son kontrolü yapın; taslak kaydedin veya yayınlayın.'
+  'Son kontrolü yapın; taslak kaydedin veya onaya gönderin.'
 ];
 
 const editStepHints = [
@@ -142,12 +143,14 @@ interface CreateOrganizerEventWizardProps {
   mode?: 'create' | 'edit';
   eventId?: string;
   initialData?: EventWizardInitialData;
+  initialStatus?: EventStatus;
 }
 
 export function CreateOrganizerEventWizard({
   mode = 'create',
   eventId,
-  initialData
+  initialData,
+  initialStatus
 }: CreateOrganizerEventWizardProps) {
   const isEdit = mode === 'edit';
   const router = useRouter();
@@ -183,6 +186,7 @@ export function CreateOrganizerEventWizard({
       : [newTicketCategory()]
   );
   const [publishing, setPublishing] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState<'pending' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
 
@@ -314,7 +318,7 @@ export function CreateOrganizerEventWizard({
     setTicketCategories((prev) => prev.filter((c) => c.id !== id));
   }
 
-  async function saveEvent(targetStatus: 'draft' | 'published') {
+  async function saveEvent(targetStatus?: 'draft' | 'pending') {
     setError(null);
     const first = sessions[0];
     const startDate = sessionToIso(first);
@@ -339,8 +343,8 @@ export function CreateOrganizerEventWizard({
       setError('Lütfen etkinlik mekanını seçin veya girin.');
       return;
     }
-    if (!isEdit && targetStatus === 'published' && !termsAccepted) {
-      setError('Yayınlamak için organizatör kullanıcı sözleşmesini kabul etmelisiniz.');
+    if (targetStatus === 'pending' && !termsAccepted) {
+      setError('Onaya göndermek için organizatör kullanıcı sözleşmesini kabul etmelisiniz.');
       return;
     }
     const validCategories = ticketCategories.filter((c) => c.name.trim() && c.capacity);
@@ -414,8 +418,8 @@ export function CreateOrganizerEventWizard({
           price: ticketType === 'free' ? 0 : Number(c.price),
           capacity: Number(c.capacity)
         })),
-        status: targetStatus,
-        ...(targetStatus === 'published' ? { organizerTermsAccepted: true } : {})
+        ...(targetStatus ? { status: targetStatus } : {}),
+        ...(targetStatus === 'pending' ? { organizerTermsAccepted: true } : {})
       };
 
       const res = await fetch(
@@ -431,6 +435,12 @@ export function CreateOrganizerEventWizard({
 
       if (!isEdit) clearEventWizardDraft();
 
+      if (!isEdit && targetStatus === 'pending') {
+        setSubmitSuccess('pending');
+        setPublishing(false);
+        return;
+      }
+
       router.push(isEdit && eventId ? `/organizator-panel/etkinlik/${eventId}` : '/organizator-panel/etkinlikler');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hata oluştu');
@@ -442,6 +452,24 @@ export function CreateOrganizerEventWizard({
     categories.find((c) => c.slug === category)?.name ?? 'Kategori seçilmedi';
   const cityName =
     SUPPORTED_CITIES.find((c) => c.slug === citySlug)?.name ?? citySlug;
+
+  if (submitSuccess === 'pending') {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 text-center">
+        <span className="flex size-16 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+          <Clock className="size-8" />
+        </span>
+        <h1 className="mt-6 text-2xl font-bold text-foreground">Onay bekliyor</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Etkinliğiniz BiletFeed ekibine iletildi. İnceleme tamamlandığında yayına alınacak
+          ve e-posta ile bilgilendirileceksiniz.
+        </p>
+        <Button asChild className="mt-8">
+          <Link href="/organizator-panel/etkinlikler">Etkinliklerime Git</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl pb-28">
@@ -877,6 +905,11 @@ export function CreateOrganizerEventWizard({
           {step === 6 && (
             <WizardStepPublish
               isEdit={isEdit}
+              showTerms={
+                !isEdit ||
+                initialStatus === 'draft' ||
+                initialStatus === 'pending'
+              }
               previewImage={previewImage}
               title={title}
               categoryName={categoryName}
@@ -929,13 +962,25 @@ export function CreateOrganizerEventWizard({
               Kaydet ve Devam Et
             </Button>
           ) : isEdit ? (
-            <Button
-              onClick={() => saveEvent('published')}
-              className="min-w-[160px] bg-primary px-8 text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
-              disabled={publishing}
-            >
-              {publishing ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => saveEvent()}
+                disabled={publishing}
+                className="min-w-[160px]"
+              >
+                {publishing ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
+              </Button>
+              {(initialStatus === 'draft' || initialStatus === 'pending') && (
+                <Button
+                  onClick={() => saveEvent('pending')}
+                  disabled={publishing || !termsAccepted}
+                  className="min-w-[160px] bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
+                >
+                  {publishing ? 'Gönderiliyor…' : 'Onaya Gönder'}
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
@@ -947,11 +992,11 @@ export function CreateOrganizerEventWizard({
                 {publishing ? 'Kaydediliyor…' : 'Taslak Olarak Kaydet'}
               </Button>
               <Button
-                onClick={() => saveEvent('published')}
+                onClick={() => saveEvent('pending')}
                 disabled={publishing || !termsAccepted}
                 className="min-w-[140px] bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
               >
-                {publishing ? 'Yayınlanıyor…' : 'Etkinliği Yayınla'}
+                {publishing ? 'Gönderiliyor…' : 'Onaya Gönder'}
               </Button>
             </div>
           )}

@@ -1,9 +1,10 @@
+import { redirect } from 'next/navigation';
 import type { UserRole } from '@/types';
 import {
   verifySessionCookie,
   sessionHasRole
 } from '@/lib/auth/session';
-import { redirect } from 'next/navigation';
+import { getAdminAccessByFirebaseUid } from '@/lib/services/admin-access';
 
 function loginRedirect(returnPath?: string): never {
   if (returnPath) {
@@ -36,5 +37,10 @@ export async function requireOrganizer() {
 }
 
 export async function requireAdmin() {
-  return requireAuth('ROLE_ADMIN', '/admin');
+  const session = await requireAuth('ROLE_ADMIN', '/admin');
+  const access = await getAdminAccessByFirebaseUid(session.uid, session.email);
+  if (!access || (!access.isSuperAdmin && access.permissions.length === 0)) {
+    redirect('/?error=unauthorized');
+  }
+  return session;
 }

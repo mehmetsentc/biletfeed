@@ -173,6 +173,107 @@ export async function getEventsByOrganizer(
   return fetchPublishedEvents({ organizer: { slug: organizerSlug } });
 }
 
+export async function getEventsByOrganizerForProfile(
+  organizerSlug: string,
+  viewerUserId?: string | null
+): Promise<{ events: MockEvent[]; isOwner: boolean }> {
+  if (!isDatabaseConfigured()) {
+    return { events: [], isOwner: false };
+  }
+  await ensureDbConnection();
+
+  const organizer = await prisma.organizer.findFirst({
+    where: { slug: organizerSlug, deletedAt: null },
+    select: { id: true, owner: { select: { firebaseUid: true } } }
+  });
+  if (!organizer) {
+    return { events: [], isOwner: false };
+  }
+
+  const isOwner = Boolean(
+    viewerUserId && viewerUserId === organizer.owner.firebaseUid
+  );
+  const statusFilter = isOwner
+    ? { in: ['draft', 'pending', 'published'] as const }
+    : 'published';
+
+  const events = await prisma.event.findMany({
+    where: {
+      organizerId: organizer.id,
+      deletedAt: null,
+      status: statusFilter,
+      listingType: 'internal',
+      ...(isOwner ? {} : upcomingStartFilter())
+    },
+    include: eventInclude,
+    orderBy: { startDate: 'desc' }
+  });
+
+  return { events: events.map(toMockEvent), isOwner };
+}
+
+export type EventViewerResult = {
+  event: MockEvent;
+  isPreview: boolean;
+  previewKind: 'draft' | 'pending' | null;
+};
+
+export async function getEventBySlugForViewer(
+  slug: string,
+  viewerUserId?: string | null
+): Promise<EventViewerResult | undefined> {
+  if (!isDatabaseConfigured()) return undefined;
+  await ensureDbConnection();
+
+  const event = await prisma.event.findFirst({
+    where: { slug, deletedAt: null },
+    include: {
+      ...eventInclude,
+      organizer: { select: { owner: { select: { firebaseUid: true } }, name: true, slug: true } }
+    }
+  });
+  if (!event) return undefined;
+
+  const isOwner = Boolean(
+    viewerUserId && viewerUserId === event.organizer.owner.firebaseUid
+  );
+
+  let isAdminViewer = false;
+  if (viewerUserId && !isOwner) {
+    const viewer = await prisma.user.findFirst({
+      where: { firebaseUid: viewerUserId, deletedAt: null },
+      select: { role: true }
+    });
+    isAdminViewer =
+      viewer?.role === 'ROLE_ADMIN' || viewer?.role === 'ROLE_SUPER_ADMIN';
+  }
+
+  const canPreviewUnpublished =
+    isOwner || isAdminViewer;
+
+  if (event.status === 'published') {
+    return {
+      event: toMockEvent(event),
+      isPreview: false,
+      previewKind: null
+    };
+  }
+
+  if (
+    canPreviewUnpublished &&
+    event.listingType === 'internal' &&
+    (event.status === 'draft' || event.status === 'pending')
+  ) {
+    return {
+      event: toMockEvent(event),
+      isPreview: true,
+      previewKind: event.status
+    };
+  }
+
+  return undefined;
+}
+
 export async function getCategories() {
   if (!isDatabaseConfigured()) return sortCategoriesByDisplayOrder(mockCategories);
   const rows = await prisma.category.findMany({

@@ -15,9 +15,13 @@ import { usePathname } from 'next/navigation';
 
 interface EventMobileTicketBarProps {
   event: MockEvent;
+  purchasable?: boolean;
 }
 
-export function EventMobileTicketBar({ event }: EventMobileTicketBarProps) {
+export function EventMobileTicketBar({
+  event,
+  purchasable = true
+}: EventMobileTicketBarProps) {
   const pathname = usePathname();
   const hideBottomNav = shouldHideBottomNav(pathname);
   const external = isExternalListing(event);
@@ -44,23 +48,33 @@ export function EventMobileTicketBar({ event }: EventMobileTicketBarProps) {
           </p>
           <p className="truncate text-lg font-bold">{priceText}</p>
         </div>
-        <Button
-          size="lg"
-          className="h-12 shrink-0 gap-2 rounded-xl px-5 text-sm font-bold"
-          asChild
-        >
-          {external ? (
-            <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="size-5" />
-              {getTicketButtonLabel(event)}
-            </a>
-          ) : (
-            <Link href={ticketUrl}>
-              <Ticket className="size-5" />
-              Bilet Al
-            </Link>
-          )}
-        </Button>
+        {purchasable ? (
+          <Button
+            size="lg"
+            className="h-12 shrink-0 gap-2 rounded-xl px-5 text-sm font-bold"
+            asChild
+          >
+            {external ? (
+              <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="size-5" />
+                {getTicketButtonLabel(event)}
+              </a>
+            ) : (
+              <Link href={ticketUrl}>
+                <Ticket className="size-5" />
+                Bilet Al
+              </Link>
+            )}
+          </Button>
+        ) : (
+          <Button
+            size="lg"
+            disabled
+            className="h-12 shrink-0 rounded-xl px-5 text-sm font-bold"
+          >
+            Satış kapalı
+          </Button>
+        )}
       </div>
     </div>
   );

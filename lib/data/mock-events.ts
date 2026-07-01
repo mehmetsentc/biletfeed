@@ -1,6 +1,8 @@
 import type { EventType } from '@/types';
 import { CATEGORY_IMAGES } from '@/lib/data/category-images';
 
+import type { EventStatus } from '@prisma/client';
+
 export interface MockEvent {
   id: string;
   slug: string;
@@ -34,6 +36,8 @@ export interface MockEvent {
   listingType?: 'internal' | 'external';
   externalPlatform?: string;
   externalUrl?: string;
+  /** Dahili etkinliklerde onay akışı durumu — profil/önizleme için */
+  status?: EventStatus;
 }
 
 /** @deprecated Yalnızca geriye dönük import uyumluluğu — boş dizi */

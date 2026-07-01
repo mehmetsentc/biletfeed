@@ -4,7 +4,8 @@ import {
   formatEventDate,
   formatEventTime
 } from '@/lib/data/mock-events';
-import { getEventBySlug, getAllEvents } from '@/lib/services/events';
+import { getAllEvents, getEventBySlugForViewer } from '@/lib/services/events';
+import { EventifyCard } from '@/components/events/eventify-card';
 import { getOrganizerBySlug } from '@/lib/services/organizers';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { getFollowedOrganizerIds } from '@/lib/services/follows';
@@ -17,7 +18,7 @@ import { EventTicketSidebar } from '@/components/events/event-ticket-sidebar';
 import { EventMobileTicketBar } from '@/components/events/event-mobile-ticket-bar';
 import { EventTabletTicketBar } from '@/components/events/event-tablet-ticket-bar';
 import { ExternalEventBadge } from '@/components/events/external-event-badge';
-import { EventifyCard } from '@/components/events/eventify-card';
+import { EventPreviewBanner } from '@/components/events/event-preview-banner';
 import { Badge } from '@/components/ui/badge';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { createEventMetadata } from '@/lib/seo/metadata';
@@ -33,8 +34,9 @@ interface EventDetailPageProps {
 
 export async function generateMetadata({ params }: EventDetailPageProps) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
-  if (!event) return { title: 'Etkinlik Bulunamadı' };
+  const result = await getEventBySlugForViewer(slug);
+  if (!result) return { title: 'Etkinlik Bulunamadı' };
+  const { event } = result;
 
   return createEventMetadata({
     title: event.title,
@@ -52,12 +54,14 @@ export async function generateMetadata({ params }: EventDetailPageProps) {
 
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
-
-  if (!event) notFound();
-
-  const organizer = await getOrganizerBySlug(event.organizerSlug);
   const session = await verifySessionCookie();
+  const viewerResult = await getEventBySlugForViewer(slug, session?.uid);
+
+  if (!viewerResult) notFound();
+
+  const { event, isPreview, previewKind } = viewerResult;
+  const purchasable = !isPreview && event.status === 'published';
+  const organizer = await getOrganizerBySlug(event.organizerSlug);
   const [followedOrganizerIds, favoriteEventIds] = session
     ? await Promise.all([
         getFollowedOrganizerIds(session.uid),
@@ -133,8 +137,12 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           />
         </div>
 
+        {isPreview && previewKind && (
+          <EventPreviewBanner kind={previewKind} className="mt-6" />
+        )}
+
         <div className="mt-5">
-          <EventTabletTicketBar event={event} />
+          <EventTabletTicketBar event={event} purchasable={purchasable} />
         </div>
 
         {/* İki sütun */}
@@ -185,12 +193,12 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           </div>
 
           <div className="hidden lg:block">
-            <EventTicketSidebar event={event} />
+            <EventTicketSidebar event={event} purchasable={purchasable} />
           </div>
         </div>
       </div>
 
-      <EventMobileTicketBar event={event} />
+      <EventMobileTicketBar event={event} purchasable={purchasable} />
 
       {/* Benzer etkinlikler */}
       {related.length > 0 && (

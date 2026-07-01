@@ -40,6 +40,7 @@ export type EventWithRelations = {
   listingType?: string;
   externalPlatform?: string | null;
   externalUrl?: string | null;
+  status?: string;
 };
 
 export function toMockEvent(event: EventWithRelations): MockEvent {
@@ -79,7 +80,8 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     tags: event.tags,
     listingType: (event.listingType as MockEvent['listingType']) || 'internal',
     externalPlatform: event.externalPlatform ?? undefined,
-    externalUrl: event.externalUrl ?? undefined
+    externalUrl: event.externalUrl ?? undefined,
+    status: event.status as MockEvent['status']
   };
 }
 

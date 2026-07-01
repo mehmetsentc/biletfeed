@@ -14,11 +14,13 @@ import { type MockEvent } from '@/lib/data/mock-events';
 interface EventTicketSidebarProps {
   event: MockEvent;
   ticketLabel?: string;
+  purchasable?: boolean;
 }
 
 export function EventTicketSidebar({
   event,
-  ticketLabel = 'Standart Bilet'
+  ticketLabel = 'Standart Bilet',
+  purchasable = true
 }: EventTicketSidebarProps) {
   const priceText =
     event.isFree || event.price === 0
@@ -32,23 +34,34 @@ export function EventTicketSidebar({
     <aside className="sticky top-24 space-y-6">
       <ExternalEventBadge event={event} />
 
-      <Button
-        size="lg"
-        className="h-14 w-full gap-2 rounded-lg bg-primary text-base font-bold text-primary-foreground hover:bg-primary/90"
-        asChild
-      >
-        {external ? (
-          <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="size-5" />
-            {getTicketButtonLabel(event)}
-          </a>
-        ) : (
-          <Link href={ticketUrl}>
-            <Ticket className="size-5" />
-            {getTicketButtonLabel(event)}
-          </Link>
-        )}
-      </Button>
+      {purchasable ? (
+        <Button
+          size="lg"
+          className="h-14 w-full gap-2 rounded-lg bg-primary text-base font-bold text-primary-foreground hover:bg-primary/90"
+          asChild
+        >
+          {external ? (
+            <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="size-5" />
+              {getTicketButtonLabel(event)}
+            </a>
+          ) : (
+            <Link href={ticketUrl}>
+              <Ticket className="size-5" />
+              {getTicketButtonLabel(event)}
+            </Link>
+          )}
+        </Button>
+      ) : (
+        <Button
+          size="lg"
+          disabled
+          className="h-14 w-full gap-2 rounded-lg text-base font-bold"
+        >
+          <Ticket className="size-5" />
+          Bilet satışı henüz açık değil
+        </Button>
+      )}
 
       {external && (
         <p className="text-xs text-muted-foreground">

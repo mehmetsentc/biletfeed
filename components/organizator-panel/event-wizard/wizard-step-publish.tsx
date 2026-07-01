@@ -18,6 +18,7 @@ function openOrganizerAgreement(e: { preventDefault(): void; stopPropagation(): 
 
 interface WizardStepPublishProps {
   isEdit: boolean;
+  showTerms: boolean;
   previewImage: string | null;
   title: string;
   categoryName: string;
@@ -34,6 +35,7 @@ interface WizardStepPublishProps {
 
 export function WizardStepPublish({
   isEdit,
+  showTerms,
   previewImage,
   title,
   categoryName,
@@ -112,10 +114,10 @@ export function WizardStepPublish({
         </div>
       </WizardFormSection>
 
-      {!isEdit && (
+      {showTerms && (
         <WizardFormSection
           title="Yayınlama Seçenekleri"
-          description="Etkinliğinizi taslak olarak kaydedebilir veya yayınlayabilirsiniz."
+          description="Etkinliğinizi taslak olarak kaydedebilir veya onaya gönderebilirsiniz."
           icon={Sparkles}
         >
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
@@ -132,7 +134,7 @@ export function WizardStepPublish({
                   Organizatör Kullanıcı Sözleşmesi&apos;ni okudum ve kabul ediyorum
                 </Label>
                 <p className="mt-1.5">
-                  Etkinliği yayınlamak,{' '}
+                  Etkinliği onaya göndermek,{' '}
                   <button
                     type="button"
                     onClick={openOrganizerAgreement}
@@ -146,8 +148,8 @@ export function WizardStepPublish({
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Taslak olarak kaydederseniz etkinlik henüz yayınlanmaz. Form verileriniz tarayıcı
-            oturumunda otomatik kaydedilir.
+            Taslak olarak kaydederseniz etkinlik henüz yayınlanmaz. Onaya gönderdiğinizde
+            BiletFeed ekibi inceleyecektir.
           </p>
         </WizardFormSection>
       )}

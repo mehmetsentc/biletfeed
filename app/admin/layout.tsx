@@ -1,4 +1,6 @@
+import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth/guards';
+import { getAdminAccessByFirebaseUid } from '@/lib/services/admin-access';
 import { AdminShell } from '@/app/admin/admin-shell';
 
 export const dynamic = 'force-dynamic';
@@ -8,6 +10,19 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAdmin();
-  return <AdminShell>{children}</AdminShell>;
+  const session = await requireAdmin();
+  const access = await getAdminAccessByFirebaseUid(session.uid, session.email);
+
+  if (!access || (!access.isSuperAdmin && access.permissions.length === 0)) {
+    redirect('/?error=unauthorized');
+  }
+
+  return (
+    <AdminShell
+      isSuperAdmin={access.isSuperAdmin}
+      permissions={access.permissions}
+    >
+      {children}
+    </AdminShell>
+  );
 }

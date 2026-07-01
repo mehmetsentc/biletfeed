@@ -102,12 +102,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const data = parsed.data;
 
+  if (data.status === 'published') {
+    return NextResponse.json(
+      { error: 'Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.' },
+      { status: 403 }
+    );
+  }
+
   if (
-    data.status === 'published' &&
+    data.status === 'pending' &&
     data.organizerTermsAccepted !== true
   ) {
     return NextResponse.json(
-      { error: 'Yayınlamak için organizatör sözleşmesini kabul etmelisiniz.' },
+      { error: 'Onaya göndermek için organizatör sözleşmesini kabul etmelisiniz.' },
       { status: 400 }
     );
   }

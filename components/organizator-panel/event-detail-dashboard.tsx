@@ -279,8 +279,15 @@ export function EventDetailDashboard({
     if (status === 'draft') {
       return {
         title: 'Taslak — yayında değil',
-        body: 'Etkinliği yayına alarak bilet satışını başlatabilirsiniz.',
+        body: 'Etkinliği onaya göndererek yayın sürecini başlatabilirsiniz.',
         tone: 'draft' as const
+      };
+    }
+    if (status === 'pending') {
+      return {
+        title: 'Onay bekliyor',
+        body: 'Etkinliğiniz BiletFeed ekibi tarafından inceleniyor. Onaylandığında otomatik olarak yayına alınacaktır.',
+        tone: 'pending' as const
       };
     }
     if (isUpcoming) {
@@ -339,6 +346,7 @@ export function EventDetailDashboard({
                   (statusLabel === 'Eski Etkinlik' || statusLabel === 'Tamamlandı') &&
                     'bg-muted text-muted-foreground',
                   statusLabel === 'Taslak' && 'bg-slate-100 text-slate-600',
+                  statusLabel === 'Onay Bekliyor' && 'bg-amber-50 text-amber-800',
                   statusLabel === 'İptal' && 'bg-red-50 text-red-700'
                 )}
               >
@@ -377,6 +385,7 @@ export function EventDetailDashboard({
             alertMessage.tone === 'past' && 'border-amber-200 bg-amber-50 text-amber-950',
             alertMessage.tone === 'cancelled' && 'border-red-200 bg-red-50 text-red-900',
             alertMessage.tone === 'draft' && 'border-slate-200 bg-slate-50 text-slate-800',
+            alertMessage.tone === 'pending' && 'border-amber-200 bg-amber-50 text-amber-950',
             alertMessage.tone === 'upcoming' && 'border-primary/20 bg-primary/5 text-foreground'
           )}
         >
@@ -487,11 +496,16 @@ export function EventDetailDashboard({
                 size="sm"
                 className="justify-start gap-2"
                 disabled={actionLoading}
-                onClick={() => updateStatus('published')}
+                onClick={() => updateStatus('pending')}
               >
                 <PlayCircle className="size-3.5" />
-                Yayına al
+                Onaya Gönder
               </Button>
+            )}
+            {status === 'pending' && !isPast && (
+              <p className="text-xs text-muted-foreground">
+                Etkinlik admin onayı bekliyor.
+              </p>
             )}
             {status !== 'cancelled' && !isPast && (
               <Button
