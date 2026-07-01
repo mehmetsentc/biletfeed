@@ -5,12 +5,12 @@ import { redirect } from 'next/navigation';
 
 export const metadata = createPageMetadata({
   title: 'Destek',
-  path: '/destek'
+  path: '/profil/destek'
 });
 
 export default async function SupportPage() {
   const session = await verifySessionCookie();
-  if (!session) redirect('/giris?redirect=/destek');
+  if (!session) redirect('/giris?redirect=/profil/destek');
 
   return <SupportPageClient />;
 }

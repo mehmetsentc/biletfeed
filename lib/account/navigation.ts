@@ -83,11 +83,11 @@ export const accountMenuGroups: AccountMenuGroup[] = [
   {
     items: [
       {
-        href: '/destek',
+        href: '/profil/destek',
         label: 'Destek',
         icon: LifeBuoy,
         isActive: (p) =>
-          p === '/destek' || p === '/yardim' || p === '/iletisim' || p === '/sss'
+          p === '/profil/destek' || p === '/yardim' || p === '/iletisim' || p === '/sss'
       }
     ]
   }
@@ -99,7 +99,7 @@ export function isAccountAreaActive(pathname: string): boolean {
     pathname.startsWith('/biletlerim') ||
     pathname === '/favorilerim' ||
     pathname === '/degerlendirmelerim' ||
-    pathname === '/destek' ||
+    pathname === '/profil/destek' ||
     pathname === '/bildirimler' ||
     pathname.startsWith('/yardim') ||
     pathname.startsWith('/organizator-panel') ||

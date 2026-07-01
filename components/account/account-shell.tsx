@@ -12,7 +12,7 @@ function usesProfileTabs(pathname: string): boolean {
     pathname.startsWith('/biletlerim') ||
     pathname === '/favorilerim' ||
     pathname === '/degerlendirmelerim' ||
-    pathname === '/destek'
+    pathname === '/profil/destek'
   );
 }
 
@@ -29,7 +29,7 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
             pathname === '/profil/bilgilerim' ||
               pathname === '/profil/ayarlar' ||
               pathname === '/degerlendirmelerim' ||
-              pathname === '/destek' ||
+              pathname === '/profil/destek' ||
               pathname === '/favorilerim' ||
               pathname.startsWith('/biletlerim')
               ? 'max-w-6xl'
