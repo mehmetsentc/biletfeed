@@ -100,7 +100,11 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
                   </Badge>
                 </td>
                 <td className="p-3 text-right">
-                  <OrganizerTicketActions ticketCode={ticket.ticketCode} />
+                  <OrganizerTicketActions
+                    ticketId={ticket.id}
+                    ticketCode={ticket.ticketCode}
+                    status={ticket.status}
+                  />
                 </td>
               </tr>
             ))}
