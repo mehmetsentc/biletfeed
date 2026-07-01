@@ -9,6 +9,26 @@ export async function getOrganizerForSession(firebaseUid: string) {
   });
 }
 
+/** Oturum sahibi bu etkinliğin organizatörü mü? (firebaseUid → owner join, en güvenilir yol) */
+export async function isEventOwnedByFirebaseUid(
+  eventId: string,
+  firebaseUid: string
+): Promise<boolean> {
+  await ensureDbConnection();
+  const event = await prisma.event.findFirst({
+    where: {
+      id: eventId,
+      deletedAt: null,
+      organizer: {
+        deletedAt: null,
+        owner: { firebaseUid, deletedAt: null }
+      }
+    },
+    select: { id: true }
+  });
+  return Boolean(event);
+}
+
 export async function canManageEventTickets(
   firebaseUid: string,
   eventId: string,
@@ -19,25 +39,15 @@ export async function canManageEventTickets(
     return true;
   }
 
-  await ensureDbConnection();
-
-  if (organizerId) {
-    const event = await prisma.event.findFirst({
-      where: { id: eventId, organizerId, deletedAt: null },
-      select: { id: true }
-    });
-    if (event) return true;
+  if (await isEventOwnedByFirebaseUid(eventId, firebaseUid)) {
+    return true;
   }
 
+  if (!organizerId) return false;
+
+  await ensureDbConnection();
   const event = await prisma.event.findFirst({
-    where: {
-      id: eventId,
-      deletedAt: null,
-      organizer: {
-        deletedAt: null,
-        owner: { firebaseUid, deletedAt: null }
-      }
-    },
+    where: { id: eventId, organizerId, deletedAt: null },
     select: { id: true }
   });
   return Boolean(event);

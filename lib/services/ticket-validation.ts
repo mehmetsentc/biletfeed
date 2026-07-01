@@ -1,6 +1,9 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { verifyValidationToken, parseQrPayload } from '@/lib/tickets/sign';
-import { canManageEventTickets } from '@/lib/auth/organizer-api';
+import {
+  canManageEventTickets,
+  isEventOwnedByFirebaseUid
+} from '@/lib/auth/organizer-api';
 import type { UserRole } from '@/types';
 import type { EntryPolicy } from '@prisma/client';
 
@@ -178,15 +181,30 @@ export async function validateTicketInput(input: {
     ].filter((id): id is string => Boolean(id))
   );
 
-  const canScan =
+  let canScan =
     (input.scannerOrganizerId != null &&
       ownedOrganizerIds.has(input.scannerOrganizerId)) ||
+    (await isEventOwnedByFirebaseUid(ticket.eventId, input.scannerUid)) ||
     (await canManageEventTickets(
       input.scannerUid,
       ticket.eventId,
       input.scannerRole,
       input.scannerOrganizerId
     ));
+
+  if (!canScan && ticket.invitation?.organizerId) {
+    await ensureDbConnection();
+    const invOwner = await prisma.organizer.findFirst({
+      where: {
+        id: ticket.invitation.organizerId,
+        deletedAt: null,
+        owner: { firebaseUid: input.scannerUid, deletedAt: null }
+      },
+      select: { id: true }
+    });
+    canScan = Boolean(invOwner);
+  }
+
   if (!canScan) {
     return { status: 'INVALID', message: 'Bu bilet için yetkiniz yok' };
   }
