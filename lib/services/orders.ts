@@ -17,6 +17,7 @@ import { sendRefundNotificationEmail } from '@/lib/email/send-refund-email';
 import { validateCoupon, incrementCouponUsage } from '@/lib/services/coupons';
 import { notifyTicketPurchase } from '@/lib/services/notifications';
 import { findOrCreateGuestUser } from '@/lib/services/guest-user';
+import type { PaymentProviderName } from '@/lib/payments/types';
 
 export interface CheckoutResult {
   orderId: string;
