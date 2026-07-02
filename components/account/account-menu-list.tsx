@@ -2,10 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Globe, LogOut } from 'lucide-react';
 import { AccountThemeToggle } from '@/components/account/account-theme-toggle';
-import { accountMenuGroups } from '@/lib/account/navigation';
+import {
+  accountMenuGroups,
+  accountYardimMenuItem
+} from '@/lib/account/navigation';
 import { useAccountMode } from '@/hooks/use-account-mode';
 import {
   accountSiteHref,
@@ -21,12 +24,14 @@ type AccountMenuListProps = {
   onNavigate?: () => void;
   onSignOut?: () => void;
   variant?: 'dropdown' | 'sidebar';
+  organizerLinks?: ReactNode;
 };
 
 export function AccountMenuList({
   onNavigate,
   onSignOut,
-  variant = 'dropdown'
+  variant = 'dropdown',
+  organizerLinks
 }: AccountMenuListProps) {
   const pathname = usePathname();
   const { isOrganizerMode, isModeLocked } = useAccountMode();
@@ -38,6 +43,11 @@ export function AccountMenuList({
       isOnOrganizerPanelHost(window.location.hostname),
     []
   );
+
+  const yardimHref = resolveMenuHref(accountYardimMenuItem.href, onPanelHost);
+  const yardimActive =
+    accountYardimMenuItem.isActive?.(pathname) ?? pathname === yardimHref;
+  const YardimIcon = accountYardimMenuItem.icon;
 
   return (
     <>
@@ -60,33 +70,32 @@ export function AccountMenuList({
                 )
             )
             .map((item) => {
-            const active = item.isActive?.(pathname) ?? pathname === item.href;
-            const Icon = item.icon;
+              const active = item.isActive?.(pathname) ?? pathname === item.href;
+              const Icon = item.icon;
+              const href = resolveMenuHref(item.href, onPanelHost);
 
-            const href = resolveMenuHref(item.href, onPanelHost);
-
-            return (
-              <Link
-                key={item.href}
-                href={href}
-                onClick={onNavigate}
-                className={cn(
-                  'flex items-center gap-3 text-sm font-medium transition-colors',
-                  isSidebar
-                    ? 'rounded-xl px-3 py-2.5'
-                    : 'px-4 py-2.5',
-                  active
-                    ? isSidebar
-                      ? 'bg-primary/10 text-primary'
-                      : 'bg-muted text-foreground'
-                    : 'text-foreground hover:bg-muted'
-                )}
-              >
-                <Icon className="size-4 shrink-0" strokeWidth={1.75} />
-                {item.label}
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={href}
+                  onClick={onNavigate}
+                  className={cn(
+                    'flex items-center gap-3 text-sm font-medium transition-colors',
+                    isSidebar
+                      ? 'rounded-xl px-3 py-2.5'
+                      : 'px-4 py-2.5',
+                    active
+                      ? isSidebar
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-muted text-foreground'
+                      : 'text-foreground hover:bg-muted'
+                  )}
+                >
+                  <Icon className="size-4 shrink-0" strokeWidth={1.75} />
+                  {item.label}
+                </Link>
+              );
+            })}
         </div>
       ))}
 
@@ -107,26 +116,43 @@ export function AccountMenuList({
         Türkçe
       </div>
 
+      {organizerLinks}
+
+      <div
+        className={cn(
+          'border-t border-border',
+          isSidebar ? 'my-2' : 'my-1'
+        )}
+      />
+      <Link
+        href={yardimHref}
+        onClick={onNavigate}
+        className={cn(
+          'flex items-center gap-3 text-sm font-medium transition-colors',
+          isSidebar ? 'rounded-xl px-3 py-2.5' : 'px-4 py-2.5',
+          yardimActive
+            ? isSidebar
+              ? 'bg-primary/10 text-primary'
+              : 'bg-muted text-foreground'
+            : 'text-foreground hover:bg-muted'
+        )}
+      >
+        <YardimIcon className="size-4 shrink-0" strokeWidth={1.75} />
+        {accountYardimMenuItem.label}
+      </Link>
+
       {onSignOut && (
-        <>
-          <div
-            className={cn(
-              'border-t border-border',
-              isSidebar ? 'my-2' : 'my-1'
-            )}
-          />
-          <button
-            type="button"
-            onClick={onSignOut}
-            className={cn(
-              'flex w-full items-center gap-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10',
-              isSidebar ? 'rounded-xl px-3 py-2.5' : 'px-4 py-2.5'
-            )}
-          >
-            <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
-            Çıkış Yap
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={onSignOut}
+          className={cn(
+            'flex w-full items-center gap-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10',
+            isSidebar ? 'rounded-xl px-3 py-2.5' : 'px-4 py-2.5'
+          )}
+        >
+          <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
+          Çıkış Yap
+        </button>
       )}
     </>
   );

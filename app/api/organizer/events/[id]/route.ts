@@ -44,6 +44,7 @@ const patchSchema = z.object({
   ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   venueDetail: z.string().max(2000).optional(),
+  rules: z.string().max(10000).optional(),
   isOnline: z.boolean().optional(),
   onlineUrl: z.string().url().max(500).optional().or(z.literal('')),
   performers: z.array(performerSchema).max(50).optional(),

@@ -170,6 +170,7 @@ export function CreateOrganizerEventWizard({
   const [venueName, setVenueName] = useState(initialData?.venueName ?? '');
   const [venueAddress, setVenueAddress] = useState('');
   const [venueDetail, setVenueDetail] = useState('');
+  const [eventRules, setEventRules] = useState(initialData?.eventRules ?? '');
   const [onlineUrl, setOnlineUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [performers, setPerformers] = useState<PerformerRow[]>([]);
@@ -404,6 +405,7 @@ export function CreateOrganizerEventWizard({
         venueName: location === 'online' ? 'Online' : venueName.trim() || undefined,
         venueAddress: venueAddress.trim() || undefined,
         venueDetail: venueDetail.trim() || undefined,
+        rules: eventRules.trim() || undefined,
         startDate,
         endDate,
         isFree: ticketType === 'free',
@@ -881,6 +883,8 @@ export function CreateOrganizerEventWizard({
 
           {step === 5 && (
             <WizardStepParticipation
+              eventRules={eventRules}
+              onEventRulesChange={setEventRules}
               attendeeQuestions={attendeeQuestions}
               onAttendeeQuestionsChange={setAttendeeQuestions}
               preventQuestionCopy={preventQuestionCopy}

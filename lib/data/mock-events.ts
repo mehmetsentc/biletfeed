@@ -39,6 +39,8 @@ export interface MockEvent {
   externalUrl?: string;
   /** Dahili etkinliklerde onay akışı durumu — profil/önizleme için */
   status?: EventStatus;
+  /** Organizatörün belirlediği etkinlik kuralları */
+  rules?: string;
 }
 
 /** @deprecated Yalnızca geriye dönük import uyumluluğu — boş dizi */

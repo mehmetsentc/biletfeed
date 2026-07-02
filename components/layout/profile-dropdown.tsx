@@ -15,6 +15,7 @@ import { useAccountMode } from '@/hooks/use-account-mode';
 import { isAccountAreaActive } from '@/lib/account/navigation';
 import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { resolveProfileDisplayName } from '@/lib/account/display-name';
 import { cn } from '@/lib/utils';
 
 export function ProfileDropdown() {
@@ -24,11 +25,13 @@ export function ProfileDropdown() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const displayName =
-    user?.displayName || user?.email?.split('@')[0] || 'Hesabım';
+  const displayName = resolveProfileDisplayName({
+    displayName: user?.displayName,
+    email: user?.email
+  });
   const email = user?.email || '';
   const initials = useMemo(() => {
-    const source = user?.displayName || user?.email || 'BF';
+    const source = displayName || user?.email || 'BF';
     return (
       source
         .split(/[\s@]+/)
@@ -38,7 +41,7 @@ export function ProfileDropdown() {
         .slice(0, 2)
         .toUpperCase() || 'BF'
     );
-  }, [user?.displayName, user?.email]);
+  }, [displayName, user?.email]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -104,34 +107,35 @@ export function ProfileDropdown() {
           <AccountMenuList
             onNavigate={() => setOpen(false)}
             onSignOut={handleSignOut}
+            organizerLinks={
+              isModeLocked && isOrganizerMode ? (
+                <>
+                  <div className="my-1 border-t border-border" />
+                  <Link
+                    href={panelHref('/organizator-panel/etkinlik/yeni')}
+                    {...PANEL_EXTERNAL_LINK_PROPS}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+                  >
+                    <Plus className="size-4 shrink-0" strokeWidth={1.75} />
+                    Etkinlik Oluştur
+                  </Link>
+                  <Link
+                    href={panelHref('/organizator-panel/baslangic')}
+                    {...PANEL_EXTERNAL_LINK_PROPS}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                  >
+                    <LayoutDashboard
+                      className="size-4 shrink-0"
+                      strokeWidth={1.75}
+                    />
+                    Organizatör Panel
+                  </Link>
+                </>
+              ) : undefined
+            }
           />
-
-          {isModeLocked && isOrganizerMode && (
-            <>
-              <div className="my-1 border-t border-border" />
-              <Link
-                href={panelHref('/organizator-panel/etkinlik/yeni')}
-                {...PANEL_EXTERNAL_LINK_PROPS}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
-              >
-                <Plus className="size-4 shrink-0" strokeWidth={1.75} />
-                Etkinlik Oluştur
-              </Link>
-              <Link
-                href={panelHref('/organizator-panel/baslangic')}
-                {...PANEL_EXTERNAL_LINK_PROPS}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                <LayoutDashboard
-                  className="size-4 shrink-0"
-                  strokeWidth={1.75}
-                />
-                Organizatör Panel
-              </Link>
-            </>
-          )}
         </div>
       )}
     </div>

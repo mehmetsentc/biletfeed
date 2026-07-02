@@ -23,6 +23,7 @@ export type EventSeoMeta = {
 export interface OrganizerEventExtras {
   tags?: string[];
   venueDetail?: string;
+  rules?: string;
   isOnline?: boolean;
   onlineUrl?: string;
   performers?: EventPerformerMeta[];
@@ -59,7 +60,7 @@ export function buildEventExtrasData(extras: OrganizerEventExtras): {
 
   return {
     tags: extras.tags ?? [],
-    rules: extras.venueDetail?.trim() ?? '',
+    rules: extras.rules?.trim() ?? '',
     isOnline: extras.isOnline ?? false,
     onlineUrl: extras.onlineUrl?.trim() || null,
     faqs: extras.attendeeQuestions ?? [],

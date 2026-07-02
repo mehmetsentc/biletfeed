@@ -31,6 +31,7 @@ export interface EventWizardInitialData {
     sold: number;
     showLowStockBadge: boolean;
   }>;
+  eventRules: string;
 }
 
 function toLocalDateParts(value: Date | string): { date: string; time: string } {
@@ -91,6 +92,7 @@ export function mapEventToWizardInitialData(event: EventWithRelations): EventWiz
         sold: ticket.sold,
         showLowStockBadge: ticket.showLowStockBadge
       };
-    })
+    }),
+    eventRules: event.rules?.trim() ?? ''
   };
 }

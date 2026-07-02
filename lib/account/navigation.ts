@@ -97,19 +97,16 @@ export const accountMenuGroups: AccountMenuGroup[] = [
         isActive: (p) => p === '/degerlendirmelerim'
       }
     ]
-  },
-  {
-    items: [
-      {
-        href: '/profil/destek',
-        label: 'Yardım',
-        icon: LifeBuoy,
-        isActive: (p) =>
-          p === '/profil/destek' || p === '/yardim' || p === '/iletisim' || p === '/sss'
-      }
-    ]
   }
 ];
+
+export const accountYardimMenuItem: AccountMenuItem = {
+  href: '/profil/destek',
+  label: 'Yardım',
+  icon: LifeBuoy,
+  isActive: (p) =>
+    p === '/profil/destek' || p === '/yardim' || p === '/iletisim' || p === '/sss'
+};
 
 export function isAccountAreaActive(pathname: string): boolean {
   return (

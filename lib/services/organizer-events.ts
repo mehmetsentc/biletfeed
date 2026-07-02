@@ -239,7 +239,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
 
   const extrasData: Record<string, unknown> = {};
   if (input.tags !== undefined) extrasData.tags = input.tags;
-  if (input.venueDetail !== undefined) extrasData.rules = input.venueDetail.trim();
+  if (input.rules !== undefined) extrasData.rules = input.rules.trim();
   if (input.isOnline !== undefined) extrasData.isOnline = input.isOnline;
   if (input.onlineUrl !== undefined) extrasData.onlineUrl = input.onlineUrl?.trim() || null;
   if (input.attendeeQuestions !== undefined) extrasData.faqs = input.attendeeQuestions;
@@ -258,6 +258,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
       accessPassword: input.accessPassword,
       hiddenFromSearch: input.hiddenFromSearch,
       venueDetail: input.venueDetail,
+      rules: input.rules,
       organizerTermsAccepted: input.organizerTermsAccepted
     });
     const existingSeo =

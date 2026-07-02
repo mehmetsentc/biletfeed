@@ -47,6 +47,16 @@ export function CheckoutForm({
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+  const [rulesAccepted, setRulesAccepted] = useState(false);
+
+  const eventRules = event.rules?.trim() ?? '';
+  const ruleLines = eventRules
+    ? eventRules
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[\s•\-*]+/, '').trim())
+        .filter(Boolean)
+    : [];
+  const requiresRulesAcceptance = ruleLines.length > 0;
 
   const selectedType =
     ticketTypes.find((t) => t.id === selectedTypeId) ?? ticketTypes[0];
@@ -215,7 +225,35 @@ export function CheckoutForm({
                   onChange={(e) => setQuantity(Number(e.target.value))}
                 />
               </div>
-              <Button onClick={() => setStep(2)} className="w-full">
+              {requiresRulesAcceptance && (
+                <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+                  <h3 className="text-sm font-semibold">
+                    Etkinlik Hakkında Bilmeniz Gerekenler
+                  </h3>
+                  <ul className="max-h-48 space-y-2 overflow-y-auto text-sm text-muted-foreground">
+                    {ruleLines.map((line) => (
+                      <li key={line} className="flex gap-2">
+                        <span className="text-primary">•</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <label className="flex cursor-pointer items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={rulesAccepted}
+                      onChange={(e) => setRulesAccepted(e.target.checked)}
+                    />
+                    <span>Etkinlik kurallarını okudum ve kabul ediyorum.</span>
+                  </label>
+                </div>
+              )}
+              <Button
+                onClick={() => setStep(2)}
+                className="w-full"
+                disabled={requiresRulesAcceptance && !rulesAccepted}
+              >
                 Devam Et
               </Button>
             </div>

@@ -48,6 +48,7 @@ export type EventWithRelations = {
   externalPlatform?: string | null;
   externalUrl?: string | null;
   status?: string;
+  rules?: string;
   stats?: unknown;
 };
 
@@ -93,7 +94,8 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     listingType: (event.listingType as MockEvent['listingType']) || 'internal',
     externalPlatform: event.externalPlatform ?? undefined,
     externalUrl: event.externalUrl ?? undefined,
-    status: event.status as MockEvent['status']
+    status: event.status as MockEvent['status'],
+    rules: event.rules?.trim() || undefined
   };
 }
 
