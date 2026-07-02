@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { buildSignedSessionToken } from '@/lib/auth/session-crypto';
 import {
-  SESSION_COOKIE_NAME,
+  PANEL_SESSION_COOKIE_NAME,
   getSessionCookieOptions
 } from '@/lib/auth/session-cookie';
 import { SESSION_EXPIRES_MS } from '@/lib/auth/session';
@@ -26,7 +26,7 @@ function buildSessionCookie(
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimitOrNull(request, 'auth-session', 60, 60_000);
+    const limited = rateLimitOrNull(request, 'auth-panel-session', 60, 60_000);
     if (limited) return limited;
 
     if (!isSameOriginRequest(request)) {
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ success: true, role });
     response.cookies.set(
-      SESSION_COOKIE_NAME,
+      PANEL_SESSION_COOKIE_NAME,
       sessionCookie,
       getSessionCookieOptions(SESSION_EXPIRES_MS / 1000)
     );
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const message =
       err instanceof Error && err.message.includes('NEXTAUTH_SECRET')
         ? 'Sunucu oturum anahtarı yapılandırılmamış (NEXTAUTH_SECRET).'
-        : 'Oturum oluşturulamadı';
+        : 'Panel oturumu oluşturulamadı';
     return NextResponse.json({ error: message }, { status: 401 });
   }
 }
@@ -66,7 +66,7 @@ export async function DELETE(request: NextRequest) {
 
   const response = NextResponse.json({ success: true });
   response.cookies.set(
-    SESSION_COOKIE_NAME,
+    PANEL_SESSION_COOKIE_NAME,
     '',
     getSessionCookieOptions(0)
   );

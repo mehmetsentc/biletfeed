@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { verifySessionCookie } from '@/lib/auth/session';
+import { verifyOrganizerPanelSession } from '@/lib/auth/session';
 import { resolveScannerUser } from '@/lib/auth/organizer-api';
 import { OrganizatorShell } from '@/components/organizator-panel/shell';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
@@ -9,9 +9,9 @@ export default async function OrganizatorTerminalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await verifySessionCookie();
+  const session = await verifyOrganizerPanelSession();
   if (!session) {
-    redirect('/giris?redirect=/organizator-panel/baslangic');
+    redirect('/organizator-panel/giris?redirect=/organizator-panel/baslangic');
   }
 
   await ensureDbConnection();

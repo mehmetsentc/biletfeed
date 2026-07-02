@@ -1,25 +1,44 @@
 import { redirect } from 'next/navigation';
 import type { UserRole } from '@/types';
 import {
-  verifySessionCookie,
+  verifyOrganizerPanelSession,
   sessionHasRole
 } from '@/lib/auth/session';
+import { panelLoginHref } from '@/lib/config/domain';
 import { getAdminAccessByFirebaseUid } from '@/lib/services/admin-access';
 
 function loginRedirect(returnPath?: string): never {
   if (returnPath) {
-    redirect(`/giris?redirect=${encodeURIComponent(returnPath)}`);
+    redirect(panelLoginHref(returnPath));
   }
-  redirect('/giris');
+  redirect(panelLoginHref());
+}
+
+export async function requirePanelAuth(
+  requiredRole: UserRole = 'ROLE_USER',
+  returnPath?: string
+) {
+  const session = await verifyOrganizerPanelSession();
+  if (!session) {
+    loginRedirect(returnPath);
+  }
+  if (!sessionHasRole(session, requiredRole)) {
+    loginRedirect(returnPath);
+  }
+  return session;
 }
 
 export async function requireAuth(
   requiredRole: UserRole = 'ROLE_USER',
   returnPath?: string
 ) {
+  const { verifySessionCookie } = await import('@/lib/auth/session');
   const session = await verifySessionCookie();
   if (!session) {
-    loginRedirect(returnPath);
+    if (returnPath) {
+      redirect(`/giris?redirect=${encodeURIComponent(returnPath)}`);
+    }
+    redirect('/giris');
   }
   if (!sessionHasRole(session, requiredRole)) {
     if (returnPath) {
@@ -33,7 +52,7 @@ export async function requireAuth(
 }
 
 export async function requireOrganizer() {
-  return requireAuth('ROLE_ORGANIZER', '/organizator-panel/baslangic');
+  return requirePanelAuth('ROLE_ORGANIZER', '/organizator-panel/baslangic');
 }
 
 export async function requireAdmin() {

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { verifySessionCookie } from '@/lib/auth/session';
+import { verifyOrganizerPanelSession } from '@/lib/auth/session';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 
 export default async function OrganizatorKurulumLayout({
@@ -7,12 +7,12 @@ export default async function OrganizatorKurulumLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await verifySessionCookie();
+  const session = await verifyOrganizerPanelSession();
   if (!session) {
-    redirect('/giris?redirect=/organizator-panel/kurulum');
+    redirect('/organizator-panel/giris?redirect=/organizator-panel/kurulum');
   }
 
-  const organizer = await getOrganizerForSession(session.uid);
+  const organizer = await getOrganizerForSession(session.uid, session.email);
   if (organizer) {
     redirect('/organizator-panel/baslangic');
   }

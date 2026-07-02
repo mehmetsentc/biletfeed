@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
-import { ProfileDropdown } from '@/components/layout/profile-dropdown';
+import { PanelProfileMenu } from '@/components/organizator-panel/panel-profile-menu';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
 import { siteHref } from '@/lib/config/domain';
@@ -56,8 +56,8 @@ export function OrganizatorHeader({
         <span className="text-organizer-chrome hidden max-w-[10rem] truncate rounded-md bg-white/10 px-3 py-1.5 text-xs sm:inline sm:max-w-none sm:text-sm">
           {displayName}
         </span>
-        <div className="[&_button]:text-white [&_button:hover]:bg-white/10 [&_span]:text-white">
-          <ProfileDropdown />
+        <div className="[&_button]:text-white [&_button:hover]:bg-white/10">
+          <PanelProfileMenu />
         </div>
       </div>
     </header>

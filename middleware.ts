@@ -15,8 +15,30 @@ import {
 } from '@/lib/config/domain';
 import { isEventJoyEnabled } from '@/lib/config/features';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/organizator-panel'];
+const PROTECTED_PREFIXES = ['/dashboard', '/admin'];
 const SESSION_COOKIE_NAME = 'session';
+const PANEL_SESSION_COOKIE_NAME = 'panel_session';
+
+const PANEL_PUBLIC_PATHS = new Set([
+  '/giris',
+  '/organizator-panel/giris',
+  '/sifremi-unuttum'
+]);
+
+function isPanelPublicPath(pathname: string): boolean {
+  if (PANEL_PUBLIC_PATHS.has(pathname)) return true;
+  return (
+    pathname.startsWith('/organizator-panel/giris') ||
+    pathname.startsWith('/giris?')
+  );
+}
+
+function requiresPanelSession(pathname: string): boolean {
+  if (isPanelPublicPath(pathname)) return false;
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) return false;
+  if (isLegalSitePath(pathname)) return false;
+  return true;
+}
 
 function extractSubdomain(request: NextRequest): string | null {
   const url = request.url;
@@ -148,6 +170,24 @@ function handleOrganizerPanelSubdomain(
     );
   }
 
+  // panel.biletfeed.com/giris → organizatör giriş sayfası
+  if (pathname === '/giris' || pathname.startsWith('/giris/')) {
+    const rewriteUrl = new URL('/organizator-panel/giris', request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      rewriteUrl.searchParams.set(key, value);
+    });
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
+  if (requiresPanelSession(pathname)) {
+    const panelSession = request.cookies.get(PANEL_SESSION_COOKIE_NAME);
+    if (!panelSession?.value) {
+      const loginUrl = new URL('/giris', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   // panel.biletfeed.com/profil → biletfeed.com/profil (hesap sayfaları ana sitede)
   if (isAccountSitePath(pathname)) {
     const target = siteHref(pathname);
@@ -163,7 +203,6 @@ function handleOrganizerPanelSubdomain(
 
   if (
     pathname.startsWith('/organizator-panel') ||
-    pathname.startsWith('/giris') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next')
   ) {
@@ -232,6 +271,17 @@ export async function middleware(request: NextRequest) {
 
     if (pathname.startsWith('/etkinlik/')) {
       return NextResponse.next();
+    }
+  }
+
+  if (pathname.startsWith('/organizator-panel')) {
+    if (!isPanelPublicPath(pathname)) {
+      const panelSession = request.cookies.get(PANEL_SESSION_COOKIE_NAME);
+      if (!panelSession?.value) {
+        const loginUrl = new URL('/organizator-panel/giris', request.url);
+        loginUrl.searchParams.set('redirect', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
     }
   }
 

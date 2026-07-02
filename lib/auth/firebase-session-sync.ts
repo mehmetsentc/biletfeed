@@ -1,11 +1,16 @@
 import { signInWithCustomToken, type Auth, type User as FirebaseUser } from 'firebase/auth';
-import { fetchSessionUser } from '@/lib/auth/session-profile';
+import { isPanelAuthContext } from '@/lib/auth/panel-auth-context';
+import {
+  fetchPanelSessionUser,
+  fetchSessionUser
+} from '@/lib/auth/session-profile';
 
 const CUSTOM_TOKEN_COOLDOWN_MS = 15_000;
 let lastCustomTokenAttemptAt = 0;
 
-export async function signInWithSessionCustomToken(
-  auth: Auth
+async function signInWithSessionCustomToken(
+  auth: Auth,
+  endpoint: '/api/auth/custom-token' | '/api/auth/panel-custom-token'
 ): Promise<boolean> {
   const now = Date.now();
   if (now - lastCustomTokenAttemptAt < CUSTOM_TOKEN_COOLDOWN_MS) {
@@ -14,7 +19,7 @@ export async function signInWithSessionCustomToken(
   lastCustomTokenAttemptAt = now;
 
   try {
-    const res = await fetch('/api/auth/custom-token', {
+    const res = await fetch(endpoint, {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store'
@@ -31,13 +36,16 @@ export async function signInWithSessionCustomToken(
 
 /**
  * panel.biletfeed.com ve biletfeed.com ayrı Firebase persistence kullanır.
- * Paylaşılan session çerezi ile bu origin'deki Firebase kullanıcısını hizalar.
+ * İlgili oturum çerezi ile bu origin'deki Firebase kullanıcısını hizalar.
  */
 export async function alignFirebaseWithSessionCookie(
   auth: Auth,
   firebaseUser: FirebaseUser | null
 ): Promise<FirebaseUser | null> {
-  const sessionUser = await fetchSessionUser();
+  const panelContext = isPanelAuthContext();
+  const sessionUser = panelContext
+    ? await fetchPanelSessionUser()
+    : await fetchSessionUser();
 
   if (!sessionUser) {
     return firebaseUser;
@@ -52,6 +60,9 @@ export async function alignFirebaseWithSessionCookie(
     await signOut(auth);
   }
 
-  const synced = await signInWithSessionCustomToken(auth);
+  const tokenEndpoint = panelContext
+    ? '/api/auth/panel-custom-token'
+    : '/api/auth/custom-token';
+  const synced = await signInWithSessionCustomToken(auth, tokenEndpoint);
   return synced ? auth.currentUser : null;
 }

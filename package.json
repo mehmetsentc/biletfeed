@@ -34,6 +34,7 @@
     "preview:ticket": "tsx scripts/preview-ticket-design.ts && open public/ticket-preview/index.html",
     "events:remove-mocks": "dotenv -e .env.local -- tsx scripts/remove-mock-events.ts",
     "events:purge-scraped": "dotenv -e .env.local -- tsx scripts/purge-scraped-events.ts",
+    "events:sync-counts": "dotenv -e .env.local -- tsx scripts/sync-event-counts.ts",
     "events:rescrape": "dotenv -e .env.local -- tsx scripts/purge-scraped-events.ts && dotenv -e .env.local -- tsx scripts/scrape-events.ts",
     "db:scrape-push": "dotenv -e .env.local -- prisma db push"
   },

@@ -28,12 +28,18 @@ import {
 } from '@/lib/firebase/client';
 import {
   establishClientSessionWithRetry,
+  establishPanelClientSessionWithRetry,
   SessionEstablishError
 } from '@/lib/auth/client-session';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 import { clearAuthTransientStorage } from '@/lib/auth/logout-cleanup';
 import { alignFirebaseWithSessionCookie } from '@/lib/auth/firebase-session-sync';
-import { fetchSessionUser } from '@/lib/auth/session-profile';
+import { isPanelAuthContext } from '@/lib/auth/panel-auth-context';
+import {
+  fetchPanelSessionUser,
+  fetchSessionUser
+} from '@/lib/auth/session-profile';
+import { panelLoginHref } from '@/lib/config/domain';
 import type { User } from '@/types';
 import { ROLES } from '@/lib/auth/roles';
 
@@ -49,6 +55,7 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<import('@/lib/firebase/google-auth').GoogleSignInResult>;
   signInWithApple: () => Promise<import('@/lib/firebase/apple-auth').AppleSignInResult>;
   signOut: () => Promise<void>;
+  signOutPanel: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   syncSession: () => Promise<boolean>;
@@ -57,11 +64,12 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function fetchUserProfile(
-  firebaseUser: FirebaseUser
+  firebaseUser: FirebaseUser,
+  endpoint = '/api/auth/me'
 ): Promise<User> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const res = await fetch('/api/auth/me', {
+      const res = await fetch(endpoint, {
         credentials: 'same-origin',
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
@@ -100,15 +108,26 @@ function buildFallbackUser(firebaseUser: FirebaseUser): User {
 async function handleSignedInUser(
   fbUser: FirebaseUser
 ): Promise<{ profile: User; sessionReady: boolean; sessionError?: string }> {
-  const existingSession = await fetchSessionUser();
+  const panelContext = isPanelAuthContext();
+  const sessionEndpoint = panelContext
+    ? '/api/auth/panel-session'
+    : '/api/auth/session';
+  const profileEndpoint = panelContext ? '/api/auth/panel-me' : '/api/auth/me';
+  const establishSession = panelContext
+    ? establishPanelClientSessionWithRetry
+    : establishClientSessionWithRetry;
+
+  const existingSession = panelContext
+    ? await fetchPanelSessionUser()
+    : await fetchSessionUser();
   if (existingSession?.uid === fbUser.uid) {
-    const profile = await fetchUserProfile(fbUser);
+    const profile = await fetchUserProfile(fbUser, profileEndpoint);
     return { profile, sessionReady: true };
   }
 
   try {
-    await establishClientSessionWithRetry(fbUser);
-    const profile = await fetchUserProfile(fbUser);
+    await establishSession(fbUser);
+    const profile = await fetchUserProfile(fbUser, profileEndpoint);
     return { profile, sessionReady: true };
   } catch (err) {
     const isRateLimited =
@@ -116,7 +135,7 @@ async function handleSignedInUser(
 
     if (!isRateLimited) {
       try {
-        await fetch('/api/auth/session', { method: 'DELETE', credentials: 'same-origin' });
+        await fetch(sessionEndpoint, { method: 'DELETE', credentials: 'same-origin' });
       } catch {
         // ignore
       }
@@ -208,7 +227,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           const activeUser = alignedUser ?? fbUser;
-          const sessionUser = await fetchSessionUser();
+          const panelContext = isPanelAuthContext();
+          const sessionUser = panelContext
+            ? await fetchPanelSessionUser()
+            : await fetchSessionUser();
 
           if (!activeUser && sessionUser) {
             const synced = await alignFirebaseWithSessionCookie(readyAuth, null);
@@ -338,6 +360,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth);
   }, []);
 
+  const signOutPanel = useCallback(async () => {
+    authGenerationRef.current += 1;
+    setUser(null);
+    setFirebaseUser(null);
+    setSessionReady(false);
+    setSessionError(null);
+    setLoading(false);
+
+    try {
+      await fetch('/api/auth/panel-session', {
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
+    } catch {
+      // ignore
+    }
+
+    const auth = await ensureAuthReady();
+    await firebaseSignOut(auth);
+    window.location.href = panelLoginHref();
+  }, []);
+
   const resetPassword = useCallback(async (email: string) => {
     const auth = await ensureAuthReady();
     await sendPasswordResetEmail(auth, email);
@@ -375,6 +419,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signInWithApple,
         signOut,
+        signOutPanel,
         resetPassword,
         changePassword,
         syncSession

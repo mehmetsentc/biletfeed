@@ -10,6 +10,7 @@ import { resolveUserRoleForSession } from '@/lib/services/user-queries';
 // firebase-admin import YOK — ESM uyumsuzluğunu önlemek için
 
 export const SESSION_COOKIE_NAME = 'session';
+export const PANEL_SESSION_COOKIE_NAME = 'panel_session';
 export const SESSION_EXPIRES_MS = 60 * 60 * 24 * 5 * 1000;
 
 export interface SessionUser {
@@ -62,28 +63,52 @@ function verifySimpleSession(token: string): SessionUser | null {
   }
 }
 
+async function resolveSessionFromCookieValue(
+  token: string | undefined
+): Promise<SessionUser | null> {
+  if (!token) return null;
+
+  const parsed = verifySimpleSession(token);
+  if (!parsed) return null;
+
+  try {
+    const dbRole = await resolveUserRoleForSession(parsed.uid, parsed.email);
+    if (dbRole) {
+      return { ...parsed, role: dbRole };
+    }
+  } catch {
+    /* DB geçici hata — çerezdeki rol ile devam et */
+  }
+
+  return parsed;
+}
+
 export async function verifySessionCookie(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies();
-    const session = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-    if (!session) return null;
-
-    const parsed = verifySimpleSession(session);
-    if (!parsed) return null;
-
-    try {
-      const dbRole = await resolveUserRoleForSession(parsed.uid, parsed.email);
-      if (dbRole) {
-        return { ...parsed, role: dbRole };
-      }
-    } catch {
-      /* DB geçici hata — çerezdeki rol ile devam et */
-    }
-
-    return parsed;
+    return resolveSessionFromCookieValue(
+      cookieStore.get(SESSION_COOKIE_NAME)?.value
+    );
   } catch {
     return null;
   }
+}
+
+/** Organizatör panel oturumu — ana site oturumundan bağımsız */
+export async function verifyPanelSessionCookie(): Promise<SessionUser | null> {
+  try {
+    const cookieStore = await cookies();
+    return resolveSessionFromCookieValue(
+      cookieStore.get(PANEL_SESSION_COOKIE_NAME)?.value
+    );
+  } catch {
+    return null;
+  }
+}
+
+/** Panel layout / API — yalnızca panel oturumu */
+export async function verifyOrganizerPanelSession(): Promise<SessionUser | null> {
+  return verifyPanelSessionCookie();
 }
 
 export function sessionHasRole(

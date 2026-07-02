@@ -12,11 +12,12 @@ export class SessionEstablishError extends Error {
   }
 }
 
-export async function establishClientSession(
+async function postSession(
+  endpoint: '/api/auth/session' | '/api/auth/panel-session',
   firebaseUser: FirebaseUser
 ): Promise<void> {
   const idToken = await firebaseUser.getIdToken(true);
-  const res = await fetch('/api/auth/session', {
+  const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken }),
@@ -36,11 +37,24 @@ export async function establishClientSession(
   }
 }
 
-export async function establishClientSessionWithRetry(
+export async function establishClientSession(
+  firebaseUser: FirebaseUser
+): Promise<void> {
+  await postSession('/api/auth/session', firebaseUser);
+}
+
+export async function establishPanelClientSession(
+  firebaseUser: FirebaseUser
+): Promise<void> {
+  await postSession('/api/auth/panel-session', firebaseUser);
+}
+
+async function establishWithRetry(
+  establish: (user: FirebaseUser) => Promise<void>,
   firebaseUser: FirebaseUser
 ): Promise<void> {
   try {
-    await establishClientSession(firebaseUser);
+    await establish(firebaseUser);
   } catch (err) {
     if (
       err instanceof SessionEstablishError &&
@@ -49,6 +63,19 @@ export async function establishClientSessionWithRetry(
       throw err;
     }
     await new Promise((r) => setTimeout(r, 800));
-    await establishClientSession(firebaseUser);
+    await establish(firebaseUser);
   }
 }
+
+export async function establishClientSessionWithRetry(
+  firebaseUser: FirebaseUser
+): Promise<void> {
+  await establishWithRetry(establishClientSession, firebaseUser);
+}
+
+export async function establishPanelClientSessionWithRetry(
+  firebaseUser: FirebaseUser
+): Promise<void> {
+  await establishWithRetry(establishPanelClientSession, firebaseUser);
+}
+

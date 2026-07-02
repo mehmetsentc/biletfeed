@@ -1,5 +1,5 @@
 import type { UserRole } from '@/types';
-import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
+import { verifyOrganizerPanelSession, sessionHasRole } from '@/lib/auth/session';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 function normalizeEmail(email?: string): string | undefined {
@@ -105,7 +105,7 @@ export async function getOrganizerForSession(firebaseUid: string, email?: string
 }
 
 export type ScannerContext = {
-  session: NonNullable<Awaited<ReturnType<typeof verifySessionCookie>>>;
+  session: NonNullable<Awaited<ReturnType<typeof verifyOrganizerPanelSession>>>;
   user: { id: string; firebaseUid: string; email: string; role: UserRole };
   organizer: { id: string } | null;
   scannerUserId: string;
@@ -114,7 +114,7 @@ export type ScannerContext = {
 
 /** QR tarayıcı oturumu — kullanıcı + organizatör tek kaynaktan çözülür */
 export async function resolveScannerContext(): Promise<ScannerContext | null> {
-  const session = await verifySessionCookie();
+  const session = await verifyOrganizerPanelSession();
   if (!session) return null;
 
   await ensureDbConnection();
@@ -330,7 +330,7 @@ export async function canManageEventTickets(
 }
 
 export async function requireOrganizerSession() {
-  const session = await verifySessionCookie();
+  const session = await verifyOrganizerPanelSession();
   if (!session) return null;
 
   const user = await resolveScannerUser(session.uid, session.email);

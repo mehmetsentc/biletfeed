@@ -224,6 +224,17 @@ export function siteHref(path = '/'): string {
   return `${protocol}://${rootHost}${normalized}`;
 }
 
+/** Organizatör panel giriş sayfası */
+export function panelLoginHref(redirect?: string): string {
+  const query = redirect
+    ? `?redirect=${encodeURIComponent(redirect)}`
+    : '';
+  if (!isProductionHost()) {
+    return `/organizator-panel/giris${query}`;
+  }
+  return getPanelUrl(`/giris${query}`);
+}
+
 /** Profil / ana siteden panele — ayrı platform hissi için yeni sekme */
 export const PANEL_EXTERNAL_LINK_PROPS = {
   target: '_blank',

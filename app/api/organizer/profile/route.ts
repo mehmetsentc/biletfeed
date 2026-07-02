@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import {
-  verifySessionCookie,
+  verifyOrganizerPanelSession,
   buildSessionCookie,
-  SESSION_COOKIE_NAME,
+  PANEL_SESSION_COOKIE_NAME,
   SESSION_EXPIRES_MS
 } from '@/lib/auth/session';
-import { ROLES } from '@/lib/auth/roles';
-import { getCookieDomain } from '@/lib/config/domain';
+import { getSessionCookieOptions } from '@/lib/auth/session-cookie';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerProfile } from '@/lib/services/organizer-onboarding';
 import { updateOrganizerSettings } from '@/lib/services/organizer-panel';
 import { requireOrganizerApi } from '@/lib/auth/organizer-route';
+import { ROLES } from '@/lib/auth/roles';
 import { resolveScannerUser } from '@/lib/auth/organizer-api';
 
 const patchSchema = z.object({
@@ -35,23 +35,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const session = await verifySessionCookie();
+  const session = await verifyOrganizerPanelSession();
   if (!session) {
-    return NextResponse.json({ error: 'Giriş gerekli' }, { status: 401 });
+    return NextResponse.json({ error: 'Panel girişi gerekli' }, { status: 401 });
+  }
+
+  await ensureDbConnection();
+  const user = await resolveScannerUser(session.uid, session.email);
+  if (!user) {
+    return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
   }
 
   const json = await request.json();
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
-  }
-
-  await ensureDbConnection();
-  const user = await prisma.user.findFirst({
-    where: { firebaseUid: session.uid, deletedAt: null }
-  });
-  if (!user) {
-    return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
   }
 
   try {
@@ -69,15 +67,11 @@ export async function POST(request: NextRequest) {
       ROLES.ORGANIZER,
       SESSION_EXPIRES_MS
     );
-    const cookieDomain = getCookieDomain();
-    response.cookies.set(SESSION_COOKIE_NAME, refreshed, {
-      maxAge: SESSION_EXPIRES_MS / 1000,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      ...(cookieDomain ? { domain: cookieDomain } : {})
-    });
+    response.cookies.set(
+      PANEL_SESSION_COOKIE_NAME,
+      refreshed,
+      getSessionCookieOptions(SESSION_EXPIRES_MS / 1000)
+    );
     return response;
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Kurulum başarısız';
@@ -109,9 +103,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function GET() {
-  const session = await verifySessionCookie();
+  const session = await verifyOrganizerPanelSession();
   if (!session) {
-    return NextResponse.json({ error: 'Giriş gerekli' }, { status: 401 });
+    return NextResponse.json({ error: 'Panel girişi gerekli' }, { status: 401 });
   }
 
   await ensureDbConnection();
