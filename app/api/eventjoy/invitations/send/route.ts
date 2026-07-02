@@ -12,6 +12,7 @@ import {
 import { sendEmail } from '@/lib/email/resend';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { rateLimitOrNull } from '@/lib/security/rate-limit';
+import { eventJoyApiDisabledResponse } from '@/lib/eventjoy/guard';
 
 const sendSchema = z.object({
   token: z.string().min(8).max(64),
@@ -20,6 +21,8 @@ const sendSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const disabled = eventJoyApiDisabledResponse();
+  if (disabled) return disabled;
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }

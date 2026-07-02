@@ -4,6 +4,7 @@ import { PageHero } from '@/components/layout/page-hero';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { isEventJoyEnabled } from '@/lib/config/features';
 
 export const metadata = createPageMetadata({
   title: 'Yardım Merkezi',
@@ -24,12 +25,16 @@ const helpLinks = [
     href: '/iletisim',
     icon: Mail
   },
-  {
-    title: 'EventJoy',
-    description: 'Küçük etkinlik planlama uygulaması hakkında',
-    href: '/eventjoy',
-    icon: MessageCircle
-  }
+  ...(isEventJoyEnabled
+    ? [
+        {
+          title: 'EventJoy',
+          description: 'Küçük etkinlik planlama uygulaması hakkında',
+          href: '/eventjoy',
+          icon: MessageCircle
+        }
+      ]
+    : [])
 ];
 
 export default function HelpPage() {

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { siteConfig } from '@/lib/config/site';
+import { assertEventJoyEnabled } from '@/lib/eventjoy/guard';
 
 export const metadata = createPageMetadata({
   title: 'EventJoy',
@@ -51,6 +52,8 @@ const stats = [
 ];
 
 export default function EventJoyWelcomePage() {
+  assertEventJoyEnabled();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Üst bar */}

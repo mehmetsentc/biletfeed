@@ -13,6 +13,7 @@ import {
   rootDomain,
   siteHref,
 } from '@/lib/config/domain';
+import { isEventJoyEnabled } from '@/lib/config/features';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/admin', '/organizator-panel'];
 const SESSION_COOKIE_NAME = 'session';
@@ -178,6 +179,10 @@ function handleOrganizerPanelSubdomain(
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (!isEventJoyEnabled && pathname.startsWith('/eventjoy')) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
 
   const panelRedirect = redirectOrganizerPanelToSubdomain(request, pathname);
   if (panelRedirect) return panelRedirect;

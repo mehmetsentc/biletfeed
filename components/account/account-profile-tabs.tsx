@@ -12,6 +12,7 @@ import {
   User
 } from 'lucide-react';
 import { useAccountMode } from '@/hooks/use-account-mode';
+import { isEventJoyEnabled } from '@/lib/config/features';
 import { cn } from '@/lib/utils';
 
 const profileTabs = [
@@ -71,6 +72,7 @@ export function AccountProfileTabs() {
   const showEventJoy = !isModeLocked || !isOrganizerMode;
 
   const visibleTabs = profileTabs.filter((tab) => {
+    if (tab.href.startsWith('/eventjoy') && !isEventJoyEnabled) return false;
     if ('userOnly' in tab && tab.userOnly && !showEventJoy) return false;
     if (
       'hideOnPaths' in tab &&

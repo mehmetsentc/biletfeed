@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { SUPPORTED_CITIES } from '@/lib/location/cities';
 import { siteConfig } from '@/lib/config/site';
+import { isEventJoyEnabled } from '@/lib/config/features';
 import { isDatabaseConfigured } from '@/lib/db/prisma';
 import { prisma } from '@/lib/db/prisma';
 import { getCategories, getCities } from '@/lib/services/events';
@@ -24,7 +25,7 @@ const staticRoutes = [
   '/mesafeli-satis',
   '/yardim',
   '/kariyer',
-  '/eventjoy'
+  ...(isEventJoyEnabled ? ['/eventjoy' as const] : [])
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

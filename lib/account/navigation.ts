@@ -10,6 +10,7 @@ import {
   Ticket,
   User
 } from 'lucide-react';
+import { isEventJoyEnabled } from '@/lib/config/features';
 
 export type AccountMenuItem = {
   href: string;
@@ -59,18 +60,22 @@ export const accountMenuGroups: AccountMenuGroup[] = [
       }
     ]
   },
-  {
-    items: [
-      {
-        href: '/eventjoy/panel',
-        label: 'Event Joy Panel',
-        icon: Calendar,
-        userOnly: true,
-        hideOnPathPrefixes: ['/profil/bilgilerim', '/organizator-panel'],
-        isActive: (p) => p.startsWith('/eventjoy')
-      }
-    ]
-  },
+  ...(isEventJoyEnabled
+    ? [
+        {
+          items: [
+            {
+              href: '/eventjoy/panel',
+              label: 'Event Joy Panel',
+              icon: Calendar,
+              userOnly: true,
+              hideOnPathPrefixes: ['/profil/bilgilerim', '/organizator-panel'],
+              isActive: (p: string) => p.startsWith('/eventjoy')
+            }
+          ]
+        } satisfies AccountMenuGroup
+      ]
+    : []),
   {
     items: [
       {
@@ -116,6 +121,6 @@ export function isAccountAreaActive(pathname: string): boolean {
     pathname === '/bildirimler' ||
     pathname.startsWith('/yardim') ||
     pathname.startsWith('/organizator-panel') ||
-    pathname.startsWith('/eventjoy')
+    (isEventJoyEnabled && pathname.startsWith('/eventjoy'))
   );
 }

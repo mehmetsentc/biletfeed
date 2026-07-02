@@ -14,6 +14,7 @@ import { Building2, User as UserIcon, CheckCircle2, Loader2, LayoutDashboard, Pl
 import Link from 'next/link';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
 import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
+import { isEventJoyEnabled } from '@/lib/config/features';
 import { cn } from '@/lib/utils';
 
 type OrganizerInfo = {
@@ -181,7 +182,9 @@ export default function ProfilePage() {
         description={
           isModeLocked
             ? 'Hesap türünüz kaydedildi ve değiştirilemez.'
-            : 'Hesap türünüzü bir kez seçin. Kullanıcı modunda EventJoy paneli görünür; organizatör modunda bilet satış paneli açılır.'
+            : isEventJoyEnabled
+              ? 'Hesap türünüzü bir kez seçin. Kullanıcı modunda EventJoy paneli görünür; organizatör modunda bilet satış paneli açılır.'
+              : 'Hesap türünüzü bir kez seçin. Kullanıcı modunda etkinlik keşfedip bilet alabilirsiniz; organizatör modunda bilet satış paneli açılır.'
         }
       >
         <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2">
@@ -230,7 +233,9 @@ export default function ProfilePage() {
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
             <p className="text-sm text-foreground">
               {pendingMode === 'user'
-                ? 'Kullanıcı hesabı olarak devam edeceksiniz. EventJoy paneli profil menüsünde görünür.'
+                ? isEventJoyEnabled
+                  ? 'Kullanıcı hesabı olarak devam edeceksiniz. EventJoy paneli profil menüsünde görünür.'
+                  : 'Kullanıcı hesabı olarak devam edeceksiniz. Etkinlik keşfedebilir ve bilet satın alabilirsiniz.'
                 : 'Organizatör hesabı için organizasyon bilgilerinizi girmeniz gerekecek. Bu seçim kaydedildikten sonra değiştirilemez.'}
             </p>
             {pendingMode === 'user' && (
@@ -248,7 +253,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {isModeLocked && accountMode === 'user' && !showOrganizerSetup && (
+        {isEventJoyEnabled && isModeLocked && accountMode === 'user' && !showOrganizerSetup && (
           <div className="border-t border-border py-4">
             <Link
               href="/eventjoy/panel"

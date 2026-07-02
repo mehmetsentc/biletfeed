@@ -10,6 +10,7 @@ import {
   generateTicketPdf
 } from '@/lib/tickets/pdf/generate-ticket-pdf';
 import type { TicketPdfInput } from '@/lib/tickets/pdf/types';
+import { eventJoyApiDisabledResponse } from '@/lib/eventjoy/guard';
 
 export const runtime = 'nodejs';
 
@@ -42,6 +43,9 @@ function mapEventJoyToPdf(invitation: EventJoyPublicInvitation): TicketPdfInput 
 }
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
+  const disabled = eventJoyApiDisabledResponse();
+  if (disabled) return disabled;
+
   const { token } = await params;
   const invitation = await getEventJoyInvitation(token);
   if (!invitation) {

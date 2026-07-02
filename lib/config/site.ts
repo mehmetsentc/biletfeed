@@ -24,7 +24,8 @@ export const siteConfig = {
   },
   features: {
     subdomains: process.env.NEXT_PUBLIC_ENABLE_SUBDOMAINS === 'true',
-    aiAssistant: process.env.NEXT_PUBLIC_ENABLE_AI === 'true'
+    aiAssistant: process.env.NEXT_PUBLIC_ENABLE_AI === 'true',
+    eventJoy: process.env.NEXT_PUBLIC_ENABLE_EVENTJOY === 'true'
   },
   links: {
     twitter: process.env.NEXT_PUBLIC_TWITTER_URL,
