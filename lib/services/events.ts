@@ -38,13 +38,25 @@ export const upcomingFilter = {
   ...upcomingStartFilter()
 };
 
+/** Kamuya açık liste — yalnızca platform içi (organizatör) etkinlikler */
+export const internalPublicFilter = {
+  ...upcomingFilter,
+  listingType: 'internal' as const
+};
+
+export const internalPublishedFilter = {
+  ...publishedFilter,
+  listingType: 'internal' as const
+};
+
 async function fetchPublishedEvents(
   where?: Prisma.EventWhereInput,
   options?: { upcomingOnly?: boolean }
 ) {
   if (!isDatabaseConfigured()) return [];
   await ensureDbConnection();
-  const baseWhere = options?.upcomingOnly !== false ? upcomingFilter : publishedFilter;
+  const baseWhere =
+    options?.upcomingOnly !== false ? internalPublicFilter : internalPublishedFilter;
   const events = await prisma.event.findMany({
     where: { ...baseWhere, ...where },
     include: eventInclude,
@@ -63,37 +75,18 @@ export async function getEventBySlug(
   if (!isDatabaseConfigured()) return undefined;
   await ensureDbConnection();
   const event = await prisma.event.findFirst({
-    where: { slug, ...upcomingFilter },
+    where: { slug, ...internalPublicFilter },
     include: eventInclude
   });
   return event ? toMockEvent(event) : undefined;
 }
 
-async function fetchUpcomingExternal(limit = 12): Promise<MockEvent[]> {
-  if (!isDatabaseConfigured()) return [];
-  await ensureDbConnection();
-  const events = await prisma.event.findMany({
-    where: {
-      ...upcomingFilter,
-      listingType: 'external'
-    },
-    include: eventInclude,
-    orderBy: [{ lastScrapedAt: 'desc' }, { startDate: 'asc' }],
-    take: limit
-  });
-  return events.map(toMockEvent);
-}
-
 export async function getFeaturedEvents(): Promise<MockEvent[]> {
-  const featured = await fetchPublishedEvents({ isFeatured: true });
-  if (featured.length >= 3) return featured;
-  return fetchUpcomingExternal(12);
+  return fetchPublishedEvents({ isFeatured: true });
 }
 
 export async function getTrendingEvents(): Promise<MockEvent[]> {
-  const trending = await fetchPublishedEvents({ isTrending: true });
-  if (trending.length >= 3) return trending;
-  return fetchUpcomingExternal(12);
+  return fetchPublishedEvents({ isTrending: true });
 }
 
 export async function getDiscountedEvents(): Promise<MockEvent[]> {
@@ -139,7 +132,7 @@ export async function getHomepageCategoryStrips(
   await ensureDbConnection();
 
   const where: Prisma.EventWhereInput = {
-    ...upcomingFilter,
+    ...internalPublicFilter,
     category: { slug: { in: HOMEPAGE_CATEGORIES.map((c) => c.slug) } },
     ...(citySlug ? { city: { slug: citySlug } } : {})
   };
@@ -252,7 +245,7 @@ export async function getEventBySlugForViewer(
   const canPreviewUnpublished =
     isOwner || isAdminViewer;
 
-  if (event.status === 'published') {
+  if (event.status === 'published' && event.listingType === 'internal') {
     return {
       event: toMockEvent(event),
       isPreview: false,
@@ -285,7 +278,7 @@ export async function getCategories() {
   });
   const counts = await prisma.event.groupBy({
     by: ['categoryId'],
-    where: upcomingFilter,
+    where: internalPublicFilter,
     _count: true
   });
   const countMap = new Map(counts.map((c) => [c.categoryId, c._count]));
@@ -294,7 +287,7 @@ export async function getCategories() {
       slug: c.slug,
       name: c.name,
       icon: c.icon || '',
-      count: countMap.get(c.id) ?? c.eventCount,
+      count: countMap.get(c.id) ?? 0,
       image: resolveCategoryImage(c.slug, c.image)
     }))
   ).filter((c) => c.count > 0);
@@ -308,7 +301,7 @@ export async function getCities() {
   });
   const counts = await prisma.event.groupBy({
     by: ['cityId'],
-    where: upcomingFilter,
+    where: internalPublicFilter,
     _count: true
   });
   const countMap = new Map(counts.map((c) => [c.cityId, c._count]));
@@ -316,7 +309,7 @@ export async function getCities() {
     slug: c.slug,
     name: c.name,
     image: c.image || '',
-    count: countMap.get(c.id) ?? c.eventCount
+    count: countMap.get(c.id) ?? 0
   }));
 }
 

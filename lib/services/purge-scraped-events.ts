@@ -1,5 +1,6 @@
 import type { ExternalPlatform, Prisma } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { syncCityAndCategoryEventCounts } from '@/lib/services/event-counts';
 
 export type PurgeScrapedEventsResult = {
   deleted: number;
@@ -110,6 +111,8 @@ export async function purgeScrapedEvents(): Promise<PurgeScrapedEventsResult> {
   await prisma.$transaction(async (tx) => {
     await deleteEventsByIds(tx, ids);
   });
+
+  await syncCityAndCategoryEventCounts();
 
   return {
     deleted: ids.length,

@@ -16,7 +16,7 @@ import { sendTicketPurchaseEmail } from '@/lib/email/send-ticket-purchase-email'
 import { sendRefundNotificationEmail } from '@/lib/email/send-refund-email';
 import { validateCoupon, incrementCouponUsage } from '@/lib/services/coupons';
 import { notifyTicketPurchase } from '@/lib/services/notifications';
-import type { PaymentProviderName } from '@/lib/payments/types';
+import { findOrCreateGuestUser } from '@/lib/services/guest-user';
 
 export interface CheckoutResult {
   orderId: string;
@@ -30,8 +30,25 @@ function pendingExpiresAt(): Date {
   return new Date(Date.now() + PENDING_ORDER_TTL_MINUTES * 60 * 1000);
 }
 
+async function resolveCheckoutUser(params: {
+  firebaseUid?: string;
+  attendeeName: string;
+  attendeeEmail: string;
+}) {
+  await ensureDbConnection();
+
+  if (params.firebaseUid) {
+    const user = await prisma.user.findFirst({
+      where: { firebaseUid: params.firebaseUid, deletedAt: null }
+    });
+    if (user) return user;
+  }
+
+  return findOrCreateGuestUser(params.attendeeName, params.attendeeEmail);
+}
+
 async function loadCheckoutContext(params: {
-  firebaseUid: string;
+  userId: string;
   eventSlug: string;
   quantity: number;
   ticketTypeId?: string;
@@ -39,7 +56,7 @@ async function loadCheckoutContext(params: {
   await ensureDbConnection();
 
   const user = await prisma.user.findFirst({
-    where: { firebaseUid: params.firebaseUid, deletedAt: null }
+    where: { id: params.userId, deletedAt: null }
   });
   if (!user) throw new Error('Kullanıcı bulunamadı');
 
@@ -105,21 +122,32 @@ export async function getCheckoutTicketTypes(eventSlug: string) {
 }
 
 export async function createCheckout(params: {
-  firebaseUid: string;
+  firebaseUid?: string;
   eventSlug: string;
   quantity: number;
   ticketTypeId?: string;
   attendeeName: string;
   attendeeEmail: string;
-  attendeeTcKimlik: string;
+  attendeePhone: string;
   couponCode?: string;
 }): Promise<CheckoutResult> {
-  const { user, event, ticketType, qty, subtotal, commission } =
-    await loadCheckoutContext(params);
-
   const attendeeName = params.attendeeName.trim();
   const attendeeEmail = params.attendeeEmail.trim().toLowerCase();
-  const attendeeTcKimlik = params.attendeeTcKimlik;
+  const attendeePhone = params.attendeePhone;
+
+  const user = await resolveCheckoutUser({
+    firebaseUid: params.firebaseUid,
+    attendeeName,
+    attendeeEmail
+  });
+
+  const { event, ticketType, qty, subtotal, commission } =
+    await loadCheckoutContext({
+      userId: user.id,
+      eventSlug: params.eventSlug,
+      quantity: params.quantity,
+      ticketTypeId: params.ticketTypeId
+    });
 
   let discount = 0;
   let appliedCouponId: string | undefined;
@@ -149,7 +177,7 @@ export async function createCheckout(params: {
       unitPrice: ticketType.price,
       attendeeName,
       attendeeEmail,
-      attendeeTcKimlik,
+      attendeePhone,
       discount,
       couponCode: appliedCouponCode,
       couponId: appliedCouponId
@@ -188,7 +216,7 @@ export async function createCheckout(params: {
         couponCode: appliedCouponCode ?? null,
         attendeeName,
         attendeeEmail,
-        attendeeTcKimlik,
+        attendeePhone,
         items: {
           create: {
             ticketTypeId: ticketType.id,
@@ -254,7 +282,7 @@ async function fulfillFreeOrder(params: {
   unitPrice: number;
   attendeeName: string;
   attendeeEmail: string;
-  attendeeTcKimlik: string;
+  attendeePhone: string;
   discount?: number;
   couponCode?: string;
   couponId?: string;
@@ -286,7 +314,7 @@ async function fulfillFreeOrder(params: {
         couponCode: params.couponCode ?? null,
         attendeeName: params.attendeeName,
         attendeeEmail: params.attendeeEmail,
-        attendeeTcKimlik: params.attendeeTcKimlik,
+        attendeePhone: params.attendeePhone,
         items: {
           create: {
             ticketTypeId: params.ticketTypeId,
@@ -316,7 +344,7 @@ async function fulfillFreeOrder(params: {
       quantity: params.quantity,
       attendeeName: params.attendeeName,
       attendeeEmail: params.attendeeEmail,
-      attendeeTcKimlik: params.attendeeTcKimlik
+      attendeePhone: params.attendeePhone
     });
 
     return created;
@@ -356,7 +384,7 @@ async function issueTickets(
     quantity: number;
     attendeeName?: string | null;
     attendeeEmail?: string | null;
-    attendeeTcKimlik?: string | null;
+    attendeePhone?: string | null;
   }
 ): Promise<void> {
   const ticketType = await tx.ticketType.findUnique({
@@ -389,7 +417,7 @@ async function issueTickets(
         status: 'VALID',
         attendeeName: params.attendeeName ?? null,
         attendeeEmail: params.attendeeEmail ?? null,
-        attendeeTcKimlik: params.attendeeTcKimlik ?? null
+        attendeePhone: params.attendeePhone ?? null
       }
     });
   }
@@ -439,7 +467,7 @@ export async function fulfillPaidOrder(params: {
         quantity: item.quantity,
         attendeeName: order.attendeeName,
         attendeeEmail: order.attendeeEmail,
-        attendeeTcKimlik: order.attendeeTcKimlik
+        attendeePhone: order.attendeePhone
       });
       ticketCount += item.quantity;
     }
@@ -569,7 +597,7 @@ export async function checkoutEvent(params: {
   quantity: number;
   attendeeName: string;
   attendeeEmail: string;
-  attendeeTcKimlik: string;
+  attendeePhone: string;
 }) {
   const result = await createCheckout(params);
   if (result.status === 'pending') {

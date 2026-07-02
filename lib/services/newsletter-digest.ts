@@ -5,7 +5,7 @@ import {
   type NewsletterDigestEvent
 } from '@/lib/email/newsletter-digest-template';
 import { sendEmail } from '@/lib/email/resend';
-import { publishedFilter, upcomingStartFilter } from '@/lib/services/events';
+import { publishedFilter, upcomingStartFilter, internalPublishedFilter } from '@/lib/services/events';
 
 const DEFAULT_DIGEST_DAYS = 7;
 const NATIONAL_LIMIT = 8;
@@ -43,7 +43,7 @@ async function fetchNewEvents(params: {
 
   const events = await prisma.event.findMany({
     where: {
-      ...publishedFilter,
+      ...internalPublishedFilter,
       ...upcomingStartFilter(),
       ...(citySlug ? { city: { slug: citySlug, deletedAt: null } } : {}),
       OR: [{ createdAt: { gte: since } }, { updatedAt: { gte: since } }]

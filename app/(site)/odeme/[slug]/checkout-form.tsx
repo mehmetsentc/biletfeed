@@ -15,7 +15,7 @@ import {
   formatPrice
 } from '@/lib/data/mock-events';
 import { validateCheckoutAttendee } from '@/lib/validation/checkout-attendee';
-import { normalizeTcKimlik } from '@/lib/validation/tc-kimlik';
+import { normalizeTrPhone } from '@/lib/validation/tr-phone';
 
 export function CheckoutForm({
   event,
@@ -41,7 +41,7 @@ export function CheckoutForm({
   const [selectedTypeId, setSelectedTypeId] = useState(ticketTypes[0]?.id ?? '');
   const [attendeeName, setAttendeeName] = useState('');
   const [attendeeEmail, setAttendeeEmail] = useState('');
-  const [attendeeTcKimlik, setAttendeeTcKimlik] = useState('');
+  const [attendeePhone, setAttendeePhone] = useState('');
   const [attendeeErrors, setAttendeeErrors] = useState<Record<string, string>>({});
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -59,7 +59,7 @@ export function CheckoutForm({
     const result = validateCheckoutAttendee({
       attendeeName,
       attendeeEmail,
-      attendeeTcKimlik
+      attendeePhone
     });
     if (!result.success) {
       setAttendeeErrors(result.errors);
@@ -110,7 +110,7 @@ export function CheckoutForm({
     const attendee = validateCheckoutAttendee({
       attendeeName,
       attendeeEmail,
-      attendeeTcKimlik
+      attendeePhone
     });
     if (!attendee.success) {
       setAttendeeErrors(attendee.errors);
@@ -130,17 +130,13 @@ export function CheckoutForm({
           ticketTypeId: selectedType?.id,
           attendeeName: attendee.data.attendeeName,
           attendeeEmail: attendee.data.attendeeEmail,
-          attendeeTcKimlik: attendee.data.attendeeTcKimlik,
+          attendeePhone: attendee.data.attendeePhone,
           couponCode: couponApplied ? couponCode.trim() : undefined
         })
       });
       const data = await res.json();
 
       if (!res.ok) {
-        if (res.status === 401) {
-          router.push(`/giris?redirect=/odeme/${event.slug}`);
-          return;
-        }
         throw new Error(data.error || 'Sipariş oluşturulamadı');
       }
 
@@ -257,26 +253,28 @@ export function CheckoutForm({
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="attendeeTcKimlik">
-                  TC Kimlik No <span className="text-destructive">*</span>
+                <Label htmlFor="attendeePhone">
+                  Telefon <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="attendeeTcKimlik"
-                  inputMode="numeric"
-                  value={attendeeTcKimlik}
+                  id="attendeePhone"
+                  type="tel"
+                  inputMode="tel"
+                  value={attendeePhone}
                   onChange={(e) => {
-                    setAttendeeTcKimlik(normalizeTcKimlik(e.target.value));
-                    if (attendeeErrors.attendeeTcKimlik) {
-                      setAttendeeErrors((prev) => ({ ...prev, attendeeTcKimlik: '' }));
+                    setAttendeePhone(normalizeTrPhone(e.target.value));
+                    if (attendeeErrors.attendeePhone) {
+                      setAttendeeErrors((prev) => ({ ...prev, attendeePhone: '' }));
                     }
                   }}
-                  placeholder="11 haneli TC kimlik numarası"
+                  placeholder="05XX XXX XX XX"
                   required
-                  maxLength={11}
-                  aria-invalid={Boolean(attendeeErrors.attendeeTcKimlik)}
+                  maxLength={15}
+                  autoComplete="tel"
+                  aria-invalid={Boolean(attendeeErrors.attendeePhone)}
                 />
-                {attendeeErrors.attendeeTcKimlik && (
-                  <p className="text-sm text-destructive">{attendeeErrors.attendeeTcKimlik}</p>
+                {attendeeErrors.attendeePhone && (
+                  <p className="text-sm text-destructive">{attendeeErrors.attendeePhone}</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -370,12 +368,8 @@ export function CheckoutForm({
                   <span>{attendeeEmail}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">TC Kimlik</span>
-                  <span>
-                    {attendeeTcKimlik.length === 11
-                      ? `${attendeeTcKimlik.slice(0, 3)}******${attendeeTcKimlik.slice(-2)}`
-                      : attendeeTcKimlik}
-                  </span>
+                  <span className="text-muted-foreground">Telefon</span>
+                  <span>{attendeePhone}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Bilet türü</span>

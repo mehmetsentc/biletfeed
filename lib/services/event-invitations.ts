@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'crypto';
+import { randomBytes } from 'crypto';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import {
   buildTicketQrPayload,
@@ -14,37 +14,10 @@ import {
 } from '@/lib/email/invitation-template';
 import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
 import { generateOrganizerInvitationPdf } from '@/lib/services/invitation-pdf';
+import { findOrCreateGuestUser } from '@/lib/services/guest-user';
 
 function createInviteToken(): string {
   return randomBytes(16).toString('hex');
-}
-
-async function findOrCreateGuestUser(name: string, email?: string) {
-  const normalizedEmail =
-    email?.trim().toLowerCase() ||
-    `misafir+${randomUUID()}@davetiye.biletfeed.local`;
-
-  const existing = await prisma.user.findUnique({
-    where: { email: normalizedEmail }
-  });
-  if (existing) {
-    if (name && existing.displayName !== name) {
-      return prisma.user.update({
-        where: { id: existing.id },
-        data: { displayName: name }
-      });
-    }
-    return existing;
-  }
-
-  return prisma.user.create({
-    data: {
-      firebaseUid: `invite-${randomUUID()}`,
-      email: normalizedEmail,
-      displayName: name,
-      role: 'ROLE_USER'
-    }
-  });
 }
 
 export type InvitationRow = {

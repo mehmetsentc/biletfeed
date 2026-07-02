@@ -60,12 +60,12 @@ export const categories = [
 ];
 
 export const cities = [
-  { slug: 'istanbul', name: 'İstanbul', image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=600&q=80', count: 342 },
-  { slug: 'ankara', name: 'Ankara', image: 'https://images.unsplash.com/photo-1594756205226-2a5a3d3a1f4d?w=600&q=80', count: 156 },
-  { slug: 'izmir', name: 'İzmir', image: 'https://images.unsplash.com/photo-1539650116574-75c0c8129843?w=600&q=80', count: 98 },
-  { slug: 'antalya', name: 'Antalya', image: 'https://images.unsplash.com/photo-1590073242678-ac664a692696?w=600&q=80', count: 74 },
-  { slug: 'bursa', name: 'Bursa', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&q=80', count: 45 },
-  { slug: 'eskisehir', name: 'Eskişehir', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80', count: 32 }
+  { slug: 'istanbul', name: 'İstanbul', image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=600&q=80', count: 0 },
+  { slug: 'ankara', name: 'Ankara', image: 'https://images.unsplash.com/photo-1594756205226-2a5a3d3a1f4d?w=600&q=80', count: 0 },
+  { slug: 'izmir', name: 'İzmir', image: 'https://images.unsplash.com/photo-1539650116574-75c0c8129843?w=600&q=80', count: 0 },
+  { slug: 'antalya', name: 'Antalya', image: 'https://images.unsplash.com/photo-1590073242678-ac664a692696?w=600&q=80', count: 0 },
+  { slug: 'bursa', name: 'Bursa', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&q=80', count: 0 },
+  { slug: 'eskisehir', name: 'Eskişehir', image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&q=80', count: 0 }
 ];
 
 export function formatEventDate(dateStr: string): string {

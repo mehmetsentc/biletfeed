@@ -25,9 +25,6 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await verifySessionCookie();
-    if (!session) {
-      return NextResponse.json({ error: 'Giriş gerekli' }, { status: 401 });
-    }
 
     const json = await request.json();
     const parsed = bodySchema.safeParse(json);
@@ -40,13 +37,13 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await createCheckout({
-      firebaseUid: session.uid,
+      firebaseUid: session?.uid,
       eventSlug: parsed.data.eventSlug,
       quantity: parsed.data.quantity,
       ticketTypeId: parsed.data.ticketTypeId,
       attendeeName: parsed.data.attendeeName,
       attendeeEmail: parsed.data.attendeeEmail,
-      attendeeTcKimlik: parsed.data.attendeeTcKimlik,
+      attendeePhone: parsed.data.attendeePhone,
       couponCode: parsed.data.couponCode
     });
 

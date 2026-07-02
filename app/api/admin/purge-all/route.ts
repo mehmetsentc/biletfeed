@@ -5,6 +5,7 @@ import {
   getScrapedEventsSummary,
   purgeScrapedEvents
 } from '@/lib/services/purge-scraped-events';
+import { syncCityAndCategoryEventCounts } from '@/lib/services/event-counts';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,12 +30,14 @@ export async function POST(request: NextRequest) {
     const before = await getScrapedEventsSummary();
 
     if (before.external === 0) {
+      await syncCityAndCategoryEventCounts();
+      const after = await getScrapedEventsSummary();
       return NextResponse.json({
         ok: true,
         deleted: 0,
         before,
-        after: before,
-        message: 'Silinecek harici etkinlik yok.'
+        after,
+        message: 'Silinecek harici etkinlik yok. Şehir/kategori sayıları güncellendi.'
       });
     }
 

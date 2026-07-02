@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isValidTcKimlik, normalizeTcKimlik } from '@/lib/validation/tc-kimlik';
+import { isValidTrPhone, normalizeTrPhone } from '@/lib/validation/tr-phone';
 
 export const checkoutAttendeeSchema = z.object({
   attendeeName: z
@@ -8,10 +8,10 @@ export const checkoutAttendeeSchema = z.object({
     .min(2, 'Ad soyad en az 2 karakter olmalıdır')
     .max(120, 'Ad soyad çok uzun'),
   attendeeEmail: z.string().trim().email('Geçerli bir e-posta adresi girin'),
-  attendeeTcKimlik: z
+  attendeePhone: z
     .string()
-    .transform(normalizeTcKimlik)
-    .refine((v) => isValidTcKimlik(v), 'Geçerli bir TC kimlik numarası girin')
+    .transform(normalizeTrPhone)
+    .refine((v) => isValidTrPhone(v), 'Geçerli bir cep telefonu girin (05XX XXX XX XX)')
 });
 
 export type CheckoutAttendeeInput = z.infer<typeof checkoutAttendeeSchema>;
@@ -19,7 +19,7 @@ export type CheckoutAttendeeInput = z.infer<typeof checkoutAttendeeSchema>;
 export function validateCheckoutAttendee(input: {
   attendeeName: string;
   attendeeEmail: string;
-  attendeeTcKimlik: string;
+  attendeePhone: string;
 }):
   | { success: true; data: CheckoutAttendeeInput }
   | { success: false; errors: Record<string, string> } {

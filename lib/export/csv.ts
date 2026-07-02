@@ -78,6 +78,7 @@ export type TicketExportData = {
   ticketType: { name: string };
   attendeeName: string | null;
   attendeeEmail: string | null;
+  attendeePhone: string | null;
   user: { displayName: string; email: string };
   orderId: string;
   order: { paidAt: Date | null; createdAt: Date; couponCode: string | null };
@@ -115,7 +116,7 @@ export function buildTicketDetailRow(
     ticket.ticketType.name,
     ticket.attendeeName?.trim() || ticket.user.displayName,
     ticket.attendeeEmail || ticket.user.email,
-    ticket.invitation?.guestPhone ?? '',
+    ticket.attendeePhone ?? ticket.invitation?.guestPhone ?? '',
     ticket.orderId,
     couponCode,
     couponLabel,
@@ -132,6 +133,7 @@ export function buildTicketDetailRow(
 
 const ticketExportInclude = {
   ticketType: { select: { name: true } },
+  attendeePhone: true,
   user: { select: { displayName: true, email: true } },
   order: {
     select: {
