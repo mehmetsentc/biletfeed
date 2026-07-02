@@ -9,6 +9,7 @@ import {
   useTicketScanValidation,
   type ScanResult
 } from '@/hooks/use-ticket-scan-validation';
+import { resolveManualScanInput } from '@/lib/tickets/sign';
 import { cn } from '@/lib/utils';
 
 const statusConfig: Record<
@@ -145,10 +146,22 @@ export function QrScanner({
   const submitManual = useCallback(() => {
     const value = manualCode.trim();
     if (!value) return;
+    const resolved = resolveManualScanInput(value);
+    if (resolved.inviteToken || resolved.validationToken || resolved.ticketId) {
+      void validate({
+        ticketCode: resolved.ticketCode,
+        ...(resolved.ticketId ? { ticketId: resolved.ticketId } : {}),
+        ...(resolved.validationToken ? { validationToken: resolved.validationToken } : {}),
+        ...(resolved.inviteToken
+          ? { qrRaw: `https://biletfeed.com/davetiye/${resolved.inviteToken}` }
+          : {})
+      });
+      return;
+    }
     void validate(
-      value.startsWith('http') || value.startsWith('{')
-        ? { qrRaw: value }
-        : { ticketCode: value }
+      value.startsWith('http') || value.startsWith('{') || value.includes('/bilet/') || value.includes('/davetiye/')
+        ? { qrRaw: value.startsWith('/') ? `https://biletfeed.com${value}` : value }
+        : { ticketCode: resolved.ticketCode ?? value }
     );
   }, [manualCode, validate]);
 
@@ -270,7 +283,7 @@ export function QrScanner({
       {useManual && (
         <div className="space-y-3">
           <Input
-            placeholder="Bilet kodu (örn. BF-XXXX) veya QR bağlantısı"
+            placeholder="BF-XXXX bilet kodu, davetiye linki veya token"
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
             className={cn(

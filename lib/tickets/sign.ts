@@ -76,14 +76,19 @@ export function parseQrPayload(raw: string): {
     if (trimmed.startsWith('{')) {
       const json = JSON.parse(trimmed) as Record<string, string>;
       return {
-        ticketCode: json.code || json.ticketCode,
+        ticketCode: normalizeTicketCode(json.code || json.ticketCode),
         validationToken: json.token || json.validationToken,
         ticketId: json.id || json.ticketId,
         inviteToken: json.inviteToken
       };
     }
-    if (trimmed.startsWith('http')) {
-      const url = new URL(trimmed);
+    if (trimmed.startsWith('http') || trimmed.includes('/bilet/') || trimmed.includes('/davetiye/')) {
+      const urlStr = trimmed.startsWith('http')
+        ? trimmed
+        : trimmed.startsWith('/')
+          ? `https://biletfeed.com${trimmed}`
+          : `https://${trimmed}`;
+      const url = new URL(urlStr);
       const pathMatch = url.pathname.match(/\/bilet\/([^/?#]+)/i);
       const pathCode = pathMatch?.[1] ? decodeURIComponent(pathMatch[1]) : undefined;
       const inviteMatch = url.pathname.match(/\/davetiye\/([^/?#]+)/i);
@@ -91,7 +96,7 @@ export function parseQrPayload(raw: string): {
         ? decodeURIComponent(inviteMatch[1])
         : undefined;
       return {
-        ticketCode: url.searchParams.get('code') || pathCode || undefined,
+        ticketCode: normalizeTicketCode(url.searchParams.get('code') || pathCode || undefined),
         validationToken: url.searchParams.get('token') || undefined,
         ticketId: url.searchParams.get('id') || undefined,
         inviteToken
@@ -101,6 +106,52 @@ export function parseQrPayload(raw: string): {
     /* fall through */
   }
   return {};
+}
+
+/** BF-XXXX bilet kodlarını standart forma getirir */
+export function normalizeTicketCode(code?: string | null): string | undefined {
+  if (!code) return undefined;
+  const trimmed = code.trim().replace(/\s+/g, '');
+  if (!trimmed) return undefined;
+  return trimmed.toUpperCase();
+}
+
+/**
+ * Manuel kapı girişi — bilet kodu, davetiye token'ı veya kısmi URL.
+ * Client ve sunucu aynı mantığı kullanır.
+ */
+export function resolveManualScanInput(raw: string): {
+  ticketCode?: string;
+  validationToken?: string;
+  ticketId?: string;
+  inviteToken?: string;
+  qrRaw?: string;
+} {
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+
+  if (
+    trimmed.startsWith('http') ||
+    trimmed.startsWith('{') ||
+    trimmed.includes('/bilet/') ||
+    trimmed.includes('/davetiye/')
+  ) {
+    return parseQrPayload(trimmed);
+  }
+
+  const upper = trimmed.toUpperCase();
+  if (upper.startsWith('BF-') || upper.startsWith('BF')) {
+    const normalized = upper.startsWith('BF-') ? upper : `BF-${upper.slice(2)}`;
+    return { ticketCode: normalized };
+  }
+
+  // Davetiye token (32 hex) — kullanıcılar bazen BF kodu yerine link token'ı yapıştırır
+  const hexOnly = trimmed.replace(/[^a-fA-F0-9]/g, '');
+  if (hexOnly.length >= 24 && hexOnly.length <= 64 && !upper.startsWith('BF')) {
+    return { inviteToken: hexOnly };
+  }
+
+  return { ticketCode: upper };
 }
 
 export function newTicketId(): string {

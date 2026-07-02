@@ -1,5 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { verifyValidationToken, parseQrPayload } from '@/lib/tickets/sign';
+import { verifyValidationToken, parseQrPayload, normalizeTicketCode, resolveManualScanInput } from '@/lib/tickets/sign';
 import { canScannerAccessTicket } from '@/lib/auth/organizer-api';
 import type { UserRole } from '@/types';
 import type { EntryPolicy } from '@prisma/client';
@@ -122,8 +122,12 @@ export async function validateTicketInput(input: {
 }): Promise<TicketValidationResult> {
   await ensureDbConnection();
 
-  const parsed = input.qrRaw ? parseQrPayload(input.qrRaw) : {};
-  let ticketCode = input.ticketCode || parsed.ticketCode;
+  const parsed = input.qrRaw
+    ? parseQrPayload(input.qrRaw)
+    : input.ticketCode
+      ? resolveManualScanInput(input.ticketCode)
+      : {};
+  let ticketCode = normalizeTicketCode(input.ticketCode || parsed.ticketCode);
   let validationToken = input.validationToken || parsed.validationToken;
   let ticketId = input.ticketId || parsed.ticketId;
 
