@@ -34,7 +34,7 @@ export default async function CategoryDetailPage({ params }: Props) {
       <PageHero
         leading={<CategoryIcon slug={category.slug} size="xl" showRing={false} />}
         title={category.name}
-        subtitle={events.length > 0 ? `${events.length} etkinlik` : `${category.count} etkinlik (tüm şehirlerde)`}
+        subtitle={`${events.length} etkinlik`}
         breadcrumbs={[
           { label: 'Kategoriler', href: '/kategoriler' },
           { label: category.name }

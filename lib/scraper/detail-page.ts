@@ -34,6 +34,33 @@ function meta($: cheerio.CheerioAPI, key: string): string {
   ).trim();
 }
 
+export function normalizeScraperText(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function extractDescription(
+  ld: Record<string, unknown> | null,
+  ogDesc: string,
+  $: cheerio.CheerioAPI
+): string {
+  const candidates = [
+    String(ld?.description || ''),
+    ogDesc,
+    meta($, 'og:description'),
+    meta($, 'description'),
+    $('meta[name="twitter:description"]').attr('content') || ''
+  ]
+    .map(normalizeScraperText)
+    .filter(Boolean);
+
+  const title = normalizeScraperText(String(ld?.name || meta($, 'og:title') || ''));
+  const unique = candidates.find(
+    (text) => text.length >= 40 && text.toLowerCase() !== title.toLowerCase()
+  );
+
+  return unique || candidates.find((text) => text.length >= 40) || '';
+}
+
 function extractJsonLdEvent(html: string): Record<string, unknown> | null {
   const $ = cheerio.load(html);
   let found: Record<string, unknown> | null = null;
@@ -253,11 +280,7 @@ export function parseDetailPageHtml(
   const { slug: citySlug, name: cityName } = resolveCitySlug(cityRaw || 'İstanbul');
 
   const { cover, gallery } = parseImages(ld || {}, ogImage || stub?.coverImage || '');
-  const description = String(
-    ld?.description || ogDesc || title
-  )
-    .trim()
-    .replace(/\s+/g, ' ');
+  const description = extractDescription(ld, ogDesc, $);
 
   // offers hem nesne hem dizi olabilir; diziyse ilk elemanı al
   const offersRaw = ld?.offers;
@@ -297,6 +320,11 @@ export function parseDetailPageHtml(
   if (isPlaceholderImage(cover)) tags.push('eksik-gorsel');
   if (description.length < 40) tags.push('eksik-aciklama');
 
+  const shortDescription =
+    description.length >= 40
+      ? description.slice(0, 160)
+      : normalizeScraperText(meta($, 'og:description')).slice(0, 160);
+
   return {
     platform,
     externalId,
@@ -305,7 +333,7 @@ export function parseDetailPageHtml(
       : new URL(externalUrl, pageUrl).href,
     title,
     description,
-    shortDescription: description.slice(0, 160),
+    shortDescription,
     coverImage: cover || stub?.coverImage || '',
     gallery,
     citySlug,

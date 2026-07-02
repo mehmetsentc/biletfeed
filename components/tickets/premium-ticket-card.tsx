@@ -15,6 +15,7 @@ export interface PremiumTicketCardProps {
   qrData: string;
   status: string;
   priceLabel?: string;
+  eventSlug?: string;
   variant?: 'dark' | 'light';
   className?: string;
   id?: string;
@@ -34,6 +35,7 @@ export function PremiumTicketCard({
   qrData,
   status,
   priceLabel,
+  eventSlug,
   className,
   id
 }: PremiumTicketCardProps) {
@@ -57,6 +59,7 @@ export function PremiumTicketCard({
           status,
           priceLabel: priceLabel ?? null
         }}
+        ctaHref={eventSlug ? `/etkinlik/${eventSlug}` : undefined}
       />
     </div>
   );

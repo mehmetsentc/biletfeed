@@ -1,7 +1,8 @@
 import { resolveCitySlug } from '@/lib/scraper/normalize';
 import {
   DEFAULT_CITY_SLUG,
-  getCityBySlug,
+  getCityNameOrDefault,
+  isSupportedCitySlug,
   SUPPORTED_CITIES,
   type CitySlug
 } from './cities';
@@ -20,7 +21,10 @@ const CITY_COORDS: Partial<Record<CitySlug, { lat: number; lon: number }>> = {
   mersin: { lat: 36.8121, lon: 34.6415 },
   trabzon: { lat: 41.0027, lon: 39.7168 },
   samsun: { lat: 41.2867, lon: 36.33 },
-  mugla: { lat: 37.2153, lon: 28.3636 }
+  mugla: { lat: 37.2153, lon: 28.3636 },
+  canakkale: { lat: 40.1553, lon: 26.4142 },
+  balikesir: { lat: 39.6484, lon: 27.8826 },
+  denizli: { lat: 37.7765, lon: 29.0864 }
 };
 
 function toRad(deg: number) {
@@ -90,7 +94,7 @@ async function reverseGeocodeCity(
     if (!raw) return null;
 
     const { slug, name } = resolveCitySlug(raw);
-    if (!SUPPORTED_CITIES.some((c) => c.slug === slug)) return null;
+    if (!isSupportedCitySlug(slug)) return null;
     return { slug, name };
   } catch {
     return null;
@@ -140,7 +144,7 @@ export function detectCityFromGeolocation(): Promise<DetectedCity | null> {
         const slug = nearestSupportedCity(latitude, longitude);
         resolve({
           slug,
-          name: getCityBySlug(slug).name,
+          name: getCityNameOrDefault(slug),
           source: 'nearest'
         });
       },

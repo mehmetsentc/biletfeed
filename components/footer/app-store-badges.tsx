@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Apple, Play } from 'lucide-react';
+import { Apple, Play, Smartphone } from 'lucide-react';
 import { mobileAppConfig } from '@/lib/config/mobile-app';
 import { cn } from '@/lib/utils';
 
@@ -14,10 +14,11 @@ export function AppStoreBadges({ className, variant = 'light' }: AppStoreBadgesP
   const androidUrl = mobileAppConfig.storeUrls.android.trim();
   const fallbackUrl = mobileAppConfig.appInfoUrl;
 
-  const iosHref = iosUrl || fallbackUrl;
-  const androidHref = androidUrl || fallbackUrl;
   const iosSoon = !iosUrl;
   const androidSoon = !androidUrl;
+  const bothSoon = iosSoon && androidSoon;
+
+  /** Her iki mağaza URL'si boşken tek "Mobil Uygulama" CTA — çift badge /mobil-uygulama tekrarını önler */
 
   const badgeClass =
     variant === 'dark'
@@ -30,6 +31,27 @@ export function AppStoreBadges({ className, variant = 'light' }: AppStoreBadgesP
       : 'text-[10px] uppercase tracking-wide text-muted-foreground';
 
   const titleClass = variant === 'dark' ? 'text-sm font-semibold text-white' : 'text-sm font-semibold';
+
+  if (bothSoon) {
+    return (
+      <div className={cn('flex flex-wrap gap-3', className)}>
+        <Link
+          href={fallbackUrl}
+          aria-label="BiletFeed mobil uygulama — yakında"
+          className={badgeClass}
+        >
+          <Smartphone className="size-7 shrink-0" strokeWidth={1.5} />
+          <div className="text-left leading-tight">
+            <p className={labelClass}>Yakında</p>
+            <p className={titleClass}>Mobil Uygulama</p>
+          </div>
+        </Link>
+      </div>
+    );
+  }
+
+  const iosHref = iosUrl || fallbackUrl;
+  const androidHref = androidUrl || fallbackUrl;
 
   return (
     <div className={cn('flex flex-wrap gap-3', className)}>

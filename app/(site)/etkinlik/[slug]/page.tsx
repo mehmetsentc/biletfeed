@@ -20,6 +20,8 @@ import { EventTabletTicketBar } from '@/components/events/event-tablet-ticket-ba
 import { ExternalEventBadge } from '@/components/events/external-event-badge';
 import { EventPreviewBanner } from '@/components/events/event-preview-banner';
 import { Badge } from '@/components/ui/badge';
+import { filterPublicEventTags } from '@/lib/events/public-tags';
+import { isExternalListing } from '@/lib/events/ticket-url';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { createEventMetadata } from '@/lib/seo/metadata';
 import {
@@ -78,6 +80,14 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
   const isOnline = event.isOnline || event.citySlug === 'online';
   const eventUrl = `${siteConfig.url}/etkinlik/${event.slug}`;
+  const publicTags = filterPublicEventTags(event.tags);
+  const externalListing = isExternalListing(event);
+  const normalizedDescription = event.description.trim().toLowerCase();
+  const normalizedTitle = event.title.trim().toLowerCase();
+  const showDescriptionBlock =
+    event.description.trim().length > 0 &&
+    normalizedDescription !== normalizedTitle &&
+    normalizedDescription !== event.shortDescription.trim().toLowerCase();
 
   return (
     <>
@@ -141,7 +151,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           <EventPreviewBanner kind={previewKind} className="mt-6" />
         )}
 
-        <div className="mt-5">
+        <div className="mt-5 md:max-lg:block lg:hidden">
           <EventTabletTicketBar event={event} purchasable={purchasable} />
         </div>
 
@@ -155,30 +165,39 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               city={event.city}
               isOnline={isOnline}
             />
-            {organizer && (
+            {externalListing ? (
               <EventHostedBy
-                organizer={organizer}
-                initialFollowing={isFollowingOrganizer}
+                platformLabel={event.organizer}
+                externalUrl={event.externalUrl}
               />
+            ) : (
+              organizer && (
+                <EventHostedBy
+                  organizer={organizer}
+                  initialFollowing={isFollowingOrganizer}
+                />
+              )
             )}
 
-            <section>
-              <h2 className="text-xl font-bold">Etkinlik Açıklaması</h2>
-              <div className="mt-4 space-y-4 leading-relaxed text-muted-foreground">
-                <p>{event.description}</p>
-                {event.isFree && (
-                  <p className="font-medium text-foreground">
-                    Ücretsiz etkinlik — yerinizi hemen ayırtın!
-                  </p>
-                )}
-              </div>
-            </section>
+            {showDescriptionBlock && (
+              <section>
+                <h2 className="text-xl font-bold">Etkinlik Açıklaması</h2>
+                <div className="mt-4 space-y-4 leading-relaxed text-muted-foreground">
+                  <p>{event.description}</p>
+                  {event.isFree && (
+                    <p className="font-medium text-foreground">
+                      Ücretsiz etkinlik — yerinizi hemen ayırtın!
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
 
-            {event.tags.length > 0 && (
+            {publicTags.length > 0 && (
               <section>
                 <h2 className="text-xl font-bold">Etiketler</h2>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {event.tags.map((tag) => (
+                  {publicTags.map((tag) => (
                     <Badge
                       key={tag}
                       variant="secondary"

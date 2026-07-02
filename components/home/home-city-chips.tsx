@@ -7,7 +7,9 @@ import { cn } from '@/lib/utils';
 export function HomeCityChips() {
   const { citySlug, cities, setCity, detectingLocation, hasChosenCity } =
     useCity();
-  const activeCities = cities.filter((city) => (city.count ?? 0) > 0);
+  const activeCities = cities
+    .filter((city) => (city.count ?? 0) > 0)
+    .sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
 
   if (activeCities.length === 0 && !detectingLocation) return null;
 

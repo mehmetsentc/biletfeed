@@ -53,6 +53,12 @@ export function AccountMenuList({
           )}
           {group.items
             .filter((item) => !item.userOnly || showUserOnlyItems)
+            .filter(
+              (item) =>
+                !item.hideOnPathPrefixes?.some((prefix) =>
+                  pathname.startsWith(prefix)
+                )
+            )
             .map((item) => {
             const active = item.isActive?.(pathname) ?? pathname === item.href;
             const Icon = item.icon;

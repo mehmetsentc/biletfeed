@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { SafeImage } from '@/components/shared/safe-image';
 import { MapPin, Mic2, Users } from 'lucide-react';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
 import { EventifyCard } from '@/components/events/eventify-card';
@@ -50,12 +50,16 @@ function OrganizerCard({ organizer }: { organizer: MockOrganizer }) {
     >
       <div className="relative size-16 shrink-0 overflow-hidden rounded-full bg-muted">
         {organizer.logo ? (
-          <Image
+          <SafeImage
             src={organizer.logo}
             alt={organizer.name}
             fill
             className="object-cover"
-            unoptimized
+            fallback={
+              <div className="flex size-full items-center justify-center text-muted-foreground">
+                <Mic2 className="size-6" strokeWidth={1.75} />
+              </div>
+            }
           />
         ) : (
           <div className="flex size-full items-center justify-center text-muted-foreground">
@@ -85,12 +89,16 @@ function VenueCard({ venue }: { venue: FavoriteVenue }) {
     >
       <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-muted">
         {venue.image ? (
-          <Image
+          <SafeImage
             src={venue.image}
             alt={venue.name}
             fill
             className="object-cover"
-            unoptimized
+            fallback={
+              <div className="flex size-full items-center justify-center text-muted-foreground">
+                <MapPin className="size-6" strokeWidth={1.75} />
+              </div>
+            }
           />
         ) : (
           <div className="flex size-full items-center justify-center text-muted-foreground">

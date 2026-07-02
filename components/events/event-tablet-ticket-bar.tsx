@@ -28,7 +28,7 @@ export function EventTabletTicketBar({
   return (
     <div className="hidden items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5 md:flex lg:hidden">
       <div>
-        <p className="text-sm font-medium text-muted-foreground">Bilet fiyatı</p>
+        <p className="text-sm font-medium text-muted-foreground">Başlangıç fiyatı</p>
         <p className="text-2xl font-bold">{priceText}</p>
       </div>
       {purchasable ? (

@@ -1,4 +1,11 @@
 import type { MockEvent } from '@/lib/data/mock-events';
+import { getExternalPlatformLabel } from '@/lib/events/ticket-url';
+
+function parseFavoriteCount(stats: unknown): number {
+  if (!stats || typeof stats !== 'object' || !('favorites' in stats)) return 0;
+  const value = Number((stats as { favorites: unknown }).favorites);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
 
 const eventInclude = {
   organizer: true,
@@ -41,6 +48,7 @@ export type EventWithRelations = {
   externalPlatform?: string | null;
   externalUrl?: string | null;
   status?: string;
+  stats?: unknown;
 };
 
 export function toMockEvent(event: EventWithRelations): MockEvent {
@@ -64,7 +72,10 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     citySlug: event.city.slug,
     venue: event.venue?.name || (event.isOnline ? 'Online' : ''),
     address: event.venue?.address || '',
-    organizer: event.organizer.name,
+    organizer:
+      event.listingType === 'external'
+        ? getExternalPlatformLabel(event.externalPlatform) ?? event.organizer.name
+        : event.organizer.name,
     organizerSlug: event.organizer.slug,
     startDate: event.startDate.toISOString(),
     endDate: event.endDate.toISOString(),
@@ -78,6 +89,7 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     attendees: event.attendees,
     capacity: event.capacity,
     tags: event.tags,
+    favoriteCount: parseFavoriteCount(event.stats),
     listingType: (event.listingType as MockEvent['listingType']) || 'internal',
     externalPlatform: event.externalPlatform ?? undefined,
     externalUrl: event.externalUrl ?? undefined,

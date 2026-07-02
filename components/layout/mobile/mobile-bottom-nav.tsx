@@ -47,7 +47,7 @@ const navItems = [
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const accountHref = user ? '/profil' : '/kayit?redirect=%2Fprofil';
+  const accountHref = user ? '/profil' : '/giris?redirect=%2Fprofil';
 
   return (
     <nav

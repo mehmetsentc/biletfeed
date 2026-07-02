@@ -32,6 +32,7 @@ export interface MockEvent {
   attendees: number;
   capacity: number;
   tags: string[];
+  favoriteCount?: number;
   /** internal = Bilet Feed checkout, external = kaynak siteye yönlendir */
   listingType?: 'internal' | 'external';
   externalPlatform?: string;

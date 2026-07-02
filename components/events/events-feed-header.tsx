@@ -1,6 +1,7 @@
 'use client';
 
 import { CalendarDays, Search, SlidersHorizontal } from 'lucide-react';
+import { filterPublicEventTags } from '@/lib/events/public-tags';
 import { cn } from '@/lib/utils';
 
 export type FeedCategoryPill =
@@ -140,7 +141,7 @@ export function matchesFeedCategoryPill(
 
   const slug = event.categorySlug;
   const type = event.eventType;
-  const tags = event.tags.join(' ').toLowerCase();
+  const tags = filterPublicEventTags(event.tags).join(' ').toLowerCase();
 
   switch (pill) {
     case 'konser':

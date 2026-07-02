@@ -18,6 +18,8 @@ export type AccountMenuItem = {
   isActive?: (pathname: string) => boolean;
   /** Sadece kullanıcı hesabında göster */
   userOnly?: boolean;
+  /** Bu path öneklerinde menü öğesini gizle */
+  hideOnPathPrefixes?: string[];
 };
 
 export type AccountMenuGroup = {
@@ -54,12 +56,17 @@ export const accountMenuGroups: AccountMenuGroup[] = [
         label: 'Bildirimler',
         icon: Bell,
         isActive: (p) => p === '/bildirimler'
-      },
+      }
+    ]
+  },
+  {
+    items: [
       {
         href: '/eventjoy/panel',
         label: 'Event Joy Panel',
         icon: Calendar,
         userOnly: true,
+        hideOnPathPrefixes: ['/profil/bilgilerim', '/organizator-panel'],
         isActive: (p) => p.startsWith('/eventjoy')
       }
     ]

@@ -190,6 +190,15 @@ export async function middleware(request: NextRequest) {
 
   const subdomain = extractSubdomain(request);
 
+  // Ana sitede kısa destek yolları → /destek/* rotalarına
+  if (!subdomain && pathname.startsWith('/destek-talebi')) {
+    const supportPath = pathname.replace(
+      /^\/destek-talebi/,
+      '/destek/destek-talebi'
+    );
+    return NextResponse.rewrite(new URL(supportPath, request.url));
+  }
+
   if (isSupportSubdomain(subdomain)) {
     if (pathname === '/') {
       return NextResponse.rewrite(new URL('/destek', request.url));

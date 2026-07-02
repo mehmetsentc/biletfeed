@@ -44,7 +44,7 @@ function NavTab({
         'relative z-20 inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
         active
           ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-          : 'text-organizer-chrome hover:bg-white/8 hover:text-white'
+          : 'text-white/75 hover:bg-white/10 hover:text-white'
       )}
     >
       <item.icon className="size-4 shrink-0" strokeWidth={active ? 2.25 : 1.75} />
@@ -53,7 +53,7 @@ function NavTab({
   );
 }
 
-function EventJoyTopBar() {
+function EventJoyTopBar({ showProfileLink }: { showProfileLink: boolean }) {
   const { user } = useAuth();
   const displayName =
     user?.displayName?.trim() || user?.email?.split('@')[0] || 'Hesabım';
@@ -73,22 +73,24 @@ function EventJoyTopBar() {
       <div className="flex items-center gap-2 text-sm sm:gap-3">
         <Link
           href={eventJoyRoutes.events}
-          className="text-organizer-chrome-muted hidden transition hover:text-white md:inline"
+          className="hidden text-white/70 transition hover:text-white md:inline"
         >
           Etkinliklerim
         </Link>
         <Link
           href={eventJoyRoutes.siteHome}
-          className="text-organizer-chrome-muted hidden transition hover:text-white sm:inline"
+          className="hidden text-white/70 transition hover:text-white sm:inline"
         >
           {siteConfig.name}
         </Link>
-        <Link
-          href={eventJoyRoutes.profile}
-          className="text-organizer-chrome max-w-[140px] truncate rounded-md bg-white/10 px-3 py-1.5 transition hover:bg-white/15 sm:max-w-none"
-        >
-          {displayName}
-        </Link>
+        {showProfileLink && (
+          <Link
+            href={eventJoyRoutes.profile}
+            className="max-w-[140px] truncate rounded-md bg-white/10 px-3 py-1.5 text-white/90 transition hover:bg-white/15 sm:max-w-none"
+          >
+            {displayName}
+          </Link>
+        )}
       </div>
     </header>
   );
@@ -133,7 +135,7 @@ export function EventJoyShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="organizer-surface flex min-h-screen flex-col bg-[#eef0f2]">
-      <EventJoyTopBar />
+      <EventJoyTopBar showProfileLink={isSubPage} />
       {showNav && <EventJoyNavBar pathname={pathname} />}
 
       <main

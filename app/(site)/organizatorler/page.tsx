@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { BadgeCheck, Calendar, Users } from 'lucide-react';
 import { PageHero } from '@/components/layout/page-hero';
 import { AppIcon } from '@/components/ui/app-icon';
+import { SafeImage } from '@/components/shared/safe-image';
 import { getAllOrganizers } from '@/lib/services/organizers';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
@@ -25,12 +25,17 @@ export default async function OrganizersPage() {
             className="group overflow-hidden rounded-2xl border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5"
           >
             <div className="relative h-32 bg-muted">
-              <Image
+              <SafeImage
                 src={org.coverImage}
                 alt={org.name}
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                 sizes="50vw"
+                fallback={
+                  <div className="flex size-full items-center justify-center bg-muted text-muted-foreground">
+                    <Users className="size-8" strokeWidth={1.5} />
+                  </div>
+                }
               />
             </div>
             <div className="p-5">

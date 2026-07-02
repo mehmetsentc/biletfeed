@@ -24,6 +24,7 @@ interface EventsFilterPanelProps {
   filters: EventsFilters;
   onChange: (filters: EventsFilters) => void;
   resultCount: number;
+  categories?: { slug: string; name: string }[];
 }
 
 export function EventsFilterPanel({
@@ -31,7 +32,8 @@ export function EventsFilterPanel({
   onOpenChange,
   filters,
   onChange,
-  resultCount
+  resultCount,
+  categories
 }: EventsFilterPanelProps) {
   const activeCount = countActiveFilters(filters);
 
@@ -92,6 +94,7 @@ export function EventsFilterPanel({
             onChange={onChange}
             layout="sheet"
             theme="default"
+            categories={categories}
           />
         </div>
 

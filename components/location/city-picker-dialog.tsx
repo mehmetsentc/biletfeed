@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getCityBySlug } from '@/lib/location/cities';
+import { getCityNameOrDefault, sortCitiesForPicker } from '@/lib/location/cities';
 import { detectCityFromGeolocation } from '@/lib/location/detect-city';
 
 export type CityOption = {
@@ -125,7 +125,7 @@ export function CityPickerDialog({
         )}
 
         <div className="grid grid-cols-2 gap-2">
-          {cities.map((city) => {
+          {sortCitiesForPicker(cities).map((city) => {
             const active = pendingSlug === city.slug;
             return (
               <button
@@ -160,7 +160,7 @@ export function CityPickerDialog({
           onClick={handleConfirm}
           disabled={detecting}
         >
-          {getCityBySlug(pendingSlug).name}&apos;da etkinlikleri göster
+          {getCityNameOrDefault(pendingSlug)}&apos;da etkinlikleri göster
         </Button>
       </DialogContent>
     </Dialog>

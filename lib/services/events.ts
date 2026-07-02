@@ -1,5 +1,5 @@
 import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, EventStatus } from '@prisma/client';
 import {
   categories as mockCategories,
   cities as mockCities,
@@ -7,7 +7,7 @@ import {
 } from '@/lib/data/mock-events';
 import { resolveCategoryImage } from '@/lib/data/category-images';
 import { sortCategoriesByDisplayOrder } from '@/lib/categories/sort';
-import { eventInclude, toMockEvent } from '@/lib/mappers/event';
+import { eventInclude, toMockEvent, type EventWithRelations } from '@/lib/mappers/event';
 import { mapCategory } from '@/lib/scraper/normalize';
 
 /** Başlık açıkça başka kategoriye işaret ediyorsa yanlış DB kaydını filtrele */
@@ -193,8 +193,9 @@ export async function getEventsByOrganizerForProfile(
   const isOwner = Boolean(
     viewerUserId && viewerUserId === organizer.owner.firebaseUid
   );
-  const statusFilter = isOwner
-    ? { in: ['draft', 'pending', 'published'] as const }
+  const ownerStatuses: EventStatus[] = ['draft', 'pending', 'published'];
+  const statusFilter: EventStatus | Prisma.EnumEventStatusFilter = isOwner
+    ? { in: ownerStatuses }
     : 'published';
 
   const events = await prisma.event.findMany({
@@ -209,7 +210,7 @@ export async function getEventsByOrganizerForProfile(
     orderBy: { startDate: 'desc' }
   });
 
-  return { events: events.map(toMockEvent), isOwner };
+  return { events: events.map((event) => toMockEvent(event as EventWithRelations)), isOwner };
 }
 
 export type EventViewerResult = {
@@ -275,7 +276,9 @@ export async function getEventBySlugForViewer(
 }
 
 export async function getCategories() {
-  if (!isDatabaseConfigured()) return sortCategoriesByDisplayOrder(mockCategories);
+  if (!isDatabaseConfigured()) {
+    return sortCategoriesByDisplayOrder(mockCategories).filter((c) => c.count > 0);
+  }
   const rows = await prisma.category.findMany({
     where: { deletedAt: null },
     orderBy: { name: 'asc' }
@@ -294,7 +297,7 @@ export async function getCategories() {
       count: countMap.get(c.id) ?? c.eventCount,
       image: resolveCategoryImage(c.slug, c.image)
     }))
-  );
+  ).filter((c) => c.count > 0);
 }
 
 export async function getCities() {

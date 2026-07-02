@@ -26,7 +26,7 @@ export function EventifyCard({
   isFavorite = false
 }: EventifyCardProps) {
   const { month, day } = formatEventMonthDay(event.startDate);
-  const interested = Math.max(12, Math.floor(event.attendees * 0.08));
+  const interested = event.favoriteCount ?? 0;
 
   return (
     <article
@@ -85,10 +85,12 @@ export function EventifyCard({
                 <Tag className="size-3" />
                 {formatPrice(event)}
               </span>
-              <span className="inline-flex items-center gap-1 text-primary/80">
-                <Star className="size-3" />
-                {interested} ilgi
-              </span>
+              {interested > 0 && (
+                <span className="inline-flex items-center gap-1 text-primary/80">
+                  <Star className="size-3" />
+                  {interested} ilgi
+                </span>
+              )}
             </div>
           </div>
         </div>

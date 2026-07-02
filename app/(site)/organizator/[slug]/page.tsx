@@ -1,8 +1,8 @@
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { BadgeCheck, Users, Calendar } from 'lucide-react';
 import { OrganizerProfileEventCard } from '@/components/events/organizer-profile-event-card';
 import { OrganizerProfileActions } from '@/components/organizers/organizer-profile-actions';
+import { SafeImage } from '@/components/shared/safe-image';
 import { getOrganizerBySlug } from '@/lib/services/organizers';
 import { getEventsByOrganizerForProfile } from '@/lib/services/events';
 import { verifySessionCookie } from '@/lib/auth/session';
@@ -46,12 +46,17 @@ export default async function OrganizerPage({ params }: Props) {
     <>
       <JsonLd data={buildOrganizerSchema(organizer)} />
       <div className="relative h-48 md:h-64">
-        <Image
+        <SafeImage
           src={organizer.coverImage}
           alt={organizer.name}
           fill
           className="object-cover"
           priority
+          fallback={
+            <div className="flex size-full items-center justify-center bg-muted text-muted-foreground">
+              <Users className="size-10" strokeWidth={1.5} />
+            </div>
+          }
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
       </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { categories } from '@/lib/data/mock-events';
+import { categories as mockCategories } from '@/lib/data/mock-events';
 import { cn } from '@/lib/utils';
 import { toggleFilterItem } from '@/components/events/events-filter-utils';
 import type {
@@ -218,12 +218,15 @@ function FilterCheckbox({
   );
 }
 
+type FilterCategory = { slug: string; name: string };
+
 interface EventsFilterContentProps {
   filters: EventsFilters;
   onChange: (filters: EventsFilters) => void;
   layout?: FilterLayout;
   theme?: FilterTheme;
   showTitle?: boolean;
+  categories?: FilterCategory[];
 }
 
 export function EventsFilterContent({
@@ -231,7 +234,8 @@ export function EventsFilterContent({
   onChange,
   layout = 'list',
   theme = 'default',
-  showTitle = false
+  showTitle = false,
+  categories = mockCategories
 }: EventsFilterContentProps) {
   const [showAllCategories, setShowAllCategories] = useState(false);
   const styles = useThemeClasses(theme);
@@ -432,8 +436,17 @@ export function EventsFilterContent({
         )}
 
         <SheetSection
-          title="Fiyat"
+          title="Kategori"
           defaultOpen
+          activeCount={filters.categories.length}
+          theme={theme}
+        >
+          <div className="flex flex-wrap gap-2">{renderCategories(true)}</div>
+        </SheetSection>
+
+        <SheetSection
+          title="Fiyat"
+          defaultOpen={false}
           activeCount={filters.price.length}
           theme={theme}
         >
@@ -442,22 +455,13 @@ export function EventsFilterContent({
 
         <SheetSection
           title="Tarih"
-          defaultOpen
+          defaultOpen={false}
           activeCount={
             filters.date.length + (filters.customDate ? 1 : 0)
           }
           theme={theme}
         >
           <HorizontalChipRow>{renderDate(true)}</HorizontalChipRow>
-        </SheetSection>
-
-        <SheetSection
-          title="Kategori"
-          defaultOpen={false}
-          activeCount={filters.categories.length}
-          theme={theme}
-        >
-          <div className="flex flex-wrap gap-2">{renderCategories(true)}</div>
         </SheetSection>
 
         <SheetSection
@@ -475,14 +479,14 @@ export function EventsFilterContent({
   const sections =
     layout === 'grid' ? (
       <div className="grid gap-6 md:grid-cols-2">
+        <FilterSection title="Kategori" layout={pillLayout} theme={theme}>
+          {renderCategories()}
+        </FilterSection>
         <FilterSection title="Fiyat" layout={pillLayout} theme={theme}>
           {renderPrice()}
         </FilterSection>
         <FilterSection title="Tarih" layout={pillLayout} theme={theme}>
           {renderDate()}
-        </FilterSection>
-        <FilterSection title="Kategori" layout={pillLayout} theme={theme}>
-          {renderCategories()}
         </FilterSection>
         <FilterSection title="Etkinlik Türü" layout={pillLayout} theme={theme}>
           {renderFormats()}
@@ -490,14 +494,14 @@ export function EventsFilterContent({
       </div>
     ) : (
       <>
+        <FilterSection title="Kategori" layout={pillLayout} theme={theme}>
+          {renderCategories()}
+        </FilterSection>
         <FilterSection title="Fiyat" layout={pillLayout} theme={theme}>
           {renderPrice()}
         </FilterSection>
         <FilterSection title="Tarih" layout={pillLayout} theme={theme}>
           {renderDate()}
-        </FilterSection>
-        <FilterSection title="Kategori" layout={pillLayout} theme={theme}>
-          {renderCategories()}
         </FilterSection>
         <FilterSection title="Etkinlik Türü" layout={pillLayout} theme={theme}>
           {renderFormats()}

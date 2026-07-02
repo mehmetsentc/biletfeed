@@ -21,7 +21,7 @@ import {
 } from '@/lib/location/city-preference';
 import { readCookieConsent } from '@/lib/cookies/consent';
 import { detectCityFromGeolocation } from '@/lib/location/detect-city';
-import { DEFAULT_CITY_SLUG, getCityBySlug } from '@/lib/location/cities';
+import { DEFAULT_CITY_SLUG, getCityNameOrDefault, isSupportedCitySlug } from '@/lib/location/cities';
 
 type SetCityOptions = {
   /** Ana sayfada kalıp içeriği yenile */
@@ -47,7 +47,7 @@ function readCookieCity(): string | null {
     .find((row) => row.startsWith(`${CITY_COOKIE_NAME}=`));
   if (!match) return null;
   const value = decodeURIComponent(match.split('=')[1] ?? '');
-  return getCityBySlug(value) ? value : null;
+  return isSupportedCitySlug(value) ? value : null;
 }
 
 interface CityProviderProps {
@@ -74,9 +74,9 @@ export function CityProvider({
 
   const applyCity = useCallback(
     (slug: string, options?: SetCityOptions) => {
-      const city = getCityBySlug(slug);
-      persistCityChoice(city.slug);
-      setCitySlug(city.slug);
+      const resolvedSlug = isSupportedCitySlug(slug) ? slug : DEFAULT_CITY_SLUG;
+      persistCityChoice(resolvedSlug);
+      setCitySlug(resolvedSlug);
       setHasChosenCity(true);
       setPickerOpen(false);
 
@@ -86,7 +86,7 @@ export function CityProvider({
       }
 
       const params = new URLSearchParams(searchParams.toString());
-      params.set('sehir', city.slug);
+      params.set('sehir', resolvedSlug);
       const targetPath = pathname.startsWith('/etkinlikler')
         ? pathname
         : '/etkinlikler';
@@ -117,6 +117,12 @@ export function CityProvider({
     const resolved = stored ?? fromCookie ?? initialCitySlug;
 
     if (resolved) {
+      if (!isSupportedCitySlug(resolved)) {
+        setCitySlug(DEFAULT_CITY_SLUG);
+        setHasChosenCity(false);
+        openPickerAfterConsent();
+        return;
+      }
       setCitySlug(resolved);
       setHasChosenCity(true);
       if (!stored) persistCityChoice(resolved);
@@ -130,8 +136,11 @@ export function CityProvider({
       .then((detected) => {
         if (cancelled) return;
         if (detected) {
-          persistCityChoice(detected.slug);
-          setCitySlug(detected.slug);
+          const safeSlug = isSupportedCitySlug(detected.slug)
+            ? detected.slug
+            : DEFAULT_CITY_SLUG;
+          persistCityChoice(safeSlug);
+          setCitySlug(safeSlug);
           setHasChosenCity(true);
           router.refresh();
           return;
@@ -162,7 +171,7 @@ export function CityProvider({
   const value = useMemo<CityContextValue>(
     () => ({
       citySlug,
-      cityName: getCityBySlug(citySlug).name,
+      cityName: getCityNameOrDefault(citySlug),
       cities,
       hasChosenCity,
       detectingLocation,

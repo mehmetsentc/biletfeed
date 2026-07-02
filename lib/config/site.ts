@@ -30,6 +30,7 @@ export const siteConfig = {
     twitter: process.env.NEXT_PUBLIC_TWITTER_URL,
     instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL,
     facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL,
+    youtube: process.env.NEXT_PUBLIC_YOUTUBE_URL,
     organizerPanel: process.env.NEXT_PUBLIC_PANEL_URL || getPanelUrl(),
     supportCenter: process.env.NEXT_PUBLIC_SUPPORT_URL || getSupportUrl()
   }

@@ -35,6 +35,14 @@ export function buildDedupeHash(
   return createHash('sha256').update(payload).digest('hex').slice(0, 32);
 }
 
+function externalIdDuplicatesTitleSlug(titleSlug: string, externalIdSlug: string): boolean {
+  if (!titleSlug || !externalIdSlug) return false;
+  if (externalIdSlug === titleSlug) return true;
+  if (externalIdSlug.endsWith(`-${titleSlug}`)) return true;
+  if (titleSlug.endsWith(`-${externalIdSlug}`)) return true;
+  return false;
+}
+
 export function slugifyExternal(
   platform: ExternalPlatform,
   externalId: string,
@@ -46,8 +54,14 @@ export function slugifyExternal(
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
   const prefix = platform.toLowerCase().replace(/_/g, '-');
+  const titleSlug = base || 'etkinlik';
   const safeId = externalId.replace(/[^\w-]/g, '').slice(0, 24);
-  return `ext-${prefix}-${base || 'etkinlik'}-${safeId}`.slice(0, 120);
+
+  if (!safeId || externalIdDuplicatesTitleSlug(titleSlug, safeId)) {
+    return `ext-${prefix}-${titleSlug}`.slice(0, 120);
+  }
+
+  return `ext-${prefix}-${titleSlug}-${safeId}`.slice(0, 120);
 }
 
 export function shouldReplaceExternalSource(

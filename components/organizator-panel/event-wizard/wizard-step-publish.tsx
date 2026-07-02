@@ -59,7 +59,13 @@ export function WizardStepPublish({
         <div className="space-y-5 py-2">
           {previewImage && (
             <div className="relative aspect-video overflow-hidden rounded-xl border border-border">
-              <Image src={previewImage} alt="Kapak" fill className="object-cover" />
+              <Image
+                src={previewImage}
+                alt="Kapak"
+                fill
+                className="object-cover"
+                unoptimized={previewImage.startsWith('blob:') || previewImage.startsWith('http')}
+              />
             </div>
           )}
           <div className="rounded-xl border border-border bg-muted/20 p-5">

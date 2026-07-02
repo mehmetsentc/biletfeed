@@ -119,7 +119,18 @@ export function TicketWebView({
         )}
 
         <div className="flex items-start justify-between gap-3">
-          <h1 className="flex-1 text-xl font-bold leading-tight text-white sm:text-2xl">{eventTitle}</h1>
+          {ctaHref ? (
+            <Link
+              href={ctaHref}
+              className="flex-1 text-xl font-bold leading-tight text-white transition-colors hover:text-primary sm:text-2xl"
+            >
+              {eventTitle}
+            </Link>
+          ) : (
+            <h1 className="flex-1 text-xl font-bold leading-tight text-white sm:text-2xl">
+              {eventTitle}
+            </h1>
+          )}
           <span
             className={cn(
               'shrink-0 rounded-full px-3 py-1 text-[11px] font-bold',

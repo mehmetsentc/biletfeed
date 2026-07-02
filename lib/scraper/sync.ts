@@ -14,6 +14,7 @@ import {
 } from '@/lib/scraper/dedupe';
 import { scraperAdapters } from '@/lib/scraper/platforms';
 import type { ScrapedEventRaw, ScraperResult } from '@/lib/scraper/types';
+import { normalizeScraperText } from '@/lib/scraper/detail-page';
 
 const AGGREGATOR_ORG_SLUG = 'biletfeed-aggregator';
 const AGGREGATOR_USER_EMAIL = 'aggregator@biletfeed.local';
@@ -234,7 +235,12 @@ async function resolveUniqueSlug(
   if (!taken) return baseSlug;
 
   const idSuffix = externalId.replace(/[^\w-]/g, '').slice(0, 24);
-  if (idSuffix) {
+  const suffixAlreadyInSlug =
+    idSuffix &&
+    (baseSlug === idSuffix ||
+      baseSlug.endsWith(`-${idSuffix}`) ||
+      idSuffix.endsWith(`-${baseSlug}`));
+  if (idSuffix && !suffixAlreadyInSlug) {
     const withId = `${baseSlug}-${idSuffix}`.slice(0, 120);
     const idTaken = await prisma.event.findFirst({ where: { slug: withId } });
     if (!idTaken) return withId;
@@ -302,8 +308,19 @@ async function upsertScrapedEvent(
     raw.address
   );
   const now = new Date();
+  const normalizedDescription = normalizeScraperText(raw.description);
+  const normalizedTitle = normalizeScraperText(raw.title);
   const shortDescription =
-    raw.shortDescription || raw.description.slice(0, 160);
+    raw.shortDescription ||
+    (normalizedDescription.length >= 40 &&
+    normalizedDescription.toLowerCase() !== normalizedTitle.toLowerCase()
+      ? normalizedDescription.slice(0, 160)
+      : '');
+  const description =
+    normalizedDescription.length >= 40 &&
+    normalizedDescription.toLowerCase() !== normalizedTitle.toLowerCase()
+      ? normalizedDescription
+      : shortDescription || normalizedTitle;
   const { coverImage, tags } = await resolveCoverImage(raw);
 
   if (existingExternal) {

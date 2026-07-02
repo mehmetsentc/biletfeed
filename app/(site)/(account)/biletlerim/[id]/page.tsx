@@ -38,6 +38,13 @@ export default async function TicketDetailPage({ params }: Props) {
       <SettingsPageHeader title="Bilet Detayı" description={ticket.eventTitle} />
 
       <div className="mx-auto max-w-lg space-y-4">
+        <Link
+          href={`/etkinlik/${ticket.eventSlug}`}
+          className="inline-flex text-sm font-semibold text-primary hover:underline"
+        >
+          Etkinlik sayfasına git →
+        </Link>
+
         <PremiumTicketCard
           id="premium-ticket-card"
           eventTitle={ticket.eventTitle}
@@ -52,6 +59,7 @@ export default async function TicketDetailPage({ params }: Props) {
           qrData={ticket.qrData}
           status={ticket.status}
           priceLabel={ticket.price > 0 ? `${ticket.price} ₺` : 'Ücretsiz'}
+          eventSlug={ticket.eventSlug}
         />
 
         <TicketActions

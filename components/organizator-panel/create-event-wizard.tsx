@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import type { EventStatus } from '@prisma/client';
 import {
   ArrowLeft,
@@ -14,9 +13,9 @@ import {
   Plus,
   Sparkles,
   Ticket,
-  Trash2,
-  Upload
+  Trash2
 } from 'lucide-react';
+import { CoverImagePicker } from '@/components/organizator-panel/cover-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EventWizardStepper } from '@/components/dashboard/event-wizard-stepper';
@@ -378,7 +377,7 @@ export function CreateOrganizerEventWizard({
           const uploadData = await uploadRes.json();
           coverImageUrl = uploadData.url;
         }
-      } else if (isEdit && previewImage?.startsWith('http')) {
+      } else if (previewImage?.startsWith('http')) {
         coverImageUrl = previewImage;
       }
 
@@ -722,53 +721,17 @@ export function CreateOrganizerEventWizard({
             <div className="space-y-6">
               <WizardFormSection
                 title="Etkinlik Görseli"
-                description="Kapak görseli etkinliğinizin keşfedilme oranını artırır. Tavsiye: 1920×1080 px, max. 10 MB."
+                description="Kapak görseli etkinliğinizin keşfedilme oranını artırır. Dosyayı sürükleyip bırakabilir, yükleyebilir veya görsel linki ekleyebilirsiniz. Tavsiye: 1920×1080 px, max. 5 MB."
                 icon={ImageIcon}
               >
               <div className="py-5">
-                <label
-                  className={cn(
-                    'flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-all',
-                    previewImage
-                      ? 'border-primary/40 bg-primary/5 p-2'
-                      : 'border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5'
-                  )}
-                >
-                  {previewImage ? (
-                    <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-                      <Image
-                        src={previewImage}
-                        alt="Kapak önizleme"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                        <Upload className="size-6" />
-                      </span>
-                      <p className="mt-4 font-semibold text-foreground">
-                        Kapak görseli yükleyin
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Önerilen: 1920×1080 px · JPG veya PNG
-                      </p>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        imageFileRef.current = file;
-                        setPreviewImage(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                </label>
+                <CoverImagePicker
+                  previewUrl={previewImage}
+                  onPreviewChange={setPreviewImage}
+                  onFileChange={(file) => {
+                    imageFileRef.current = file;
+                  }}
+                />
               </div>
             </WizardFormSection>
 

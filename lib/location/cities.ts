@@ -43,13 +43,24 @@ export type CitySlug = (typeof SUPPORTED_CITIES)[number]['slug'];
 
 export const DEFAULT_CITY_SLUG: CitySlug = 'istanbul';
 
+/** Desteklenen şehir — bilinmeyen slug için undefined döner (sessiz İstanbul fallback yok) */
 export function getCityBySlug(slug: string) {
-  return (
-    SUPPORTED_CITIES.find((c) => c.slug === slug) ??
-    SUPPORTED_CITIES.find((c) => c.slug === DEFAULT_CITY_SLUG)!
-  );
+  return SUPPORTED_CITIES.find((c) => c.slug === slug);
 }
 
 export function getCityName(slug: string): string {
-  return getCityBySlug(slug).name;
+  return getCityBySlug(slug)?.name ?? slug;
+}
+
+export function getCityNameOrDefault(slug: string): string {
+  return getCityBySlug(slug)?.name ?? getCityBySlug(DEFAULT_CITY_SLUG)!.name;
+}
+
+export function isSupportedCitySlug(slug: string): slug is CitySlug {
+  return SUPPORTED_CITIES.some((city) => city.slug === slug);
+}
+
+/** Şehir seçici — Türkçe alfabetik sıra */
+export function sortCitiesForPicker<T extends { name: string }>(cities: T[]): T[] {
+  return [...cities].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 }

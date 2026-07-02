@@ -15,7 +15,8 @@ const companyLinks = [
   { href: '/gizlilik', label: 'Gizlilik Politikası' },
   { href: '/kullanici-sozlesmesi', label: 'Kullanıcı Sözleşmesi' },
   { href: '/mesafeli-satis', label: 'Mesafeli Satış Sözleşmesi' },
-  { href: '/iade-iptal', label: 'Teslimat ve İade Şartları' },
+  { href: '/iade-iptal', label: 'İade ve İptal Koşulları' },
+  { href: '/iade-garantisi', label: 'İade Garantisi Koşulları' },
   { href: '/cerezler', label: 'Çerez Politikası' },
 ];
 
@@ -28,11 +29,11 @@ const helpLinks = [
 ];
 
 const socialLinks = [
-  { href: 'https://facebook.com', label: 'Facebook' },
-  { href: 'https://instagram.com', label: 'Instagram' },
-  { href: 'https://twitter.com', label: 'Twitter' },
-  { href: 'https://youtube.com', label: 'Youtube' }
-];
+  { href: siteConfig.links.facebook, label: 'Facebook' },
+  { href: siteConfig.links.instagram, label: 'Instagram' },
+  { href: siteConfig.links.twitter, label: 'Twitter' },
+  { href: siteConfig.links.youtube, label: 'Youtube' }
+].filter((link): link is { href: string; label: string } => Boolean(link.href));
 
 export async function Footer() {
   const categories = await getCategories();
@@ -104,20 +105,26 @@ export async function Footer() {
               <h3 className="mb-4 text-sm font-bold uppercase tracking-wide">
                 Bizi Takip Edin
               </h3>
-              <ul className="space-y-2.5">
-                {socialLinks.map((link) => (
-                  <li key={link.href}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-white/90 transition-colors hover:text-primary"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+              {socialLinks.length > 0 ? (
+                <ul className="space-y-2.5">
+                  {socialLinks.map((link) => (
+                    <li key={link.label}>
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-white/90 transition-colors hover:text-primary"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-white/50">
+                  Sosyal medya hesaplarımız yakında.
+                </p>
+              )}
             </div>
 
             <div>

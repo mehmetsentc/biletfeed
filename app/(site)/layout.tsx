@@ -3,7 +3,7 @@ import { MobileFooter } from '@/components/layout/mobile/mobile-footer';
 import { SiteChrome } from '@/components/layout/site-chrome';
 import { CityProvider } from '@/components/providers/city-provider';
 import { CITY_COOKIE_NAME } from '@/lib/location/city-preference';
-import { SUPPORTED_CITIES } from '@/lib/location/cities';
+import { isSupportedCitySlug } from '@/lib/location/cities';
 import { getCategories, getCitiesWithEvents } from '@/lib/services/events';
 import { cookies } from 'next/headers';
 
@@ -19,9 +19,7 @@ export default async function SiteLayout({
   ]);
   const cookieSlug = cookieStore.get(CITY_COOKIE_NAME)?.value;
   const initialCitySlug =
-    cookieSlug && SUPPORTED_CITIES.some((c) => c.slug === cookieSlug)
-      ? cookieSlug
-      : null;
+    cookieSlug && isSupportedCitySlug(cookieSlug) ? cookieSlug : null;
 
   return (
     <CityProvider cities={cities} initialCitySlug={initialCitySlug ?? null}>

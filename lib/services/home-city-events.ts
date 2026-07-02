@@ -1,4 +1,4 @@
-import { getCityName, SUPPORTED_CITIES } from '@/lib/location/cities';
+import { getCityNameOrDefault, isSupportedCitySlug } from '@/lib/location/cities';
 import { getNearbyCitySlugs } from '@/lib/location/detect-city';
 import type { MockEvent } from '@/lib/data/mock-events';
 import {
@@ -29,7 +29,7 @@ function pickCityEvents(
 }
 
 export function resolveHomeCitySlug(slug: string | null | undefined): string {
-  if (slug && SUPPORTED_CITIES.some((city) => city.slug === slug)) {
+  if (slug && isSupportedCitySlug(slug)) {
     return slug;
   }
   return 'istanbul';
@@ -39,7 +39,7 @@ export async function getHomeCityEventsBundle(
   citySlugInput: string
 ): Promise<HomeCityEventsBundle> {
   const citySlug = resolveHomeCitySlug(citySlugInput);
-  const cityName = getCityName(citySlug);
+  const cityName = getCityNameOrDefault(citySlug);
   const nearbySlugs = getNearbyCitySlugs(citySlug, 4);
 
   const [cityEvents, trending, allUpcoming] = await Promise.all([

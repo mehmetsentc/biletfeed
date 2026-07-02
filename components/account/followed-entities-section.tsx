@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Building2, MapPin, Mic2 } from 'lucide-react';
 import type { MockOrganizer } from '@/lib/data/mock-organizers';
 import type { FavoriteVenue } from '@/lib/services/favorites';
+import { SafeImage } from '@/components/shared/safe-image';
 
 interface FollowedEntitiesSectionProps {
   organizers: MockOrganizer[];
@@ -29,7 +29,17 @@ function FollowChip({
     >
       <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-muted">
         {image ? (
-          <Image src={image} alt={label} fill className="object-cover" unoptimized />
+          <SafeImage
+            src={image}
+            alt={label}
+            fill
+            className="object-cover"
+            fallback={
+              <div className="flex size-full items-center justify-center text-muted-foreground">
+                <FallbackIcon className="size-4" strokeWidth={1.75} />
+              </div>
+            }
+          />
         ) : (
           <div className="flex size-full items-center justify-center text-muted-foreground">
             <FallbackIcon className="size-4" strokeWidth={1.75} />

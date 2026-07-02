@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { ExternalLink, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ExternalEventBadge } from '@/components/events/external-event-badge';
 import {
   getEventTicketUrl,
   getTicketButtonLabel,
@@ -32,8 +31,6 @@ export function EventTicketSidebar({
 
   return (
     <aside className="sticky top-24 space-y-6">
-      <ExternalEventBadge event={event} />
-
       {purchasable ? (
         <Button
           size="lg"

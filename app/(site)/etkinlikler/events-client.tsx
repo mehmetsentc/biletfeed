@@ -18,6 +18,7 @@ import { countActiveFilters } from '@/components/events/events-filter-utils';
 import { useCity } from '@/components/providers/city-provider';
 import { SUPPORTED_CITIES, getCityName } from '@/lib/location/cities';
 import type { MockEvent } from '@/lib/data/mock-events';
+import { filterPublicEventTags } from '@/lib/events/public-tags';
 
 type CategoryItem = {
   slug: string;
@@ -161,7 +162,7 @@ function matchesTextQuery(event: MockEvent, query: string): boolean {
       event.venue,
       event.organizer,
       event.citySlug,
-      ...event.tags
+      ...filterPublicEventTags(event.tags)
     ].join(' ')
   );
 
@@ -306,7 +307,8 @@ function EmptyState({
 }
 
 export default function EventsPageClient({
-  events: mockEvents
+  events: mockEvents,
+  categories
 }: EventsPageClientProps) {
   const { citySlug: preferredCitySlug } = useCity();
   const searchParams = useSearchParams();
@@ -387,6 +389,7 @@ export default function EventsPageClient({
         filters={filters}
         onChange={setFilters}
         resultCount={filteredEvents.length}
+        categories={categories}
       />
 
       <section className="container mx-auto px-4 py-6 md:py-8">

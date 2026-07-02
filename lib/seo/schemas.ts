@@ -1,6 +1,7 @@
 import { siteConfig } from '@/lib/config/site';
 import type { MockEvent } from '@/lib/data/mock-events';
 import type { MockOrganizer } from '@/lib/data/mock-organizers';
+import { getExternalPlatformLabel, isExternalListing } from '@/lib/events/ticket-url';
 import { getDefaultOgImage } from '@/lib/seo/constants';
 
 export interface BreadcrumbItem {
@@ -61,6 +62,19 @@ export function buildWebsiteSchema() {
 export function buildEventSchema(event: MockEvent) {
   const isOnline = event.isOnline || event.citySlug === 'online';
   const eventUrl = `${siteConfig.url}/etkinlik/${event.slug}`;
+  const external = isExternalListing(event);
+  const platformLabel = getExternalPlatformLabel(event.externalPlatform);
+  const organizerSchema = external
+    ? {
+        '@type': 'Organization' as const,
+        name: platformLabel ?? event.organizer,
+        ...(event.externalUrl ? { url: event.externalUrl } : {})
+      }
+    : {
+        '@type': 'Organization' as const,
+        name: event.organizer,
+        url: `${siteConfig.url}/organizator/${event.organizerSlug}`
+      };
 
   return {
     '@context': 'https://schema.org',
@@ -90,11 +104,7 @@ export function buildEventSchema(event: MockEvent) {
             addressCountry: 'TR'
           }
         },
-    organizer: {
-      '@type': 'Organization',
-      name: event.organizer,
-      url: `${siteConfig.url}/organizator/${event.organizerSlug}`
-    },
+    organizer: organizerSchema,
     offers: {
       '@type': 'Offer',
       url: eventUrl,
