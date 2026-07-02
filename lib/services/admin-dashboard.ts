@@ -1,5 +1,77 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { upcomingFilter } from '@/lib/services/events';
+import { publishedFilter, upcomingFilter } from '@/lib/services/events';
+
+export type AdminEventSalesRow = {
+  id: string;
+  title: string;
+  slug: string;
+  startDate: Date;
+  organizerName: string;
+  cityName: string;
+  ticketsSold: number;
+  revenue: number;
+};
+
+export async function getAdminEventsSalesOverview(): Promise<AdminEventSalesRow[]> {
+  await ensureDbConnection();
+
+  const events = await prisma.event.findMany({
+    where: {
+      ...publishedFilter,
+      listingType: 'internal'
+    },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      startDate: true,
+      organizer: { select: { name: true } },
+      city: { select: { name: true } }
+    },
+    orderBy: [{ startDate: 'asc' }]
+  });
+
+  if (events.length === 0) return [];
+
+  const eventIds = events.map((event) => event.id);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      eventId: { in: eventIds },
+      status: 'paid',
+      deletedAt: null,
+      paymentProvider: { not: 'invitation' }
+    },
+    select: {
+      eventId: true,
+      total: true,
+      items: { select: { quantity: true } }
+    }
+  });
+
+  const salesByEvent = new Map<string, { ticketsSold: number; revenue: number }>();
+
+  for (const order of orders) {
+    const current = salesByEvent.get(order.eventId) ?? { ticketsSold: 0, revenue: 0 };
+    current.revenue += order.total;
+    current.ticketsSold += order.items.reduce((sum, item) => sum + item.quantity, 0);
+    salesByEvent.set(order.eventId, current);
+  }
+
+  return events.map((event) => {
+    const sales = salesByEvent.get(event.id) ?? { ticketsSold: 0, revenue: 0 };
+    return {
+      id: event.id,
+      title: event.title,
+      slug: event.slug,
+      startDate: event.startDate,
+      organizerName: event.organizer.name,
+      cityName: event.city.name,
+      ticketsSold: sales.ticketsSold,
+      revenue: sales.revenue
+    };
+  });
+}
 
 export async function getAdminStats() {
   await ensureDbConnection();

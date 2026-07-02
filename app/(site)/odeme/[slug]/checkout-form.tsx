@@ -30,6 +30,7 @@ export function CheckoutForm({
     currency: string;
     capacity: number;
     sold: number;
+    showLowStockBadge: boolean;
   }>;
 }) {
   const router = useRouter();
@@ -191,13 +192,22 @@ export function CheckoutForm({
                   {ticketTypes.length === 0 && (
                     <option value="">Genel Giriş — {formatPrice(event)}</option>
                   )}
-                  {ticketTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name} — {type.price <= 0 ? 'Ücretsiz' : `${type.price} ₺`} (
-                      {Math.max(0, type.capacity - type.sold)} kaldı)
-                    </option>
-                  ))}
+                  {ticketTypes.map((type) => {
+                    const priceLabel =
+                      type.price <= 0 ? 'Ücretsiz' : `${type.price} ₺`;
+                    const label = type.showLowStockBadge
+                      ? `${type.name} — ${priceLabel} — Tükenmek üzere`
+                      : `${type.name} — ${priceLabel}`;
+                    return (
+                      <option key={type.id} value={type.id}>
+                        {label}
+                      </option>
+                    );
+                  })}
                 </select>
+                {selectedType?.showLowStockBadge && (
+                  <p className="text-xs font-medium text-[#f5a623]">Tükenmek üzere</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Adet</Label>

@@ -10,6 +10,7 @@ import {
 
 const createSchema = z.object({
   code: z.string().min(2).max(30),
+  assignedLabel: z.string().max(100).optional(),
   eventId: z.string().uuid().optional(),
   type: z.enum(['percent', 'fixed']),
   value: z.number().positive(),

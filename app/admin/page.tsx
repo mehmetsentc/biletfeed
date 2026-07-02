@@ -1,11 +1,18 @@
 import { getTranslations } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getAdminStats } from '@/lib/services/admin-dashboard';
+import { AdminEventsSalesTable } from '@/components/admin/admin-events-sales-table';
+import {
+  getAdminEventsSalesOverview,
+  getAdminStats
+} from '@/lib/services/admin-dashboard';
 
 const t = getTranslations();
 
 export default async function AdminPage() {
-  const stats = await getAdminStats();
+  const [stats, eventSales] = await Promise.all([
+    getAdminStats(),
+    getAdminEventsSalesOverview()
+  ]);
 
   return (
     <div className="space-y-6">
@@ -32,6 +39,7 @@ export default async function AdminPage() {
       <p className="text-sm text-muted-foreground">
         {stats.orderCount} ödenmiş sipariş
       </p>
+      <AdminEventsSalesTable rows={eventSales} />
     </div>
   );
 }

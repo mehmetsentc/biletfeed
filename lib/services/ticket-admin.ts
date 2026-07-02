@@ -1,4 +1,11 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { getCouponLabelMap } from '@/lib/services/coupons';
+import {
+  buildCsv,
+  buildTicketDetailRow,
+  TICKET_DETAIL_HEADERS_WITH_EVENT,
+  ticketCsvIncludeWithEvent
+} from '@/lib/export/csv';
 
 export async function getOrganizerCheckInStats(organizerId: string) {
   await ensureDbConnection();
@@ -69,42 +76,31 @@ export async function getOrganizerCheckInStats(organizerId: string) {
   };
 }
 
-export async function exportOrganizerTicketsCsv(organizerId: string): Promise<string> {
+export async function exportOrganizerTicketsCsv(
+  organizerId: string,
+  eventId?: string
+): Promise<string> {
   await ensureDbConnection();
 
-  const tickets = await prisma.purchasedTicket.findMany({
-    where: { event: { organizerId }, deletedAt: null },
-    include: {
-      event: { select: { title: true } },
-      ticketType: { select: { name: true } },
-      user: { select: { displayName: true, email: true } }
-    },
-    orderBy: { createdAt: 'desc' }
-  });
+  const [tickets, couponLabelMap] = await Promise.all([
+    prisma.purchasedTicket.findMany({
+      where: {
+        event: { organizerId },
+        deletedAt: null,
+        ...(eventId ? { eventId } : {})
+      },
+      include: ticketCsvIncludeWithEvent,
+      orderBy: { createdAt: 'desc' }
+    }),
+    getCouponLabelMap(organizerId, eventId)
+  ]);
 
-  const header =
-    'Kod,Etkinlik,Tür,Sahip,E-posta,Durum,Giriş Sayısı,Oluşturulma';
-  const rows = tickets.map((t) =>
-    [
-      t.ticketCode,
-      csvEscape(t.event.title),
-      csvEscape(t.ticketType.name),
-      csvEscape(t.attendeeName || t.user.displayName),
-      t.attendeeEmail || t.user.email,
-      t.status,
-      String(t.entryCount),
-      t.createdAt.toISOString()
-    ].join(',')
-  );
+  const rows: string[][] = [
+    [...TICKET_DETAIL_HEADERS_WITH_EVENT],
+    ...tickets.map((ticket) => buildTicketDetailRow(ticket, true, couponLabelMap))
+  ];
 
-  return [header, ...rows].join('\n');
-}
-
-function csvEscape(value: string): string {
-  if (value.includes(',') || value.includes('"')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
+  return buildCsv(rows);
 }
 
 export async function searchAdminTickets(query: string, limit = 50) {

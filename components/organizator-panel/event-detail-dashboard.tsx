@@ -32,6 +32,7 @@ import {
 import { eventStatusLabel } from '@/lib/organizator/status';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 type CategoryRow = {
@@ -44,6 +45,7 @@ type CategoryRow = {
   status: string;
   saleStartDate: string;
   saleEndDate: string;
+  showLowStockBadge: boolean;
 };
 
 type EventDetailData = {
@@ -240,8 +242,33 @@ export function EventDetailDashboard({
   const [status, setStatus] = useState(event.status);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [lowStockFlags, setLowStockFlags] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(categories.map((c) => [c.id, c.showLowStockBadge]))
+  );
+  const [lowStockToggleLoading, setLowStockToggleLoading] = useState<string | null>(null);
 
   const categoryInactive = isPast || status !== 'published';
+
+  async function toggleLowStockBadge(ticketTypeId: string, next: boolean) {
+    const previous = lowStockFlags[ticketTypeId] ?? false;
+    setLowStockFlags((prev) => ({ ...prev, [ticketTypeId]: next }));
+    setLowStockToggleLoading(ticketTypeId);
+    try {
+      const res = await fetch(`/api/organizer/ticket-types/${ticketTypeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showLowStockBadge: next })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Güncellenemedi');
+      }
+    } catch {
+      setLowStockFlags((prev) => ({ ...prev, [ticketTypeId]: previous }));
+    } finally {
+      setLowStockToggleLoading(null);
+    }
+  }
 
   async function updateStatus(next: EventStatus) {
     setActionLoading(true);
@@ -580,7 +607,7 @@ export function EventDetailDashboard({
               </a>
             </Button>
             <Button asChild variant="outline" size="sm" className="justify-start gap-2">
-              <a href={`/api/organizer/tickets/export`} download>
+              <a href={`/api/organizer/tickets/export?eventId=${event.id}`} download>
                 <Download className="size-3.5" />
                 Tüm biletler (CSV)
               </a>
@@ -636,6 +663,7 @@ export function EventDetailDashboard({
                 <th className="px-5 py-3">Kapasite</th>
                 <th className="px-5 py-3">Doluluk</th>
                 <th className="px-5 py-3">Durum</th>
+                <th className="px-5 py-3">Tükenmek üzere</th>
                 <th className="px-5 py-3">Standart ücret</th>
               </tr>
             </thead>
@@ -665,6 +693,14 @@ export function EventDetailDashboard({
                       {categoryInactive || cat.status !== 'active' ? 'İnaktif' : 'Aktif'}
                     </Badge>
                   </td>
+                  <td className="px-5 py-3.5">
+                    <Switch
+                      checked={lowStockFlags[cat.id] ?? false}
+                      disabled={lowStockToggleLoading === cat.id}
+                      onCheckedChange={(checked) => void toggleLowStockBadge(cat.id, checked)}
+                      aria-label={`${cat.name} için tükenmek üzere rozeti`}
+                    />
+                  </td>
                   <td className="px-5 py-3.5 font-medium tabular-nums">
                     {event.isFree || cat.price === 0 ? '—' : formatTry(cat.price)}
                   </td>
@@ -672,7 +708,7 @@ export function EventDetailDashboard({
               ))}
               {categories.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">
                     Bilet kategorisi tanımlı değil.
                   </td>
                 </tr>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 export type CouponRow = {
   id: string;
   code: string;
+  assignedLabel: string | null;
   type: string;
   value: number;
   usedCount: number;
@@ -24,6 +25,7 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     code: '',
+    assignedLabel: '',
     type: 'percent' as 'percent' | 'fixed',
     value: '10',
     maxUses: '',
@@ -45,6 +47,7 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
         credentials: 'include',
         body: JSON.stringify({
           code: form.code,
+          assignedLabel: form.assignedLabel.trim() || undefined,
           type: form.type,
           value: Number(form.value),
           maxUses: form.maxUses ? Number(form.maxUses) : undefined,
@@ -56,7 +59,15 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Oluşturulamadı');
       setCoupons((prev) => [data.coupon, ...prev]);
-      setForm({ code: '', type: 'percent', value: '10', maxUses: '', minOrder: '', validDays: '30' });
+      setForm({
+        code: '',
+        assignedLabel: '',
+        type: 'percent',
+        value: '10',
+        maxUses: '',
+        minOrder: '',
+        validDays: '30'
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Hata');
     } finally {
@@ -86,6 +97,17 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
               onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
               placeholder="YAZ2026"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Kupon Adı</Label>
+            <Input
+              value={form.assignedLabel}
+              onChange={(e) => setForm((f) => ({ ...f, assignedLabel: e.target.value }))}
+              placeholder="Ahmet Yılmaz / VIP Misafir"
+            />
+            <p className="text-xs text-muted-foreground">
+              Kime tanımlandığını takip etmek için (raporlarda görünür)
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Tür</Label>
@@ -128,6 +150,7 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               <th className="p-3 font-medium">Kod</th>
+              <th className="p-3 font-medium">Kupon Adı</th>
               <th className="p-3 font-medium">İndirim</th>
               <th className="p-3 font-medium">Kullanım</th>
               <th className="p-3 font-medium">Durum</th>
@@ -138,6 +161,7 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
             {coupons.map((c) => (
               <tr key={c.id} className="border-b last:border-0">
                 <td className="p-3 font-mono">{c.code}</td>
+                <td className="p-3 text-muted-foreground">{c.assignedLabel ?? '—'}</td>
                 <td className="p-3">
                   {c.type === 'percent' ? `%${c.value}` : `${c.value} ₺`}
                 </td>
@@ -161,7 +185,7 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
             ))}
             {coupons.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
                   Henüz kupon yok.
                 </td>
               </tr>

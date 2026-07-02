@@ -75,9 +75,32 @@ export async function listOrganizerCoupons(organizerId: string, eventId?: string
   });
 }
 
+export async function getCouponLabelMap(
+  organizerId: string,
+  eventId?: string
+): Promise<Map<string, string>> {
+  await ensureDbConnection();
+  const coupons = await prisma.coupon.findMany({
+    where: {
+      organizerId,
+      deletedAt: null,
+      ...(eventId ? { OR: [{ eventId }, { eventId: null }] } : {})
+    },
+    select: { code: true, assignedLabel: true }
+  });
+  const map = new Map<string, string>();
+  for (const coupon of coupons) {
+    if (coupon.assignedLabel) {
+      map.set(coupon.code.toUpperCase(), coupon.assignedLabel);
+    }
+  }
+  return map;
+}
+
 export async function createOrganizerCoupon(params: {
   organizerId: string;
   code: string;
+  assignedLabel?: string;
   eventId?: string;
   type: 'percent' | 'fixed';
   value: number;
@@ -88,6 +111,7 @@ export async function createOrganizerCoupon(params: {
 }) {
   await ensureDbConnection();
   const code = params.code.trim().toUpperCase();
+  const assignedLabel = params.assignedLabel?.trim() || null;
 
   if (params.type === 'percent' && (params.value <= 0 || params.value > 100)) {
     throw new Error('Yüzde indirim 1–100 arasında olmalı');
@@ -106,6 +130,7 @@ export async function createOrganizerCoupon(params: {
   return prisma.coupon.create({
     data: {
       code,
+      assignedLabel,
       organizerId: params.organizerId,
       eventId: params.eventId ?? null,
       type: params.type,

@@ -69,6 +69,7 @@ interface TicketCategory {
   price: string;
   capacity: string;
   sold: number;
+  showLowStockBadge: boolean;
 }
 
 function newSession(): SessionRow {
@@ -88,7 +89,8 @@ function newTicketCategory(): TicketCategory {
     description: '',
     price: '',
     capacity: '',
-    sold: 0
+    sold: 0,
+    showLowStockBadge: false
   };
 }
 
@@ -100,7 +102,8 @@ function initialTicketCategory(data: EventWizardInitialData['ticketCategories'][
     description: data.description,
     price: data.price,
     capacity: data.capacity,
-    sold: data.sold
+    sold: data.sold,
+    showLowStockBadge: data.showLowStockBadge
   };
 }
 
@@ -217,7 +220,11 @@ export function CreateOrganizerEventWizard({
     setDescription(draft.description);
     setTicketType(draft.ticketType);
     setTicketCategories(
-      draft.ticketCategories.map((c) => ({ ...c, sold: 0 }))
+      draft.ticketCategories.map((c) => ({
+        ...c,
+        sold: 0,
+        showLowStockBadge: c.showLowStockBadge ?? false
+      }))
     );
     if (draft.previewImageUrl?.startsWith('http')) {
       setPreviewImage(draft.previewImageUrl);
@@ -298,7 +305,11 @@ export function CreateOrganizerEventWizard({
     setSessions((prev) => [...prev, newSession()]);
   }
 
-  function updateTicketCategory(id: string, field: keyof TicketCategory, value: string) {
+  function updateTicketCategory<K extends keyof TicketCategory>(
+    id: string,
+    field: K,
+    value: TicketCategory[K]
+  ) {
     setTicketCategories((prev) =>
       prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
     );
@@ -415,7 +426,8 @@ export function CreateOrganizerEventWizard({
           name: c.name.trim(),
           description: c.description.trim(),
           price: ticketType === 'free' ? 0 : Number(c.price),
-          capacity: Number(c.capacity)
+          capacity: Number(c.capacity),
+          showLowStockBadge: c.showLowStockBadge
         })),
         ...(targetStatus ? { status: targetStatus } : {}),
         ...(targetStatus === 'pending' ? { organizerTermsAccepted: true } : {})
@@ -822,6 +834,21 @@ export function CreateOrganizerEventWizard({
                           placeholder="Örn: Sahne önü, ayakta alan. Sınırlı sayıda."
                           className="h-11 rounded-lg"
                         />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={cat.showLowStockBadge}
+                            onChange={(e) =>
+                              updateTicketCategory(cat.id, 'showLowStockBadge', e.target.checked)
+                            }
+                            className="mt-0.5 size-4 shrink-0 rounded border-border"
+                          />
+                          <span>
+                            Satış ekranında &quot;Tükenmek üzere&quot; göster
+                          </span>
+                        </label>
                       </div>
                     </div>
                   </div>

@@ -91,7 +91,8 @@ export async function getOrganizerEventDetail(
       occupancyPct: pct,
       status: tt.status,
       saleStartDate: tt.saleStartDate,
-      saleEndDate: tt.saleEndDate
+      saleEndDate: tt.saleEndDate,
+      showLowStockBadge: tt.showLowStockBadge
     };
   });
 

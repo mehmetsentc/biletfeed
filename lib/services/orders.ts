@@ -95,7 +95,8 @@ export async function getCheckoutTicketTypes(eventSlug: string) {
           price: true,
           currency: true,
           capacity: true,
-          sold: true
+          sold: true,
+          showLowStockBadge: true
         }
       }
     }

@@ -12,6 +12,7 @@ export interface TicketCategoryInput {
   description?: string;
   price: number;
   capacity: number;
+  showLowStockBadge?: boolean;
 }
 
 export interface CreateOrganizerEventInput extends OrganizerEventExtras {
@@ -168,7 +169,8 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
                 capacity: cat.capacity,
                 saleStartDate: now,
                 saleEndDate: input.startDate,
-                status: 'active' as const
+                status: 'active' as const,
+                showLowStockBadge: cat.showLowStockBadge ?? false
               };
               })
             : [{
@@ -315,7 +317,8 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
               price,
               capacity: cat.capacity,
               quantity: cat.capacity,
-              type: index === 0 ? 'general' : 'vip'
+              type: index === 0 ? 'general' : 'vip',
+              showLowStockBadge: cat.showLowStockBadge ?? false
             }
           });
           keptIds.add(cat.id);
@@ -333,7 +336,8 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
               capacity: cat.capacity,
               saleStartDate: now,
               saleEndDate: input.endDate ?? event.endDate,
-              status: 'active'
+              status: 'active',
+              showLowStockBadge: cat.showLowStockBadge ?? false
             }
           });
           keptIds.add(created.id);

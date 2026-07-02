@@ -33,6 +33,7 @@ export type EventWizardDraft = {
     description: string;
     price: string;
     capacity: string;
+    showLowStockBadge?: boolean;
   }>;
   attendeeQuestions: AttendeeQuestionRow[];
   preventQuestionCopy: boolean;

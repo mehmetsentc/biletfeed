@@ -23,6 +23,7 @@ export default async function OrganizatorCouponsPage() {
         initialCoupons={coupons.map((c) => ({
           id: c.id,
           code: c.code,
+          assignedLabel: c.assignedLabel,
           type: c.type,
           value: c.value,
           usedCount: c.usedCount,

@@ -29,6 +29,7 @@ export interface EventWizardInitialData {
     price: string;
     capacity: string;
     sold: number;
+    showLowStockBadge: boolean;
   }>;
 }
 
@@ -87,7 +88,8 @@ export function mapEventToWizardInitialData(event: EventWithRelations): EventWiz
         description: label.description,
         price: String(ticket.price),
         capacity: String(ticket.capacity || ticket.quantity),
-        sold: ticket.sold
+        sold: ticket.sold,
+        showLowStockBadge: ticket.showLowStockBadge
       };
     })
   };
