@@ -4,6 +4,7 @@ import { verifySessionCookie } from '@/lib/auth/session';
 import { canAccessAdmin } from '@/lib/auth/permissions';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { ensureDbConnection, prisma } from '@/lib/db/prisma';
+import { isScraperEnabled } from '@/lib/config/features';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -89,6 +90,13 @@ export async function POST(request: NextRequest) {
     if (!session || !canAccessAdmin(session.role as never)) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
     }
+  }
+
+  if (!isScraperEnabled) {
+    return NextResponse.json(
+      { ok: false, error: 'Scraper devre dışı (SCRAPER_ENABLED=false).' },
+      { status: 403 }
+    );
   }
 
   const wait =

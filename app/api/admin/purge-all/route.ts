@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { canAccessAdmin } from '@/lib/auth/permissions';
-import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import {
+  getScrapedEventsSummary,
+  purgeScrapedEvents
+} from '@/lib/services/purge-scraped-events';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/admin/purge-all
- * Tüm harici platform etkinliklerini hard-delete eder (BUBILET, PASSO, BILETINO vb.)
- * Temiz re-scrape için kullanılır.
+ * Tüm harici (scraper) etkinlikleri kalıcı olarak siler.
+ * Internal (organizatör) etkinliklere dokunmaz.
  */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -22,46 +25,31 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  await ensureDbConnection();
-
   try {
-    const total = await prisma.event.count({
-      where: { listingType: 'external' }
-    });
+    const before = await getScrapedEventsSummary();
 
-    if (total === 0) {
-      return NextResponse.json({ ok: true, deleted: 0, message: 'Silinecek harici etkinlik yok.' });
+    if (before.external === 0) {
+      return NextResponse.json({
+        ok: true,
+        deleted: 0,
+        before,
+        after: before,
+        message: 'Silinecek harici etkinlik yok.'
+      });
     }
 
-    // Platform bazlı sayım (log için)
-    const platformCounts = await prisma.event.groupBy({
-      by: ['externalPlatform'],
-      where: { listingType: 'external' },
-      _count: { id: true }
-    });
-
-    const eventIds = await prisma.event.findMany({
-      where: { listingType: 'external' },
-      select: { id: true }
-    });
-    const ids = eventIds.map(e => e.id);
-
-    await prisma.ticketType.deleteMany({ where: { eventId: { in: ids } } });
-    await prisma.favorite.deleteMany({ where: { eventId: { in: ids } } });
-
-    const result = await prisma.event.deleteMany({
-      where: { listingType: 'external' }
-    });
-
-    const breakdown = Object.fromEntries(
-      platformCounts.map(p => [p.externalPlatform ?? 'unknown', p._count.id])
-    );
+    const result = await purgeScrapedEvents();
+    const after = await getScrapedEventsSummary();
 
     return NextResponse.json({
       ok: true,
-      deleted: result.count,
-      breakdown,
-      message: `${result.count} harici etkinlik silindi. Scraper'ı çalıştırabilirsiniz.`
+      deleted: result.deleted,
+      breakdown: result.breakdown,
+      feedPostsUnlinked: result.feedPostsUnlinked,
+      ordersRemoved: result.ordersRemoved,
+      before,
+      after,
+      message: `${result.deleted} harici etkinlik silindi. ${after.publishedInternal} onaylı internal etkinlik kaldı.`
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

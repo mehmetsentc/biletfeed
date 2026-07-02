@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runEventScrapeJob } from '@/lib/scraper/sync';
+import { isScraperEnabled } from '@/lib/config/features';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,14 @@ function isAuthorized(request: NextRequest): boolean {
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!isScraperEnabled) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      message: 'Scraper devre dışı (SCRAPER_ENABLED=false).'
+    });
   }
 
   const { runId, status, stats } = await runEventScrapeJob();

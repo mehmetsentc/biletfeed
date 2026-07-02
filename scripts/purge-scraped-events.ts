@@ -1,61 +1,30 @@
 /**
- * Tüm harici (scraper) etkinlikleri siler — sıfırdan scrape için.
+ * Tüm harici (scraper) etkinlikleri siler — internal etkinlikler kalır.
+ *
+ * Kullanım: npx dotenv -e .env.local -- tsx scripts/purge-scraped-events.ts
  */
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-async function deleteEventsByIds(ids: string[]) {
-  if (ids.length === 0) return 0;
-
-  const ticketTypes = await prisma.ticketType.findMany({
-    where: { eventId: { in: ids } },
-    select: { id: true }
-  });
-  const ticketTypeIds = ticketTypes.map((t) => t.id);
-
-  if (ticketTypeIds.length > 0) {
-    await prisma.orderItem.deleteMany({
-      where: { ticketTypeId: { in: ticketTypeIds } }
-    });
-    await prisma.purchasedTicket.deleteMany({
-      where: { ticketTypeId: { in: ticketTypeIds } }
-    });
-    await prisma.ticketType.deleteMany({ where: { id: { in: ticketTypeIds } } });
-  }
-
-  await prisma.favorite.deleteMany({ where: { eventId: { in: ids } } });
-  await prisma.review.deleteMany({ where: { eventId: { in: ids } } });
-
-  const result = await prisma.event.deleteMany({ where: { id: { in: ids } } });
-  return result.count;
-}
+import {
+  getScrapedEventsSummary,
+  purgeScrapedEvents
+} from '@/lib/services/purge-scraped-events';
 
 async function main() {
-  const external = await prisma.event.findMany({
-    where: {
-      deletedAt: null,
-      listingType: 'external'
-    },
-    select: { id: true, slug: true, title: true, externalPlatform: true }
-  });
+  const before = await getScrapedEventsSummary();
+  console.log('Önce:', before);
 
-  console.log(`${external.length} harici etkinlik silinecek…`);
+  if (before.external === 0) {
+    console.log('Silinecek harici etkinlik yok.');
+    return;
+  }
 
-  const deleted = await deleteEventsByIds(external.map((e) => e.id));
-  console.log(`✓ ${deleted} etkinlik silindi.`);
+  const result = await purgeScrapedEvents();
+  const after = await getScrapedEventsSummary();
 
-  const remaining = await prisma.event.count({
-    where: { deletedAt: null, status: 'published' }
-  });
-  console.log(`Kalan yayınlanmış etkinlik: ${remaining}`);
+  console.log('Silindi:', result);
+  console.log('Sonra:', after);
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
