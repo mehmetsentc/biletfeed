@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { HomeFeedTabs } from '@/components/feed/home-feed-tabs';
 import { HomeHeroDesktop, HomeHeroMobile, HomeHeroTablet } from '@/components/home/home-hero';
+import { HomeFeaturedBanners } from '@/components/home/home-featured-banners';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { EventifyCard } from '@/components/events/eventify-card';
 import { CategoryExplore } from '@/components/home/category-explore';
@@ -11,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
 import { getHomeCityEventsBundle } from '@/lib/services/home-city-events';
+import { getActiveHomeBanners } from '@/lib/services/home-banners';
 import { getOnlineEvents } from '@/lib/services/events';
 
 export const metadata = createPageMetadata({
@@ -32,9 +34,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const citySlug = await getPreferredCitySlug();
-  const [cityBundle, online] = await Promise.all([
+  const [cityBundle, online, featuredBanners] = await Promise.all([
     getHomeCityEventsBundle(citySlug),
-    getOnlineEvents()
+    getOnlineEvents(),
+    getActiveHomeBanners()
   ]);
 
   return (
@@ -42,6 +45,8 @@ export default async function HomePage() {
       <HomeHeroMobile />
       <HomeHeroTablet />
       <HomeHeroDesktop />
+
+      <HomeFeaturedBanners banners={featuredBanners} />
 
       <section className="container mx-auto px-4 py-6">
         <HomeFeedTabs />
