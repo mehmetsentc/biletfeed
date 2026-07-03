@@ -1,5 +1,7 @@
 import type { Event, TicketType, Category, City, Venue } from '@prisma/client';
 
+import type { EventAnnouncementInput, EventRuleSetData } from '@/lib/event-rules/types';
+
 type EventWithRelations = Event & {
   category: Category;
   city: City;
@@ -32,6 +34,7 @@ export interface EventWizardInitialData {
     showLowStockBadge: boolean;
   }>;
   eventRules: string;
+  ruleSet: EventRuleSetData & { announcements: EventAnnouncementInput[] };
 }
 
 function toLocalDateParts(value: Date | string): { date: string; time: string } {
@@ -58,7 +61,13 @@ function splitTicketLabel(name: string, description: string): { name: string; de
   return { name, description: '' };
 }
 
-export function mapEventToWizardInitialData(event: EventWithRelations): EventWizardInitialData {
+export function mapEventToWizardInitialData(
+  event: EventWithRelations,
+  ruleSetData?: {
+    ruleSet: EventRuleSetData | null;
+    announcements: EventAnnouncementInput[];
+  }
+): EventWizardInitialData {
   const start = toLocalDateParts(event.startDate);
   const end = toLocalDateParts(event.endDate);
   const venueName = event.venue?.name ?? '';
@@ -93,6 +102,16 @@ export function mapEventToWizardInitialData(event: EventWithRelations): EventWiz
         showLowStockBadge: ticket.showLowStockBadge
       };
     }),
-    eventRules: event.rules?.trim() ?? ''
+    eventRules: event.rules?.trim() ?? '',
+    ruleSet: {
+      selectedRules: ruleSetData?.ruleSet?.selectedRules ?? [],
+      customRules:
+        ruleSetData?.ruleSet?.customRules ??
+        (event.rules?.trim()
+          ? event.rules.split(/\r?\n/).filter(Boolean)
+          : []),
+      appliedTemplateId: ruleSetData?.ruleSet?.appliedTemplateId ?? null,
+      announcements: ruleSetData?.announcements ?? []
+    }
   };
 }

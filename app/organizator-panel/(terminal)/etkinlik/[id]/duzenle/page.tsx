@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { mapEventToWizardInitialData } from '@/lib/organizator/event-wizard-data';
+import { getEventRuleSet } from '@/lib/services/event-rules';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { CreateOrganizerEventWizard } from '@/components/organizator-panel/create-event-wizard';
 
@@ -32,11 +33,13 @@ export default async function OrganizatorEditEventPage({ params }: PageProps) {
 
   if (!event) notFound();
 
+  const ruleSetData = await getEventRuleSet(event.id);
+
   return (
     <CreateOrganizerEventWizard
       mode="edit"
       eventId={event.id}
-      initialData={mapEventToWizardInitialData(event)}
+      initialData={mapEventToWizardInitialData(event, ruleSetData)}
       initialStatus={event.status}
     />
   );

@@ -19,7 +19,11 @@ import {
   buildBreadcrumbSchema,
   buildEventSchema
 } from '@/lib/seo/schemas';
+import { EventRulesSection } from '@/components/events/event-rules-section';
 import { siteConfig } from '@/lib/config/site';
+import { getEventRulesDisplay } from '@/lib/services/event-rules';
+import { resolveLocaleFromCookie } from '@/lib/event-rules/i18n';
+import { cookies } from 'next/headers';
 
 interface EventDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -80,11 +84,20 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     normalizedDescription !== normalizedTitle &&
     normalizedDescription !== event.shortDescription.trim().toLowerCase();
 
+  const cookieStore = await cookies();
+  const locale = resolveLocaleFromCookie(cookieStore.get('bf-locale')?.value);
+  const rulesDisplay = await getEventRulesDisplay(event.id, locale);
+  const schemaRules =
+    rulesDisplay?.sections.flatMap((s) => s.items.map((i) => i.displayText)) ??
+    (event.rules?.trim()
+      ? event.rules.split(/\r?\n/).filter(Boolean)
+      : []);
+
   return (
     <>
       <JsonLd
         data={[
-          buildEventSchema(event),
+          buildEventSchema(event, { eventRules: schemaRules }),
           buildBreadcrumbSchema([
             { name: 'Ana Sayfa', url: siteConfig.url },
             { name: 'Etkinlikler', url: `${siteConfig.url}/etkinlikler` },
@@ -144,6 +157,8 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                   </div>
                 </section>
               )}
+
+              <EventRulesSection eventId={event.id} />
             </div>
 
             <aside className="hidden lg:block">

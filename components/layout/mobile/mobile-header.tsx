@@ -18,7 +18,7 @@ interface MobileHeaderProps {
 export function MobileHeader({ categories }: MobileHeaderProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const { citySlug, cities, setCity } = useCity();
+  const { citySlug, cities, openCityPicker } = useCity();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -71,11 +71,9 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
         <div className="flex items-center gap-2 border-t border-[var(--header-border)] px-3 py-2">
           <button
             type="button"
-            onClick={() => {
-              const next = cities[(cities.findIndex((c) => c.slug === citySlug) + 1) % cities.length];
-              if (next) setCity(next.slug);
-            }}
+            onClick={openCityPicker}
             className="flex shrink-0 items-center gap-1 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"
+            aria-label="Şehir seç"
           >
             <MapPin className="size-3.5 shrink-0" />
             <span className="max-w-[80px] truncate">{cityName}</span>

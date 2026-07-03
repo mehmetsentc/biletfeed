@@ -19,6 +19,7 @@ export const EVENT_WIZARD_STEPS = [
   'Mekan & Konum',
   'İçerik',
   'Medya & Biletler',
+  'Etkinlik Kuralları',
   'Katılım & Gizlilik',
   'Yayınlama'
 ] as const;

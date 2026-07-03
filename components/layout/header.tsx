@@ -3,13 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { User } from 'lucide-react';
 import { CitySelectorButton } from '@/components/location/city-selector-button';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
-import { ProfileDropdown, HeaderIconLink } from '@/components/layout/profile-dropdown';
+import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
-import { isAccountAreaActive } from '@/lib/account/navigation';
 import { cn } from '@/lib/utils';
 import { mainNavLinks } from '@/lib/layout/navigation';
 
@@ -45,7 +43,7 @@ export function Header() {
         />
 
         <nav className="hidden items-center gap-7 md:flex">
-          <CitySelectorButton className="hidden lg:inline-flex" />
+          <CitySelectorButton className="hidden md:inline-flex" />
           {mainNavLinks.map((link) => {
             const active =
               pathname === link.href ||
@@ -70,15 +68,7 @@ export function Header() {
           {!loading && (
             <div className="flex items-center gap-2">
               {user ? (
-                <>
-                  <HeaderIconLink
-                    href="/profil"
-                    icon={User}
-                    label="Hesabım"
-                    active={isAccountAreaActive(pathname)}
-                  />
-                  <ProfileDropdown />
-                </>
+                <ProfileDropdown />
               ) : (
                 <>
                   <Link href="/giris">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { EventStatus } from '@prisma/client';
@@ -37,6 +37,10 @@ import { WizardStepVenue } from '@/components/organizator-panel/event-wizard/wiz
 import { WizardStepContent } from '@/components/organizator-panel/event-wizard/wizard-step-content';
 import { WizardStepParticipation } from '@/components/organizator-panel/event-wizard/wizard-step-participation';
 import { WizardStepPublish } from '@/components/organizator-panel/event-wizard/wizard-step-publish';
+import {
+  WizardStepRules,
+  type EventRuleSetState
+} from '@/components/organizator-panel/event-wizard/wizard-step-rules';
 import type {
   AttendeeQuestionRow,
   PerformerRow
@@ -45,7 +49,8 @@ import { cn } from '@/lib/utils';
 import {
   clearEventWizardDraft,
   loadEventWizardDraft,
-  saveEventWizardDraft
+  saveEventWizardDraft,
+  type EventWizardDraft
 } from '@/lib/organizator/event-wizard-draft';
 
 const TOTAL_STEPS = EVENT_WIZARD_STEPS.length;
@@ -94,6 +99,31 @@ function newTicketCategory(): TicketCategory {
   };
 }
 
+function isValidTicketCategory(c: TicketCategory): boolean {
+  const name = c.name.trim();
+  const capacityRaw = String(c.capacity ?? '').trim();
+  if (!name || !capacityRaw) return false;
+  const capacityNum = Number(capacityRaw);
+  return Number.isFinite(capacityNum) && capacityNum > 0;
+}
+
+function ticketCategoriesFromDraft(
+  raw: EventWizardDraft['ticketCategories'] | undefined
+): TicketCategory[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [newTicketCategory()];
+  }
+  return raw.map((c) => ({
+    id: c.id || String(Date.now()) + Math.random().toString(36).slice(2, 7),
+    name: c.name ?? '',
+    description: c.description ?? '',
+    price: c.price != null ? String(c.price) : '',
+    capacity: c.capacity != null ? String(c.capacity) : '',
+    sold: 0,
+    showLowStockBadge: c.showLowStockBadge ?? false
+  }));
+}
+
 function initialTicketCategory(data: EventWizardInitialData['ticketCategories'][number]): TicketCategory {
   return {
     id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
@@ -128,6 +158,7 @@ const createStepHints = [
   'Mekan, adres ve etiketleri belirleyin.',
   'Katılımcıları ve etkinlik açıklamasını ekleyin.',
   'Kapak görseli ve bilet kategorilerini ayarlayın.',
+  'Etkinlik kurallarını ve bilgilendirmeleri yapılandırın.',
   'Katılımcı soruları ve gizlilik seçeneklerini yapılandırın.',
   'Son kontrolü yapın; taslak kaydedin veya onaya gönderin.'
 ];
@@ -137,6 +168,7 @@ const editStepHints = [
   'Mekan, adres ve etiketleri düzenleyin.',
   'Katılımcıları ve açıklamayı güncelleyin.',
   'Kapak görseli ve bilet kategorilerini düzenleyin.',
+  'Etkinlik kurallarını ve bilgilendirmeleri güncelleyin.',
   'Katılımcı soruları ve gizlilik ayarlarını güncelleyin.',
   'Değişiklikleri kaydetmeden önce son kontrolü yapın.'
 ];
@@ -170,7 +202,15 @@ export function CreateOrganizerEventWizard({
   const [venueName, setVenueName] = useState(initialData?.venueName ?? '');
   const [venueAddress, setVenueAddress] = useState('');
   const [venueDetail, setVenueDetail] = useState('');
-  const [eventRules, setEventRules] = useState(initialData?.eventRules ?? '');
+  const [ruleSet, setRuleSet] = useState<EventRuleSetState>(
+    initialData?.ruleSet ?? {
+      selectedRules: [],
+      customRules: initialData?.eventRules
+        ? initialData.eventRules.split(/\r?\n/).filter(Boolean)
+        : [],
+      announcements: []
+    }
+  );
   const [onlineUrl, setOnlineUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [performers, setPerformers] = useState<PerformerRow[]>([]);
@@ -191,7 +231,9 @@ export function CreateOrganizerEventWizard({
   const [publishing, setPublishing] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<'pending' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(isEdit);
+  const ticketCategoriesRef = useRef(ticketCategories);
+  ticketCategoriesRef.current = ticketCategories;
 
   useEffect(() => {
     if (isEdit || draftRestored) return;
@@ -220,13 +262,10 @@ export function CreateOrganizerEventWizard({
     setTermsAccepted(draft.termsAccepted);
     setDescription(draft.description);
     setTicketType(draft.ticketType);
-    setTicketCategories(
-      draft.ticketCategories.map((c) => ({
-        ...c,
-        sold: 0,
-        showLowStockBadge: c.showLowStockBadge ?? false
-      }))
-    );
+    setTicketCategories(ticketCategoriesFromDraft(draft.ticketCategories));
+    if (draft.ruleSet) {
+      setRuleSet(draft.ruleSet);
+    }
     if (draft.previewImageUrl?.startsWith('http')) {
       setPreviewImage(draft.previewImageUrl);
     }
@@ -258,7 +297,8 @@ export function CreateOrganizerEventWizard({
         accessPassword,
         hiddenFromSearch,
         termsAccepted,
-        previewImageUrl: previewImage?.startsWith('http') ? previewImage : null
+        previewImageUrl: previewImage?.startsWith('http') ? previewImage : null,
+        ruleSet
       });
     }, 400);
     return () => window.clearTimeout(timer);
@@ -286,7 +326,8 @@ export function CreateOrganizerEventWizard({
     accessPassword,
     hiddenFromSearch,
     termsAccepted,
-    previewImage
+    previewImage,
+    ruleSet
   ]);
 
   const stepHints = isEdit ? editStepHints : createStepHints;
@@ -329,8 +370,88 @@ export function CreateOrganizerEventWizard({
     setTicketCategories((prev) => prev.filter((c) => c.id !== id));
   }
 
+  const persistDraftSnapshot = useCallback(
+    (nextStep?: number) => {
+      if (isEdit || !draftRestored) return;
+      saveEventWizardDraft({
+        step: nextStep ?? step,
+        title,
+        category,
+        citySlug,
+        eventTypeMode,
+        sessions,
+        location,
+        venueName,
+        venueAddress,
+        venueDetail,
+        onlineUrl,
+        tags,
+        performers,
+        description,
+        ticketType,
+        ticketCategories: ticketCategoriesRef.current.map(({ sold: _sold, ...c }) => ({
+          ...c,
+          price: c.price != null ? String(c.price) : '',
+          capacity: c.capacity != null ? String(c.capacity) : ''
+        })),
+        attendeeQuestions,
+        preventQuestionCopy,
+        accessPassword,
+        hiddenFromSearch,
+        termsAccepted,
+        previewImageUrl: previewImage?.startsWith('http') ? previewImage : null,
+        ruleSet
+      });
+    },
+    [
+      isEdit,
+      draftRestored,
+      step,
+      title,
+      category,
+      citySlug,
+      eventTypeMode,
+      sessions,
+      location,
+      venueName,
+      venueAddress,
+      venueDetail,
+      onlineUrl,
+      tags,
+      performers,
+      description,
+      ticketType,
+      attendeeQuestions,
+      preventQuestionCopy,
+      accessPassword,
+      hiddenFromSearch,
+      termsAccepted,
+      previewImage,
+      ruleSet
+    ]
+  );
+
+  function goToNextStep() {
+    setError(null);
+    const categories = ticketCategoriesRef.current;
+    if (step === 4) {
+      const valid = categories.filter(isValidTicketCategory);
+      if (valid.length === 0) {
+        setError('En az bir bilet kategorisi ekleyin.');
+        return;
+      }
+      if (ticketType === 'paid' && valid.some((c) => !String(c.price ?? '').trim())) {
+        setError('Ücretli biletler için her kategoriye fiyat girin.');
+        return;
+      }
+    }
+    persistDraftSnapshot(step + 1);
+    setStep(step + 1);
+  }
+
   async function saveEvent(targetStatus?: 'draft' | 'pending') {
     setError(null);
+    persistDraftSnapshot();
     const first = sessions[0];
     const startDate = sessionToIso(first);
 
@@ -358,12 +479,13 @@ export function CreateOrganizerEventWizard({
       setError('Onaya göndermek için organizatör kullanıcı sözleşmesini kabul etmelisiniz.');
       return;
     }
-    const validCategories = ticketCategories.filter((c) => c.name.trim() && c.capacity);
+    const categories = ticketCategoriesRef.current;
+    const validCategories = categories.filter(isValidTicketCategory);
     if (validCategories.length === 0) {
       setError('En az bir bilet kategorisi ekleyin.');
       return;
     }
-    if (ticketType === 'paid' && validCategories.some((c) => !c.price)) {
+    if (ticketType === 'paid' && validCategories.some((c) => !String(c.price ?? '').trim())) {
       setError('Ücretli biletler için her kategoriye fiyat girin.');
       return;
     }
@@ -405,7 +527,6 @@ export function CreateOrganizerEventWizard({
         venueName: location === 'online' ? 'Online' : venueName.trim() || undefined,
         venueAddress: venueAddress.trim() || undefined,
         venueDetail: venueDetail.trim() || undefined,
-        rules: eventRules.trim() || undefined,
         startDate,
         endDate,
         isFree: ticketType === 'free',
@@ -446,6 +567,20 @@ export function CreateOrganizerEventWizard({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || (isEdit ? 'Kayıt başarısız' : 'Kayıt başarısız'));
 
+      const savedEventId = (isEdit && eventId ? eventId : data.event?.id) as string | undefined;
+      if (savedEventId) {
+        await fetch(`/api/organizer/events/${savedEventId}/rules`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            selectedRules: ruleSet.selectedRules,
+            customRules: ruleSet.customRules,
+            appliedTemplateId: ruleSet.appliedTemplateId ?? null,
+            announcements: ruleSet.announcements
+          })
+        });
+      }
+
       if (!isEdit) clearEventWizardDraft();
 
       if (!isEdit && targetStatus === 'pending') {
@@ -480,6 +615,14 @@ export function CreateOrganizerEventWizard({
         <Button asChild className="mt-8">
           <Link href="/organizator-panel/etkinlikler">Etkinliklerime Git</Link>
         </Button>
+      </div>
+    );
+  }
+
+  if (!isEdit && !draftRestored) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center px-4">
+        <p className="text-sm text-muted-foreground">Taslak yükleniyor…</p>
       </div>
     );
   }
@@ -882,9 +1025,20 @@ export function CreateOrganizerEventWizard({
           )}
 
           {step === 5 && (
+            <WizardStepRules
+              categorySlug={category}
+              tags={tags}
+              title={title}
+              description={description}
+              isOnline={location === 'online' || location === 'hybrid'}
+              isFree={ticketType === 'free'}
+              ruleSet={ruleSet}
+              onRuleSetChange={setRuleSet}
+            />
+          )}
+
+          {step === 6 && (
             <WizardStepParticipation
-              eventRules={eventRules}
-              onEventRulesChange={setEventRules}
               attendeeQuestions={attendeeQuestions}
               onAttendeeQuestionsChange={setAttendeeQuestions}
               preventQuestionCopy={preventQuestionCopy}
@@ -896,7 +1050,7 @@ export function CreateOrganizerEventWizard({
             />
           )}
 
-          {step === 6 && (
+          {step === 7 && (
             <WizardStepPublish
               isEdit={isEdit}
               showTerms={
@@ -949,7 +1103,7 @@ export function CreateOrganizerEventWizard({
 
           {step < TOTAL_STEPS ? (
             <Button
-              onClick={() => setStep(step + 1)}
+              onClick={goToNextStep}
               className="min-w-[160px] bg-primary px-8 text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
               disabled={publishing}
             >

@@ -1,5 +1,6 @@
 import type { PerformerRow, AttendeeQuestionRow } from '@/components/organizator-panel/event-wizard/types';
 import type { CitySlug } from '@/lib/location/cities';
+import type { EventRuleSetState } from '@/components/organizator-panel/event-wizard/wizard-step-rules';
 
 const DRAFT_KEY = 'bf-organizer-event-wizard-draft';
 const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -41,8 +42,11 @@ export type EventWizardDraft = {
   hiddenFromSearch: boolean;
   termsAccepted: boolean;
   previewImageUrl: string | null;
+  ruleSet?: EventRuleSetState;
   savedAt: number;
 };
+
+export type EventWizardDraftInput = Omit<EventWizardDraft, 'version' | 'savedAt'>;
 
 export function loadEventWizardDraft(): EventWizardDraft | null {
   if (typeof window === 'undefined') return null;
@@ -61,7 +65,7 @@ export function loadEventWizardDraft(): EventWizardDraft | null {
   }
 }
 
-export function saveEventWizardDraft(draft: Omit<EventWizardDraft, 'version' | 'savedAt'>): void {
+export function saveEventWizardDraft(draft: EventWizardDraftInput): void {
   if (typeof window === 'undefined') return;
   try {
     const payload: EventWizardDraft = {

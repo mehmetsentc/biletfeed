@@ -82,6 +82,7 @@ export function CityProvider({
 
       const stayOnPage = options?.refreshOnly || pathname === '/';
       if (stayOnPage) {
+        router.refresh();
         return;
       }
 

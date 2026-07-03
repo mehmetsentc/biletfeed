@@ -57,14 +57,14 @@ export function EventHostedBy({
   if (!organizer) return null;
 
   return (
-    <section>
+    <section className="min-w-0">
       <h2 className="text-xl font-bold">Organizatör</h2>
-      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div className="mt-4 space-y-4">
         <Link
           href={`/organizator/${organizer.slug}`}
-          className="flex items-center gap-4"
+          className="flex min-w-0 items-center gap-3"
         >
-          <div className="relative size-16 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-primary to-orange-300">
+          <div className="relative size-14 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-primary to-orange-300">
             {organizer.logo ? (
               <Image
                 src={organizer.logo}
@@ -73,25 +73,22 @@ export function EventHostedBy({
                 className="object-cover"
               />
             ) : (
-              <span className="flex size-full items-center justify-center text-xl font-bold text-primary-foreground">
+              <span className="flex size-full items-center justify-center text-lg font-bold text-primary-foreground">
                 {organizer.name.charAt(0)}
               </span>
             )}
           </div>
-          <p className="text-lg font-bold hover:text-primary">{organizer.name}</p>
+          <p className="min-w-0 truncate text-lg font-bold hover:text-primary">
+            {organizer.name}
+          </p>
         </Link>
-        <div className="flex gap-3 sm:ml-auto">
-          <Button variant="outline" className="rounded-md px-6" asChild>
-            <Link href={`/organizator/${organizer.slug}`}>İletişim</Link>
-          </Button>
-          <FollowButton
-            type="organizer"
-            targetId={organizer.id}
-            initialActive={initialFollowing}
-            variant="dark"
-            showIcon
-          />
-        </div>
+        <FollowButton
+          type="organizer"
+          targetId={organizer.id}
+          initialActive={initialFollowing}
+          showIcon
+          className="h-11 w-full justify-center rounded-lg font-semibold"
+        />
       </div>
     </section>
   );

@@ -1,19 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { EyeOff, FileText, HelpCircle, Lock, Plus, Trash2 } from 'lucide-react';
+import { EyeOff, HelpCircle, Lock, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  WizardFormRow,
-  WizardFormSection,
-  WizardTextarea
-} from '@/components/organizator-panel/wizard-form';
+import { WizardFormRow, WizardFormSection } from '@/components/organizator-panel/wizard-form';
 import type { AttendeeQuestionRow } from '@/components/organizator-panel/event-wizard/types';
 
 interface WizardStepParticipationProps {
-  eventRules: string;
-  onEventRulesChange: (value: string) => void;
   attendeeQuestions: AttendeeQuestionRow[];
   onAttendeeQuestionsChange: (rows: AttendeeQuestionRow[]) => void;
   preventQuestionCopy: boolean;
@@ -33,8 +27,6 @@ function newQuestion(): AttendeeQuestionRow {
 }
 
 export function WizardStepParticipation({
-  eventRules,
-  onEventRulesChange,
   attendeeQuestions,
   onAttendeeQuestionsChange,
   preventQuestionCopy,
@@ -57,21 +49,6 @@ export function WizardStepParticipation({
 
   return (
     <div className="space-y-6">
-      <WizardFormSection
-        title="Etkinlik Kuralları"
-        description="Bilet satın alma ekranında gösterilir. Her satıra bir kural yazabilirsiniz."
-        icon={FileText}
-      >
-        <WizardFormRow label="Kurallar" alignTop>
-          <WizardTextarea
-            value={eventRules}
-            onChange={(e) => onEventRulesChange(e.target.value)}
-            placeholder={'Örn:\n• Etkinlik 18 yaş ve üzeri içindir.\n• Bilet iadesi yapılmaz.\n• Etkinlik alanına tekrar giriş yapılamaz.'}
-            rows={8}
-          />
-        </WizardFormRow>
-      </WizardFormSection>
-
       <WizardFormSection
         title="Katılımcılara Sorular"
         description="Bilet alırken katılımcılardan toplamak istediğiniz bilgileri ekleyin."

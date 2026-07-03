@@ -14,12 +14,15 @@ import {
   formatEventDate,
   formatPrice
 } from '@/lib/data/mock-events';
+import { EventRulesAcceptanceList } from '@/components/events/event-rules-display';
+import type { EventRulesDisplayData } from '@/lib/event-rules/types';
 import { validateCheckoutAttendee } from '@/lib/validation/checkout-attendee';
 import { normalizeTrPhone } from '@/lib/validation/tr-phone';
 
 export function CheckoutForm({
   event,
-  ticketTypes
+  ticketTypes,
+  rulesDisplay
 }: {
   event: MockEvent;
   ticketTypes: Array<{
@@ -32,6 +35,7 @@ export function CheckoutForm({
     sold: number;
     showLowStockBadge: boolean;
   }>;
+  rulesDisplay?: EventRulesDisplayData | null;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -56,7 +60,10 @@ export function CheckoutForm({
         .map((line) => line.replace(/^[\s•\-*]+/, '').trim())
         .filter(Boolean)
     : [];
-  const requiresRulesAcceptance = ruleLines.length > 0;
+  const hasStructuredRules =
+    rulesDisplay != null &&
+    (rulesDisplay.sections.length > 0 || rulesDisplay.announcements.length > 0);
+  const requiresRulesAcceptance = hasStructuredRules || ruleLines.length > 0;
 
   const selectedType =
     ticketTypes.find((t) => t.id === selectedTypeId) ?? ticketTypes[0];
@@ -225,7 +232,14 @@ export function CheckoutForm({
                   onChange={(e) => setQuantity(Number(e.target.value))}
                 />
               </div>
-              {requiresRulesAcceptance && (
+              {requiresRulesAcceptance && hasStructuredRules && rulesDisplay && (
+                <EventRulesAcceptanceList
+                  data={rulesDisplay}
+                  accepted={rulesAccepted}
+                  onAcceptedChange={setRulesAccepted}
+                />
+              )}
+              {requiresRulesAcceptance && !hasStructuredRules && (
                 <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
                   <h3 className="text-sm font-semibold">
                     Etkinlik Hakkında Bilmeniz Gerekenler

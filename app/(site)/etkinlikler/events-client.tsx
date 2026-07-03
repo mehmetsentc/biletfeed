@@ -31,6 +31,8 @@ type CategoryItem = {
 interface EventsPageClientProps {
   events: MockEvent[];
   categories: CategoryItem[];
+  /** Şehir landing (/istanbul-etkinlikleri) veya SEO bloğu için sabit şehir */
+  fixedCitySlug?: string;
 }
 
 type SortOption = 'relevance' | 'date-asc' | 'date-desc' | 'price-asc' | 'price-desc';
@@ -308,7 +310,8 @@ function EmptyState({
 
 export default function EventsPageClient({
   events: mockEvents,
-  categories
+  categories,
+  fixedCitySlug
 }: EventsPageClientProps) {
   const { citySlug: preferredCitySlug } = useCity();
   const searchParams = useSearchParams();
@@ -324,14 +327,22 @@ export default function EventsPageClient({
   const [showAllCities, setShowAllCities] = useState(false);
 
   const { citySlug: effectiveCity, textQuery, cityLabel } = useMemo(
-    () =>
-      resolveSearchScope(
+    () => {
+      if (fixedCitySlug && !showAllCities) {
+        return {
+          citySlug: fixedCitySlug,
+          textQuery: '',
+          cityLabel: getCityName(fixedCitySlug)
+        };
+      }
+      return resolveSearchScope(
         searchQuery,
         showAllCities,
-        urlCity,
+        urlCity || fixedCitySlug || '',
         preferredCitySlug
-      ),
-    [searchQuery, showAllCities, urlCity, preferredCitySlug]
+      );
+    },
+    [searchQuery, showAllCities, urlCity, preferredCitySlug, fixedCitySlug]
   );
   const activeFilterCount = countActiveFilters(filters);
 

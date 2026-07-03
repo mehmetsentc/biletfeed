@@ -11,14 +11,6 @@ type Setting = { label: string; key: string; value: string; type: 'text' | 'numb
 
 const SECTIONS: { title: string; settings: Setting[] }[] = [
   {
-    title: 'Scraper Ayarları',
-    settings: [
-      { label: 'Max Listing Sayfası (Bubilet)', key: 'SCRAPER_MAX_PAGES', value: '120', type: 'number', hint: 'Bubilet scraper\'ının tarayacağı max sayfa sayısı' },
-      { label: 'Concurrency (paralel istek)', key: 'SCRAPER_CONCURRENCY', value: '8', type: 'number', hint: 'Aynı anda yapılacak paralel istek sayısı' },
-      { label: 'Max Detay Sayfası', key: 'SCRAPER_MAX_DETAILS', value: '400', type: 'number', hint: 'Tek scrape\'de işlenecek max etkinlik detayı' }
-    ]
-  },
-  {
     title: 'Ödeme & Komisyon',
     settings: [
       { label: 'Varsayılan Komisyon Oranı (%)', key: 'DEFAULT_COMMISSION_RATE', value: '10', type: 'number', hint: 'Yeni organizatörlere atanacak varsayılan komisyon' },

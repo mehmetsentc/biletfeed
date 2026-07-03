@@ -59,7 +59,10 @@ export function buildWebsiteSchema() {
   };
 }
 
-export function buildEventSchema(event: MockEvent) {
+export function buildEventSchema(
+  event: MockEvent,
+  options?: { eventRules?: string[] }
+) {
   const isOnline = event.isOnline || event.citySlug === 'online';
   const eventUrl = `${siteConfig.url}/etkinlik/${event.slug}`;
   const external = isExternalListing(event);
@@ -112,7 +115,16 @@ export function buildEventSchema(event: MockEvent) {
       priceCurrency: event.currency || 'TRY',
       availability: 'https://schema.org/InStock',
       validFrom: new Date().toISOString()
-    }
+    },
+    ...(options?.eventRules?.length
+      ? {
+          additionalProperty: options.eventRules.map((rule) => ({
+            '@type': 'PropertyValue',
+            name: 'eventRule',
+            value: rule
+          }))
+        }
+      : {})
   };
 }
 

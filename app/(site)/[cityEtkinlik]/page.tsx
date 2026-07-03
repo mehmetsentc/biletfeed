@@ -2,9 +2,11 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { SUPPORTED_CITIES } from '@/lib/location/cities';
+import { getCitySeoContent } from '@/lib/seo/city-seo-content';
 import { getEventsByCity, getCategories } from '@/lib/services/events';
 import { siteConfig } from '@/lib/config/site';
 import EventsPageClient from '@/app/(site)/etkinlikler/events-client';
+import { CityEventsSeoSection } from '@/components/seo/city-events-seo-section';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Props {
@@ -37,7 +39,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!city) return { title: 'Sayfa Bulunamadı' };
 
   const title = `${city.name} Etkinlikleri`;
-  const description = `${city.name} şehrindeki tüm etkinlikleri keşfedin. Konser, tiyatro, festival, spor ve daha fazlası — biletler için BiletFeed.`;
+  const seo = getCitySeoContent(city.slug);
+  const description = seo.intro.slice(0, 160);
   const url = `${siteConfig.url}/${cityEtkinlik}`;
 
   return {
@@ -163,8 +166,13 @@ export default async function CityEventsPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListJsonLd) }}
       />
       <Suspense fallback={<CityPageLoading cityName={city.name} />}>
-        <EventsPageClient events={events} categories={categories} />
+        <EventsPageClient
+          events={events}
+          categories={categories}
+          fixedCitySlug={city.slug}
+        />
       </Suspense>
+      <CityEventsSeoSection citySlug={city.slug} />
     </>
   );
 }

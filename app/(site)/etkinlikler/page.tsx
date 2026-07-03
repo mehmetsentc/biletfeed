@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { cookies } from 'next/headers';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { buildItemListSchema } from '@/lib/seo/schemas';
@@ -6,6 +7,9 @@ import { siteConfig } from '@/lib/config/site';
 import EventsPageClient from './events-client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAllEvents, getCategories } from '@/lib/services/events';
+import { CityEventsSeoSection } from '@/components/seo/city-events-seo-section';
+import { CITY_COOKIE_NAME } from '@/lib/location/city-preference';
+import { isSupportedCitySlug } from '@/lib/location/cities';
 
 export const metadata = createPageMetadata({
   title: 'Etkinlikler',
@@ -38,7 +42,18 @@ function EventsLoading() {
   );
 }
 
-export default async function EventsPage() {
+export default async function EventsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ sehir?: string }>;
+}) {
+  const params = await searchParams;
+  const cookieStore = await cookies();
+  const cookieSlug = cookieStore.get(CITY_COOKIE_NAME)?.value;
+  const seoCitySlug =
+    (params.sehir && isSupportedCitySlug(params.sehir) ? params.sehir : null) ??
+    (cookieSlug && isSupportedCitySlug(cookieSlug) ? cookieSlug : null);
+
   const [events, categories] = await Promise.all([
     getAllEvents(),
     getCategories()
@@ -59,8 +74,13 @@ export default async function EventsPage() {
     <>
       <JsonLd data={itemListSchema} />
       <Suspense fallback={<EventsLoading />}>
-        <EventsPageClient events={events} categories={categories} />
+        <EventsPageClient
+          events={events}
+          categories={categories}
+          fixedCitySlug={seoCitySlug ?? undefined}
+        />
       </Suspense>
+      {seoCitySlug ? <CityEventsSeoSection citySlug={seoCitySlug} /> : null}
     </>
   );
 }

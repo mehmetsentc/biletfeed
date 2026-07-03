@@ -62,7 +62,8 @@ export function HeroSearch({ variant = 'default', className }: HeroSearchProps) 
         <button
           type="button"
           onClick={() => city?.openCityPicker()}
-          className="relative flex w-full shrink-0 items-center transition-colors duration-200 hover:bg-black/[0.03] sm:w-48"
+          className="relative flex w-full shrink-0 items-center transition-colors duration-200 hover:bg-primary/[0.04] sm:w-48"
+          aria-label="Şehir seç"
         >
           <MapPin
             className="pointer-events-none absolute left-5 size-[18px] text-muted-foreground"
@@ -105,7 +106,8 @@ export function HeroSearch({ variant = 'default', className }: HeroSearchProps) 
       <button
         type="button"
         onClick={() => city?.openCityPicker()}
-        className="relative flex items-center transition-colors duration-200 hover:bg-black/[0.03] sm:w-40"
+        className="relative flex items-center transition-colors duration-200 hover:bg-primary/[0.04] sm:w-40"
+        aria-label="Şehir seç"
       >
         <MapPin
           className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
