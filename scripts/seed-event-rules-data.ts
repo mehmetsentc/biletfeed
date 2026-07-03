@@ -1,19 +1,7 @@
-import type { RuleParameterType } from '@prisma/client';
+import type { SeedRule } from './seed-event-rules-types';
+import { HANDCRAFTED_RULES } from './seed-event-rules-handcrafted';
 
-export interface SeedRule {
-  categorySlug: string;
-  slug: string;
-  titleTr: string;
-  titleEn: string;
-  descriptionTr: string;
-  descriptionEn: string;
-  eventTypes?: string[];
-  isDefault?: boolean;
-  isRecommended?: boolean;
-  requiresParameter?: boolean;
-  parameterType?: RuleParameterType;
-  sortOrder?: number;
-}
+export type { SeedRule } from './seed-event-rules-types';
 
 function rulesForCategory(
   categorySlug: string,
@@ -95,54 +83,11 @@ const TIPS = rulesForCategory('biletfeed-tavsiyeleri', [
   { slug: 'tip-other-genel-3', titleTr: 'Ulaşımı planlayın', titleEn: 'Plan transport', descriptionTr: 'Etkinlik sonrası ulaşımınızı önceden planlayın.', descriptionEn: 'Plan your transport home in advance.' }
 ]);
 
-function generateCategoryRules(
-  categorySlug: string,
-  prefix: string,
-  count: number,
-  titleBase: { tr: string; en: string },
-  eventTypes: string[] = []
-): SeedRule[] {
-  return Array.from({ length: count }, (_, i) => ({
-    categorySlug,
-    slug: `${prefix}-${i + 1}`,
-    titleTr: `${titleBase.tr} ${i + 1}`,
-    titleEn: `${titleBase.en} ${i + 1}`,
-    descriptionTr: `${titleBase.tr} ile ilgili kural ${i + 1}. Organizatör ihtiyacına göre seçilebilir.`,
-    descriptionEn: `Rule ${i + 1} related to ${titleBase.en.toLowerCase()}. Select as needed.`,
-    eventTypes: eventTypes.length ? eventTypes : undefined,
-    sortOrder: i + 1,
-    isRecommended: i < 2
-  }));
-}
-
-const GENERATED = [
-  ...generateCategoryRules('cocuk', 'cocuk', 12, { tr: 'Çocuk politikası', en: 'Child policy' }, ['child']),
-  ...generateCategoryRules('odeme', 'odeme', 10, { tr: 'Ödeme kuralı', en: 'Payment rule' }),
-  ...generateCategoryRules('oturma', 'oturma', 10, { tr: 'Oturma düzeni', en: 'Seating rule' }, ['theatre', 'sports']),
-  ...generateCategoryRules('guvenlik', 'guvenlik', 12, { tr: 'Güvenlik', en: 'Security' }),
-  ...generateCategoryRules('fotograf', 'foto', 10, { tr: 'Fotoğraf/video', en: 'Photo/video' }),
-  ...generateCategoryRules('gizlilik', 'gizlilik', 8, { tr: 'Gizlilik', en: 'Privacy' }),
-  ...generateCategoryRules('yiyecek', 'yiyecek', 10, { tr: 'Yiyecek/içecek', en: 'Food/drink' }),
-  ...generateCategoryRules('evcil-hayvan', 'evcil', 8, { tr: 'Evcil hayvan', en: 'Pet' }),
-  ...generateCategoryRules('hava', 'hava', 8, { tr: 'Hava koşulu', en: 'Weather' }, ['festival']),
-  ...generateCategoryRules('saglik', 'saglik', 10, { tr: 'Sağlık', en: 'Health' }),
-  ...generateCategoryRules('spor', 'spor', 12, { tr: 'Spor kuralı', en: 'Sports rule' }, ['sports']),
-  ...generateCategoryRules('festival', 'festival', 12, { tr: 'Festival kuralı', en: 'Festival rule' }, ['festival']),
-  ...generateCategoryRules('konaklama', 'konaklama', 8, { tr: 'Konaklama', en: 'Accommodation' }, ['festival']),
-  ...generateCategoryRules('mekan', 'mekan', 10, { tr: 'Mekan kuralı', en: 'Venue rule' }),
-  ...generateCategoryRules('dress-code', 'dress', 10, { tr: 'Kıyafet kodu', en: 'Dress code' }),
-  ...generateCategoryRules('organizator-haklari', 'org-hak', 10, { tr: 'Organizatör hakkı', en: 'Organizer right' }),
-  ...generateCategoryRules('ticari', 'ticari', 8, { tr: 'Ticari faaliyet', en: 'Commercial' }),
-  ...generateCategoryRules('kisisel-esyalar', 'esyalar', 10, { tr: 'Kişisel eşya', en: 'Belongings' }),
-  ...generateCategoryRules('erisilebilirlik', 'erisim', 10, { tr: 'Erişilebilirlik', en: 'Accessibility' }),
-  ...generateCategoryRules('hizmetler', 'hizmet', 10, { tr: 'Hizmet', en: 'Service' })
-];
-
 export const SEED_RULES: SeedRule[] = [
   ...GIRIS,
   ...YAS,
   ...BILET,
   ...ETIQUETTE,
   ...TIPS,
-  ...GENERATED
+  ...HANDCRAFTED_RULES
 ];
