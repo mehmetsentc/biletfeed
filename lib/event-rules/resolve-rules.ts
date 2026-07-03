@@ -84,6 +84,11 @@ export function resolveSelectedRules(
     const category = categoriesById.get(rule.categoryId);
     if (!category) continue;
 
+    const parameterLabel =
+      rule.requiresParameter && entry.parameterValue
+        ? formatParameterValue(rule.parameterType, entry.parameterValue, locale)
+        : undefined;
+
     resolved.push({
       id: rule.id,
       slug: rule.slug,
@@ -93,6 +98,7 @@ export function resolveSelectedRules(
       description: getLocalizedField(rule, 'description', locale),
       icon: rule.icon,
       parameterValue: entry.parameterValue,
+      parameterLabel,
       displayText: buildDisplayText(rule, locale, entry.parameterValue)
     });
   }

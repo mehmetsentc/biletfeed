@@ -7,6 +7,8 @@ import { WizardFormSection } from '@/components/organizator-panel/wizard-form';
 import { ORGANIZER_AGREEMENT_VERSION } from '@/lib/organizator/event-wizard-constants';
 import { getSiteUrl } from '@/lib/config/domain';
 import type { AttendeeQuestionRow, PerformerRow } from '@/components/organizator-panel/event-wizard/types';
+import type { EventRuleSetState } from '@/components/organizator-panel/event-wizard/wizard-step-rules';
+import { RulesPreviewWithCatalog } from '@/components/organizator-panel/event-wizard/selected-rules-preview';
 
 const AGREEMENT_URL = getSiteUrl('/organizator-sozlesmesi');
 
@@ -29,6 +31,7 @@ interface WizardStepPublishProps {
   performers: PerformerRow[];
   attendeeQuestions: AttendeeQuestionRow[];
   ticketSummary: { name: string; priceLabel: string; capacity: string }[];
+  ruleSet: EventRuleSetState;
   termsAccepted: boolean;
   onTermsAcceptedChange: (value: boolean) => void;
 }
@@ -46,6 +49,7 @@ export function WizardStepPublish({
   performers,
   attendeeQuestions,
   ticketSummary,
+  ruleSet,
   termsAccepted,
   onTermsAcceptedChange
 }: WizardStepPublishProps) {
@@ -115,6 +119,21 @@ export function WizardStepPublish({
               <p className="mt-4 text-xs text-muted-foreground">
                 {attendeeQuestions.length} katılımcı sorusu tanımlandı
               </p>
+            )}
+            {(ruleSet.selectedRules.length > 0 || ruleSet.customRules.length > 0) && (
+              <div className="mt-5 border-t border-border pt-4">
+                <h4 className="text-sm font-semibold text-foreground">Etkinlik Kuralları</h4>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Katılımcıların göreceği kural metinleri:
+                </p>
+                <div className="mt-3">
+                  <RulesPreviewWithCatalog
+                    selectedRules={ruleSet.selectedRules}
+                    customRules={ruleSet.customRules}
+                    compact
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>

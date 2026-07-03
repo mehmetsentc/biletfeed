@@ -31,6 +31,7 @@ export interface ResolvedRuleItem {
   description: string;
   icon?: string | null;
   parameterValue?: string;
+  parameterLabel?: string;
   displayText: string;
 }
 

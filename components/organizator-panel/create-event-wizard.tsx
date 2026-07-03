@@ -1079,6 +1079,7 @@ export function CreateOrganizerEventWizard({
                         : '',
                   capacity: c.capacity ? `${c.capacity} kişi` : ''
                 }))}
+              ruleSet={ruleSet}
               termsAccepted={termsAccepted}
               onTermsAcceptedChange={setTermsAccepted}
             />
