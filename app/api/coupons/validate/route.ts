@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
+import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 import { validateCoupon } from '@/lib/services/coupons';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
@@ -15,6 +16,9 @@ export async function POST(request: NextRequest) {
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
+
+  const limited = await rateLimitOrNullAsync(request, 'coupons-validate', 30, 60_000);
+  if (limited) return limited;
 
   const json = await request.json();
   const parsed = bodySchema.safeParse(json);

@@ -1,19 +1,21 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { internalPublicFilter } from '@/lib/services/events';
+import { buildInternalPublicFilter } from '@/lib/services/events';
 
 /** City/Category tablolarındaki eventCount önbelleğini gerçek internal etkinlik sayısıyla eşitle */
 export async function syncCityAndCategoryEventCounts(): Promise<void> {
   await ensureDbConnection();
 
+  const publicFilter = buildInternalPublicFilter();
+
   const [cityCounts, categoryCounts] = await Promise.all([
     prisma.event.groupBy({
       by: ['cityId'],
-      where: internalPublicFilter,
+      where: publicFilter,
       _count: { id: true }
     }),
     prisma.event.groupBy({
       by: ['categoryId'],
-      where: internalPublicFilter,
+      where: publicFilter,
       _count: { id: true }
     })
   ]);

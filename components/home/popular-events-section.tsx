@@ -6,6 +6,7 @@ import { EventifyCard } from '@/components/events/eventify-card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { MockEvent } from '@/lib/data/mock-events';
+import { isUpcomingEvent } from '@/lib/events/upcoming';
 
 const filters = [
   { id: 'all', label: 'Tümü' },
@@ -40,20 +41,21 @@ function isThisWeekend(date: Date, now: Date) {
 
 function filterEvents(events: MockEvent[], filter: FilterId): MockEvent[] {
   const now = new Date();
+  const upcoming = events.filter((event) => isUpcomingEvent(event, now));
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
 
   switch (filter) {
     case 'today':
-      return events.filter((e) => isSameDay(new Date(e.startDate), now));
+      return upcoming.filter((e) => isSameDay(new Date(e.startDate), now));
     case 'tomorrow':
-      return events.filter((e) => isSameDay(new Date(e.startDate), tomorrow));
+      return upcoming.filter((e) => isSameDay(new Date(e.startDate), tomorrow));
     case 'weekend':
-      return events.filter((e) => isThisWeekend(new Date(e.startDate), now));
+      return upcoming.filter((e) => isThisWeekend(new Date(e.startDate), now));
     case 'free':
-      return events.filter((e) => e.isFree || e.price === 0);
+      return upcoming.filter((e) => e.isFree || e.price === 0);
     default:
-      return events;
+      return upcoming;
   }
 }
 

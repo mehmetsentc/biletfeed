@@ -6,7 +6,8 @@ export const hideBottomNavPrefixes = [
   '/dashboard',
   '/organizator-panel',
   '/eventjoy',
-  '/profil/ilgi-alanlari'
+  '/profil/ilgi-alanlari',
+  '/etkinlik'
 ];
 
 /** Footer ve bülten şeridinin gizleneceği hesap / profil rotaları */

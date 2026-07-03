@@ -9,6 +9,8 @@
     "dev:fast": "npm run dev:kill && DEV_SKIP_CACHE_WIPE=1 sh scripts/dev-start.sh",
     "start:local": "npm run build && npm run start",
     "build": "prisma generate && next build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "prisma generate",
     "start": "next start",
     "db:push": "dotenv -e .env.local -- prisma db push",
@@ -90,7 +92,8 @@
     "tailwindcss": "^4.1.6",
     "tsx": "^4.22.4",
     "tw-animate-css": "^1.2.9",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.6"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

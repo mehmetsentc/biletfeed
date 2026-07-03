@@ -1,12 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { canAccessAdmin } from '@/lib/auth/permissions';
+import { rejectAdminCsrf } from '@/lib/auth/admin-csrf';
 import { syncCityAndCategoryEventCounts } from '@/lib/services/event-counts';
 
 export const dynamic = 'force-dynamic';
 
 /** POST — şehir/kategori eventCount önbelleğini internal etkinliklere göre yeniler */
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const csrf = rejectAdminCsrf(request);
+  if (csrf) return csrf;
+
   const session = await verifySessionCookie();
   if (!session || !canAccessAdmin(session.role as never)) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 403 });

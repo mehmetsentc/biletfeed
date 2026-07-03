@@ -9,6 +9,12 @@ import { resolveCategoryImage } from '@/lib/data/category-images';
 import { sortCategoriesByDisplayOrder } from '@/lib/categories/sort';
 import { eventInclude, toMockEvent, type EventWithRelations } from '@/lib/mappers/event';
 import { mapCategory } from '@/lib/scraper/normalize';
+import {
+  isUpcomingEvent,
+  upcomingStartFilter as buildUpcomingStartFilter
+} from '@/lib/events/upcoming';
+
+export { isUpcomingEvent, upcomingStartFilter } from '@/lib/events/upcoming';
 
 /** Başlık açıkça başka kategoriye işaret ediyorsa yanlış DB kaydını filtrele */
 function eventMatchesCategorySlug(
@@ -29,20 +35,25 @@ export const publishedFilter = {
   deletedAt: null
 };
 
-export function upcomingStartFilter(now = new Date()) {
-  return { startDate: { gte: now } };
+export function buildUpcomingFilter(now = new Date()) {
+  return {
+    ...publishedFilter,
+    ...buildUpcomingStartFilter(now)
+  };
 }
 
-export const upcomingFilter = {
-  ...publishedFilter,
-  ...upcomingStartFilter()
-};
+export function buildInternalPublicFilter(now = new Date()) {
+  return {
+    ...buildUpcomingFilter(now),
+    listingType: 'internal' as const
+  };
+}
 
-/** Kamuya açık liste — yalnızca platform içi (organizatör) etkinlikler */
-export const internalPublicFilter = {
-  ...upcomingFilter,
-  listingType: 'internal' as const
-};
+/** @deprecated Her sorguda buildUpcomingFilter() kullanın — bu sabit zamanı dondurur. */
+export const upcomingFilter = buildUpcomingFilter();
+
+/** @deprecated Her sorguda buildInternalPublicFilter() kullanın. */
+export const internalPublicFilter = buildInternalPublicFilter();
 
 export const internalPublishedFilter = {
   ...publishedFilter,
@@ -55,14 +66,17 @@ async function fetchPublishedEvents(
 ) {
   if (!isDatabaseConfigured()) return [];
   await ensureDbConnection();
+  const now = new Date();
   const baseWhere =
-    options?.upcomingOnly !== false ? internalPublicFilter : internalPublishedFilter;
+    options?.upcomingOnly !== false
+      ? buildInternalPublicFilter(now)
+      : internalPublishedFilter;
   const events = await prisma.event.findMany({
     where: { ...baseWhere, ...where },
     include: eventInclude,
     orderBy: { startDate: 'asc' }
   });
-  return events.map(toMockEvent);
+  return events.map(toMockEvent).filter((event) => isUpcomingEvent(event, now));
 }
 
 export async function getAllEvents(): Promise<MockEvent[]> {
@@ -74,8 +88,9 @@ export async function getEventBySlug(
 ): Promise<MockEvent | undefined> {
   if (!isDatabaseConfigured()) return undefined;
   await ensureDbConnection();
+  const now = new Date();
   const event = await prisma.event.findFirst({
-    where: { slug, ...internalPublicFilter },
+    where: { slug, ...buildInternalPublicFilter(now) },
     include: eventInclude
   });
   return event ? toMockEvent(event) : undefined;
@@ -131,8 +146,9 @@ export async function getHomepageCategoryStrips(
   if (!isDatabaseConfigured()) return [];
   await ensureDbConnection();
 
+  const now = new Date();
   const where: Prisma.EventWhereInput = {
-    ...internalPublicFilter,
+    ...buildInternalPublicFilter(now),
     category: { slug: { in: HOMEPAGE_CATEGORIES.map((c) => c.slug) } },
     ...(citySlug ? { city: { slug: citySlug } } : {})
   };
@@ -144,7 +160,7 @@ export async function getHomepageCategoryStrips(
     take: 200
   });
 
-  const mapped = events.map(toMockEvent);
+  const mapped = events.map(toMockEvent).filter((event) => isUpcomingEvent(event, now));
   const bySlug = new Map<string, MockEvent[]>();
   for (const cat of HOMEPAGE_CATEGORIES) bySlug.set(cat.slug, []);
   for (const ev of mapped) {
@@ -191,13 +207,14 @@ export async function getEventsByOrganizerForProfile(
     ? { in: ownerStatuses }
     : 'published';
 
+  const now = new Date();
   const events = await prisma.event.findMany({
     where: {
       organizerId: organizer.id,
       deletedAt: null,
       status: statusFilter,
       listingType: 'internal',
-      ...(isOwner ? {} : upcomingStartFilter())
+      ...(isOwner ? {} : buildUpcomingStartFilter(now))
     },
     include: eventInclude,
     orderBy: { startDate: 'desc' }
@@ -276,9 +293,11 @@ export async function getCategories() {
     where: { deletedAt: null },
     orderBy: { name: 'asc' }
   });
+  const now = new Date();
+  const publicFilter = buildInternalPublicFilter(now);
   const counts = await prisma.event.groupBy({
     by: ['categoryId'],
-    where: internalPublicFilter,
+    where: publicFilter,
     _count: true
   });
   const countMap = new Map(counts.map((c) => [c.categoryId, c._count]));
@@ -299,9 +318,11 @@ export async function getCities() {
     where: { deletedAt: null },
     orderBy: { name: 'asc' }
   });
+  const now = new Date();
+  const publicFilter = buildInternalPublicFilter(now);
   const counts = await prisma.event.groupBy({
     by: ['cityId'],
-    where: internalPublicFilter,
+    where: publicFilter,
     _count: true
   });
   const countMap = new Map(counts.map((c) => [c.cityId, c._count]));

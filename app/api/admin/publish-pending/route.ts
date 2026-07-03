@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { canAccessAdmin } from '@/lib/auth/permissions';
+import { rejectAdminCsrf } from '@/lib/auth/admin-csrf';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,9 @@ export const dynamic = 'force-dynamic';
  * Tüm pending harici etkinlikleri published yapar.
  */
 export async function POST(request: NextRequest) {
+  const csrf = rejectAdminCsrf(request);
+  if (csrf) return csrf;
+
   const session = await verifySessionCookie();
   if (!session || !canAccessAdmin(session.role as never)) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 403 });

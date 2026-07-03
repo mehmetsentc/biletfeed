@@ -19,6 +19,7 @@ import { useCity } from '@/components/providers/city-provider';
 import { SUPPORTED_CITIES, getCityName } from '@/lib/location/cities';
 import type { MockEvent } from '@/lib/data/mock-events';
 import { filterPublicEventTags } from '@/lib/events/public-tags';
+import { isUpcomingEvent } from '@/lib/events/upcoming';
 
 type CategoryItem = {
   slug: string;
@@ -218,13 +219,31 @@ function filterEvents(
   query: string,
   citySlug: string,
   initialDate: string,
-  feedPill: FeedCategoryPill
+  urlDonem: string,
+  feedPill: FeedCategoryPill,
+  onlineOnly: boolean
 ): MockEvent[] {
   return events.filter((event) => {
+    if (!isUpcomingEvent(event)) return false;
+
+    if (onlineOnly && !event.isOnline && event.categorySlug !== 'online') {
+      return false;
+    }
+
     if (query && !matchesTextQuery(event, query)) return false;
 
     if (citySlug && event.citySlug !== citySlug) return false;
+
+    const eventDate = new Date(event.startDate);
+    const now = new Date();
     if (initialDate && event.startDate.slice(0, 10) !== initialDate) return false;
+    if (urlDonem === 'weekend' && !isThisWeekend(eventDate, now)) return false;
+    if (urlDonem === 'today' && !isSameDay(eventDate, now)) return false;
+    if (urlDonem === 'tomorrow') {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      if (!isSameDay(eventDate, tomorrow)) return false;
+    }
 
     if (!matchesFeedCategoryPill(event, feedPill)) return false;
 
@@ -318,8 +337,14 @@ export default function EventsPageClient({
   const initialQuery = searchParams.get('q') || '';
   const urlCity = searchParams.get('sehir') || '';
   const initialDate = searchParams.get('tarih') || '';
+  const urlDonem = searchParams.get('donem') || '';
+  const urlKategori = searchParams.get('kategori') || '';
+  const initialOnline = searchParams.get('online') === '1';
 
-  const [filters, setFilters] = useState<EventsFilters>(defaultEventsFilters);
+  const [filters, setFilters] = useState<EventsFilters>(() => ({
+    ...defaultEventsFilters,
+    categories: urlKategori ? [urlKategori] : []
+  }));
   const [sort, setSort] = useState<SortOption>('date-asc');
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -353,7 +378,9 @@ export default function EventsPageClient({
       textQuery,
       effectiveCity,
       initialDate,
-      feedPill
+      urlDonem,
+      feedPill,
+      initialOnline
     );
     return sortEvents(filtered, sort);
   }, [
@@ -362,7 +389,9 @@ export default function EventsPageClient({
     textQuery,
     effectiveCity,
     initialDate,
+    urlDonem,
     feedPill,
+    initialOnline,
     mockEvents
   ]);
 

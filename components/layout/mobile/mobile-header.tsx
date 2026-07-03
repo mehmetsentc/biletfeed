@@ -37,7 +37,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
     <>
       <header
         className={cn(
-          'glass-header sticky top-0 z-50 border-b lg:hidden',
+          'glass-header sticky top-0 z-50 border-b pt-[env(safe-area-inset-top)] lg:hidden',
           'text-[var(--header-fg)]'
         )}
       >
@@ -46,7 +46,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="absolute left-3 flex size-9 items-center justify-center text-primary"
+            className="absolute left-3 flex size-11 items-center justify-center text-primary"
             aria-label="Menü"
           >
             <Menu className="size-6" strokeWidth={2.5} />

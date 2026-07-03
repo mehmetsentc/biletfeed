@@ -39,9 +39,13 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
+  }
+
   const { error, ctx } = await requireOrganizerApi();
   if (error) return error;
 

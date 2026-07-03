@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { canAccessAdmin } from '@/lib/auth/permissions';
+import { rejectAdminCsrf } from '@/lib/auth/admin-csrf';
 import { ensureDbConnection } from '@/lib/db/prisma';
 import { editPendingEventsWithAi } from '@/lib/scraper/ai/edit-events';
 
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest) {
   const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
   if (!isCron) {
+    const csrf = rejectAdminCsrf(request);
+    if (csrf) return csrf;
+
     const session = await verifySessionCookie();
     if (!session || !canAccessAdmin(session.role as never)) {
       return NextResponse.json({ error: 'Yetkisiz' }, { status: 403 });

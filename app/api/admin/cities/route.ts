@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
+import { rejectAdminCsrf } from '@/lib/auth/admin-csrf';
 import { upsertCity } from '@/lib/services/admin-dashboard';
 
 const schema = z.object({
@@ -10,6 +11,9 @@ const schema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const csrf = rejectAdminCsrf(request);
+  if (csrf) return csrf;
+
   const session = await verifySessionCookie();
   if (!session || !sessionHasRole(session, 'ROLE_ADMIN')) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });

@@ -1,5 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { upcomingFilter } from '@/lib/services/events';
+import { buildUpcomingFilter } from '@/lib/services/events';
 import {
   matchesSalesCategory,
   type SalesCategoryFilter
@@ -9,7 +9,7 @@ export async function getOrganizerStats(organizerId: string) {
   await ensureDbConnection();
   const [eventCount, orders, tickets] = await Promise.all([
     prisma.event.count({
-      where: { organizerId, ...upcomingFilter }
+      where: { organizerId, ...buildUpcomingFilter() }
     }),
     prisma.order.findMany({
       where: { organizerId, status: 'paid', deletedAt: null },

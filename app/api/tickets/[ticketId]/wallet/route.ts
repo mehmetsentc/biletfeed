@@ -45,8 +45,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
+  const session = await verifySessionCookie();
+  if (!session) {
+    return NextResponse.json({ error: 'Giriş gerekli' }, { status: 401 });
+  }
+
   const { ticketId } = await params;
   await ensureDbConnection();
+
+  const user = await prisma.user.findFirst({
+    where: { firebaseUid: session.uid, deletedAt: null },
+    select: { id: true }
+  });
+  if (!user) {
+    return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
+  }
+
+  const ticket = await prisma.purchasedTicket.findFirst({
+    where: { id: ticketId, userId: user.id, deletedAt: null },
+    select: { id: true }
+  });
+  if (!ticket) {
+    return NextResponse.json({ error: 'Bilet bulunamadı' }, { status: 404 });
+  }
 
   const passes = await prisma.walletPass.findMany({
     where: { ticketId },

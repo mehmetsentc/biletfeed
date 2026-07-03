@@ -1,5 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { publishedFilter, upcomingFilter } from '@/lib/services/events';
+import { publishedFilter, buildUpcomingFilter } from '@/lib/services/events';
 
 export type AdminEventSalesRow = {
   id: string;
@@ -79,7 +79,7 @@ export async function getAdminStats() {
     const [users, organizers, activeEvents, orders] = await Promise.all([
       prisma.user.count({ where: { deletedAt: null } }),
       prisma.organizer.count({ where: { deletedAt: null, status: 'approved' } }),
-      prisma.event.count({ where: upcomingFilter }),
+      prisma.event.count({ where: buildUpcomingFilter() }),
       prisma.order.findMany({
         where: { status: 'paid', deletedAt: null },
         select: { total: true }
