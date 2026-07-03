@@ -10,7 +10,7 @@ export const legalSidebarLinks = [
   { label: 'Üyelik Sözleşmesi', href: '/uyelik-sozlesmesi' },
   { label: 'Çerez Politikası', href: '/cerezler' },
   { label: 'Mesafeli Satış Sözleşmesi', href: '/mesafeli-satis' },
-  { label: 'İade ve İptal Koşulları', href: '/iade-iptal' },
+  { label: 'Teslimat – İade – İptal', href: '/iade-iptal' },
   { label: 'İade Garantisi', href: '/iade-garantisi' },
   { label: 'Sıkça Sorulan Sorular', href: '/sss' },
   { label: 'İletişim', href: '/iletisim' }

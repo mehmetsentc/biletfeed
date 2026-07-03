@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ExternalLink, Lock, ShieldCheck, User } from 'lucide-react';
+import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
 import { StepIndicator } from '@/components/checkout/step-indicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -467,15 +468,21 @@ export function CheckoutForm({
               </h2>
 
               {isPaid ? (
-                <div className="space-y-3 rounded-lg bg-muted/50 p-4 text-sm">
+                <div className="space-y-4 rounded-lg bg-muted/50 p-4 text-sm">
                   <p>
                     Kart bilgileriniz Bilet Feed sunucularında{' '}
-                    <strong>saklanmaz</strong>. Ödeme, onaylı ödeme kuruluşunun
-                    güvenli sayfasında tamamlanır (3D Secure).
+                    <strong>saklanmaz</strong>. Ödeme, banka sanal POS altyapısı
+                    üzerinden güvenli bağlantı ile tamamlanır (3D Secure).
                   </p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Kabul edilen kartlar
+                    </p>
+                    <PaymentCardLogos />
+                  </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Lock className="size-3.5 shrink-0" />
-                    <span>256-bit SSL · PCI-DSS uyumlu ödeme altyapısı</span>
+                    <Lock className="size-3.5 shrink-0 text-[#f5a623]" />
+                    <span>SSL ile güvenli bağlantı</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <ExternalLink className="size-3.5 shrink-0" />
@@ -532,6 +539,18 @@ export function CheckoutForm({
                 {total === 0 ? 'Ücretsiz' : `${total} ₺`}
               </span>
             </div>
+            {isPaid && (
+              <>
+                <Separator className="my-4" />
+                <div className="space-y-3">
+                  <PaymentCardLogos className="justify-center" logoClassName="h-6 w-auto" />
+                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+                    <Lock className="size-3 shrink-0 text-[#f5a623]" aria-hidden />
+                    SSL ile güvenli bağlantı
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

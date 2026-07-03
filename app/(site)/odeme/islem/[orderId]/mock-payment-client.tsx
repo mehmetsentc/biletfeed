@@ -64,8 +64,8 @@ export function MockPaymentClient({
       <p className="mt-4 text-sm text-muted-foreground">{eventTitle}</p>
 
       <div className="mt-6 rounded-lg border border-dashed border-amber-500/50 bg-amber-500/5 p-3 text-xs text-amber-800 dark:text-amber-200">
-        Bu sayfa yalnızca geliştirme içindir. Canlıda iyzico / PayTR güvenli
-        ödeme sayfası açılır.
+        Bu sayfa yalnızca geliştirme içindir. Canlı ortamda güvenli banka ödeme
+        sayfası açılır.
       </div>
 
       {error && (

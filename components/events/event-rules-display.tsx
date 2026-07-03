@@ -38,7 +38,14 @@ function SectionCard({
   compact
 }: {
   title: string;
-  items: Array<{ id: string; displayText: string }>;
+  items: Array<{
+    id: string;
+    title: string;
+    description: string;
+    displayText: string;
+    parameterValue?: string;
+    parameterLabel?: string;
+  }>;
   compact?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -50,11 +57,18 @@ function SectionCard({
   return (
     <div className="rounded-2xl border border-border bg-card p-4 md:p-5">
       <h3 className="text-base font-bold text-foreground">{title}</h3>
-      <ul className={cn('mt-3 space-y-2', compact && 'text-sm')}>
+      <ul className={cn('mt-3 space-y-3', compact && 'text-sm')}>
         {visible.map((item) => (
-          <li key={item.id} className="flex gap-2 text-muted-foreground">
-            <span className="text-primary">•</span>
-            <span>{item.displayText}</span>
+          <li key={item.id} className="text-muted-foreground">
+            <p className="font-medium text-foreground">{item.title}</p>
+            {item.description ? (
+              <p className="mt-0.5 leading-relaxed">{item.description}</p>
+            ) : null}
+            {item.parameterLabel ? (
+              <p className="mt-1.5 inline-flex rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {item.parameterLabel}
+              </p>
+            ) : null}
           </li>
         ))}
       </ul>

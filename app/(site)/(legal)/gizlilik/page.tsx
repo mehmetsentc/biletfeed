@@ -1,186 +1,224 @@
 import Link from 'next/link';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { LegalPageShell } from '@/components/legal/legal-page-shell';
+import { companyLegal, formatCompanyTaxLine } from '@/lib/config/company';
+
+const LAST_UPDATED = '2026-07-03';
+
+const PAGE_DESCRIPTION =
+  'BiletFeed kişisel verilerin korunması politikası, KVKK aydınlatma metni ve çerez bilgilendirmesi.';
 
 export const metadata = createPageMetadata({
-  title: 'Gizlilik Politikası — BiletFeed',
-  description: 'BiletFeed kişisel verilerin korunması politikası ve aydınlatma metni.',
+  title: 'Gizlilik Politikası',
+  description: PAGE_DESCRIPTION,
   path: '/gizlilik'
 });
 
+const sections = [
+  { id: 'veri-sorumlusu', label: 'Veri Sorumlusu' },
+  { id: 'toplanan-veriler', label: 'Toplanan Veriler' },
+  { id: 'kullanim-amaclari', label: 'Kullanım Amaçları' },
+  { id: 'cerez', label: 'Çerez Politikası' },
+  { id: 'odeme-guvenligi', label: 'Ödeme Güvenliği' },
+  { id: 'ucuncu-taraf', label: 'Üçüncü Taraf Hizmetleri' },
+  { id: 'teknoloji', label: 'Teknoloji Altyapısı' },
+  { id: 'aktarim', label: 'Veri Aktarımı' },
+  { id: 'saklama', label: 'Saklama Süresi' },
+  { id: 'haklar', label: 'Kullanıcı Hakları' },
+  { id: 'kvkk-basvuru', label: 'KVKK Başvuru' },
+  { id: 'iletisim', label: 'İletişim' }
+] as const;
 
 export default function GizlilikPage() {
   return (
-    <article className="min-w-0 flex-1 max-w-none prose prose-neutral dark:prose-invert">
-          <h1>Kişisel Verilerin Korunması Politikası — Aydınlatma Metni</h1>
+    <LegalPageShell
+      title="Kişisel Verilerin Korunması Politikası"
+      description={PAGE_DESCRIPTION}
+      path="/gizlilik"
+      lastUpdated={LAST_UPDATED}
+      sections={[...sections]}
+    >
+      <p>
+        {companyLegal.brandName} olarak vermekte olduğumuz hizmet gereğince kişisel
+        verileriniz; hizmet-sözleşme ilişkisinin kurulması, ifası ve yasal
+        yükümlülüklerin yerine getirilmesi amacıyla 6698 sayılı Kişisel
+        Verilerin Korunması Kanunu (&quot;KVKK&quot;) ve Avrupa Birliği Genel
+        Veri Koruma Tüzüğü (&quot;GDPR&quot;) ilkelerine uygun şekilde
+        işlenmektedir.
+      </p>
 
-          <p>
-            BiletFeed olarak vermekte olduğumuz hizmet gereğince; hizmet-sözleşme
-            ilişkisinin kurulması, hizmet devamlılığının sağlanması, hizmetlerimizin
-            ifa edilmesi, yasalardan kaynaklanan sorumluluklar gereğince kişisel
-            verileriniz kullanılmak, kaydedilmek, saklanmak, muhafaza edilmek,
-            güncellenmek, yeniden düzenlemek, açıklanmak, aktarılmak ve/veya
-            sınıflandırılmak, devralınmak suretiyle ve mevzuatta yer alan şekillerde
-            işlenebilecektir.
-          </p>
-          <p>
-            Siz değerli web sitesi ve mobil uygulama kullanıcımızın güvenliğini göz
-            önünde bulundurarak, başta özel hayatın gizliliği olmak üzere, temel hak
-            ve özgürlüklerin korunması amacıyla, kişisel verilerinizin hukuka aykırı
-            olarak işlenmesini ve erişilmesini önleme ve muhafazasını sağlama
-            amacıyla gereken güvenlik düzeyini sağlamaya yönelik tüm tedbirleri
-            almaktayız. Kişisel verilerle ilgili düzenlenen 6698 sayılı Kişisel
-            Verilerin Korunması Kanunu (&quot;KVKK&quot;) ve bağlı yönetmelik ve tebliğlere
-            istinaden aydınlatma yükümlülüğümüz kapsamında bu metni hazırlamış
-            bulunmaktayız.
-          </p>
+      <section id="veri-sorumlusu">
+        <h2>1. Veri Sorumlusu</h2>
+        <table>
+          <tbody>
+            <tr>
+              <td><strong>Şirket Unvanı</strong></td>
+              <td>{companyLegal.tradeName}</td>
+            </tr>
+            <tr>
+              <td><strong>Vergi</strong></td>
+              <td>{formatCompanyTaxLine()}</td>
+            </tr>
+            <tr>
+              <td><strong>Adres</strong></td>
+              <td>{companyLegal.address}</td>
+            </tr>
+            <tr>
+              <td><strong>Telefon</strong></td>
+              <td>{companyLegal.phone}</td>
+            </tr>
+            <tr>
+              <td><strong>E-posta</strong></td>
+              <td>
+                <a href={`mailto:${companyLegal.email}`}>{companyLegal.email}</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
 
-          <h2>1. Veri Sorumlusu</h2>
-          <p>
-            KSD ORGANİZASYON SANAYİ VE TİC LTD ŞTİ, KVKK ve ilgili düzenlemeler
-            kapsamında &quot;veri sorumlusu&quot; sıfatına haiz olup aşağıdaki iletişim
-            bilgileri ile tarafımıza ulaşmanız mümkündür.
-          </p>
-          <table>
-            <tbody>
-              <tr>
-                <td><strong>Şirket Unvanı</strong></td>
-                <td>KSD ORGANİZASYON SANAYİ VE TİC LTD ŞTİ</td>
-              </tr>
-              <tr>
-                <td><strong>Vergi No</strong></td>
-                <td>5901381024</td>
-              </tr>
-              <tr>
-                <td><strong>Adres</strong></td>
-                <td>HURMA MAH. 246 SK. ADALIN PARK NO: 9 İÇ KAPI NO: 2 KONYAALTI / ANTALYA</td>
-              </tr>
-              <tr>
-                <td><strong>Telefon</strong></td>
-                <td>0541 953 93 00</td>
-              </tr>
-              <tr>
-                <td><strong>E-posta</strong></td>
-                <td>
-                  <a href="mailto:destek@biletfeed.com" className="text-primary">
-                    destek@biletfeed.com
-                  </a>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <section id="toplanan-veriler">
+        <h2>2. Toplanan Veriler</h2>
+        <ul>
+          <li><strong>Kimlik:</strong> Ad soyad, doğum tarihi (gerektiğinde)</li>
+          <li><strong>İletişim:</strong> E-posta, telefon, adres</li>
+          <li><strong>Hesap:</strong> Kullanıcı adı, profil bilgileri, tercihler</li>
+          <li><strong>İşlem:</strong> Sipariş, bilet, ödeme durumu, fatura bilgileri</li>
+          <li><strong>Teknik:</strong> IP adresi, cihaz bilgisi, oturum kayıtları, çerezler</li>
+          <li><strong>Etkinlik:</strong> Favoriler, katılım geçmişi, değerlendirmeler</li>
+        </ul>
+        <p>
+          Kart numarası, CVV veya tam kart bilgileri BiletFeed sunucularında
+          saklanmaz; ödeme banka sanal POS altyapısı üzerinden işlenir.
+        </p>
+      </section>
 
-          <h2>2. İşlenen Verileriniz</h2>
-          <p>
-            Sitemize üye olmanız ve/veya hizmetlerimizden yararlanmanız durumunda
-            işlenen kişisel verileriniz aşağıda sayılmaktadır:
-          </p>
-          <ul>
-            <li><strong>Kimlik Bilgileri:</strong> Ad soyad, T.C. kimlik no, vergi no, doğum tarihi ve cinsiyet.</li>
-            <li><strong>İletişim Bilgileri:</strong> İşyeri adresi, ev adresi, e-posta, KEP adresi, sabit hat ve GSM numarası.</li>
-            <li><strong>Ödeme ve Finans Bilgileri:</strong> Banka kredi kartı, banka hesabı ve banka kartı gibi hesap bilgileri, ödeme yöntem bilgileri, ödeme belgesi, dekont, fatura bilgileri.</li>
-            <li><strong>Lokasyon Bilgileri:</strong> Seçilen bölge ve şehir gibi lokasyon verileri.</li>
-            <li><strong>Müşteri İşlemlerine Dair Bilgiler:</strong> Sipariş ve fatura bilgileri, talep ve şikâyet bilgileri, IP adresi, Mac ID, gezinme bilgileri, kullanıcı adı ve şifre bilgileri, ticari iletişim izinleri, pazarlama faaliyetlerine ilişkin veriler.</li>
-            <li>
-              <strong>Çerez Bilgileri:</strong> BiletFeed web sitesi çerezleri; internet vasıtasıyla topladığı bilgileri tercihlerinizle ilgili bir özet oluşturmak amacıyla depolar.
-              Detaylı bilgiye{' '}
-              <Link href="/cerezler" className="text-primary">Çerez Politikası</Link>
-              &apos;ndan ulaşabilirsiniz.
-            </li>
-          </ul>
+      <section id="kullanim-amaclari">
+        <h2>3. Kullanım Amaçları</h2>
+        <ol>
+          <li>Üyelik ve kimlik doğrulama</li>
+          <li>Bilet satışı, teslimatı ve müşteri desteği</li>
+          <li>Ödeme ve muhasebe süreçlerinin yürütülmesi</li>
+          <li>Yasal yükümlülüklerin yerine getirilmesi</li>
+          <li>Platform güvenliği ve dolandırıcılık önleme</li>
+          <li>İstatistik, analiz ve hizmet iyileştirme</li>
+          <li>Açık rıza ile pazarlama ve bildirimler</li>
+        </ol>
+      </section>
 
-          <h2>3. Kişisel Verilerinizin İşlenme Amacı</h2>
-          <p>Verileriniz yalnızca aşağıdaki amaçlarla sınırlı olarak işlenmektedir:</p>
-          <ol>
-            <li>Üyelik kaydının oluşturulması, kimlik doğrulaması ve sözleşmenin kurulması/ifası</li>
-            <li>Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve ilgili mevzuat hükümleri uyarınca bilgilendirme yapılması</li>
-            <li>Ürün ve hizmet satışı, faturalandırılması ve iade/değişim işlemlerinin yürütülmesi</li>
-            <li>Kampanya, çekiliş ve promosyonların iletilmesi; müşteri memnuniyetinin artırılması</li>
-            <li>Kişiselleştirilmiş pazarlama ve reklam faaliyetleri; anket düzenlenmesi</li>
-            <li>Bilgi güvenliği süreçlerinin planlanması ve icrası</li>
-            <li>Finans, muhasebe, hukuk ve insan kaynakları işlemlerinin yürütülmesi</li>
-            <li>Elektronik ödeme sistemlerine ilişkin kayıt ve belgelerin düzenlenmesi</li>
-            <li>Mevzuat gereği bilgi saklama, raporlama ve bilgilendirme yükümlülüklerine uyulması</li>
-            <li>Müşteri talep, şikâyet ve önerilerinin değerlendirilmesi</li>
-            <li>Resmî kurum/kuruluşların talepleri doğrultusunda yasal yükümlülüklerin yerine getirilmesi</li>
-          </ol>
+      <section id="cerez">
+        <h2>4. Çerez Politikası</h2>
+        <p>
+          Web sitemizde oturum yönetimi, tercih hatırlama ve analitik amaçlı
+          çerezler kullanılmaktadır. Detaylı bilgi için{' '}
+          <Link href="/cerezler">Çerez Politikası</Link> sayfamızı inceleyin.
+          Çerez tercihlerinizi site altındaki çerez ayarları panelinden
+          yönetebilirsiniz.
+        </p>
+      </section>
 
-          <h2>4. Kişisel Verilerinizin Aktarılabileceği Taraflar</h2>
-          <p>
-            İşlenen kişisel verileriniz; yurt içindeki resmî kurum ve kuruluşlara,
-            kolluk kuvvetlerine, mahkemeler ve icra müdürlüklerine, ilişkili üçüncü
-            taraflara, hizmet sağlayıcı firmalara, iş ortaklarına, bulut ortamında
-            depolama hizmeti aldığımız yurt içi/yurt dışı kurumlara, Bankalararası
-            Kart Merkezi ve anlaşmalı bankalara, online ödeme sistemlerine, ajans ve
-            reklam şirketlerine, vergi danışmanları ve mali müşavirlere aktarılabilecektir.
-          </p>
-          <p>
-            Üçüncü kişilere veri aktarımı sırasında hak ihlallerini önlemek için
-            gerekli teknik ve hukuki önlemler alınmaktadır.
-          </p>
+      <section id="odeme-guvenligi">
+        <h2>5. Ödeme Güvenliği</h2>
+        <p>
+          Ödeme işlemleri SSL/TLS şifreli bağlantı üzerinden gerçekleştirilir.
+          Kart bilgileri BiletFeed altyapısında depolanmaz; işlemler banka sanal
+          POS sisteminde 3D Secure doğrulaması ile tamamlanır.
+        </p>
+      </section>
 
-          <h2>5. Kişisel Veri Toplamanın Yöntemi ve Hukuki Sebebi</h2>
-          <p>Kişisel verileriniz aşağıdaki yollarla toplanmaktadır:</p>
-          <ul>
-            <li>Web sitesi ve mobil uygulama üzerindeki formlar, çerezler ve gezinme verileri</li>
-            <li>Müşteri hizmetleri ve çağrı merkezi görüşmeleri</li>
-            <li>Sosyal medya platformları ve üçüncü taraf kaynaklardan paylaşılan veriler</li>
-            <li>Kâğıt üzerindeki formlar, kartvizitler ve benzeri fiziksel kanallar</li>
-          </ul>
-          <p>
-            Kişisel verileriniz; açık rızanız, yasal yükümlülüklerin yerine getirilmesi,
-            sözleşmenin kurulması ve ifası, meşru menfaatlerimiz ve kanunda öngörülen
-            diğer hukuki sebepler kapsamında KVKK&apos;nın 5. ve 6. maddeleri uyarınca
-            işlenmektedir.
-          </p>
+      <section id="ucuncu-taraf">
+        <h2>6. Üçüncü Taraf Hizmetleri</h2>
+        <p>
+          Hizmet kalitesini sağlamak amacıyla aşağıdaki kategorilerde üçüncü
+          taraf sağlayıcılardan yararlanılmaktadır:
+        </p>
+        <ul>
+          <li>Kimlik doğrulama ve oturum yönetimi</li>
+          <li>Ödeme ve bankacılık altyapısı</li>
+          <li>E-posta ve bildirim servisleri</li>
+          <li>Bulut barındırma ve dosya depolama</li>
+          <li>Analitik ve performans izleme</li>
+        </ul>
+        <p>
+          Üçüncü taraflarla veri paylaşımı yalnızca hizmetin ifası için gerekli
+          ölçüde ve sözleşmesel güvenlik yükümlülükleri ile yapılır.
+        </p>
+      </section>
 
-          <h2>6. Kişisel Verilerinizin Saklanma Süresi</h2>
-          <p>
-            Kişisel verileriniz, işlenme amacının gerektirdiği süre ve ilgili
-            mevzuatın öngördüğü süreler boyunca saklanır. Bu sürelerin dolması
-            halinde verileriniz silinir, yok edilir veya anonim hâle getirilir.
-          </p>
+      <section id="teknoloji">
+        <h2>7. Teknoloji Altyapısı</h2>
+        <h3>Firebase Authentication</h3>
+        <p>
+          Kullanıcı girişi ve kimlik doğrulama Google Firebase Authentication
+          altyapısı ile sağlanır. E-posta, şifre ve sosyal giriş bilgileri bu
+          servis kapsamında işlenir.
+        </p>
+        <h3>PostgreSQL Veri Saklama</h3>
+        <p>
+          Etkinlik, sipariş, bilet ve kullanıcı profil verileri PostgreSQL
+          veritabanında şifreli bağlantı ile saklanır. Veritabanı barındırması
+          güvenilir bulut sağlayıcıları üzerinden yapılır.
+        </p>
+        <h3>Cloudflare R2 Dosya Depolama</h3>
+        <p>
+          Etkinlik görselleri ve yüklenen medya dosyaları Cloudflare R2 nesne
+          depolama hizmetinde tutulur. Dosyalara erişim yetkilendirme
+          kontrolleri ile sınırlandırılır.
+        </p>
+      </section>
 
-          <h2>7. KVKK Kapsamındaki Haklarınız</h2>
-          <p>
-            6698 sayılı Kanun&apos;un 11. maddesi çerçevesinde aşağıdaki haklara sahipsiniz:
-          </p>
-          <ol>
-            <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
-            <li>İşlenmişse bunlara ilişkin bilgi talep etme</li>
-            <li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
-            <li>Yurt içinde veya yurt dışında aktarıldığı üçüncü kişileri bilme</li>
-            <li>Eksik veya yanlış işlenmiş verilerin düzeltilmesini isteme</li>
-            <li>Kanun&apos;un 7. maddesi çerçevesinde silinmesini veya yok edilmesini isteme</li>
-            <li>Düzeltme ve silme işlemlerinin aktarıldığı üçüncü kişilere bildirilmesini isteme</li>
-            <li>Münhasıran otomatik işleme dayalı aleyhte sonuçlara itiraz etme</li>
-            <li>Kanuna aykırı işleme sebebiyle uğranılan zararın giderilmesini talep etme</li>
-          </ol>
-          <p>
-            Taleplerinizi; HURMA MAH. 246 SK. ADALIN PARK NO: 9 İÇ KAPI NO: 2
-            KONYAALTI / ANTALYA adresimize elden veya noter kanalıyla,{' '}
-            ya da kayıtlı elektronik posta (KEP) adresi, güvenli elektronik imza
-            ya da sistemimizde kayıtlı e-posta adresiniz üzerinden{' '}
-            <a href="mailto:destek@biletfeed.com" className="text-primary">
-              destek@biletfeed.com
-            </a>{' '}
-            adresine iletebilirsiniz.
-          </p>
-          <p>
-            Başvurular kimlik doğrulamasını takiben en geç 30 gün içinde
-            ücretsiz olarak sonuçlandırılacaktır.
-          </p>
+      <section id="aktarim">
+        <h2>8. Veri Aktarımı</h2>
+        <p>
+          Kişisel verileriniz; yasal zorunluluklar, ödeme kuruluşları, bulut
+          altyapı sağlayıcıları ve hizmet ortakları ile yalnızca gerekli
+          kapsamda paylaşılabilir. Yurt dışına aktarımda KVKK m. 9 hükümlerine
+          uyulur.
+        </p>
+      </section>
 
-          <h2>8. Güvenlik Tedbirleri</h2>
-          <p>
-            BiletFeed, kişisel verilerinizin hukuka aykırı olarak işlenmesini ve
-            erişilmesini önlemek, gizlilik ve bütünlüğünü korumak amacıyla uygun
-            güvenlik düzeyini temin etmeye yönelik gerekli teknik ve idari tedbirleri
-            almayı taahhüt eder.
-          </p>
-          <p>
-            İşbu Aydınlatma Metni, mevzuattaki değişiklikler kapsamında güncellenebilir.
-            Güncel metne her zaman bu sayfadan ulaşabilirsiniz.
-          </p>
-    </article>
+      <section id="saklama">
+        <h2>9. Saklama Süresi</h2>
+        <p>
+          Veriler, işleme amacının gerektirdiği süre ve ilgili mevzuatın öngördüğü
+          süreler boyunca saklanır; süre sonunda silinir, yok edilir veya anonim
+          hale getirilir.
+        </p>
+      </section>
+
+      <section id="haklar">
+        <h2>10. Kullanıcı Hakları (KVKK m. 11)</h2>
+        <ol>
+          <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+          <li>İşlenmişse bilgi talep etme</li>
+          <li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+          <li>Yurt içi/yurt dışı aktarılan üçüncü kişileri bilme</li>
+          <li>Eksik veya yanlış verilerin düzeltilmesini isteme</li>
+          <li>Silinmesini veya yok edilmesini isteme</li>
+          <li>Otomatik işlemeye itiraz etme</li>
+          <li>Kanuna aykırı işleme nedeniyle zararın giderilmesini talep etme</li>
+        </ol>
+      </section>
+
+      <section id="kvkk-basvuru">
+        <h2>11. KVKK Başvuru Süreci</h2>
+        <p>
+          Taleplerinizi yazılı olarak {companyLegal.address} adresine veya{' '}
+          <a href={`mailto:${companyLegal.email}`}>{companyLegal.email}</a>{' '}
+          e-posta adresine iletebilirsiniz. Başvurular kimlik doğrulamasını
+          takiben en geç 30 gün içinde ücretsiz olarak sonuçlandırılır.
+        </p>
+      </section>
+
+      <section id="iletisim">
+        <h2>12. İletişim Bilgileri</h2>
+        <p>
+          Gizlilik ile ilgili sorularınız için{' '}
+          <Link href="/iletisim">İletişim</Link> sayfamızı kullanabilir veya{' '}
+          <a href={`mailto:${companyLegal.email}`}>{companyLegal.email}</a>{' '}
+          adresine yazabilirsiniz.
+        </p>
+      </section>
+    </LegalPageShell>
   );
 }

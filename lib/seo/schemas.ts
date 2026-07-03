@@ -128,6 +128,28 @@ export function buildEventSchema(
   };
 }
 
+export function buildWebPageSchema(params: {
+  name: string;
+  description: string;
+  url: string;
+  dateModified?: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: params.name,
+    description: params.description,
+    url: params.url,
+    inLanguage: 'tr-TR',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: siteConfig.name,
+      url: siteConfig.url
+    },
+    ...(params.dateModified ? { dateModified: params.dateModified } : {})
+  };
+}
+
 export function buildBreadcrumbSchema(items: BreadcrumbItem[]) {
   return {
     '@context': 'https://schema.org',

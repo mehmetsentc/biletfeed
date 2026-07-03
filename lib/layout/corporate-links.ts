@@ -9,6 +9,8 @@ export const corporateMobileLinks = [
 /** Eski / yanlış URL'ler → doğru sayfalar (next.config redirects) */
 export const corporateLegacyRedirects = [
   { source: '/gizlilik-politikasi', destination: '/gizlilik' },
+  { source: '/mesafeli-satis-sozlesmesi', destination: '/mesafeli-satis' },
+  { source: '/teslimat-iade-iptal', destination: '/iade-iptal' },
   { source: '/kullanim-kosullari', destination: '/kosullar' },
   { source: '/privacy', destination: '/gizlilik' },
   { source: '/terms', destination: '/kosullar' }

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, CalendarPlus } from 'lucide-react';
 import { CookiePreferencesButton } from '@/components/consent/cookie-preferences-button';
+import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
 import { AppStoreBadges } from '@/components/footer/app-store-badges';
 import { siteConfig } from '@/lib/config/site';
 import { panelHref, supportHref } from '@/lib/config/domain';
@@ -15,7 +16,7 @@ const companyLinks = [
   { href: '/gizlilik', label: 'Gizlilik Politikası' },
   { href: '/kullanici-sozlesmesi', label: 'Kullanıcı Sözleşmesi' },
   { href: '/mesafeli-satis', label: 'Mesafeli Satış Sözleşmesi' },
-  { href: '/iade-iptal', label: 'İade ve İptal Koşulları' },
+  { href: '/iade-iptal', label: 'Teslimat – İade – İptal' },
   { href: '/iade-garantisi', label: 'İade Garantisi Koşulları' },
   { href: '/cerezler', label: 'Çerez Politikası' },
 ];
@@ -141,23 +142,10 @@ export async function Footer() {
               <p className="text-sm text-white/50">
                 © {year} {siteConfig.name}. Tüm hakları saklıdır.
               </p>
-              <div className="flex flex-col items-center gap-3 sm:flex-row">
-                {/* iyzico ile Öde logosu */}
-                <img
-                  src="/iyzico/iyzico_ile_ode_colored_horizontal.svg"
-                  alt="iyzico ile Öde"
-                  className="h-7 w-auto"
-                />
-                {/* Kart logoları bandı */}
-                <img
-                  src="/iyzico/logo_band_colored.svg"
-                  alt="Mastercard, Visa, American Express, Troy"
-                  className="h-7 w-auto"
-                />
-              </div>
+              <PaymentCardLogos className="justify-center md:justify-end" />
             </div>
             <p className="mt-3 text-center text-xs text-white/30">
-              Ödemeler onaylı ödeme kuruluşu altyapısı ile SSL/TLS şifreli bağlantı üzerinden işlenir.
+              Ödemeler banka sanal POS altyapısı ile SSL/TLS şifreli bağlantı üzerinden işlenir.
               Kart bilgileriniz BiletFeed sunucularında saklanmaz.
             </p>
           </div>

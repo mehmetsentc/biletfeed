@@ -40,7 +40,9 @@ import type {
   RuleCatalogRule,
   SelectedRuleEntry
 } from '@/lib/event-rules/types';
+import { cn } from '@/lib/utils';
 import type { RuleParameterType } from '@prisma/client';
+import { SelectedRulesPreview } from '@/components/organizator-panel/event-wizard/selected-rules-preview';
 
 export interface EventRuleSetState {
   selectedRules: SelectedRuleEntry[];
@@ -358,9 +360,25 @@ export function WizardStepRules({
     <div className="space-y-6">
       <WizardFormSection
         title="Etkinlik Kuralları"
-        description="Katalogdan kuralları seçin veya AI ile öneri alın."
+        description="Katılımcıların bilet alırken ve etkinlik sayfasında göreceği kuralları seçin. Her kuralın açıklaması aşağıda listelenir."
         icon={FileText}
       >
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <p className="text-sm font-medium text-foreground">
+            Seçilen kurallar ({ruleSet.selectedRules.length + ruleSet.customRules.length})
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Bilet satın alma ve etkinlik detay sayfasında bu metinler gösterilir.
+          </p>
+          <div className="mt-3 max-h-64 overflow-y-auto">
+            <SelectedRulesPreview
+              selectedRules={ruleSet.selectedRules}
+              customRules={ruleSet.customRules}
+              rules={rules}
+              categories={categories}
+            />
+          </div>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -406,6 +424,12 @@ export function WizardStepRules({
           />
         </div>
 
+        {rules.length === 0 ? (
+          <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+            Kural kataloğu yüklenemedi. Lütfen sayfayı yenileyin veya yönetici ile iletişime
+            geçin.
+          </p>
+        ) : (
         <Accordion type="multiple" className="mt-4 w-full">
           {wizardCategories.map((cat) => {
             const catRules = filterRulesForCategory(cat.id);
@@ -440,7 +464,12 @@ export function WizardStepRules({
                       return (
                         <li
                           key={rule.id}
-                          className="rounded-lg border border-border bg-muted/10 p-3"
+                          className={cn(
+                            'rounded-lg border p-3 transition-colors',
+                            selectedIds.has(rule.id)
+                              ? 'border-primary/40 bg-primary/5'
+                              : 'border-border bg-muted/10'
+                          )}
                         >
                           <label className="flex cursor-pointer items-start gap-3">
                             <Checkbox
@@ -448,13 +477,19 @@ export function WizardStepRules({
                               onCheckedChange={() => toggleRule(rule)}
                               className="mt-0.5"
                             />
-                            <span className="flex-1">
-                              <span className="text-sm font-medium">
+                            <span className="flex-1 min-w-0">
+                              <span className="text-sm font-medium text-foreground">
                                 {getLocalizedField(rule, 'title', 'tr')}
                               </span>
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                {getLocalizedField(rule, 'description', 'tr')}
-                              </p>
+                              {getLocalizedField(rule, 'description', 'tr') ? (
+                                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                                  {getLocalizedField(rule, 'description', 'tr')}
+                                </p>
+                              ) : (
+                                <p className="mt-1.5 text-sm italic text-muted-foreground/70">
+                                  Açıklama bulunmuyor.
+                                </p>
+                              )}
                             </span>
                           </label>
                           {selectedIds.has(rule.id) && rule.requiresParameter && (
@@ -475,6 +510,7 @@ export function WizardStepRules({
             );
           })}
         </Accordion>
+        )}
       </WizardFormSection>
 
       <WizardFormSection
