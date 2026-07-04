@@ -16,7 +16,7 @@ import {
   formatEventDate,
   type MockEvent
 } from '@/lib/data/mock-events';
-import type { CheckoutTicketType } from '@/lib/tickets/purchase-context';
+import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import { calculatePurchasePricing, formatTry } from '@/lib/tickets/purchase-pricing';
 import { validateCheckoutAttendee } from '@/lib/validation/checkout-attendee';
 import { normalizeTrPhone } from '@/lib/validation/tr-phone';

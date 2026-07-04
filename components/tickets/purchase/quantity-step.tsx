@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PurchasePriceBreakdown } from '@/components/tickets/purchase/purchase-price-breakdown';
-import type { CheckoutTicketType } from '@/lib/tickets/purchase-context';
-import { ticketTypeRemaining } from '@/lib/tickets/purchase-context';
+import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
+import { ticketTypeRemaining } from '@/lib/tickets/purchase-types';
 import { formatTry } from '@/lib/tickets/purchase-pricing';
 
 interface QuantityStepProps {

@@ -1,11 +1,11 @@
 import { notFound, redirect } from 'next/navigation';
 import { PurchaseEventBar } from '@/components/tickets/purchase/purchase-event-bar';
 import { QuantityStep } from '@/components/tickets/purchase/quantity-step';
+import { getTicketPurchaseContext } from '@/lib/tickets/purchase-context';
 import {
   findTicketType,
-  getTicketPurchaseContext,
   ticketTypeAvailable
-} from '@/lib/tickets/purchase-context';
+} from '@/lib/tickets/purchase-types';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
 interface Props {

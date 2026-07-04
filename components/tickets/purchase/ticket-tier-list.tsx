@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { CheckoutTicketType } from '@/lib/tickets/purchase-context';
+import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import {
   ticketTypeAvailable,
   ticketTypeRemaining
-} from '@/lib/tickets/purchase-context';
+} from '@/lib/tickets/purchase-types';
 import { formatTry } from '@/lib/tickets/purchase-pricing';
 import { cn } from '@/lib/utils';
 

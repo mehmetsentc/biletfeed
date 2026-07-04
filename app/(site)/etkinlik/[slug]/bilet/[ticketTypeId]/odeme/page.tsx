@@ -1,11 +1,11 @@
 import { notFound, redirect } from 'next/navigation';
 import { PurchaseEventBar } from '@/components/tickets/purchase/purchase-event-bar';
 import { PurchaseCheckoutForm } from '@/components/tickets/purchase/purchase-checkout-form';
+import { getTicketPurchaseContext } from '@/lib/tickets/purchase-context';
 import {
   findTicketType,
-  getTicketPurchaseContext,
   ticketTypeAvailable
-} from '@/lib/tickets/purchase-context';
+} from '@/lib/tickets/purchase-types';
 import { getEventRulesDisplay } from '@/lib/services/event-rules-display';
 import { resolveLocaleFromCookie } from '@/lib/event-rules/i18n';
 import { createPageMetadata } from '@/lib/seo/metadata';
