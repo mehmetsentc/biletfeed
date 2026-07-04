@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/biletfeed_ci
+      NEXT_PUBLIC_APP_URL: https://biletfeed.com
+      NEXT_PUBLIC_CANONICAL_HOST: biletfeed.com
+      NEXT_PUBLIC_ROOT_DOMAIN: biletfeed.com
+      TICKET_SECRET_KEY: ci-test-ticket-secret-key-min-32-chars
+      FIREBASE_ADMIN_PROJECT_ID: ci-project
+      FIREBASE_ADMIN_CLIENT_EMAIL: ci@example.com
+      FIREBASE_ADMIN_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCi\n-----END PRIVATE KEY-----\n"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit tests
+        run: npm run test
+      - name: Production build
+        run: npm run build
