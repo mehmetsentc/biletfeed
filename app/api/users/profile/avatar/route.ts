@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { verifySessionCookie } from '@/lib/auth/session';
+import { assertImageUpload } from '@/lib/security/image-upload';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -81,10 +82,11 @@ export async function POST(request: NextRequest) {
   let photoURL: string;
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
+    const verifiedType = assertImageUpload(buffer, contentType);
     photoURL = await uploadUserAvatarFromBuffer(
       session.uid,
       buffer,
-      contentType
+      verifiedType
     );
   } catch (err) {
     console.error('[avatar upload] storage', err);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { recategorizePublishedEvents } from '@/lib/scraper/recategorize-events';
 
@@ -18,15 +19,8 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 /** POST /api/admin/fix-categories — kategori adlarını düzeltir; ?recategorize=1 ile etkinlikleri yeniden eşleştirir */
 export async function POST(request: NextRequest) {
-  const adminSecret = process.env.ADMIN_SECRET || process.env.CRON_SECRET;
-  if (!adminSecret) {
-    return NextResponse.json({ error: 'Sunucu yapılandırma hatası' }, { status: 500 });
-  }
-
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${adminSecret}`) {
-    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
-  }
+  const guard = await guardAdminMutation(request, 'categories.manage');
+  if ('error' in guard) return guard.error;
 
   await ensureDbConnection();
 

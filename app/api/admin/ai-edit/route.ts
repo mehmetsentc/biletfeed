@@ -1,32 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySessionCookie } from '@/lib/auth/session';
-import { canAccessAdmin } from '@/lib/auth/permissions';
-import { rejectAdminCsrf } from '@/lib/auth/admin-csrf';
+import { guardAdminAutomationOrMutation } from '@/lib/auth/guard-admin-api';
 import { ensureDbConnection } from '@/lib/db/prisma';
 import { editPendingEventsWithAi } from '@/lib/scraper/ai/edit-events';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 dakika (Vercel Pro)
+export const maxDuration = 300;
 
-/**
- * POST /api/admin/ai-edit
- * Tüm pending harici etkinlikleri AI ile inceler:
- * kategori / şehir / açıklama düzeltir, onaylar veya reddeder.
- */
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
-
-  if (!isCron) {
-    const csrf = rejectAdminCsrf(request);
-    if (csrf) return csrf;
-
-    const session = await verifySessionCookie();
-    if (!session || !canAccessAdmin(session.role as never)) {
-      return NextResponse.json({ error: 'Yetkisiz' }, { status: 403 });
-    }
-  }
+  const guard = await guardAdminAutomationOrMutation(request, 'events.manage');
+  if ('error' in guard) return guard.error;
 
   await ensureDbConnection();
 

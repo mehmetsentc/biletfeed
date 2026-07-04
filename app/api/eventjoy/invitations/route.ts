@@ -5,7 +5,8 @@ import {
   publishEventJoyInvitation
 } from '@/lib/eventjoy/invitations';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { rateLimitOrNull } from '@/lib/security/rate-limit';
+import { verifySessionCookie } from '@/lib/auth/session';
+import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 import { eventJoyApiDisabledResponse } from '@/lib/eventjoy/guard';
 
 const publishSchema = z.object({
@@ -26,11 +27,22 @@ const publishSchema = z.object({
 export async function POST(request: NextRequest) {
   const disabled = eventJoyApiDisabledResponse();
   if (disabled) return disabled;
+
+  const session = await verifySessionCookie();
+  if (!session) {
+    return NextResponse.json({ error: 'Giriş gerekli' }, { status: 401 });
+  }
+
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const limited = rateLimitOrNull(request, 'eventjoy-invite-publish', 30, 60_000);
+  const limited = await rateLimitOrNullAsync(
+    request,
+    'eventjoy-invite-publish',
+    30,
+    60_000
+  );
   if (limited) return limited;
 
   let body: unknown;

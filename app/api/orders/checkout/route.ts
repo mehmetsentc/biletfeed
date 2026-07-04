@@ -5,7 +5,7 @@ import { isAllowedAppRedirectUrl } from '@/lib/auth/safe-redirect';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { createCheckout } from '@/lib/services/orders';
 import { getAppBaseUrl } from '@/lib/payments/config';
-import { rateLimitOrNull } from '@/lib/security/rate-limit';
+import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 import { checkoutAttendeeSchema } from '@/lib/validation/checkout-attendee';
 
 const bodySchema = checkoutAttendeeSchema.extend({
@@ -17,7 +17,7 @@ const bodySchema = checkoutAttendeeSchema.extend({
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimitOrNull(request, 'checkout', 15, 60_000);
+    const limited = await rateLimitOrNullAsync(request, 'checkout', 15, 60_000);
     if (limited) return limited;
 
     if (!isSameOriginRequest(request)) {

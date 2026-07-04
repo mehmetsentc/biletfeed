@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
-import { rejectAdminCsrf } from '@/lib/auth/admin-csrf';
+import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { upsertCity } from '@/lib/services/admin-dashboard';
 
 const schema = z.object({
@@ -11,13 +10,8 @@ const schema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const csrf = rejectAdminCsrf(request);
-  if (csrf) return csrf;
-
-  const session = await verifySessionCookie();
-  if (!session || !sessionHasRole(session, 'ROLE_ADMIN')) {
-    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
-  }
+  const guard = await guardAdminMutation(request, 'cities.manage');
+  if ('error' in guard) return guard.error;
 
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });

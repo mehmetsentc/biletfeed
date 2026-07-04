@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { adminUnauthorized, requireAdminSession } from '@/lib/auth/admin-api';
+import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 
 export async function POST(request: NextRequest) {
-  if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
-  }
-
-  const session = await requireAdminSession();
-  if (!session) return adminUnauthorized();
+  const guard = await guardAdminMutation(request, 'events.manage');
+  if ('error' in guard) return guard.error;
 
   try {
     const { recategorizePublishedEvents } = await import(

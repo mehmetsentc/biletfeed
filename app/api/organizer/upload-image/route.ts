@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { requireOrganizerSession } from '@/lib/auth/organizer-api';
 import { uploadOrganizerEventCover, isFirebaseStorageUploadConfigured } from '@/lib/firebase/admin-storage';
+import { assertImageUpload } from '@/lib/security/image-upload';
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -36,10 +37,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Dosya 5 MB sınırını aşıyor' }, { status: 400 });
     }
 
-    const url = await uploadOrganizerEventCover(ctx.organizer.id, buffer, contentType);
+    const verifiedType = assertImageUpload(buffer, contentType);
+
+    const url = await uploadOrganizerEventCover(ctx.organizer.id, buffer, verifiedType);
     return NextResponse.json({ url });
   } catch (err) {
-    console.error('[upload-image]', err);
-    return NextResponse.json({ error: 'Yükleme başarısız' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Yükleme başarısız';
+    const status = message.includes('Geçersiz') || message.includes('uyuşmuyor') ? 400 : 500;
+    if (status === 500) console.error('[upload-image]', err);
+    return NextResponse.json({ error: message }, { status });
   }
 }

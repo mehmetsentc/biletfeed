@@ -48,7 +48,17 @@ export function RichTextEditor({
       editor?.chain().focus().extendMarkRange('link').unsetLink().run();
       return;
     }
-    editor?.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+    try {
+      const parsed = new URL(url, 'https://biletfeed.com');
+      const allowed =
+        parsed.protocol === 'https:' ||
+        parsed.protocol === 'http:' ||
+        parsed.protocol === 'mailto:';
+      if (!allowed) return;
+      editor?.chain().focus().extendMarkRange('link').setLink({ href: parsed.toString() }).run();
+    } catch {
+      /* geçersiz URL */
+    }
   }
 
   return (

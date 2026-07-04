@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
+import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import {
   adminCancelTicket,
   adminForceCheckIn,
@@ -15,14 +14,8 @@ const actionSchema = z.object({
 type RouteParams = { params: Promise<{ ticketId: string }> };
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
-  }
-
-  const session = await verifySessionCookie();
-  if (!session || !sessionHasRole(session, 'ROLE_ADMIN')) {
-    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
-  }
+  const guard = await guardAdminMutation(request, 'tickets.manage');
+  if ('error' in guard) return guard.error;
 
   const { ticketId } = await params;
   const json = await request.json();
@@ -31,10 +24,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Geçersiz işlem' }, { status: 400 });
   }
 
+  const { uid } = guard.ctx.session;
+
   try {
     switch (parsed.data.action) {
       case 'force_check_in': {
-        const result = await adminForceCheckIn(ticketId, session.uid);
+        const result = await adminForceCheckIn(ticketId, uid);
         return NextResponse.json(result);
       }
       case 'cancel':

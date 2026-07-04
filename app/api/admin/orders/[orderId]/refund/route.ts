@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { adminUnauthorized, requireAdminSession } from '@/lib/auth/admin-api';
+import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { requestOrderRefund } from '@/lib/services/orders';
 
 const bodySchema = z.object({
@@ -13,12 +12,8 @@ interface RouteParams {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
-  }
-
-  const session = await requireAdminSession();
-  if (!session) return adminUnauthorized();
+  const guard = await guardAdminMutation(request, 'orders.refund');
+  if ('error' in guard) return guard.error;
 
   const { orderId } = await params;
   const json = await request.json().catch(() => ({}));

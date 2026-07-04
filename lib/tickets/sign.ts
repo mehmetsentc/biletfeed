@@ -2,7 +2,7 @@ import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'crypto';
 import { getSiteUrl } from '@/lib/config/domain';
 
 export function generateTicketCode(): string {
-  return `BF-${randomBytes(4).toString('hex').toUpperCase()}`;
+  return `BF-${randomBytes(6).toString('hex').toUpperCase()}`;
 }
 
 function getTicketSecret(): string {

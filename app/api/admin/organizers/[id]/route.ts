@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { verifySessionCookie, sessionHasRole } from '@/lib/auth/session';
-import { rejectAdminCsrf } from '@/lib/auth/admin-csrf';
+import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { updateOrganizerStatus, updateOrganizerCommission } from '@/lib/services/admin-dashboard';
 
 const patchSchema = z.object({
@@ -14,13 +12,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const csrf = rejectAdminCsrf(request);
-  if (csrf) return csrf;
-
-  const session = await verifySessionCookie();
-  if (!session || !sessionHasRole(session, 'ROLE_ADMIN')) {
-    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
-  }
+  const guard = await guardAdminMutation(request, 'organizers.manage');
+  if ('error' in guard) return guard.error;
 
   const { id } = await params;
   const body = await request.json();

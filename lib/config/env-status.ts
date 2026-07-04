@@ -128,6 +128,17 @@ export function getEnvStatusItems(): EnvCheckItem[] {
     )
   );
 
+  const adminSecret = process.env.ADMIN_SECRET?.trim();
+  items.push(
+    row(
+      'Admin Secret',
+      adminSecret ? 'ok' : isProduction() ? 'warn' : 'warn',
+      adminSecret
+        ? 'ADMIN_SECRET ayarlı (otomasyon API)'
+        : 'ADMIN_SECRET önerilir — CRON_SECRET ile karıştırılmamalı'
+    )
+  );
+
   items.push(
     row(
       'Firebase Storage',

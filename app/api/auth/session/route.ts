@@ -8,7 +8,7 @@ import {
 import { SESSION_EXPIRES_MS } from '@/lib/auth/session';
 import { syncUserToDB } from '@/lib/auth/sync-user';
 import { verifyIdTokenViaRestApi } from '@/lib/auth/verify-id-token';
-import { rateLimitOrNull } from '@/lib/security/rate-limit';
+import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 
 function buildSessionCookie(
   uid: string,
@@ -26,7 +26,7 @@ function buildSessionCookie(
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimitOrNull(request, 'auth-session', 60, 60_000);
+    const limited = await rateLimitOrNullAsync(request, 'auth-session', 60, 60_000);
     if (limited) return limited;
 
     if (!isSameOriginRequest(request)) {

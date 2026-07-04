@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdminSession, adminUnauthorized } from '@/lib/auth/admin-api';
-import { isSameOriginRequest } from '@/lib/auth/csrf';
+import { guardAdminMutation, guardAdminRead } from '@/lib/auth/guard-admin-api';
 import {
   getFeedAdminStats,
   listAdminFeedPosts,
@@ -10,8 +9,8 @@ import {
 import { listEditorialQueue, processEditorialQueueItem } from '@/lib/services/feed-editorial';
 
 export async function GET(request: NextRequest) {
-  const session = await requireAdminSession();
-  if (!session) return adminUnauthorized();
+  const guard = await guardAdminRead('feed.view');
+  if ('error' in guard) return guard.error;
 
   const status = request.nextUrl.searchParams.get('status') ?? undefined;
   const [stats, posts, queue] = await Promise.all([
@@ -26,11 +25,8 @@ export async function GET(request: NextRequest) {
 const publishSchema = z.object({ postId: z.string().uuid() });
 
 export async function POST(request: NextRequest) {
-  if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
-  }
-  const session = await requireAdminSession();
-  if (!session) return adminUnauthorized();
+  const guard = await guardAdminMutation(request, 'feed.manage');
+  if ('error' in guard) return guard.error;
 
   const json = await request.json();
   const action = (json as { action?: string }).action;

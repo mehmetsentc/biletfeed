@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPublicTicketByCode } from '@/lib/services/tickets';
+import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 import {
   buildTicketPdfFilename,
   generateTicketPdf
@@ -9,6 +10,9 @@ import { mapPublicTicketToPdf } from '@/lib/tickets/pdf/map-ticket-data';
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
+  const limited = await rateLimitOrNullAsync(request, 'ticket-pdf-public', 30, 60_000);
+  if (limited) return limited;
+
   const { searchParams } = request.nextUrl;
   const code = searchParams.get('code')?.trim() ?? '';
   const token = searchParams.get('token')?.trim() ?? '';

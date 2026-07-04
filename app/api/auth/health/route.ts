@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
+import { requireAdminSession } from '@/lib/auth/admin-api';
 
 export const dynamic = 'force-dynamic';
 
-/** Sunucu auth yapılandırması — secret değerleri döndürmez */
+/** Sunucu auth yapılandırması — production'da minimal yanıt */
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    const session = await requireAdminSession();
+    if (!session) {
+      return NextResponse.json({ ok: true });
+    }
+  }
+
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
   const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN?.trim();
   const expectedAuthDomain = projectId ? `${projectId}.firebaseapp.com` : null;

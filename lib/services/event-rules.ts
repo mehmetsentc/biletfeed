@@ -35,6 +35,28 @@ import type {
   SelectedRuleEntry
 } from '@/lib/event-rules/types';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import {
+  sanitizeOrganizerHtml,
+  sanitizePlainText
+} from '@/lib/security/sanitize-html';
+
+function normalizeAnnouncementInput(
+  announcement: EventAnnouncementInput,
+  sortOrder: number
+): EventAnnouncementInput {
+  return {
+    ...announcement,
+    titleTr: sanitizePlainText(announcement.titleTr, 200),
+    titleEn: announcement.titleEn
+      ? sanitizePlainText(announcement.titleEn, 200)
+      : undefined,
+    contentTr: sanitizeOrganizerHtml(announcement.contentTr),
+    contentEn: announcement.contentEn
+      ? sanitizeOrganizerHtml(announcement.contentEn)
+      : undefined,
+    sortOrder: announcement.sortOrder ?? sortOrder
+  };
+}
 
 function parseSelectedRules(value: unknown): SelectedRuleEntry[] {
   if (!Array.isArray(value)) return [];
@@ -261,14 +283,17 @@ export async function saveEventRuleSet(
       await tx.eventAnnouncement.deleteMany({ where: { eventId } });
       if (data.announcements.length > 0) {
         await tx.eventAnnouncement.createMany({
-          data: data.announcements.map((a, idx) => ({
-            eventId,
-            titleTr: a.titleTr,
-            titleEn: a.titleEn ?? null,
-            contentTr: a.contentTr,
-            contentEn: a.contentEn ?? null,
-            sortOrder: a.sortOrder ?? idx
-          }))
+          data: data.announcements.map((a, idx) => {
+            const normalized = normalizeAnnouncementInput(a, idx);
+            return {
+              eventId,
+              titleTr: normalized.titleTr,
+              titleEn: normalized.titleEn ?? null,
+              contentTr: normalized.contentTr,
+              contentEn: normalized.contentEn ?? null,
+              sortOrder: normalized.sortOrder ?? idx
+            };
+          })
         });
       }
     }

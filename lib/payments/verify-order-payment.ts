@@ -11,6 +11,9 @@ export async function verifyOrderPaymentAmount(params: {
   provider: string;
 }): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (params.amount === undefined) {
+    if (process.env.NODE_ENV === 'production') {
+      return { ok: false, reason: 'Ödeme tutarı doğrulaması zorunlu' };
+    }
     return { ok: true };
   }
 

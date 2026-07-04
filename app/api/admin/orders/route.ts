@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { adminUnauthorized, requireAdminSession } from '@/lib/auth/admin-api';
+import { guardAdminRead } from '@/lib/auth/guard-admin-api';
 import { listOrdersForAdmin } from '@/lib/services/orders';
 
 export async function GET() {
-  const session = await requireAdminSession();
-  if (!session) return adminUnauthorized();
+  const guard = await guardAdminRead('orders.view');
+  if ('error' in guard) return guard.error;
 
   const orders = await listOrdersForAdmin({ limit: 200 });
 

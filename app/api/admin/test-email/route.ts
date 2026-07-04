@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { adminUnauthorized, requireAdminSession } from '@/lib/auth/admin-api';
+import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import {
   emailConfig,
   formatEmailFrom,
@@ -15,10 +13,6 @@ import {
   emailLogoBar,
   emailShell
 } from '@/lib/email/email-shared';
-
-const bodySchema = z.object({
-  to: z.string().email().optional()
-});
 
 function buildTestEmailHtml(): string {
   const content = `
@@ -52,14 +46,11 @@ function buildTestEmailHtml(): string {
 /**
  * POST /api/admin/test-email
  * Admin oturumu ile Resend bağlantısını test eder.
+ * Alıcı yalnızca oturum e-postası olabilir.
  */
 export async function POST(request: NextRequest) {
-  if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
-  }
-
-  const session = await requireAdminSession();
-  if (!session) return adminUnauthorized();
+  const guard = await guardAdminMutation(request, 'settings.manage');
+  if ('error' in guard) return guard.error;
 
   if (!isEmailConfigured()) {
     return NextResponse.json(
@@ -68,16 +59,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const json = await request.json().catch(() => ({}));
-  const parsed = bodySchema.safeParse(json);
-  const to =
-    (parsed.success && parsed.data.to) ||
-    session.email ||
-    process.env.SUPER_ADMIN_EMAILS?.split(',')[0]?.trim();
-
+  const to = guard.ctx.session.email;
   if (!to) {
     return NextResponse.json(
-      { error: 'Alıcı e-postası belirtilmedi (body.to veya oturum e-postası gerekli)' },
+      { error: 'Oturum e-postası bulunamadı' },
       { status: 400 }
     );
   }

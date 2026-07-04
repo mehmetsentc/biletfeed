@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySessionCookie } from '@/lib/auth/session';
-import { canAccessAdmin } from '@/lib/auth/permissions';
-import { isSameOriginRequest } from '@/lib/auth/csrf';
+import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { seedEventRulesCatalog } from '@/lib/seed/event-rules';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
-  if (!isSameOriginRequest(request)) {
-    return NextResponse.json({ error: 'Geçersiz istek kaynağı' }, { status: 403 });
-  }
-
-  const session = await verifySessionCookie();
-  if (!session || !canAccessAdmin(session.role as never)) {
-    return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
-  }
+  const guard = await guardAdminMutation(request, 'settings.manage');
+  if ('error' in guard) return guard.error;
 
   try {
     const result = await seedEventRulesCatalog();

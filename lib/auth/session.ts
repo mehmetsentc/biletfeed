@@ -6,6 +6,7 @@ import {
   verifySessionSignature
 } from '@/lib/auth/session-crypto';
 import { resolveUserRoleForSession } from '@/lib/services/user-queries';
+import { isDatabaseConfigured } from '@/lib/db/prisma';
 
 // firebase-admin import YOK — ESM uyumsuzluğunu önlemek için
 
@@ -76,8 +77,13 @@ async function resolveSessionFromCookieValue(
     if (dbRole) {
       return { ...parsed, role: dbRole };
     }
+    if (isDatabaseConfigured()) {
+      return null;
+    }
   } catch {
-    /* DB geçici hata — çerezdeki rol ile devam et */
+    if (process.env.NODE_ENV === 'production') {
+      return null;
+    }
   }
 
   return parsed;
