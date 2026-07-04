@@ -200,7 +200,7 @@ export function CreateOrganizerEventWizard({
   );
   const [location, setLocation] = useState<LocationMode>(initialData?.location ?? 'venue');
   const [venueName, setVenueName] = useState(initialData?.venueName ?? '');
-  const [venueAddress, setVenueAddress] = useState('');
+  const [venueAddress, setVenueAddress] = useState(initialData?.venueAddress ?? '');
   const [venueDetail, setVenueDetail] = useState('');
   const [ruleSet, setRuleSet] = useState<EventRuleSetState>(
     initialData?.ruleSet ?? {
@@ -1056,7 +1056,9 @@ export function CreateOrganizerEventWizard({
               showTerms={
                 !isEdit ||
                 initialStatus === 'draft' ||
-                initialStatus === 'pending'
+                initialStatus === 'pending' ||
+                initialStatus === 'published' ||
+                initialStatus === 'completed'
               }
               previewImage={previewImage}
               title={title}
@@ -1120,13 +1122,20 @@ export function CreateOrganizerEventWizard({
               >
                 {publishing ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
               </Button>
-              {(initialStatus === 'draft' || initialStatus === 'pending') && (
+              {(initialStatus === 'draft' ||
+                initialStatus === 'pending' ||
+                initialStatus === 'published' ||
+                initialStatus === 'completed') && (
                 <Button
                   onClick={() => saveEvent('pending')}
                   disabled={publishing || !termsAccepted}
                   className="min-w-[160px] bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
                 >
-                  {publishing ? 'Gönderiliyor…' : 'Onaya Gönder'}
+                  {publishing
+                    ? 'Gönderiliyor…'
+                    : initialStatus === 'published' || initialStatus === 'completed'
+                      ? 'Yeniden Onaya Gönder'
+                      : 'Onaya Gönder'}
                 </Button>
               )}
             </div>

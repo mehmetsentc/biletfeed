@@ -40,6 +40,10 @@ import {
   sanitizePlainText
 } from '@/lib/security/sanitize-html';
 
+import { getEventRuleSet } from '@/lib/services/event-rules-query';
+
+export { getEventRuleSet };
+
 function normalizeAnnouncementInput(
   announcement: EventAnnouncementInput,
   sortOrder: number
@@ -188,39 +192,6 @@ export async function searchRules(
       r.descriptionEn.toLowerCase().includes(q) ||
       r.slug.includes(q)
   );
-}
-
-export async function getEventRuleSet(eventId: string): Promise<{
-  ruleSet: EventRuleSetData | null;
-  announcements: EventAnnouncementInput[];
-}> {
-  await ensureDbConnection();
-
-  const [ruleSet, announcements] = await Promise.all([
-    prisma.eventRuleSet.findUnique({ where: { eventId } }),
-    prisma.eventAnnouncement.findMany({
-      where: { eventId },
-      orderBy: { sortOrder: 'asc' }
-    })
-  ]);
-
-  return {
-    ruleSet: ruleSet
-      ? {
-          selectedRules: parseSelectedRules(ruleSet.selectedRules),
-          customRules: ruleSet.customRules,
-          appliedTemplateId: ruleSet.appliedTemplateId
-        }
-      : null,
-    announcements: announcements.map((a) => ({
-      id: a.id,
-      titleTr: a.titleTr,
-      titleEn: a.titleEn ?? undefined,
-      contentTr: a.contentTr,
-      contentEn: a.contentEn ?? undefined,
-      sortOrder: a.sortOrder
-    }))
-  };
 }
 
 async function verifyEventOwnership(

@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { mapEventToWizardInitialData } from '@/lib/organizator/event-wizard-data';
-import { getEventRuleSet } from '@/lib/services/event-rules';
+import { getEventRuleSet } from '@/lib/services/event-rules-query';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { CreateOrganizerEventWizard } from '@/components/organizator-panel/create-event-wizard';
 
@@ -12,7 +12,7 @@ interface PageProps {
 
 export default async function OrganizatorEditEventPage({ params }: PageProps) {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
+  const organizer = await getOrganizerForSession(session.uid, session.email);
   if (!organizer) redirect('/organizator-panel/kurulum');
 
   const { id } = await params;
@@ -31,9 +31,19 @@ export default async function OrganizatorEditEventPage({ params }: PageProps) {
     }
   });
 
-  if (!event) notFound();
+  if (!event || !event.category || !event.city) notFound();
 
-  const ruleSetData = await getEventRuleSet(event.id);
+  let ruleSetData: Awaited<ReturnType<typeof getEventRuleSet>> = {
+    ruleSet: null,
+    announcements: []
+  };
+  try {
+    ruleSetData = await getEventRuleSet(event.id);
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[organizer/edit-event] getEventRuleSet failed', err);
+    }
+  }
 
   return (
     <CreateOrganizerEventWizard

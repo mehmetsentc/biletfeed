@@ -13,7 +13,10 @@ import {
 } from 'lucide-react';
 import { TicketQR } from '@/components/tickets/ticket-qr';
 import { BulkInvitationsPanel } from '@/components/organizator-panel/bulk-invitations-panel';
-import { MAX_DIRECT_INVITATION_PDFS } from '@/lib/config/invitations';
+import {
+  MAX_DIRECT_INVITATION_PDFS,
+  MAX_INVITATION_QUANTITY
+} from '@/lib/config/invitations';
 import type { InvitationRow } from '@/lib/services/event-invitations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,12 +62,24 @@ export function InvitationsPanel({
   const [guestPhone, setGuestPhone] = useState('');
   const [ticketTypeId, setTicketTypeId] = useState('');
   const [personalMessage, setPersonalMessage] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.id === eventId),
     [events, eventId]
   );
+
+  const selectedTicketType = useMemo(
+    () => ticketTypes.find((type) => type.id === ticketTypeId),
+    [ticketTypes, ticketTypeId]
+  );
+
+  const remainingCapacity = selectedTicketType
+    ? Math.max(0, selectedTicketType.capacity - selectedTicketType.sold)
+    : 0;
+
+  const overCapacity = quantity > remainingCapacity && remainingCapacity > 0;
 
   const loadEvents = useCallback(async () => {
     const res = await fetch('/api/organizer/events', { credentials: 'include' });
@@ -109,49 +124,127 @@ export function InvitationsPanel({
     void loadEventData(eventId).catch(() => setError('Davetiye verileri yüklenemedi'));
   }, [eventId, loadEventData]);
 
+  async function downloadZipForIds(ids: string[]) {
+    const res = await fetch('/api/organizer/invitations/bulk/zip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ invitationIds: ids })
+    });
+    if (!res.ok) throw new Error('ZIP oluşturulamadı');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'BiletFeed-Davetiyeler.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleSendInvitation(e: React.FormEvent) {
     e.preventDefault();
-    if (!eventId || !ticketTypeId) return;
+    if (!eventId || !ticketTypeId || overCapacity) return;
 
     setSending(true);
     setError(null);
     setSuccess(null);
 
+    const trimmedName = guestName.trim();
+    const trimmedEmail = guestEmail.trim();
+    const trimmedPhone = guestPhone.trim();
+    const trimmedMessage = personalMessage.trim();
+    const hadEmail = Boolean(trimmedEmail);
+
     try {
-      const res = await fetch('/api/organizer/invitations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          eventId,
-          ticketTypeId,
-          guestName,
-          guestEmail: guestEmail || undefined,
-          guestPhone: guestPhone || undefined,
-          personalMessage: personalMessage || undefined
-        })
-      });
+      if (quantity === 1) {
+        const res = await fetch('/api/organizer/invitations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            eventId,
+            ticketTypeId,
+            guestName: trimmedName,
+            guestEmail: trimmedEmail || undefined,
+            guestPhone: trimmedPhone || undefined,
+            personalMessage: trimmedMessage || undefined
+          })
+        });
 
-      const data = (await res.json()) as {
-        error?: string;
-        invitation?: InvitationRow;
-      };
-      if (!res.ok) throw new Error(data.error || 'Davetiye gönderilemedi');
+        const data = (await res.json()) as {
+          error?: string;
+          invitation?: InvitationRow;
+        };
+        if (!res.ok) throw new Error(data.error || 'Davetiye gönderilemedi');
 
-      const invitation = data.invitation!;
-      const hadEmail = Boolean(guestEmail.trim());
-      setLastInvite(invitation);
-      setInvitations((prev) => [invitation, ...prev]);
-      setSuccess(
-        hadEmail
-          ? `${invitation.guestName} için davetiye oluşturuldu, PDF e-posta ile gönderildi.`
-          : `${invitation.guestName} için PDF davetiye oluşturuldu.`
-      );
-      downloadPdf(invitation);
+        const invitation = data.invitation!;
+        setLastInvite(invitation);
+        setInvitations((prev) => [invitation, ...prev]);
+        setSuccess(
+          hadEmail
+            ? `${invitation.guestName} için davetiye oluşturuldu, PDF e-posta ile gönderildi.`
+            : `${invitation.guestName} için PDF davetiye oluşturuldu.`
+        );
+        downloadPdf(invitation);
+      } else {
+        const guests = Array.from({ length: quantity }, () => ({
+          guestName: trimmedName,
+          guestEmail: trimmedEmail || undefined,
+          guestPhone: trimmedPhone || undefined,
+          personalMessage: trimmedMessage || undefined
+        }));
+
+        const res = await fetch('/api/organizer/invitations/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            eventId,
+            ticketTypeId,
+            guests,
+            sendEmails: hadEmail
+          })
+        });
+
+        const data = (await res.json()) as {
+          error?: string;
+          created?: InvitationRow[];
+          errors?: Array<{ guestName: string; error: string }>;
+        };
+        if (!res.ok) throw new Error(data.error || 'Davetiyeler gönderilemedi');
+
+        const created = data.created ?? [];
+        if (created.length === 0) {
+          throw new Error(data.errors?.[0]?.error || 'Davetiye oluşturulamadı');
+        }
+
+        setLastInvite(created[0] ?? null);
+        setInvitations((prev) => [...created, ...prev]);
+        setSuccess(
+          hadEmail
+            ? `${trimmedName} için ${created.length} davetiye oluşturuldu, PDF'ler e-posta ile gönderildi.`
+            : `${trimmedName} için ${created.length} PDF davetiye oluşturuldu.`
+        );
+
+        if (created.length === 1) {
+          downloadPdf(created[0]!);
+        } else {
+          await downloadZipForIds(created.map((row) => row.id));
+        }
+
+        if (data.errors?.length) {
+          setError(
+            `${created.length} davetiye oluşturuldu, ${data.errors.length} hata oluştu.`
+          );
+        }
+      }
+
       setGuestName('');
       setGuestEmail('');
       setGuestPhone('');
       setPersonalMessage('');
+      setQuantity(1);
+      void loadEventData(eventId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Davetiye gönderilemedi');
     } finally {
@@ -342,6 +435,35 @@ export function InvitationsPanel({
             </div>
 
             <div>
+              <Label htmlFor="invite-quantity">Davetiye Sayısı</Label>
+              <Input
+                id="invite-quantity"
+                type="number"
+                min={1}
+                max={MAX_INVITATION_QUANTITY}
+                value={quantity}
+                onChange={(e) =>
+                  setQuantity(
+                    Math.min(
+                      MAX_INVITATION_QUANTITY,
+                      Math.max(1, Number.parseInt(e.target.value, 10) || 1)
+                    )
+                  )
+                }
+                className="mt-1.5"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Aynı isim ve e-posta ile birden fazla davetiye gönderebilirsiniz. Her davetiye
+                ayrı QR kodlu PDF olarak oluşturulur.
+              </p>
+              {overCapacity && (
+                <p className="mt-1 text-xs text-red-600">
+                  Seçilen bilet türünde yalnızca {remainingCapacity} kontenjan kaldı.
+                </p>
+              )}
+            </div>
+
+            <div>
               <Label htmlFor="guest-email">E-posta (isteğe bağlı)</Label>
               <Input
                 id="guest-email"
@@ -382,7 +504,7 @@ export function InvitationsPanel({
           <Button
             type="submit"
             className="mt-6 w-full"
-            disabled={sending || !eventId || ticketTypes.length === 0}
+            disabled={sending || !eventId || ticketTypes.length === 0 || overCapacity}
           >
             {sending ? (
               <>
@@ -392,7 +514,9 @@ export function InvitationsPanel({
             ) : (
               <>
                 <QrCode className="mr-2 size-4" />
-                Davetiye Oluştur ve Gönder
+                {quantity > 1
+                  ? `${quantity} Davetiye Oluştur ve Gönder`
+                  : 'Davetiye Oluştur ve Gönder'}
               </>
             )}
           </Button>

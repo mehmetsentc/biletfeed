@@ -14,6 +14,7 @@ export interface EventWizardInitialData {
   category: string;
   citySlug: string;
   venueName: string;
+  venueAddress: string;
   description: string;
   coverImage: string | null;
   ticketType: 'free' | 'paid';
@@ -46,9 +47,13 @@ function toLocalDateParts(value: Date | string): { date: string; time: string } 
   };
 }
 
-function splitTicketLabel(name: string, description: string): { name: string; description: string } {
-  if (description.trim()) {
-    return { name, description };
+function splitTicketLabel(
+  name: string,
+  description: string | null | undefined
+): { name: string; description: string } {
+  const desc = description ?? '';
+  if (desc.trim()) {
+    return { name, description: desc };
   }
   const sep = ' — ';
   const idx = name.indexOf(sep);
@@ -78,6 +83,7 @@ export function mapEventToWizardInitialData(
     category: event.category.slug,
     citySlug: event.city.slug,
     venueName: isOnline ? '' : venueName,
+    venueAddress: event.venue?.address ?? '',
     description: event.description,
     coverImage: event.coverImage || null,
     ticketType: event.isFree ? 'free' : 'paid',

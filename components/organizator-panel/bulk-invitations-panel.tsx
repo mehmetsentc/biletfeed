@@ -9,7 +9,7 @@ import {
   Upload,
   Users
 } from 'lucide-react';
-import { MAX_DIRECT_INVITATION_PDFS } from '@/lib/config/invitations';
+import { MAX_DIRECT_INVITATION_PDFS, MAX_INVITATION_QUANTITY } from '@/lib/config/invitations';
 import type { InvitationRow } from '@/lib/services/event-invitations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ type GuestDraft = {
   guestPhone: string;
 };
 
-const MAX_BULK_QUANTITY = 200;
+const MAX_BULK_QUANTITY = MAX_INVITATION_QUANTITY;
 
 function expandRecipientGuests(input: {
   recipientName: string;
