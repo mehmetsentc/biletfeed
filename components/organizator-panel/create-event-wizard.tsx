@@ -60,6 +60,7 @@ type LocationMode = '' | 'venue' | 'online' | 'hybrid';
 
 interface SessionRow {
   id: string;
+  eventId?: string;
   startDate: string;
   endDate: string;
   startTime: string;
@@ -140,6 +141,7 @@ function initialTicketCategory(data: EventWizardInitialData['ticketCategories'][
 function initialSession(data: EventWizardInitialData['sessions'][number]): SessionRow {
   return {
     id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
+    eventId: data.eventId,
     startDate: data.startDate,
     endDate: data.endDate,
     startTime: data.startTime,
@@ -151,6 +153,28 @@ function sessionToIso(session: SessionRow, useEnd = false): string | null {
   const time = useEnd ? session.endTime || session.startTime : session.startTime;
   if (!session.startDate || !time) return null;
   return new Date(`${session.startDate}T${time}:00`).toISOString();
+}
+
+function sessionToDateRange(
+  session: SessionRow,
+  isFestival: boolean
+): { startDate: string; endDate: string } | null {
+  const startDate = sessionToIso(session);
+  if (!startDate) return null;
+
+  let endDate: string;
+  if (isFestival && session.endDate) {
+    const endTime = session.endTime || session.startTime || '23:59';
+    endDate = new Date(`${session.endDate}T${endTime}:00`).toISOString();
+  } else {
+    endDate = sessionToIso(session, true) ?? startDate;
+  }
+
+  return { startDate, endDate };
+}
+
+function isValidSessionRow(session: SessionRow): boolean {
+  return Boolean(session.startDate?.trim() && session.startTime?.trim());
 }
 
 const createStepHints = [
@@ -194,7 +218,9 @@ export function CreateOrganizerEventWizard({
   const [citySlug, setCitySlug] = useState<CitySlug>(
     (initialData?.citySlug as CitySlug) ?? DEFAULT_CITY_SLUG
   );
-  const [eventTypeMode, setEventTypeMode] = useState<EventTypeMode>('single');
+  const [eventTypeMode, setEventTypeMode] = useState<EventTypeMode>(
+    initialData?.eventTypeMode ?? 'single'
+  );
   const [sessions, setSessions] = useState<SessionRow[]>(
     initialData?.sessions.map(initialSession) ?? [newSession()]
   );
@@ -452,23 +478,37 @@ export function CreateOrganizerEventWizard({
   async function saveEvent(targetStatus?: 'draft' | 'pending') {
     setError(null);
     persistDraftSnapshot();
-    const first = sessions[0];
-    const startDate = sessionToIso(first);
+    const isFestival = category === 'festival';
+    const activeSessions =
+      eventTypeMode === 'recurring'
+        ? sessions.filter(isValidSessionRow)
+        : sessions.slice(0, 1);
 
-    let endDate: string | null;
-    if (isFestival && first.endDate) {
-      const endTime = first.endTime || first.startTime || '23:59';
-      endDate = new Date(`${first.endDate}T${endTime}:00`).toISOString();
-    } else {
-      endDate = sessionToIso(first, true);
+    if (eventTypeMode === 'recurring' && activeSessions.length < 2) {
+      setError('Tekrarlayan etkinlik için en az iki geçerli seans girin.');
+      return;
     }
+
+    const sessionDates = activeSessions
+      .map((session) => sessionToDateRange(session, isFestival))
+      .filter((range): range is { startDate: string; endDate: string } => range !== null);
+
+    if (sessionDates.length === 0) {
+      setError('Geçerli bir başlangıç tarihi ve saati girin.');
+      return;
+    }
+
+    if (sessionDates.length !== activeSessions.length) {
+      setError('Tüm seanslar için geçerli tarih ve saat girin.');
+      return;
+    }
+
+    const first = sessionDates[0];
+    const startDate = first.startDate;
+    const endDate = first.endDate;
 
     if (!title.trim() || !category || !description.trim()) {
       setError('Lütfen zorunlu alanları doldurun.');
-      return;
-    }
-    if (!startDate || !endDate) {
-      setError('Geçerli bir başlangıç tarihi ve saati girin.');
       return;
     }
     if (location !== 'online' && !venueName.trim()) {
@@ -553,7 +593,10 @@ export function CreateOrganizerEventWizard({
           showLowStockBadge: c.showLowStockBadge
         })),
         ...(targetStatus ? { status: targetStatus } : {}),
-        ...(targetStatus === 'pending' ? { organizerTermsAccepted: true } : {})
+        ...(targetStatus === 'pending' ? { organizerTermsAccepted: true } : {}),
+        ...(!isEdit && eventTypeMode === 'recurring' && sessionDates.length >= 2
+          ? { sessions: sessionDates }
+          : {})
       };
 
       const res = await fetch(
@@ -567,9 +610,14 @@ export function CreateOrganizerEventWizard({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || (isEdit ? 'Kayıt başarısız' : 'Kayıt başarısız'));
 
-      const savedEventId = (isEdit && eventId ? eventId : data.event?.id) as string | undefined;
-      if (savedEventId) {
-        await fetch(`/api/organizer/events/${savedEventId}/rules`, {
+      const savedEvents: Array<{ id: string }> = Array.isArray(data.events)
+        ? data.events
+        : data.event
+          ? [data.event]
+          : [];
+
+      for (const ev of savedEvents) {
+        await fetch(`/api/organizer/events/${ev.id}/rules`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -630,7 +678,7 @@ export function CreateOrganizerEventWizard({
   return (
     <div className="mx-auto max-w-4xl pb-28">
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-5 py-6 md:px-8 md:py-8">
+        <div className="relative border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-4 py-5 md:px-8 md:py-8">
           <div className="pointer-events-none absolute -right-6 -top-6 size-32 rounded-full bg-primary/10 blur-2xl" />
           <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-start gap-3">
@@ -651,22 +699,22 @@ export function CreateOrganizerEventWizard({
                 <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
                   {isEdit ? 'Etkinliği Düzenle' : 'Yeni Etkinlik Oluştur'}
                 </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                   {stepHints[step - 1]}
                 </p>
               </div>
             </div>
-            <span className="inline-flex w-fit shrink-0 items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <span className="hidden shrink-0 items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary sm:inline-flex">
               Adım {step} / {TOTAL_STEPS}
             </span>
           </div>
         </div>
 
-        <div className="border-b border-border bg-muted/20 px-5 py-6 md:px-8">
+        <div className="border-b border-border bg-muted/20 px-4 py-4 md:px-8 md:py-6">
           <EventWizardStepper current={step} steps={[...EVENT_WIZARD_STEPS]} />
         </div>
 
-        <div className="space-y-6 p-5 md:p-8">
+        <div className="space-y-6 p-4 md:p-8">
           {error && (
             <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
@@ -1090,24 +1138,27 @@ export function CreateOrganizerEventWizard({
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4 md:px-6">
+        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3 md:gap-4 md:px-6 md:py-4">
           {step > 1 ? (
             <Button
               variant="outline"
               onClick={() => setStep(step - 1)}
               disabled={publishing}
-              className="min-w-[100px]"
+              className="shrink-0 px-4 sm:min-w-[100px]"
             >
               Geri
             </Button>
           ) : (
-            <div className="hidden sm:block" />
+            <div className="hidden sm:block sm:min-w-[100px]" />
           )}
 
           {step < TOTAL_STEPS ? (
             <Button
               onClick={goToNextStep}
-              className="min-w-[160px] bg-primary px-8 text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
+              className={cn(
+                'bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90',
+                step > 1 ? 'min-w-0 flex-1 sm:flex-none sm:min-w-[160px]' : 'ml-auto min-w-[160px] px-8'
+              )}
               disabled={publishing}
             >
               Kaydet ve Devam Et

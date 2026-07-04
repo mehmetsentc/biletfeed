@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { requireOrganizerSession } from '@/lib/auth/organizer-api';
-import { createOrganizerEvent } from '@/lib/services/organizer-events';
+import { createOrganizerEvent, createOrganizerEventSeries } from '@/lib/services/organizer-events';
 import { listOrganizerEventsDetailed } from '@/lib/services/organizer-events';
 
 const ticketCategorySchema = z.object({
@@ -37,6 +37,11 @@ const eventExtrasSchema = {
   organizerTermsAccepted: z.boolean().optional()
 };
 
+const sessionDateSchema = z.object({
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime()
+});
+
 const createSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().min(10).max(10000),
@@ -52,6 +57,7 @@ const createSchema = z.object({
   coverImage: z.string().url().optional(),
   status: z.enum(['draft', 'published', 'pending']).optional(),
   ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
+  sessions: z.array(sessionDateSchema).min(2).max(50).optional(),
   ...eventExtrasSchema
 });
 
@@ -99,7 +105,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const event = await createOrganizerEvent({
+    const baseInput = {
       organizerId: ctx.organizer.id,
       title: parsed.data.title,
       description: parsed.data.description,
@@ -107,8 +113,6 @@ export async function POST(request: NextRequest) {
       citySlug: parsed.data.citySlug,
       venueName: parsed.data.venueName,
       venueAddress: parsed.data.venueAddress,
-      startDate: new Date(parsed.data.startDate),
-      endDate: new Date(parsed.data.endDate),
       isFree: parsed.data.isFree,
       price: parsed.data.price,
       capacity: parsed.data.capacity,
@@ -125,6 +129,24 @@ export async function POST(request: NextRequest) {
       accessPassword: parsed.data.accessPassword,
       hiddenFromSearch: parsed.data.hiddenFromSearch,
       organizerTermsAccepted: parsed.data.organizerTermsAccepted
+    };
+
+    if (parsed.data.sessions && parsed.data.sessions.length >= 2) {
+      const events = await createOrganizerEventSeries({
+        ...baseInput,
+        sessions: parsed.data.sessions.map((s) => ({
+          startDate: new Date(s.startDate),
+          endDate: new Date(s.endDate)
+        }))
+      });
+
+      return NextResponse.json({ success: true, events, event: events[0] });
+    }
+
+    const event = await createOrganizerEvent({
+      ...baseInput,
+      startDate: new Date(parsed.data.startDate),
+      endDate: new Date(parsed.data.endDate)
     });
 
     return NextResponse.json({ success: true, event });

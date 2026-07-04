@@ -16,15 +16,12 @@ export function emailLogoUrl(): string {
   return emailHeaderLogoSrc();
 }
 
+import {
+  formatTurkeyDateTimeLong
+} from '@/lib/datetime/istanbul';
+
 export function formatEventDateTimeTr(startDate: Date): string {
-  return startDate.toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  return formatTurkeyDateTimeLong(startDate);
 }
 
 export function formatCurrencyTr(amount: number): string {

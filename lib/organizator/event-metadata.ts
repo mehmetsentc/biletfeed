@@ -10,6 +10,12 @@ export type EventAttendeeQuestionMeta = {
   required: boolean;
 };
 
+export type EventSeriesMeta = {
+  seriesId: string;
+  sessionIndex: number;
+  sessionCount: number;
+};
+
 export type EventSeoMeta = {
   performers?: EventPerformerMeta[];
   preventQuestionCopy?: boolean;
@@ -18,6 +24,9 @@ export type EventSeoMeta = {
   venueDetail?: string;
   organizerTermsAcceptedAt?: string;
   organizerTermsVersion?: string;
+  seriesId?: string;
+  sessionIndex?: number;
+  sessionCount?: number;
 };
 
 export interface OrganizerEventExtras {
@@ -32,6 +41,7 @@ export interface OrganizerEventExtras {
   accessPassword?: string;
   hiddenFromSearch?: boolean;
   organizerTermsAccepted?: boolean;
+  seriesMeta?: EventSeriesMeta;
 }
 
 export function buildEventExtrasData(extras: OrganizerEventExtras): {
@@ -54,6 +64,13 @@ export function buildEventExtrasData(extras: OrganizerEventExtras): {
       ? {
           organizerTermsAcceptedAt: new Date().toISOString(),
           organizerTermsVersion: ORGANIZER_AGREEMENT_VERSION
+        }
+      : {}),
+    ...(extras.seriesMeta
+      ? {
+          seriesId: extras.seriesMeta.seriesId,
+          sessionIndex: extras.seriesMeta.sessionIndex,
+          sessionCount: extras.seriesMeta.sessionCount
         }
       : {})
   };

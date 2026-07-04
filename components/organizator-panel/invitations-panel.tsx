@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatTurkeyDateLong } from '@/lib/datetime/istanbul';
 
 type OrganizerEvent = {
   id: string;
@@ -337,12 +338,7 @@ export function InvitationsPanel({
         </select>
         {selectedEvent && (
           <p className="mt-2 text-xs text-muted-foreground">
-            {new Date(selectedEvent.startDate).toLocaleDateString('tr-TR', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            })}
+            {formatTurkeyDateLong(selectedEvent.startDate)}
           </p>
         )}
       </div>

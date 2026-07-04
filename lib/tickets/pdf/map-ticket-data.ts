@@ -1,20 +1,16 @@
 import type { TicketPdfInput } from '@/lib/tickets/pdf/types';
 import type { PublicTicketInfo } from '@/lib/services/tickets';
+import {
+  formatTurkeyDateLong,
+  formatTurkeyTime
+} from '@/lib/datetime/istanbul';
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+  return formatTurkeyDateLong(iso);
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  return formatTurkeyTime(iso);
 }
 
 export function mapPublicTicketToPdf(ticket: PublicTicketInfo): TicketPdfInput {

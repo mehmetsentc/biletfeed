@@ -1,10 +1,12 @@
 import type { EventStatus, EventType } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { uniqueSlug } from '@/lib/utils/slug';
 import {
   buildEventExtrasData,
   type OrganizerEventExtras
 } from '@/lib/organizator/event-metadata';
+import { sessionSlugDateSuffix } from '@/lib/organizator/event-series-meta';
 
 export interface TicketCategoryInput {
   id?: string;
@@ -33,6 +35,18 @@ export interface CreateOrganizerEventInput extends OrganizerEventExtras {
   eventType?: EventType;
   ticketCategories?: TicketCategoryInput[];
 }
+
+export interface EventSessionInput {
+  startDate: Date;
+  endDate: Date;
+}
+
+export type CreateOrganizerEventSeriesInput = Omit<
+  CreateOrganizerEventInput,
+  'startDate' | 'endDate' | 'seriesMeta'
+> & {
+  sessions: EventSessionInput[];
+};
 
 export interface UpdateOrganizerEventInput extends OrganizerEventExtras {
   organizerId: string;
@@ -98,6 +112,114 @@ async function resolveVenueId(params: {
   return venue.id;
 }
 
+type CreateEventTxParams = {
+  organizerId: string;
+  title: string;
+  description: string;
+  categorySlug: string;
+  citySlug: string;
+  venueName?: string;
+  venueAddress?: string;
+  startDate: Date;
+  endDate: Date;
+  isFree: boolean;
+  price: number;
+  capacity: number;
+  coverImage?: string;
+  status?: EventStatus;
+  eventType?: EventType;
+  ticketCategories?: TicketCategoryInput[];
+  extras: ReturnType<typeof buildEventExtrasData>;
+  cityId: string;
+  categoryId: string;
+  venueId: string | null;
+  slugBase: string;
+};
+
+async function createEventRecord(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  params: CreateEventTxParams
+) {
+  const price = params.isFree ? 0 : params.price;
+  const now = new Date();
+
+  const slug = await uniqueSlug(params.slugBase, async (s) => {
+    const row = await tx.event.findUnique({ where: { slug: s } });
+    return Boolean(row);
+  });
+
+  return tx.event.create({
+    data: {
+      slug,
+      title: params.title.trim(),
+      description: params.description.trim(),
+      shortDescription: params.description.trim().slice(0, 160),
+      organizerId: params.organizerId,
+      cityId: params.cityId,
+      categoryId: params.categoryId,
+      venueId: params.venueId,
+      coverImage:
+        params.coverImage?.trim() ||
+        'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=1200',
+      gallery: [],
+      startDate: params.startDate,
+      endDate: params.endDate,
+      status: params.status || 'draft',
+      eventType: params.eventType || 'other',
+      isFree: params.isFree,
+      basePrice: price,
+      capacity: params.capacity,
+      listingType: 'internal',
+      tags: params.extras.tags,
+      rules: params.extras.rules,
+      faqs: params.extras.faqs,
+      seo: params.extras.seo,
+      isOnline: params.extras.isOnline,
+      onlineUrl: params.extras.onlineUrl,
+      ticketTypes: {
+        create: (params.ticketCategories && params.ticketCategories.length > 0
+          ? params.ticketCategories.map((cat, i) => {
+              const desc = cat.description?.trim();
+              const displayName = desc ? `${cat.name} — ${desc}` : cat.name;
+              return {
+                name: displayName,
+                type: i === 0 ? ('general' as const) : ('vip' as const),
+                price: params.isFree ? 0 : cat.price,
+                currency: 'TRY',
+                quantity: cat.capacity,
+                sold: 0,
+                capacity: cat.capacity,
+                saleStartDate: now,
+                saleEndDate: params.startDate,
+                status: 'active' as const,
+                showLowStockBadge: cat.showLowStockBadge ?? false
+              };
+            })
+          : [
+              {
+                name: 'Genel Giriş',
+                type: 'general' as const,
+                price,
+                currency: 'TRY',
+                quantity: params.capacity,
+                sold: 0,
+                capacity: params.capacity,
+                saleStartDate: now,
+                saleEndDate: params.startDate,
+                status: 'active' as const
+              }
+            ])
+      }
+    },
+    include: {
+      city: true,
+      venue: true,
+      category: true,
+      ticketTypes: true
+    }
+  });
+}
+
 export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
   await ensureDbConnection();
 
@@ -116,86 +238,104 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
     address: input.venueAddress
   });
 
-  const slug = await uniqueSlug(input.title, async (s) => {
-    const row = await prisma.event.findUnique({ where: { slug: s } });
-    return Boolean(row);
-  });
-
   const price = input.isFree ? 0 : input.price;
-  const now = new Date();
   const extras = buildEventExtrasData(input);
 
   return prisma.$transaction(async (tx) => {
-    const event = await tx.event.create({
-      data: {
-        slug,
-        title: input.title.trim(),
-        description: input.description.trim(),
-        shortDescription: input.description.trim().slice(0, 160),
+    return createEventRecord(tx, {
+      organizerId: input.organizerId,
+      title: input.title,
+      description: input.description,
+      categorySlug: input.categorySlug,
+      citySlug: input.citySlug,
+      venueName: input.venueName,
+      venueAddress: input.venueAddress,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      isFree: input.isFree,
+      price,
+      capacity: input.capacity,
+      coverImage: input.coverImage,
+      status: input.status,
+      eventType: input.eventType,
+      ticketCategories: input.ticketCategories,
+      extras,
+      cityId,
+      categoryId,
+      venueId,
+      slugBase: input.title
+    });
+  });
+}
+
+export async function createOrganizerEventSeries(input: CreateOrganizerEventSeriesInput) {
+  await ensureDbConnection();
+
+  if (input.status === 'published') {
+    throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+  }
+
+  if (input.sessions.length < 2) {
+    throw new Error('Tekrarlayan etkinlik için en az iki seans gerekli.');
+  }
+
+  const [cityId, categoryId] = await Promise.all([
+    resolveCityId(input.citySlug),
+    resolveCategoryId(input.categorySlug)
+  ]);
+
+  const venueId = await resolveVenueId({
+    cityId,
+    name: input.venueName,
+    address: input.venueAddress
+  });
+
+  const price = input.isFree ? 0 : input.price;
+  const seriesId = randomUUID();
+  const sessionCount = input.sessions.length;
+
+  return prisma.$transaction(async (tx) => {
+    const events = [];
+
+    for (let i = 0; i < input.sessions.length; i++) {
+      const session = input.sessions[i];
+      const extras = buildEventExtrasData({
+        ...input,
+        seriesMeta: {
+          seriesId,
+          sessionIndex: i + 1,
+          sessionCount
+        }
+      });
+
+      const event = await createEventRecord(tx, {
         organizerId: input.organizerId,
+        title: input.title,
+        description: input.description,
+        categorySlug: input.categorySlug,
+        citySlug: input.citySlug,
+        venueName: input.venueName,
+        venueAddress: input.venueAddress,
+        startDate: session.startDate,
+        endDate: session.endDate,
+        isFree: input.isFree,
+        price,
+        capacity: input.capacity,
+        coverImage: input.coverImage,
+        status: input.status,
+        eventType: input.eventType,
+        ticketCategories: input.ticketCategories,
+        extras,
         cityId,
         categoryId,
         venueId,
-        coverImage:
-          input.coverImage?.trim() ||
-          'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=1200',
-        gallery: [],
-        startDate: input.startDate,
-        endDate: input.endDate,
-        status: input.status || 'draft',
-        eventType: input.eventType || 'other',
-        isFree: input.isFree,
-        basePrice: price,
-        capacity: input.capacity,
-        listingType: 'internal',
-        tags: extras.tags,
-        rules: extras.rules,
-        faqs: extras.faqs,
-        seo: extras.seo,
-        isOnline: extras.isOnline,
-        onlineUrl: extras.onlineUrl,
-        ticketTypes: {
-          create: (input.ticketCategories && input.ticketCategories.length > 0
-            ? input.ticketCategories.map((cat, i) => {
-                const desc = cat.description?.trim();
-                const displayName = desc ? `${cat.name} — ${desc}` : cat.name;
-                return {
-                name: displayName,
-                type: i === 0 ? ('general' as const) : ('vip' as const),
-                price: input.isFree ? 0 : cat.price,
-                currency: 'TRY',
-                quantity: cat.capacity,
-                sold: 0,
-                capacity: cat.capacity,
-                saleStartDate: now,
-                saleEndDate: input.startDate,
-                status: 'active' as const,
-                showLowStockBadge: cat.showLowStockBadge ?? false
-              };
-              })
-            : [{
-                name: 'Genel Giriş',
-                type: 'general' as const,
-                price,
-                currency: 'TRY',
-                quantity: input.capacity,
-                sold: 0,
-                capacity: input.capacity,
-                saleStartDate: now,
-                saleEndDate: input.startDate,
-                status: 'active' as const
-              }])
-        }
-      },
-      include: {
-        city: true,
-        venue: true,
-        category: true,
-        ticketTypes: true
-      }
-    });
+        slugBase: `${input.title} ${sessionSlugDateSuffix(session.startDate)}`
+      });
 
-    return event;
+      events.push(event);
+    }
+
+    return events;
   });
 }
 

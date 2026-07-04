@@ -6,7 +6,6 @@ import {
   getEventJoyInviteUrl
 } from '@/lib/eventjoy/invitations';
 import {
-  buildEventJoyCalendarUrl,
   buildEventJoyInvitationEmail
 } from '@/lib/email/eventjoy-invitation-template';
 import { sendEmail } from '@/lib/email/resend';
@@ -65,14 +64,6 @@ export async function POST(request: NextRequest) {
     invitation.time
   );
 
-  const calendarUrl = buildEventJoyCalendarUrl({
-    title: invitation.title,
-    date: invitation.date,
-    time: invitation.time,
-    location: invitation.location,
-    inviteUrl
-  });
-
   const html = buildEventJoyInvitationEmail({
     guestName: parsed.data.guestName,
     eventTitle: invitation.title,
@@ -88,10 +79,7 @@ export async function POST(request: NextRequest) {
   const result = await sendEmail({
     to: parsed.data.to,
     subject: `Davetiye: ${invitation.title}`,
-    html: `
-      ${html}
-      <p style="display:none"><a href="${calendarUrl}">Takvime Ekle</a></p>
-    `,
+    html,
     sender: 'invitation'
   });
 

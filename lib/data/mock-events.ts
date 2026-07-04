@@ -1,5 +1,12 @@
 import type { EventType } from '@/types';
 import { CATEGORY_IMAGES } from '@/lib/data/category-images';
+import {
+  formatTurkeyDate,
+  formatTurkeyDateLong,
+  formatTurkeyEventDate,
+  formatTurkeyTime,
+  formatTurkeyTimeRange
+} from '@/lib/datetime/istanbul';
 
 import type { EventStatus } from '@prisma/client';
 
@@ -71,44 +78,26 @@ export const cities = [
 ];
 
 export function formatEventDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('tr-TR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Europe/Istanbul'
-  });
+  return formatTurkeyEventDate(dateStr);
 }
 
 export function formatEventTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Europe/Istanbul'
-  });
+  return formatTurkeyTime(dateStr);
 }
 
 export function formatEventDateLong(dateStr: string): string {
-  const formatted = new Date(dateStr).toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Europe/Istanbul'
-  });
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  return formatTurkeyDateLong(dateStr);
 }
 
 export function formatEventMonthDay(dateStr: string): { month: string; day: string } {
-  const d = new Date(dateStr);
   return {
-    month: d.toLocaleDateString('tr-TR', { month: 'short' }).toUpperCase(),
-    day: d.getDate().toString().padStart(2, '0')
+    month: formatTurkeyDate(dateStr, { month: 'short' }).toUpperCase(),
+    day: formatTurkeyDate(dateStr, { day: '2-digit' })
   };
 }
 
 export function formatEventDateLine(event: MockEvent): string {
-  const d = new Date(event.startDate);
-  const datePart = d.toLocaleDateString('tr-TR', {
+  const datePart = formatTurkeyDate(event.startDate, {
     day: 'numeric',
     month: 'short'
   });
@@ -120,13 +109,7 @@ export function formatEventDateLine(event: MockEvent): string {
 }
 
 export function formatEventTimeRange(event: MockEvent): string {
-  const start = formatEventTime(event.startDate);
-  const end = formatEventTime(event.endDate);
-  const startMs = new Date(event.startDate).getTime();
-  const endMs = new Date(event.endDate).getTime();
-  const diffH = (endMs - startMs) / (60 * 60 * 1000);
-  if (diffH <= 0 || diffH > 8) return start;
-  return `${start} - ${end}`;
+  return formatTurkeyTimeRange(event.startDate, event.endDate);
 }
 
 export function formatPrice(event: MockEvent): string {

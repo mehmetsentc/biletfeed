@@ -1,5 +1,6 @@
 import { signInWithCustomToken, type Auth, type User as FirebaseUser } from 'firebase/auth';
 import { isPanelAuthContext } from '@/lib/auth/panel-auth-context';
+import { isExplicitLogoutActive } from '@/lib/auth/logout-cleanup';
 import {
   fetchPanelSessionUser,
   fetchSessionUser
@@ -42,6 +43,10 @@ export async function alignFirebaseWithSessionCookie(
   auth: Auth,
   firebaseUser: FirebaseUser | null
 ): Promise<FirebaseUser | null> {
+  if (isExplicitLogoutActive()) {
+    return null;
+  }
+
   const panelContext = isPanelAuthContext();
   const sessionUser = panelContext
     ? await fetchPanelSessionUser()

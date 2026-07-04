@@ -19,7 +19,9 @@ export interface EventWizardInitialData {
   coverImage: string | null;
   ticketType: 'free' | 'paid';
   location: 'venue' | 'online' | 'hybrid';
+  eventTypeMode: 'single' | 'recurring';
   sessions: Array<{
+    eventId?: string;
     startDate: string;
     endDate: string;
     startTime: string;
@@ -71,31 +73,47 @@ export function mapEventToWizardInitialData(
   ruleSetData?: {
     ruleSet: EventRuleSetData | null;
     announcements: EventAnnouncementInput[];
-  }
+  },
+  seriesSessions?: Array<{
+    eventId: string;
+    startDate: Date;
+    endDate: Date;
+  }>
 ): EventWizardInitialData {
-  const start = toLocalDateParts(event.startDate);
-  const end = toLocalDateParts(event.endDate);
-  const venueName = event.venue?.name ?? '';
-  const isOnline = venueName.toLowerCase() === 'online';
+  const sessionSource =
+    seriesSessions && seriesSessions.length > 0
+      ? seriesSessions
+      : [{ eventId: event.id, startDate: event.startDate, endDate: event.endDate }];
 
   return {
     title: event.title,
     category: event.category.slug,
     citySlug: event.city.slug,
-    venueName: isOnline ? '' : venueName,
+    venueName: (() => {
+      const venueName = event.venue?.name ?? '';
+      const isOnline = venueName.toLowerCase() === 'online';
+      return isOnline ? '' : venueName;
+    })(),
     venueAddress: event.venue?.address ?? '',
     description: event.description,
     coverImage: event.coverImage || null,
     ticketType: event.isFree ? 'free' : 'paid',
-    location: isOnline ? 'online' : 'venue',
-    sessions: [
-      {
+    location: (() => {
+      const venueName = event.venue?.name ?? '';
+      return venueName.toLowerCase() === 'online' ? 'online' : 'venue';
+    })(),
+    eventTypeMode: sessionSource.length > 1 ? 'recurring' : 'single',
+    sessions: sessionSource.map((session) => {
+      const start = toLocalDateParts(session.startDate);
+      const end = toLocalDateParts(session.endDate);
+      return {
+        eventId: session.eventId,
         startDate: start.date,
         endDate: end.date,
         startTime: start.time,
         endTime: end.time
-      }
-    ],
+      };
+    }),
     ticketCategories: event.ticketTypes.map((ticket) => {
       const label = splitTicketLabel(ticket.name, ticket.description);
       return {

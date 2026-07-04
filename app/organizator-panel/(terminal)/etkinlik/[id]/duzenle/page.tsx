@@ -3,6 +3,7 @@ import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { mapEventToWizardInitialData } from '@/lib/organizator/event-wizard-data';
 import { getEventRuleSet } from '@/lib/services/event-rules-query';
+import { getOrganizerEventSeriesForWizard } from '@/lib/services/event-series';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { CreateOrganizerEventWizard } from '@/components/organizator-panel/create-event-wizard';
 
@@ -45,11 +46,17 @@ export default async function OrganizatorEditEventPage({ params }: PageProps) {
     }
   }
 
+  const seriesSessions = await getOrganizerEventSeriesForWizard(
+    organizer.id,
+    event.id,
+    event.seo
+  );
+
   return (
     <CreateOrganizerEventWizard
       mode="edit"
       eventId={event.id}
-      initialData={mapEventToWizardInitialData(event, ruleSetData)}
+      initialData={mapEventToWizardInitialData(event, ruleSetData, seriesSessions)}
       initialStatus={event.status}
     />
   );

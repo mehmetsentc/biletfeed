@@ -111,22 +111,23 @@ export async function publishEventJoyInvitation(
   return invitation;
 }
 
+import {
+  formatTurkeyDateLong,
+  formatTurkeyTime,
+  toTurkeyDate
+} from '@/lib/datetime/istanbul';
+
 export function formatEventJoyDateTime(date: string, time: string): {
   dateLabel: string;
   timeLabel: string;
   isoStart: string;
 } {
-  const isoStart = `${date}T${time || '00:00'}`;
-  const parsed = new Date(isoStart);
-  const dateLabel = parsed.toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-  const timeLabel = parsed.toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  return { dateLabel, timeLabel, isoStart };
+  const normalizedTime = (time || '00:00').slice(0, 5);
+  const isoStart = `${date}T${normalizedTime}:00+03:00`;
+  const parsed = toTurkeyDate(isoStart);
+  return {
+    dateLabel: formatTurkeyDateLong(parsed),
+    timeLabel: formatTurkeyTime(parsed),
+    isoStart: parsed.toISOString()
+  };
 }

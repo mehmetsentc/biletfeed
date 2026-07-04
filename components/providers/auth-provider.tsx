@@ -32,7 +32,8 @@ import {
   SessionEstablishError
 } from '@/lib/auth/client-session';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
-import { clearAuthTransientStorage } from '@/lib/auth/logout-cleanup';
+import { clearAuthTransientStorage, clearExplicitLogoutMark, isExplicitLogoutActive, markExplicitLogout } from '@/lib/auth/logout-cleanup';
+import { clearAllServerSessions } from '@/lib/auth/clear-server-sessions';
 import { alignFirebaseWithSessionCookie } from '@/lib/auth/firebase-session-sync';
 import { isPanelAuthContext } from '@/lib/auth/panel-auth-context';
 import {
@@ -109,7 +110,7 @@ async function handleSignedInUser(
   fbUser: FirebaseUser,
   opts?: { isSigningOut?: () => boolean }
 ): Promise<{ profile: User; sessionReady: boolean; sessionError?: string }> {
-  if (opts?.isSigningOut?.()) {
+  if (opts?.isSigningOut?.() || isExplicitLogoutActive()) {
     return { profile: buildFallbackUser(fbUser), sessionReady: false };
   }
 
@@ -127,6 +128,7 @@ async function handleSignedInUser(
     : await fetchSessionUser();
   if (existingSession?.uid === fbUser.uid) {
     const profile = await fetchUserProfile(fbUser, profileEndpoint);
+    clearExplicitLogoutMark();
     return { profile, sessionReady: true };
   }
 
@@ -139,6 +141,7 @@ async function handleSignedInUser(
       return { profile: buildFallbackUser(fbUser), sessionReady: false };
     }
     const profile = await fetchUserProfile(fbUser, profileEndpoint);
+    clearExplicitLogoutMark();
     return { profile, sessionReady: true };
   } catch (err) {
     const isRateLimited =
@@ -241,6 +244,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
+          if (isExplicitLogoutActive()) {
+            if (fbUser) {
+              try {
+                await firebaseSignOut(readyAuth);
+              } catch {
+                // ignore
+              }
+            }
+            await clearAllServerSessions();
+            authGenerationRef.current += 1;
+            setFirebaseUser(null);
+            setUser(null);
+            setSessionReady(false);
+            setSessionError(null);
+            setLoading(false);
+            return;
+          }
+
           const alignedUser = await alignFirebaseWithSessionCookie(
             readyAuth,
             fbUser
@@ -281,9 +302,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (!activeUser && sessionUser) {
+            if (isExplicitLogoutActive()) {
+              await clearAllServerSessions();
+              authGenerationRef.current += 1;
+              setFirebaseUser(null);
+              setUser(null);
+              setSessionReady(false);
+              setSessionError(null);
+              setLoading(false);
+              return;
+            }
+
             const synced = await alignFirebaseWithSessionCookie(readyAuth, null);
             if (synced) return;
-            // Firebase eşitlemesi başarısız olsa bile geçerli session çerezini silme
+            if (isExplicitLogoutActive()) {
+              await clearAllServerSessions();
+              setUser(null);
+              setSessionReady(false);
+              setSessionError(null);
+              setLoading(false);
+              return;
+            }
             setUser(sessionUser);
             setSessionReady(true);
             setSessionError(null);
@@ -332,12 +371,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isConfigured, isStaleAuth]);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    clearExplicitLogoutMark();
+    signingOutRef.current = false;
     const auth = await ensureAuthReady();
     await signInWithEmailAndPassword(auth, email, password);
   }, []);
 
   const signUp = useCallback(
     async (email: string, password: string, displayName: string) => {
+      clearExplicitLogoutMark();
+      signingOutRef.current = false;
       const auth = await ensureAuthReady();
       const credential = await createUserWithEmailAndPassword(
         auth,
@@ -350,6 +393,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithGoogle = useCallback(async () => {
+    clearExplicitLogoutMark();
+    signingOutRef.current = false;
     const auth = await ensureAuthReady();
     const { signInWithGoogle: googleSignIn } = await import(
       '@/lib/firebase/google-auth'
@@ -358,6 +403,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithApple = useCallback(async () => {
+    clearExplicitLogoutMark();
+    signingOutRef.current = false;
     const auth = await ensureAuthReady();
     const { signInWithApple: appleSignIn } = await import(
       '@/lib/firebase/apple-auth'
@@ -394,6 +441,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     signingOutRef.current = true;
     authGenerationRef.current += 1;
+    markExplicitLogout();
     setUser(null);
     setFirebaseUser(null);
     setSessionReady(false);
@@ -402,45 +450,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAuthTransientStorage();
 
     try {
-      await fetch('/api/auth/session', {
-        method: 'DELETE',
-        credentials: 'same-origin'
-      });
-
       const auth = await ensureAuthReady();
       await firebaseSignOut(auth);
+      await clearAllServerSessions();
     } catch {
       // ignore
     } finally {
       setTimeout(() => {
-        signingOutRef.current = false;
-      }, 500);
+        if (!isExplicitLogoutActive()) {
+          signingOutRef.current = false;
+        }
+      }, 3000);
     }
   }, []);
 
   const signOutPanel = useCallback(async () => {
     signingOutRef.current = true;
     authGenerationRef.current += 1;
+    markExplicitLogout();
     setUser(null);
     setFirebaseUser(null);
     setSessionReady(false);
     setSessionError(null);
     setLoading(false);
+    clearAuthTransientStorage();
 
     try {
-      await fetch('/api/auth/panel-session', {
-        method: 'DELETE',
-        credentials: 'same-origin'
-      });
-
       const auth = await ensureAuthReady();
       await firebaseSignOut(auth);
+      await clearAllServerSessions();
     } catch {
       // ignore
     } finally {
       setTimeout(() => {
-        signingOutRef.current = false;
-      }, 500);
+        if (!isExplicitLogoutActive()) {
+          signingOutRef.current = false;
+        }
+      }, 3000);
     }
 
     window.location.href = panelLoginHref();

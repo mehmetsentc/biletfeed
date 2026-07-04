@@ -3,23 +3,10 @@ import { getSiteUrl } from '@/lib/config/domain';
 import { queueEmail } from '@/lib/accounting/email';
 import { buildGoogleCalendarUrl } from '@/lib/email/calendar';
 import { buildEventReminderEmail } from '@/lib/email/event-reminder-template';
+import { formatTurkeyDateLong, formatTurkeyTimeRange } from '@/lib/datetime/istanbul';
 
 function formatEventDateTime(start: Date, end: Date): string {
-  const date = start.toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-  const startTime = start.toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  const endTime = end.toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  return `${date} · ${startTime} – ${endTime}`;
+  return `${formatTurkeyDateLong(start)} · ${formatTurkeyTimeRange(start, end)}`;
 }
 
 export type EventReminderWindow = {

@@ -4,6 +4,7 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { getSiteUrl } from '@/lib/config/domain';
 import { queueEmail } from '@/lib/accounting/email';
 import { createNotification } from '@/lib/services/notifications';
+import { formatTurkeyTime } from '@/lib/datetime/istanbul';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,10 +62,7 @@ export async function GET(request: NextRequest) {
       if (alreadySent) continue;
 
       const openTime = event.gateOpenTime ?? event.startDate;
-      const timeLabel = openTime.toLocaleTimeString('tr-TR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      const timeLabel = formatTurkeyTime(openTime);
 
       await queueEmail({
         to: order.user.email,

@@ -21,6 +21,8 @@ import {
   buildEventSchema
 } from '@/lib/seo/schemas';
 import { EventRulesSection } from '@/components/events/event-rules-section';
+import { EventSeriesSessions } from '@/components/events/event-series-sessions';
+import { getEventSeriesSessionsBySlug } from '@/lib/services/event-series';
 import { siteConfig } from '@/lib/config/site';
 
 interface EventDetailPageProps {
@@ -55,6 +57,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   if (!viewerResult) notFound();
 
   const { event, isPreview, previewKind } = viewerResult;
+  const seriesSessions = await getEventSeriesSessionsBySlug(slug);
   const purchasable =
     !isPreview && event.status === 'published' && isUpcomingEvent(event);
   const organizer = await getOrganizerBySlug(event.organizerSlug);
@@ -112,6 +115,10 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             isOnline={isOnline}
             purchasable={purchasable}
           />
+
+          {seriesSessions.length > 1 && (
+            <EventSeriesSessions sessions={seriesSessions} />
+          )}
 
           <div className="grid gap-8 lg:grid-cols-[1fr_300px] lg:gap-10">
             <div className="space-y-8">

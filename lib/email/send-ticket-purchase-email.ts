@@ -5,26 +5,18 @@ import { buildGoogleCalendarUrl } from '@/lib/email/calendar';
 import { buildTicketPurchaseEmail } from '@/lib/email/ticket-purchase-template';
 import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
 import { buildTicketQrPayload } from '@/lib/tickets/sign';
+import {
+  formatTurkeyDateLong,
+  formatTurkeyTimeRange
+} from '@/lib/datetime/istanbul';
 
 function formatEventDateTime(start: Date, end: Date): { date: string; time: string; full: string } {
-  const date = start.toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-  const startTime = start.toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  const endTime = end.toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const date = formatTurkeyDateLong(start);
+  const time = formatTurkeyTimeRange(start, end);
   return {
     date,
-    time: `${startTime} – ${endTime}`,
-    full: `${date} · ${startTime} – ${endTime}`
+    time,
+    full: `${date} · ${time}`
   };
 }
 

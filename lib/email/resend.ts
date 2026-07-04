@@ -18,6 +18,8 @@ export interface SendEmailOptions {
   to: string | string[];
   subject: string;
   html: string;
+  /** Düz metin — belirtilmezse HTML'den otomatik üretilir (teslimat için önerilir) */
+  text?: string;
   replyTo?: string;
   /** Tam "Ad <adres>" veya yalnızca adres — belirtilmezse sender kullanılır */
   from?: string;
@@ -61,6 +63,29 @@ function sanitizeErrorBody(body: string): string {
     .slice(0, 300);
 }
 
+/** Basit HTML → düz metin — multipart/alternative için */
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<a[^>]+href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, label) => {
+      const text = label.replace(/<[^>]+>/g, '').trim();
+      return text ? `${text} (${href})` : href;
+    })
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult> {
   if (!isEmailConfigured()) {
     if (process.env.NODE_ENV !== 'production') {
@@ -80,6 +105,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
       ? formatEmailFrom('default')
       : formatEmailFrom(sender));
   const replyTo = opts.replyTo ?? emailConfig.replyTo;
+  const text = opts.text ?? htmlToPlainText(opts.html);
 
   try {
     const res = await fetch(RESEND_API_URL, {
@@ -93,6 +119,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
         to: opts.to,
         subject: opts.subject,
         html: opts.html,
+        text,
         reply_to: replyTo,
         ...(opts.attachments?.length
           ? {

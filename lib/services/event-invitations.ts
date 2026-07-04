@@ -15,6 +15,10 @@ import {
 import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
 import { generateOrganizerInvitationPdf } from '@/lib/services/invitation-pdf';
 import { findOrCreateGuestUser } from '@/lib/services/guest-user';
+import {
+  formatTurkeyDateLong,
+  formatTurkeyTime
+} from '@/lib/datetime/istanbul';
 
 function createInviteToken(): string {
   return randomBytes(16).toString('hex');
@@ -221,17 +225,8 @@ export async function createEventInvitation(params: {
 
   // Auto-send email to guest if they provided an address
   if (params.guestEmail) {
-    const start = new Date(event.startDate);
-    const eventDate = start.toLocaleDateString('tr-TR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-    const eventTime = start.toLocaleTimeString('tr-TR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const eventDate = formatTurkeyDateLong(event.startDate);
+    const eventTime = formatTurkeyTime(event.startDate);
 
     const venueName = event.venue?.name ?? 'Online';
     const cityName = event.city.name;

@@ -1,17 +1,14 @@
+import {
+  formatTurkeyDateLong,
+  formatTurkeyTime
+} from '@/lib/datetime/istanbul';
+
 export function formatTicketDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('tr-TR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+  return formatTurkeyDateLong(iso);
 }
 
 export function formatTicketTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('tr-TR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  return formatTurkeyTime(iso);
 }
 
 export function formatTicketDateTime(iso: string): string {
