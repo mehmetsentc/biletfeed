@@ -255,7 +255,7 @@ export function SupportArticleView({ article }: { article: SupportArticle }) {
                 {section.heading}
               </h2>
             )}
-            {section.paragraphs.map((p, j) => (
+            {(section.paragraphs ?? []).map((p, j) => (
               <p key={j} className="text-sm leading-relaxed text-zinc-600">
                 {p}
               </p>

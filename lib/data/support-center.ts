@@ -4,7 +4,7 @@ import { siteConfig } from '@/lib/config/site';
 
 export type SupportArticleSection = {
   heading?: string;
-  paragraphs: string[];
+  paragraphs?: string[];
   bullets?: string[];
 };
 
@@ -354,6 +354,7 @@ export const supportArticles: SupportArticle[] = [
       },
       {
         heading: 'Yasak ve kısıtlı içerikler',
+        paragraphs: [],
         bullets: [
           'Yasalara aykırı, ayrımcı veya nefret söylemi içeren etkinlikler',
           'Sahte veya telif hakkı ihlali içeren görseller ve açıklamalar',
@@ -716,7 +717,7 @@ export function searchArticles(query: string): SupportArticle[] {
       a.summary.toLowerCase().includes(q) ||
       a.sections.some(
         (s) =>
-          s.paragraphs.some((p) => p.toLowerCase().includes(q)) ||
+          (s.paragraphs ?? []).some((p) => p.toLowerCase().includes(q)) ||
           s.bullets?.some((b) => b.toLowerCase().includes(q))
       )
   );
