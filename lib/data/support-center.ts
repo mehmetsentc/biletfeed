@@ -51,8 +51,9 @@ export const supportCategories: SupportCategory[] = [
   },
   {
     slug: 'etkinlik-olusturma',
-    title: 'Etkinlik Oluşturmak',
-    description: 'Organizatörler için etkinlik yayınlama ve yönetim',
+    title: 'Etkinlik Listeleme',
+    description:
+      'Etkinlik ekleme adımları, şartlar, kurallar, bilet türleri ve yayınlama rehberi',
     icon: 'event'
   },
   {
@@ -225,6 +226,176 @@ export const supportArticles: SupportArticle[] = [
         paragraphs: [
           'Organizatörler davetiye linki göndererek misafirlere özel bilet oluşturabilir. Davetiye e-postasındaki bağlantıya tıkladığınızda kişisel davetiye sayfanız açılır.',
           'Davetiyeyi kabul ettiğinizde QR kodlu biletiniz oluşturulur ve etkinlik girişinde kullanılabilir.'
+        ]
+      }
+    ]
+  },
+  {
+    slug: 'etkinlik-listeleme-rehberi',
+    title: 'Etkinlik listeleme rehberi',
+    categorySlug: 'etkinlik-olusturma',
+    summary:
+      'BiletFeed\'de etkinlik ekleme süreci, gereksinimler ve yayınlama öncesi kontrol listesi',
+    popular: true,
+    updatedAt: '2026-07-04',
+    sections: [
+      {
+        heading: 'Genel bakış',
+        paragraphs: [
+          `${companyLegal.brandName} üzerinde etkinlik listelemek ücretsizdir. Etkinliğiniz onaylandıktan sonra biletfeed.com\'da yayınlanır; katılımcılar bilet satın alabilir veya davetiye kabul edebilir.`,
+          `Organizatör paneli (${panelUrl}) üzerinden etkinlik oluşturma sihirbazını adım adım tamamlarsınız. Bu rehberde sürecin tamamı, şartlar ve kurallar özetlenmiştir.`
+        ]
+      },
+      {
+        heading: 'Başlamadan önce',
+        bullets: [
+          `${siteUrl} üzerinde geçerli bir hesap oluşturun veya giriş yapın`,
+          `Organizatör paneline (${panelUrl}) giderek organizasyon profilinizi tamamlayın`,
+          'Banka hesabı ve fatura bilgilerinizi panelde tanımlayın (hakediş ödemeleri için)',
+          `${siteUrl}/organizator-sozlesmesi metnini okuyun — yayınlama adımında onay gerekir`
+        ]
+      },
+      {
+        heading: 'Etkinlik oluşturma adımları',
+        bullets: [
+          '1. Temel Bilgiler — başlık, kategori, tarih, saat, etiketler',
+          '2. Mekan & Konum — fiziksel mekân veya online etkinlik',
+          '3. İçerik — açıklama, program, sanatçı/performer bilgileri',
+          '4. Medya & Biletler — kapak görseli, bilet türleri, fiyat ve kapasite',
+          '5. Etkinlik Kuralları — katılımcıların göreceği kuralları katalogdan seçin',
+          '6. Katılım & Gizlilik — yaş sınırı, sorular, gizlilik ayarları',
+          '7. Yayınlama — önizleme, sözleşme onayı ve yayına alma'
+        ]
+      },
+      {
+        heading: 'Yayın sonrası',
+        paragraphs: [
+          'Yayınlanan etkinlik biletfeed.com/etkinlik/[slug] adresinde listelenir. Panelden satışları, kapasiteyi ve giriş taramalarını takip edebilirsiniz.',
+          'Etkinlik tamamlandıktan sonra gelir mutabakatı yapılır ve hakedişiniz tanımlı banka hesabınıza aktarılır.'
+        ]
+      }
+    ]
+  },
+  {
+    slug: 'etkinlik-sihirbazi-adimlari',
+    title: 'Etkinlik ekleme sihirbazı — adım adım',
+    categorySlug: 'etkinlik-olusturma',
+    summary: 'Yedi adımlı sihirbazda her alanın ne anlama geldiği',
+    popular: true,
+    updatedAt: '2026-07-04',
+    sections: [
+      {
+        heading: '1. Temel Bilgiler',
+        paragraphs: [
+          'Etkinlik başlığı arama ve SEO için en önemli alandır. Doğru kategori seçimi (konser, festival, tiyatro vb.) etkinliğinizin doğru kitleye ulaşmasını sağlar.',
+          'Başlangıç tarihi ve saati katılımcıların bilette göreceği resmi saattir. Birden fazla seans varsa her seans ayrı etkinlik olarak oluşturulmalıdır.'
+        ]
+      },
+      {
+        heading: '2. Mekan & Konum',
+        paragraphs: [
+          'Fiziksel etkinliklerde mekân adı, adres ve şehir bilgisi zorunludur. Harita entegrasyonu katılımcıların yol tarifi almasına yardımcı olur.',
+          'Online etkinliklerde katılım linki veya platform bilgisi etkinlik günü bilette ve e-postada paylaşılır.'
+        ]
+      },
+      {
+        heading: '3. İçerik',
+        paragraphs: [
+          'Detaylı açıklama, program akışı ve sanatçı/performer bilgileri katılımcı güvenini artırır. Zengin metin editörü ile biçimlendirme yapabilirsiniz.'
+        ]
+      },
+      {
+        heading: '4. Medya & Biletler',
+        paragraphs: [
+          'Kapak görseli etkinlik kartlarında ve sosyal paylaşımlarda kullanılır; yatay, yüksek çözünürlüklü görseller önerilir.',
+          'Her bilet türü için ayrı fiyat, kapasite ve satış başlangıç/bitiş tarihi tanımlayabilirsiniz (Standart, VIP, Erken Kayıt vb.).'
+        ],
+        bullets: [
+          'Ücretsiz etkinliklerde fiyat 0 ₺ olarak ayarlanabilir',
+          'Toplam kapasite bilet türlerinin toplamıdır',
+          'İndirimli fiyat veya promosyon kodu panelden tanımlanabilir'
+        ]
+      },
+      {
+        heading: '5. Etkinlik Kuralları',
+        paragraphs: [
+          'Kural kataloğundan etkinliğinize uygun maddeleri seçin: yaş sınırı, iptal koşulları, giriş kuralları, güvenlik ve organizatör hakları.',
+          'Seçilen kurallar bilet satın alma ekranında ve etkinlik sayfasında katılımcılara gösterilir.'
+        ]
+      },
+      {
+        heading: '6. Katılım & Gizlilik',
+        paragraphs: [
+          'Katılımcılardan özel sorular sorabilir (diyet, engelli erişim vb.). Gizlilik ayarları etkinliğin arama sonuçlarında görünürlüğünü etkiler.'
+        ]
+      },
+      {
+        heading: '7. Yayınlama',
+        paragraphs: [
+          'Önizleme adımında tüm bilgileri kontrol edin. Organizatör sözleşmesini onayladıktan sonra etkinliği yayına alın veya taslak olarak kaydedin.',
+          `Etkinlik oluşturmaya hazırsanız ${panelUrl}/etkinlik/yeni adresinden başlayabilirsiniz.`
+        ]
+      }
+    ]
+  },
+  {
+    slug: 'etkinlik-listeleme-sartlari',
+    title: 'Etkinlik listeleme şartları ve kurallar',
+    categorySlug: 'etkinlik-olusturma',
+    summary: 'Yasal yükümlülükler, yasak içerikler ve organizatör sorumlulukları',
+    updatedAt: '2026-07-04',
+    sections: [
+      {
+        heading: 'Organizatör yükümlülükleri',
+        paragraphs: [
+          `${companyLegal.tradeName} platformunda etkinlik listelemek, ${siteUrl}/organizator-sozlesmesi hükümlerini kabul etmeyi gerektirir.`,
+          'Etkinlik bilgilerinin doğru, güncel ve yanıltıcı olmamasından organizatör sorumludur. Tarih, mekân, fiyat ve kapasite değişikliklerini panelden güncellemeli; önemli değişikliklerde katılımcıları bilgilendirmelisiniz.'
+        ]
+      },
+      {
+        heading: 'Yasak ve kısıtlı içerikler',
+        bullets: [
+          'Yasalara aykırı, ayrımcı veya nefret söylemi içeren etkinlikler',
+          'Sahte veya telif hakkı ihlali içeren görseller ve açıklamalar',
+          'Gerçekleşmeyecek veya yanıltıcı fiyatlandırılmış etkinlikler',
+          'Platform kurallarına aykırı bilet satışı (kapıda satış fiyatının üzerinde platform içi satış vb.)'
+        ]
+      },
+      {
+        heading: 'Bilet ve iade kuralları',
+        paragraphs: [
+          'İade ve iptal koşulları etkinlik bazında kural kataloğundan seçilir ve etkinlik sayfasında gösterilir.',
+          `${siteUrl}/mesafeli-satis, ${siteUrl}/iade-iptal ve ${siteUrl}/iade-garantisi sayfalarındaki genel hükümler geçerlidir.`,
+          'Etkinlik iptali veya ertelenmesinde katılımcılara e-posta bildirimi gönderilir; iade süreci platform üzerinden yönetilir.'
+        ]
+      },
+      {
+        heading: 'Komisyon ve ödeme',
+        paragraphs: [
+          'Platform komisyonu ve KDV kesintileri satış anında şeffaf şekilde gösterilir. Hakediş, etkinlik tamamlandıktan ve mutabakat sonrası banka hesabınıza aktarılır.',
+          'Detaylı bilgi için "Etkinlik gelir ödemem ne zaman yapılır?" makalesine bakın.'
+        ]
+      }
+    ]
+  },
+  {
+    slug: 'etkinlik-kurallari-katalogu',
+    title: 'Etkinlik kuralları kataloğu nasıl kullanılır?',
+    categorySlug: 'etkinlik-olusturma',
+    summary: 'Yaş sınırı, iptal, güvenlik ve organizatör hakları kurallarının seçimi',
+    updatedAt: '2026-07-04',
+    sections: [
+      {
+        paragraphs: [
+          'Sihirbazın "Etkinlik Kuralları" adımında onlarca hazır kural maddesi bulunur. Kategorilere göre gruplanmıştır: giriş kuralları, iptal & iade, güvenlik, organizatör hakları, bilet koşulları ve daha fazlası.',
+          'Her kuralın başlığı ve açıklaması katılımcılara bilet satın alırken gösterilir. Etkinliğinize uygun tüm maddeleri seçmeniz önerilir.'
+        ],
+        bullets: [
+          'Yaş sınırı ve kimlik kontrolü kuralları',
+          'İptal, erteleme ve iade koşulları',
+          'Mekâna giriş, güvenlik ve yasaklı eşyalar',
+          'Fotoğraf/video çekimi ve telif hakları',
+          'Organizatörün program değişikliği ve iptal hakları'
         ]
       }
     ]

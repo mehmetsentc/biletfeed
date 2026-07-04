@@ -25,7 +25,7 @@ const helpLinks = [
   { href: accountSiteHref('/profil/destek'), label: 'Hesap Desteği' },
   { href: supportHref('/'), label: 'Yardım Merkezi' },
   { href: supportHref('/destek-talebi'), label: 'Destek Talebi' },
-  { href: panelHref('/organizator-panel/etkinlik/yeni'), label: 'Etkinlik Listeleme' },
+  { href: supportHref('/kategori/etkinlik-olusturma'), label: 'Etkinlik Listeleme' },
   { href: '/biletlerim', label: 'Bilet Satın Alma' },
   { href: '/kosullar', label: 'Bilet Koşulları' }
 ];

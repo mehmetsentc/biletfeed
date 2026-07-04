@@ -20,7 +20,7 @@ import {
   getPopularArticles,
   searchArticles
 } from '@/lib/data/support-center';
-import { supportHref } from '@/lib/config/domain';
+import { getPanelUrl, supportHref } from '@/lib/config/domain';
 import { companyLegal } from '@/lib/config/company';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -332,6 +332,25 @@ export function SupportCategoryView({
           </li>
         )}
       </ul>
+
+      {category.slug === 'etkinlik-olusturma' && (
+        <div className="rounded-2xl border border-[#f5a623]/25 bg-amber-50/80 px-5 py-5">
+          <p className="text-sm font-semibold text-zinc-900">
+            Rehberi okuduktan sonra etkinlik oluşturmaya hazır mısınız?
+          </p>
+          <p className="mt-1 text-sm text-zinc-600">
+            Organizatör panelinden yeni etkinlik sihirbazını başlatabilirsiniz.
+          </p>
+          <a
+            href={getPanelUrl('/etkinlik/yeni')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex h-10 items-center rounded-lg bg-[#f5a623] px-5 text-sm font-semibold text-white hover:opacity-90"
+          >
+            Etkinlik oluştur →
+          </a>
+        </div>
+      )}
     </div>
   );
 }
