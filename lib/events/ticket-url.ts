@@ -6,7 +6,7 @@ export function getEventTicketUrl(event: MockEvent): string {
   if (event.listingType === 'external' && event.externalUrl) {
     return event.externalUrl;
   }
-  return `/odeme/${event.slug}`;
+  return `/etkinlik/${event.slug}/bilet`;
 }
 
 export function isExternalListing(event: MockEvent): boolean {

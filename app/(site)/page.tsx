@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
 import { getHomeCityEventsBundle } from '@/lib/services/home-city-events';
-import { getActiveHomeBanners } from '@/lib/services/home-banners';
+import { getHomeHeroSlides } from '@/lib/services/home-hero-slides';
 import { getOnlineEvents, getCategories } from '@/lib/services/events';
 
 export const metadata = createPageMetadata({
@@ -33,16 +33,16 @@ export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const citySlug = await getPreferredCitySlug();
-  const [cityBundle, online, featuredBanners, categories] = await Promise.all([
+  const [cityBundle, online, heroSlides, categories] = await Promise.all([
     getHomeCityEventsBundle(citySlug),
     getOnlineEvents(),
-    getActiveHomeBanners(),
+    getHomeHeroSlides(citySlug),
     getCategories()
   ]);
 
   return (
     <>
-      <HomeHeroSection banners={featuredBanners} categories={categories} />
+      <HomeHeroSection slides={heroSlides} categories={categories} />
 
       <section className="container mx-auto px-4 py-6">
         <HomeFeedTabs />

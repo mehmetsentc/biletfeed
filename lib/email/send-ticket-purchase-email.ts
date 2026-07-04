@@ -2,7 +2,7 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { getSiteUrl } from '@/lib/config/domain';
 import { queueEmail } from '@/lib/accounting/email';
 import { buildGoogleCalendarUrl } from '@/lib/email/calendar';
-import { buildTicketPurchaseEmail } from '@/lib/email/ticket-purchase-template';
+import { buildTicketPurchaseEmail, buildTicketPurchasePlainText } from '@/lib/email/ticket-purchase-template';
 import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
 import { buildTicketQrPayload } from '@/lib/tickets/sign';
 import {
@@ -131,11 +131,25 @@ export async function sendTicketPurchaseEmail(
     rules: event.rules?.trim() || undefined
   });
 
+  const plainParams = {
+    customerName: order.user.displayName?.trim() ?? '',
+    eventTitle: event.title,
+    eventDate: eventDt.date,
+    eventTime: eventDt.time,
+    eventVenue: venueName,
+    eventCity: cityName,
+    orderNumber: order.id.slice(0, 8).toUpperCase(),
+    totalLabel: formatMoney(order.total, currency),
+    ticketCodes: order.purchasedTickets.map((t) => t.ticketCode),
+    ticketsUrl: getSiteUrl('/biletlerim')
+  };
+
   await queueEmail({
     to: order.user.email,
-    subject: `Biletiniz hazır — ${event.title}`,
+    subject: `BiletFeed — ${event.title} biletiniz`,
     template: 'ticket_purchase',
     html,
+    text: buildTicketPurchasePlainText(plainParams),
     orderId: order.id
   });
 }

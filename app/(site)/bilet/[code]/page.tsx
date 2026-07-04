@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { TicketDownloadButton } from '@/components/tickets/ticket-download-button';
 import { TicketWebView } from '@/components/tickets/design/ticket-web-view';
 import { ticketWebPrintStyles } from '@/components/tickets/design/ticket-print-styles';
 import { formatTicketDate, formatTicketTime } from '@/lib/tickets/design/format';
 import { getPublicTicketByCode } from '@/lib/services/tickets';
+import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 
 interface Props {
   params: Promise<{ code: string }>;
@@ -30,9 +32,41 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
   }
 
   return (
-    <div className="min-h-screen bg-[#0c1017] px-4 py-10">
-      <div className="mx-auto max-w-lg">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#FF8A00] via-[#FF9F2E] to-[#F57C00] px-4 py-8">
+      <div
+        className="pointer-events-none absolute left-0 top-0 h-32 w-24 opacity-30 sm:h-40 sm:w-32"
+        style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', background: '#0A0A0A' }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute bottom-0 right-0 h-32 w-24 opacity-20 sm:h-40 sm:w-32"
+        style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)', background: '#0A0A0A' }}
+        aria-hidden
+      />
+
+      <div className="relative mx-auto max-w-lg">
+        <div className="no-print mb-6 flex items-center justify-between">
+          <Link
+            href="/biletlerim"
+            className="inline-flex items-center gap-2 rounded-full bg-black/15 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/25"
+          >
+            <ArrowLeft className="size-4" />
+            Biletlerim
+          </Link>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={brandAssetUrl(brandLogos.forDarkSurface)}
+            alt="BiletFeed"
+            className="h-7 w-auto opacity-90"
+          />
+        </div>
+
+        <p className="no-print mb-4 text-center text-xs font-semibold uppercase tracking-widest text-white/80">
+          Bilet Bilgileri
+        </p>
+
         <TicketWebView
+          surface="light"
           data={{
             kind: 'ticket',
             brand: 'biletfeed',
@@ -60,7 +94,7 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
               <Link
                 href={`/bilet/${encodeURIComponent(ticketCode)}/print?token=${encodeURIComponent(validationToken)}&id=${encodeURIComponent(ticketId)}`}
                 target="_blank"
-                className="no-print mt-2 flex w-full items-center justify-center rounded-xl py-2.5 text-xs font-medium text-white/45 hover:text-white/70"
+                className="no-print mt-2 flex w-full items-center justify-center rounded-xl py-2.5 text-xs font-medium text-zinc-500 hover:text-primary"
               >
                 Yazdır
               </Link>
@@ -68,7 +102,9 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
           }
         />
 
-        <p className="mt-6 text-center text-xs text-white/30 no-print">biletfeed.com · Güvenli bilet sistemi</p>
+        <p className="no-print mt-6 text-center text-xs text-white/70">
+          *Türkiye saati (GMT+3) · biletfeed.com
+        </p>
       </div>
       <style>{ticketWebPrintStyles()}</style>
     </div>

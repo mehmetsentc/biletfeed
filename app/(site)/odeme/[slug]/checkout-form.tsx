@@ -1,24 +1,44 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, Lock, ShieldCheck, User } from 'lucide-react';
+import {
+  ChevronRight,
+  ExternalLink,
+  Lock,
+  Minus,
+  Plus,
+  ShieldCheck,
+  Tag,
+  User
+} from 'lucide-react';
+import { BfCheckoutContextBar } from '@/components/checkout/bf-checkout-context-bar';
+import { BfCheckoutSteps, BfSubStepLabel } from '@/components/checkout/bf-checkout-steps';
+import { BfOrderSummary, BfPriceRow } from '@/components/checkout/bf-order-summary';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
-import { StepIndicator } from '@/components/checkout/step-indicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { EventRulesAcceptanceList } from '@/components/events/event-rules-display';
 import {
   type MockEvent,
-  formatEventDate,
-  formatPrice
+  formatEventDate
 } from '@/lib/data/mock-events';
-import { EventRulesAcceptanceList } from '@/components/events/event-rules-display';
 import type { EventRulesDisplayData } from '@/lib/event-rules/types';
 import { validateCheckoutAttendee } from '@/lib/validation/checkout-attendee';
 import { normalizeTrPhone } from '@/lib/validation/tr-phone';
+
+type TicketTypeRow = {
+  id: string;
+  name: string;
+  type: string;
+  price: number;
+  currency: string;
+  capacity: number;
+  sold: number;
+  showLowStockBadge: boolean;
+};
 
 export function CheckoutForm({
   event,
@@ -26,20 +46,14 @@ export function CheckoutForm({
   rulesDisplay
 }: {
   event: MockEvent;
-  ticketTypes: Array<{
-    id: string;
-    name: string;
-    type: string;
-    price: number;
-    currency: string;
-    capacity: number;
-    sold: number;
-    showLowStockBadge: boolean;
-  }>;
+  ticketTypes: TicketTypeRow[];
   rulesDisplay?: EventRulesDisplayData | null;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [tierPhase, setTierPhase] = useState<'pick' | 'qty'>(
+    ticketTypes.length <= 1 ? 'qty' : 'pick'
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -72,6 +86,19 @@ export function CheckoutForm({
   const subtotal = event.isFree ? 0 : unitPrice * quantity;
   const total = Math.max(0, subtotal - couponDiscount);
   const isPaid = total > 0;
+  const remaining = selectedType
+    ? Math.max(0, selectedType.capacity - selectedType.sold)
+    : 10;
+
+  function priceLabel(price: number): string {
+    return price <= 0 ? 'Ücretsiz' : `${price.toLocaleString('tr-TR')} ₺`;
+  }
+
+  function selectTier(id: string) {
+    setSelectedTypeId(id);
+    setTierPhase('qty');
+    setQuantity(1);
+  }
 
   function validateParticipantStep(): boolean {
     const result = validateCheckoutAttendee({
@@ -85,12 +112,6 @@ export function CheckoutForm({
     }
     setAttendeeErrors({});
     return true;
-  }
-
-  function handleParticipantContinue() {
-    if (validateParticipantStep()) {
-      setStep(3);
-    }
   }
 
   async function applyCoupon() {
@@ -121,8 +142,6 @@ export function CheckoutForm({
   async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-
     setError(null);
 
     const attendee = validateCheckoutAttendee({
@@ -177,380 +196,417 @@ export function CheckoutForm({
   }
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-bold">Bilet Satın Al</h1>
-      <p className="mt-1 text-muted-foreground">{event.title}</p>
+    <div className="min-h-screen bg-zinc-50">
+      <BfCheckoutContextBar event={event} />
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-5">
+      <div className="container mx-auto max-w-5xl px-4 py-8">
+        <BfCheckoutSteps current={step} className="mb-8 max-w-md mx-auto" />
+
         {error && (
-          <div className="lg:col-span-3 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
-        <div className="lg:col-span-3 space-y-6">
-          <StepIndicator
-            current={step}
-            labels={['Bilet', 'Katılımcı', 'Kupon', 'Özet', 'Ödeme']}
-          />
 
-          {step === 1 && (
-            <div className="space-y-4 rounded-2xl border bg-card p-6">
-              <h2 className="font-semibold">1. Bilet Seçimi</h2>
-              <div className="space-y-2">
-                <Label>Bilet türü</Label>
-                <select
-                  className="w-full rounded-md border bg-background px-3 py-2"
-                  value={selectedTypeId}
-                  onChange={(e) => setSelectedTypeId(e.target.value)}
-                >
-                  {ticketTypes.length === 0 && (
-                    <option value="">Genel Giriş — {formatPrice(event)}</option>
-                  )}
+        <div className="grid gap-8 lg:grid-cols-5">
+          <div className="lg:col-span-3 space-y-6">
+            {/* ——— Adım 1: Bilet seçimi ——— */}
+            {step === 1 && tierPhase === 'pick' && (
+              <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                <div className="border-b border-zinc-100 px-6 py-5">
+                  <BfSubStepLabel label="Adım 1" />
+                  <h2 className="mt-1 text-lg font-bold">Bilet türünü seçin</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Size uygun bilet kategorisini seçerek devam edin.
+                  </p>
+                </div>
+                <ul className="divide-y divide-zinc-100">
                   {ticketTypes.map((type) => {
-                    const priceLabel =
-                      type.price <= 0 ? 'Ücretsiz' : `${type.price} ₺`;
-                    const label = type.showLowStockBadge
-                      ? `${type.name} — ${priceLabel} — Tükenmek üzere`
-                      : `${type.name} — ${priceLabel}`;
+                    const left = type.capacity - type.sold;
                     return (
-                      <option key={type.id} value={type.id}>
-                        {label}
-                      </option>
+                      <li key={type.id}>
+                        <button
+                          type="button"
+                          onClick={() => selectTier(type.id)}
+                          className="group flex w-full items-center gap-4 px-6 py-5 text-left transition-colors hover:bg-orange-50/50"
+                        >
+                          <div className="h-12 w-1 shrink-0 rounded-full bg-primary opacity-80 group-hover:opacity-100" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-foreground">{type.name}</p>
+                            {type.showLowStockBadge && left > 0 && (
+                              <p className="mt-0.5 text-xs font-medium text-primary">
+                                Son {left} bilet
+                              </p>
+                            )}
+                            {left === 0 && (
+                              <p className="mt-0.5 text-xs font-medium text-destructive">
+                                Tükendi
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <span className="text-lg font-extrabold text-primary">
+                              {priceLabel(type.price)}
+                            </span>
+                            <ChevronRight className="size-5 text-zinc-300 group-hover:text-primary" />
+                          </div>
+                        </button>
+                      </li>
                     );
                   })}
-                </select>
-                {selectedType?.showLowStockBadge && (
-                  <p className="text-xs font-medium text-[#f5a623]">Tükenmek üzere</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>Adet</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                />
-              </div>
-              {requiresRulesAcceptance && hasStructuredRules && rulesDisplay && (
-                <EventRulesAcceptanceList
-                  data={rulesDisplay}
-                  accepted={rulesAccepted}
-                  onAcceptedChange={setRulesAccepted}
-                />
-              )}
-              {requiresRulesAcceptance && !hasStructuredRules && (
-                <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
-                  <h3 className="text-sm font-semibold">
-                    Etkinlik Hakkında Bilmeniz Gerekenler
-                  </h3>
-                  <ul className="max-h-48 space-y-2 overflow-y-auto text-sm text-muted-foreground">
-                    {ruleLines.map((line) => (
-                      <li key={line} className="flex gap-2">
-                        <span className="text-primary">•</span>
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <label className="flex cursor-pointer items-start gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={rulesAccepted}
-                      onChange={(e) => setRulesAccepted(e.target.checked)}
-                    />
-                    <span>Etkinlik kurallarını okudum ve kabul ediyorum.</span>
-                  </label>
-                </div>
-              )}
-              <Button
-                onClick={() => setStep(2)}
-                className="w-full"
-                disabled={requiresRulesAcceptance && !rulesAccepted}
-              >
-                Devam Et
-              </Button>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4 rounded-2xl border bg-card p-6">
-              <h2 className="flex items-center gap-2 font-semibold">
-                <User className="size-5" />
-                2. Katılımcı Bilgileri
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Bilet sahibi bilgileri giriş kapısında gösterilir.
-              </p>
-              <div className="space-y-2">
-                <Label htmlFor="attendeeName">
-                  Ad Soyad <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="attendeeName"
-                  value={attendeeName}
-                  onChange={(e) => {
-                    setAttendeeName(e.target.value);
-                    if (attendeeErrors.attendeeName) {
-                      setAttendeeErrors((prev) => ({ ...prev, attendeeName: '' }));
-                    }
-                  }}
-                  placeholder="Bilet sahibi adı"
-                  required
-                  autoComplete="name"
-                  aria-invalid={Boolean(attendeeErrors.attendeeName)}
-                />
-                {attendeeErrors.attendeeName && (
-                  <p className="text-sm text-destructive">{attendeeErrors.attendeeName}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="attendeePhone">
-                  Telefon <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="attendeePhone"
-                  type="tel"
-                  inputMode="tel"
-                  value={attendeePhone}
-                  onChange={(e) => {
-                    setAttendeePhone(normalizeTrPhone(e.target.value));
-                    if (attendeeErrors.attendeePhone) {
-                      setAttendeeErrors((prev) => ({ ...prev, attendeePhone: '' }));
-                    }
-                  }}
-                  placeholder="05XX XXX XX XX"
-                  required
-                  maxLength={15}
-                  autoComplete="tel"
-                  aria-invalid={Boolean(attendeeErrors.attendeePhone)}
-                />
-                {attendeeErrors.attendeePhone && (
-                  <p className="text-sm text-destructive">{attendeeErrors.attendeePhone}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="attendeeEmail">
-                  E-posta <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="attendeeEmail"
-                  type="email"
-                  value={attendeeEmail}
-                  onChange={(e) => {
-                    setAttendeeEmail(e.target.value);
-                    if (attendeeErrors.attendeeEmail) {
-                      setAttendeeErrors((prev) => ({ ...prev, attendeeEmail: '' }));
-                    }
-                  }}
-                  placeholder="bilet@ornek.com"
-                  required
-                  autoComplete="email"
-                  aria-invalid={Boolean(attendeeErrors.attendeeEmail)}
-                />
-                {attendeeErrors.attendeeEmail && (
-                  <p className="text-sm text-destructive">{attendeeErrors.attendeeEmail}</p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  Geri
-                </Button>
-                <Button type="button" onClick={handleParticipantContinue} className="flex-1">
-                  Devam Et
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-4 rounded-2xl border bg-card p-6">
-              <h2 className="font-semibold">3. Kupon (isteğe bağlı)</h2>
-              <div className="flex gap-2">
-                <Input
-                  value={couponCode}
-                  onChange={(e) => {
-                    setCouponCode(e.target.value.toUpperCase());
-                    setCouponApplied(false);
-                    setCouponDiscount(0);
-                  }}
-                  placeholder="Kupon kodu"
-                />
-                <Button type="button" variant="outline" onClick={() => void applyCoupon()}>
-                  Uygula
-                </Button>
-              </div>
-              {couponError && (
-                <p className="text-sm text-destructive">{couponError}</p>
-              )}
-              {couponApplied && (
-                <p className="text-sm text-emerald-600">
-                  Kupon uygulandı — {couponDiscount} ₺ indirim
-                </p>
-              )}
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(2)}>
-                  Geri
-                </Button>
-                <Button onClick={() => setStep(4)} className="flex-1">
-                  Devam Et
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-4 rounded-2xl border bg-card p-6">
-              <h2 className="font-semibold">4. Sipariş Özeti</h2>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Etkinlik</span>
-                  <span>{event.title}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tarih</span>
-                  <span>{formatEventDate(event.startDate)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Katılımcı</span>
-                  <span>{attendeeName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">E-posta</span>
-                  <span>{attendeeEmail}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Telefon</span>
-                  <span>{attendeePhone}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Bilet türü</span>
-                  <span>{selectedType?.name ?? 'Genel Giriş'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Bilet adedi</span>
-                  <span>{quantity}</span>
-                </div>
-                {couponApplied && (
-                  <div className="flex justify-between text-emerald-600">
-                    <span>Kupon indirimi</span>
-                    <span>-{couponDiscount} ₺</span>
-                  </div>
-                )}
-                <Separator />
-                <div className="flex justify-between text-base font-bold">
-                  <span>Toplam</span>
-                  <span className="text-primary">
-                    {total === 0 ? 'Ücretsiz' : `${total} ₺`}
-                  </span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setStep(3)}>
-                  Geri
-                </Button>
-                <Button onClick={() => setStep(5)} className="flex-1">
-                  {isPaid ? 'Ödemeye Geç' : 'Bileti Onayla'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <form
-              onSubmit={handleCheckout}
-              className="space-y-4 rounded-2xl border bg-card p-6"
-            >
-              <h2 className="flex items-center gap-2 font-semibold">
-                <ShieldCheck className="size-5" />
-                5. {isPaid ? 'Güvenli Ödeme' : 'Onay'}
-              </h2>
-
-              {isPaid ? (
-                <div className="space-y-4 rounded-lg bg-muted/50 p-4 text-sm">
-                  <p>
-                    Kart bilgileriniz Bilet Feed sunucularında{' '}
-                    <strong>saklanmaz</strong>. Ödeme, banka sanal POS altyapısı
-                    üzerinden güvenli bağlantı ile tamamlanır (3D Secure).
-                  </p>
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Kabul edilen kartlar
-                    </p>
-                    <PaymentCardLogos />
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Lock className="size-3.5 shrink-0 text-[#f5a623]" />
-                    <span>SSL ile güvenli bağlantı</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <ExternalLink className="size-3.5 shrink-0" />
-                    <span>Devam ettiğinizde ödeme sayfasına yönlendirilirsiniz</span>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Ücretsiz etkinlik — onayladığınızda QR biletiniz oluşturulur.
-                </p>
-              )}
-
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setStep(4)}
-                >
-                  Geri
-                </Button>
-                <Button type="submit" className="flex-1" disabled={loading}>
-                  {loading
-                    ? 'Yönlendiriliyor...'
-                    : isPaid
-                      ? `${total} ₺ — Ödemeye Git`
-                      : 'Ücretsiz Bileti Al'}
-                </Button>
-              </div>
-            </form>
-          )}
-        </div>
-
-        <div className="lg:col-span-2">
-          <div className="sticky top-24 rounded-2xl border bg-card p-5 shadow-lg">
-            <div className="relative mb-4 aspect-video overflow-hidden rounded-xl">
-              <Image
-                src={event.coverImage}
-                alt={event.title}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <h3 className="font-bold">{event.title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {formatEventDate(event.startDate)}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {event.venue}, {event.city}
-            </p>
-            <Separator className="my-4" />
-            <div className="flex justify-between font-bold">
-              <span>Toplam</span>
-              <span className="text-primary">
-                {total === 0 ? 'Ücretsiz' : `${total} ₺`}
-              </span>
-            </div>
-            {isPaid && (
-              <>
-                <Separator className="my-4" />
-                <div className="space-y-3">
-                  <PaymentCardLogos className="justify-center" logoClassName="h-6 w-auto" />
-                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
-                    <Lock className="size-3 shrink-0 text-[#f5a623]" aria-hidden />
-                    SSL ile güvenli bağlantı
-                  </p>
-                </div>
-              </>
+                </ul>
+              </section>
             )}
+
+            {step === 1 && tierPhase === 'qty' && (
+              <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                <div className="border-b border-zinc-100 px-6 py-5">
+                  {ticketTypes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setTierPhase('pick')}
+                      className="mb-2 text-xs font-medium text-primary hover:underline"
+                    >
+                      ← Bilet türünü değiştir
+                    </button>
+                  )}
+                  <BfSubStepLabel label="Adım 1" />
+                  <h2 className="mt-1 text-lg font-bold">{selectedType?.name ?? 'Genel Giriş'}</h2>
+                </div>
+
+                <div className="px-6 py-8">
+                  <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Adet seçin
+                  </p>
+                  <div className="mx-auto mt-4 flex max-w-xs items-center justify-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-12 rounded-full border-2"
+                      disabled={quantity <= 1}
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    >
+                      <Minus className="size-5" />
+                    </Button>
+                    <span className="min-w-[3rem] text-center text-3xl font-extrabold tabular-nums">
+                      {quantity}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-12 rounded-full border-2"
+                      disabled={quantity >= Math.min(10, remaining)}
+                      onClick={() => setQuantity((q) => Math.min(10, remaining, q + 1))}
+                    >
+                      <Plus className="size-5" />
+                    </Button>
+                  </div>
+
+                  <div className="mx-auto mt-8 max-w-sm rounded-xl bg-zinc-50 px-5 py-4">
+                    <BfPriceRow
+                      label="Bilet fiyatı"
+                      value={
+                        subtotal === 0
+                          ? 'Ücretsiz'
+                          : `${subtotal.toLocaleString('tr-TR')} ₺`
+                      }
+                    />
+                    <Separator />
+                    <BfPriceRow
+                      label="Toplam"
+                      value={
+                        subtotal === 0
+                          ? 'Ücretsiz'
+                          : `${subtotal.toLocaleString('tr-TR')} ₺`
+                      }
+                      highlight
+                    />
+                  </div>
+
+                  {requiresRulesAcceptance && hasStructuredRules && rulesDisplay && (
+                    <div className="mt-6">
+                      <EventRulesAcceptanceList
+                        data={rulesDisplay}
+                        accepted={rulesAccepted}
+                        onAcceptedChange={setRulesAccepted}
+                      />
+                    </div>
+                  )}
+                  {requiresRulesAcceptance && !hasStructuredRules && (
+                    <div className="mt-6 space-y-3 rounded-xl border bg-zinc-50 p-4">
+                      <h3 className="text-sm font-semibold">Etkinlik kuralları</h3>
+                      <ul className="max-h-36 space-y-1.5 overflow-y-auto text-sm text-muted-foreground">
+                        {ruleLines.map((line) => (
+                          <li key={line} className="flex gap-2">
+                            <span className="text-primary">•</span>
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                      <label className="flex cursor-pointer items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="mt-1 accent-[#FF8A00]"
+                          checked={rulesAccepted}
+                          onChange={(e) => setRulesAccepted(e.target.checked)}
+                        />
+                        Kuralları okudum ve kabul ediyorum.
+                      </label>
+                    </div>
+                  )}
+
+                  <Button
+                    className="mt-8 h-13 w-full rounded-xl text-base font-bold"
+                    size="lg"
+                    disabled={requiresRulesAcceptance && !rulesAccepted}
+                    onClick={() => setStep(2)}
+                  >
+                    Devam Et
+                  </Button>
+                </div>
+              </section>
+            )}
+
+            {/* ——— Adım 2: Katılımcı ——— */}
+            {step === 2 && (
+              <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                <div className="border-b border-zinc-100 px-6 py-5">
+                  <BfSubStepLabel label="Adım 2" />
+                  <h2 className="mt-1 flex items-center gap-2 text-lg font-bold">
+                    <User className="size-5 text-primary" />
+                    Katılımcı bilgileri
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Bilet bu bilgilerle oluşturulur; girişte kimlik kontrolü yapılabilir.
+                  </p>
+                </div>
+
+                <div className="space-y-4 px-6 py-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="attendeeName">
+                      Ad Soyad <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="attendeeName"
+                      value={attendeeName}
+                      onChange={(e) => {
+                        setAttendeeName(e.target.value);
+                        if (attendeeErrors.attendeeName) {
+                          setAttendeeErrors((p) => ({ ...p, attendeeName: '' }));
+                        }
+                      }}
+                      placeholder="Bilet sahibi adı"
+                      autoComplete="name"
+                      aria-invalid={Boolean(attendeeErrors.attendeeName)}
+                      className="h-11 rounded-xl"
+                    />
+                    {attendeeErrors.attendeeName && (
+                      <p className="text-sm text-destructive">{attendeeErrors.attendeeName}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="attendeePhone">
+                      Telefon <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="attendeePhone"
+                      type="tel"
+                      inputMode="tel"
+                      value={attendeePhone}
+                      onChange={(e) => {
+                        setAttendeePhone(normalizeTrPhone(e.target.value));
+                        if (attendeeErrors.attendeePhone) {
+                          setAttendeeErrors((p) => ({ ...p, attendeePhone: '' }));
+                        }
+                      }}
+                      placeholder="05XX XXX XX XX"
+                      maxLength={15}
+                      autoComplete="tel"
+                      className="h-11 rounded-xl"
+                    />
+                    {attendeeErrors.attendeePhone && (
+                      <p className="text-sm text-destructive">{attendeeErrors.attendeePhone}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="attendeeEmail">
+                      E-posta <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="attendeeEmail"
+                      type="email"
+                      value={attendeeEmail}
+                      onChange={(e) => {
+                        setAttendeeEmail(e.target.value);
+                        if (attendeeErrors.attendeeEmail) {
+                          setAttendeeErrors((p) => ({ ...p, attendeeEmail: '' }));
+                        }
+                      }}
+                      placeholder="bilet@ornek.com"
+                      autoComplete="email"
+                      className="h-11 rounded-xl"
+                    />
+                    {attendeeErrors.attendeeEmail && (
+                      <p className="text-sm text-destructive">{attendeeErrors.attendeeEmail}</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 p-4">
+                    <p className="flex items-center gap-2 text-sm font-semibold">
+                      <Tag className="size-4 text-primary" />
+                      İndirim kodu (isteğe bağlı)
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                      <Input
+                        value={couponCode}
+                        onChange={(e) => {
+                          setCouponCode(e.target.value.toUpperCase());
+                          setCouponApplied(false);
+                          setCouponDiscount(0);
+                        }}
+                        placeholder="KUPONKODU"
+                        className="h-10 rounded-lg uppercase"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="shrink-0 rounded-lg"
+                        onClick={() => void applyCoupon()}
+                      >
+                        Uygula
+                      </Button>
+                    </div>
+                    {couponError && (
+                      <p className="mt-2 text-sm text-destructive">{couponError}</p>
+                    )}
+                    {couponApplied && (
+                      <p className="mt-2 text-sm font-medium text-emerald-600">
+                        Kupon uygulandı — {couponDiscount.toLocaleString('tr-TR')} ₺ indirim
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      className="rounded-xl"
+                      onClick={() => setStep(1)}
+                    >
+                      Geri
+                    </Button>
+                    <Button
+                      className="h-12 flex-1 rounded-xl text-base font-bold"
+                      onClick={() => {
+                        if (validateParticipantStep()) setStep(3);
+                      }}
+                    >
+                      Ödemeye Geç
+                    </Button>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* ——— Adım 3: Ödeme ——— */}
+            {step === 3 && (
+              <form
+                onSubmit={handleCheckout}
+                className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm"
+              >
+                <div className="border-b border-zinc-100 px-6 py-5">
+                  <BfSubStepLabel label="Adım 3" />
+                  <h2 className="mt-1 flex items-center gap-2 text-lg font-bold">
+                    <ShieldCheck className="size-5 text-primary" />
+                    {isPaid ? 'Güvenli ödeme' : 'Sipariş onayı'}
+                  </h2>
+                </div>
+
+                <div className="space-y-4 px-6 py-6">
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Etkinlik</span>
+                        <span className="font-medium">{event.title}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tarih</span>
+                        <span>{formatEventDate(event.startDate)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Katılımcı</span>
+                        <span>{attendeeName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Bilet</span>
+                        <span>
+                          {selectedType?.name ?? 'Genel'} × {quantity}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {isPaid ? (
+                    <div className="space-y-3 rounded-xl border border-primary/20 bg-orange-50/50 p-4 text-sm">
+                      <p>
+                        Kart bilgileriniz BiletFeed sunucularında{' '}
+                        <strong>saklanmaz</strong>. Ödeme banka sanal POS altyapısı ile
+                        tamamlanır.
+                      </p>
+                      <PaymentCardLogos />
+                      <p className="flex items-center gap-2 text-muted-foreground">
+                        <Lock className="size-3.5 shrink-0 text-primary" />
+                        SSL · 3D Secure
+                      </p>
+                      <p className="flex items-center gap-2 text-muted-foreground">
+                        <ExternalLink className="size-3.5 shrink-0" />
+                        Devam ettiğinizde ödeme sayfasına yönlendirilirsiniz
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Ücretsiz etkinlik — onayladığınızda QR biletiniz anında oluşturulur.
+                    </p>
+                  )}
+
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-xl"
+                      onClick={() => setStep(2)}
+                    >
+                      Geri
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="h-12 flex-1 rounded-xl text-base font-bold"
+                    >
+                      {loading
+                        ? 'Yönlendiriliyor…'
+                        : isPaid
+                          ? `Siparişi Tamamla · ${total.toLocaleString('tr-TR')} ₺`
+                          : 'Ücretsiz Bileti Al'}
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
+
+          <div className="lg:col-span-2">
+            <BfOrderSummary
+              event={event}
+              ticketTypeName={selectedType?.name ?? 'Genel Giriş'}
+              quantity={quantity}
+              unitPrice={unitPrice}
+              discount={couponDiscount}
+              className="sticky top-24"
+            />
           </div>
         </div>
       </div>

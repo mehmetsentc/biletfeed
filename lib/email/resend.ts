@@ -25,6 +25,8 @@ export interface SendEmailOptions {
   from?: string;
   /** Gönderen türü — from belirtilmediğinde kullanılır */
   sender?: EmailSenderKind;
+  /** Resend etiketleri — raporlama / filtreleme */
+  tags?: Array<{ name: string; value: string }>;
   attachments?: Array<{
     filename: string;
     content: Buffer | string;
@@ -107,6 +109,11 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
   const replyTo = opts.replyTo ?? emailConfig.replyTo;
   const text = opts.text ?? htmlToPlainText(opts.html);
 
+  const headers: Record<string, string> = {
+    'X-Entity-Ref-ID': `bf-${Date.now()}`,
+    Precedence: 'auto'
+  };
+
   try {
     const res = await fetch(RESEND_API_URL, {
       method: 'POST',
@@ -121,6 +128,8 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
         html: opts.html,
         text,
         reply_to: replyTo,
+        headers,
+        ...(opts.tags?.length ? { tags: opts.tags } : {}),
         ...(opts.attachments?.length
           ? {
               attachments: opts.attachments.map((a) => ({

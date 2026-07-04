@@ -14,6 +14,7 @@ export async function queueEmail(params: {
   subject: string;
   template: string;
   html: string;
+  text?: string;
   orderId?: string;
   invoiceId?: string;
   sender?: EmailSenderKind;
@@ -56,8 +57,10 @@ export async function queueEmail(params: {
       to: params.to,
       subject: params.subject,
       html: params.html,
+      text: params.text,
       sender,
       replyTo: companyLegal.email,
+      tags: [{ name: 'template', value: params.template }],
       attachments: params.attachments
     });
 

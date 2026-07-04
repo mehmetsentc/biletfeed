@@ -10,13 +10,15 @@ interface MockPaymentClientProps {
   sessionId?: string;
   total: number;
   eventTitle: string;
+  eventSlug: string;
 }
 
 export function MockPaymentClient({
   orderId,
   sessionId,
   total,
-  eventTitle
+  eventTitle,
+  eventSlug
 }: MockPaymentClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState<'paid' | 'failed' | null>(null);
@@ -39,7 +41,9 @@ export function MockPaymentClient({
       }
 
       if (status === 'paid') {
-        router.push(`/odeme/basarili?order=${orderId}`);
+        router.push(
+          `/etkinlik/${eventSlug}/bilet/basarili?order=${orderId}`
+        );
       } else {
         router.push(`/odeme/basarisiz?order=${orderId}`);
       }

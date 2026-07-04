@@ -10,7 +10,8 @@ import { getSiteUrl } from '@/lib/config/domain';
 import { queueEmail } from '@/lib/accounting/email';
 import {
   buildInvitationCalendarUrl,
-  buildInvitationEmail
+  buildInvitationEmail,
+  buildInvitationPlainText
 } from '@/lib/email/invitation-template';
 import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
 import { generateOrganizerInvitationPdf } from '@/lib/services/invitation-pdf';
@@ -245,7 +246,7 @@ export async function createEventInvitation(params: {
       const pdf = await generateOrganizerInvitationPdf(invitation.id, params.organizerId);
       await queueEmail({
         to: params.guestEmail!,
-        subject: `Davetiyeniz: ${event.title}`,
+        subject: `BiletFeed — ${event.title} davetiyeniz`,
         template: 'event_invitation',
         html: buildInvitationEmail({
           guestName: params.guestName,
@@ -262,6 +263,16 @@ export async function createEventInvitation(params: {
           inviteUrl: result.inviteUrl,
           calendarUrl,
           organizerName: event.organizer.name
+        }),
+        text: buildInvitationPlainText({
+          guestName: params.guestName,
+          eventTitle: event.title,
+          eventDate,
+          eventTime,
+          eventVenue: venueName,
+          eventCity: cityName,
+          ticketCode: result.ticketCode,
+          inviteUrl: result.inviteUrl
         }),
         orderId,
         attachments: pdf ? [{ filename: pdf.filename, content: pdf.buffer }] : undefined

@@ -42,7 +42,7 @@ export function buildRefundNotificationEmail(
       <tr>
         <td style="padding:0 28px 28px;" align="center">
           <a href="${params.ticketsUrl}"
-             style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:${EMAIL_BRAND.bg};font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">
+             style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:#111111;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">
             Biletlerime Git
           </a>
         </td>

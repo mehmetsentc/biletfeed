@@ -1,5 +1,6 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import {
+  buildTicketQrPayload,
   generateTicketCode,
   generateValidationToken,
   newTicketId
@@ -256,7 +257,7 @@ export async function createCheckout(params: {
       quantity: item.quantity
     })),
     eventTitle: event.title,
-    successUrl: `${base}/odeme/basarili?order=${order.id}`,
+    successUrl: `${base}/etkinlik/${event.slug}/bilet/basarili?order=${order.id}`,
     failureUrl: `${base}/odeme/basarisiz?order=${order.id}`,
     callbackUrl: `${base}/api/payments/callback/${providerName}`
   });
@@ -566,6 +567,68 @@ export async function getOrderForUser(params: {
       items: true
     }
   });
+}
+
+export async function getPaidOrderFirstTicket(params: {
+  orderId: string;
+  firebaseUid: string;
+  eventSlug?: string;
+}) {
+  await ensureDbConnection();
+
+  const user = await prisma.user.findFirst({
+    where: { firebaseUid: params.firebaseUid, deletedAt: null }
+  });
+  if (!user) return null;
+
+  const order = await prisma.order.findFirst({
+    where: {
+      id: params.orderId,
+      userId: user.id,
+      status: 'paid',
+      deletedAt: null,
+      ...(params.eventSlug ? { event: { slug: params.eventSlug } } : {})
+    },
+    include: {
+      event: {
+        include: {
+          city: true,
+          venue: true,
+          category: true
+        }
+      },
+      purchasedTickets: {
+        take: 1,
+        orderBy: { createdAt: 'asc' },
+        include: { ticketType: true }
+      }
+    }
+  });
+
+  if (!order || order.purchasedTickets.length === 0) return null;
+
+  const ticket = order.purchasedTickets[0];
+
+  return {
+    eventSlug: order.event.slug,
+    eventTitle: order.event.title,
+    eventDate: order.event.startDate,
+    venue: order.event.venue?.name ?? 'Online',
+    city: order.event.city.name,
+    category: order.event.category.name,
+    ticket: {
+      id: ticket.id,
+      ticketCode: ticket.ticketCode,
+      validationToken: ticket.validationToken,
+      holderName: ticket.attendeeName ?? order.attendeeName ?? 'Misafir',
+      ticketTypeName: ticket.ticketType.name,
+      qrData: buildTicketQrPayload({
+        ticketId: ticket.id,
+        ticketCode: ticket.ticketCode,
+        validationToken: ticket.validationToken
+      })
+    }
+  };
 }
 
 export async function expireStalePendingOrders(): Promise<number> {

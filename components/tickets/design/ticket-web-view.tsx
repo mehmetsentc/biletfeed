@@ -13,7 +13,23 @@ import type { TicketDocumentData } from '@/lib/tickets/design/types';
 import { barcodeToDataUrl } from '@/lib/tickets/design/barcode';
 import { cn } from '@/lib/utils';
 
-function InfoCell({ label, value }: { label: string; value: string }) {
+function InfoCell({
+  label,
+  value,
+  surface
+}: {
+  label: string;
+  value: string;
+  surface: 'dark' | 'light';
+}) {
+  if (surface === 'light') {
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5">
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">{label}</p>
+        <p className="text-[13px] font-semibold leading-snug text-zinc-900">{value}</p>
+      </div>
+    );
+  }
   return (
     <div className="rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5">
       <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">{label}</p>
@@ -27,13 +43,16 @@ export function TicketWebView({
   ctaHref,
   ctaLabel = 'Etkinlik Detayları',
   footer,
-  className
+  className,
+  surface = 'dark'
 }: {
   data: TicketDocumentData;
   ctaHref?: string;
   ctaLabel?: string;
   footer?: React.ReactNode;
   className?: string;
+  /** dark: mevcut koyu kart; light: BiletFeed beyaz bilet kartı */
+  surface?: 'dark' | 'light';
 }) {
   const {
     kind,
@@ -71,10 +90,15 @@ export function TicketWebView({
   if (sectorGate) gridItems.push({ label: 'Sektör / Kapı', value: sectorGate });
   if (data.priceLabel) gridItems.push({ label: 'Ücret', value: data.priceLabel });
 
+  const isLight = surface === 'light';
+
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-2xl border border-primary/20 bg-[#131920] shadow-2xl',
+        'overflow-hidden rounded-2xl shadow-2xl',
+        isLight
+          ? 'border border-zinc-200 bg-white shadow-orange-100/50'
+          : 'border border-primary/20 bg-[#131920]',
         className
       )}
     >
@@ -92,7 +116,7 @@ export function TicketWebView({
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={brandAssetUrl(brandLogos.forDarkSurface)}
+            src={brandAssetUrl(isLight ? brandLogos.forLightSurface : brandLogos.forDarkSurface)}
             alt="BiletFeed"
             className="h-8 w-auto"
           />
@@ -111,7 +135,7 @@ export function TicketWebView({
         </div>
       )}
 
-      <div className="p-6">
+      <div className={cn('p-6', isLight && 'text-zinc-900')}>
         {isInvitation && (
           <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-primary">
             Sayın Davetli
@@ -122,12 +146,20 @@ export function TicketWebView({
           {ctaHref ? (
             <Link
               href={ctaHref}
-              className="flex-1 text-xl font-bold leading-tight text-white transition-colors hover:text-primary sm:text-2xl"
+              className={cn(
+                'flex-1 text-xl font-bold leading-tight transition-colors hover:text-primary sm:text-2xl',
+                isLight ? 'text-zinc-900' : 'text-white'
+              )}
             >
               {eventTitle}
             </Link>
           ) : (
-            <h1 className="flex-1 text-xl font-bold leading-tight text-white sm:text-2xl">
+            <h1
+              className={cn(
+                'flex-1 text-xl font-bold leading-tight sm:text-2xl',
+                isLight ? 'text-zinc-900' : 'text-white'
+              )}
+            >
               {eventTitle}
             </h1>
           )}
@@ -143,14 +175,20 @@ export function TicketWebView({
           </span>
         </div>
 
-        <p className="mt-2 text-sm text-white/60">
+        <p className={cn('mt-2 text-sm', isLight ? 'text-zinc-600' : 'text-white/60')}>
           {isInvitation ? (
             <>
-              <span className="font-semibold text-white">{holderName}</span> adına düzenlenmiştir.
+              <span className={cn('font-semibold', isLight ? 'text-zinc-900' : 'text-white')}>
+                {holderName}
+              </span>{' '}
+              adına düzenlenmiştir.
             </>
           ) : (
             <>
-              Sayın <span className="font-semibold text-white">{holderName}</span>
+              Sayın{' '}
+              <span className={cn('font-semibold', isLight ? 'text-zinc-900' : 'text-white')}>
+                {holderName}
+              </span>
             </>
           )}
         </p>
@@ -160,7 +198,12 @@ export function TicketWebView({
             className="mt-4 rounded-xl border-l-[3px] border-primary px-4 py-3"
             style={{ background: brandTheme.orangeSoft }}
           >
-            <p className="text-sm italic leading-relaxed text-white/70">
+            <p
+              className={cn(
+                'text-sm italic leading-relaxed',
+                isLight ? 'text-zinc-700' : 'text-white/70'
+              )}
+            >
               &ldquo;{personalMessage}&rdquo;
             </p>
           </div>
@@ -168,14 +211,24 @@ export function TicketWebView({
 
         <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {gridItems.map(({ label, value }) => (
-            <InfoCell key={label} label={label} value={value} />
+            <InfoCell key={label} label={label} value={value} surface={surface} />
           ))}
         </div>
 
         <div className="relative my-6">
-          <div className="absolute -left-6 top-1/2 size-5 -translate-y-1/2 rounded-full bg-[#0c1017]" />
+          <div
+            className={cn(
+              'absolute -left-6 top-1/2 size-5 -translate-y-1/2 rounded-full',
+              isLight ? 'bg-[#FFF4E8]' : 'bg-[#0c1017]'
+            )}
+          />
           <div className="border-t border-dashed border-primary/25" />
-          <div className="absolute -right-6 top-1/2 size-5 -translate-y-1/2 rounded-full bg-[#0c1017]" />
+          <div
+            className={cn(
+              'absolute -right-6 top-1/2 size-5 -translate-y-1/2 rounded-full',
+              isLight ? 'bg-[#FFF4E8]' : 'bg-[#0c1017]'
+            )}
+          />
         </div>
 
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
@@ -193,8 +246,20 @@ export function TicketWebView({
           )}
 
           <div className="flex-1 text-center sm:text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">{codeLabel}</p>
-            <p className="mt-1 font-mono text-lg font-extrabold tracking-widest text-white sm:text-xl">
+            <p
+              className={cn(
+                'text-[10px] font-bold uppercase tracking-wider',
+                isLight ? 'text-zinc-500' : 'text-white/40'
+              )}
+            >
+              {codeLabel}
+            </p>
+            <p
+              className={cn(
+                'mt-1 font-mono text-lg font-extrabold tracking-widest sm:text-xl',
+                isLight ? 'text-primary' : 'text-white'
+              )}
+            >
               {ticketCode}
             </p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -203,9 +268,14 @@ export function TicketWebView({
               alt=""
               width={220}
               height={44}
-              className="mx-auto mt-3 block max-w-full sm:mx-0"
+              className={cn('mx-auto mt-3 block max-w-full sm:mx-0', isLight && 'invert')}
             />
-            <p className="mt-3 text-xs leading-relaxed text-white/40">
+            <p
+              className={cn(
+                'mt-3 text-xs leading-relaxed',
+                isLight ? 'text-zinc-500' : 'text-white/40'
+              )}
+            >
               {isInvitation
                 ? 'Girişte bu QR kodu veya davetiye kodunu gösterin.'
                 : 'Girişte bu QR kodu veya bilet kodunu gösterin. Bilet yalnızca bir kez kullanılabilir.'}
@@ -213,11 +283,24 @@ export function TicketWebView({
           </div>
         </div>
 
-        <div className="mt-6 border-t border-white/[0.08] pt-4">
-          <p className="text-[10px] leading-relaxed text-white/40">{ticketTermsTr(kind)}</p>
-          <p className="mt-1 text-[9px] italic leading-relaxed text-white/25">{ticketTermsEn(kind)}</p>
-          <p className="mt-3 text-[9px] leading-relaxed text-white/25">{ticketCompanyLegalLine()}</p>
-          <p className="text-[9px] text-white/25">{ticketCompanyContactLine()}</p>
+        <div className={cn('mt-6 border-t pt-4', isLight ? 'border-zinc-200' : 'border-white/[0.08]')}>
+          <p className={cn('text-[10px] leading-relaxed', isLight ? 'text-zinc-500' : 'text-white/40')}>
+            {ticketTermsTr(kind)}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-[9px] italic leading-relaxed',
+              isLight ? 'text-zinc-400' : 'text-white/25'
+            )}
+          >
+            {ticketTermsEn(kind)}
+          </p>
+          <p className={cn('mt-3 text-[9px] leading-relaxed', isLight ? 'text-zinc-400' : 'text-white/25')}>
+            {ticketCompanyLegalLine()}
+          </p>
+          <p className={cn('text-[9px]', isLight ? 'text-zinc-400' : 'text-white/25')}>
+            {ticketCompanyContactLine()}
+          </p>
         </div>
 
         {ctaHref && (

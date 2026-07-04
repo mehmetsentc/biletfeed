@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { getOrderForUser } from '@/lib/services/orders';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 
 export const metadata = createPageMetadata({
   title: 'Ödeme Başarılı',
@@ -39,31 +40,54 @@ export default async function PaymentSuccessPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="container mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center">
-      <div className="flex size-20 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-        <CheckCircle2 className="size-10 text-emerald-600" />
-      </div>
-      <h1 className="mt-6 text-2xl font-bold">Ödeme Başarılı!</h1>
-      <p className="mt-2 text-muted-foreground">
-        {eventTitle ? (
-          <>
-            <strong>{eventTitle}</strong> için{' '}
-            {ticketCount ? `${ticketCount} adet ` : ''}biletiniz oluşturuldu.
-          </>
-        ) : (
-          'Biletiniz oluşturuldu. QR kodunuzu Biletlerim sayfasından görüntüleyebilirsiniz.'
-        )}
-      </p>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Link href="/biletlerim">
-          <Button className="gap-2">
-            <Ticket className="size-4" />
-            Biletlerimi Gör
-          </Button>
-        </Link>
-        <Link href="/etkinlikler">
-          <Button variant="outline">Daha Fazla Etkinlik</Button>
-        </Link>
+    <div className="relative min-h-[70vh] overflow-hidden bg-zinc-50">
+      <div
+        className="absolute inset-x-0 top-0 h-48 bg-gradient-to-br from-primary via-[#FF9F2E] to-[#F57C00]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute left-0 top-0 h-32 w-20 bg-[#0A0A0A] opacity-20"
+        style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}
+        aria-hidden
+      />
+
+      <div className="relative container mx-auto flex max-w-lg flex-col items-center px-4 py-16 text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={brandAssetUrl(brandLogos.forDarkSurface)}
+          alt="BiletFeed"
+          className="mb-8 h-8 w-auto"
+        />
+
+        <div className="w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 shadow-lg shadow-orange-100/40">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-orange-50">
+            <CheckCircle2 className="size-8 text-primary" />
+          </div>
+          <h1 className="mt-5 text-2xl font-extrabold text-zinc-900">Biletiniz hazır!</h1>
+          <p className="mt-3 text-muted-foreground">
+            {eventTitle ? (
+              <>
+                <strong className="text-foreground">{eventTitle}</strong> için{' '}
+                {ticketCount ? `${ticketCount} adet ` : ''}biletiniz oluşturuldu.
+              </>
+            ) : (
+              'QR kodunuzu Biletlerim sayfasından görüntüleyebilirsiniz.'
+            )}
+          </p>
+          <div className="mt-8 flex flex-col gap-3">
+            <Link href="/biletlerim">
+              <Button className="h-12 w-full gap-2 rounded-xl text-base font-bold">
+                <Ticket className="size-5" />
+                Biletlerimi Gör
+              </Button>
+            </Link>
+            <Link href="/etkinlikler">
+              <Button variant="outline" className="h-11 w-full rounded-xl">
+                Daha Fazla Etkinlik
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

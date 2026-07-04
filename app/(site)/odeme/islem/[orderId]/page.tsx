@@ -37,7 +37,7 @@ export default async function MockPaymentPage({ params, searchParams }: Props) {
   if (!order) notFound();
 
   if (order.status === 'paid') {
-    redirect(`/odeme/basarili?order=${orderId}`);
+    redirect(`/etkinlik/${order.event.slug}/bilet/basarili?order=${orderId}`);
   }
 
   if (order.status !== 'pending') {
@@ -51,6 +51,7 @@ export default async function MockPaymentPage({ params, searchParams }: Props) {
         sessionId={paymentSession || order.paymentSessionId || undefined}
         total={order.total}
         eventTitle={order.event.title}
+        eventSlug={order.event.slug}
       />
     </div>
   );

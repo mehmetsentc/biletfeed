@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ExternalLink, ShieldCheck, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { brandTheme } from '@/lib/config/brand-theme';
 import {
   getEventTicketUrl,
   isExternalListing
@@ -26,6 +27,9 @@ export function EventPurchaseCard({
   const theme = getEventPlatformTheme(event);
   const external = isExternalListing(event);
   const ticketUrl = getEventTicketUrl(event);
+  const accent = external ? theme.accent : brandTheme.orange;
+  const accentSoft = external ? theme.accentSoft : brandTheme.orangeSoft;
+  const ctaLabel = external ? theme.ctaLabel : 'Bilet Al';
 
   const priceText =
     event.isFree || event.price === 0
@@ -40,8 +44,8 @@ export function EventPurchaseCard({
       className={className}
       style={
         {
-          '--event-accent': theme.accent,
-          '--event-accent-soft': theme.accentSoft
+          '--event-accent': accent,
+          '--event-accent-soft': accentSoft
         } as React.CSSProperties
       }
     >
@@ -103,12 +107,12 @@ export function EventPurchaseCard({
               {external ? (
                 <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="size-5" />
-                  {theme.ctaLabel}
+                  {ctaLabel}
                 </a>
               ) : (
                 <Link href={ticketUrl}>
                   <Ticket className="size-5" />
-                  {theme.ctaLabel}
+                  {ctaLabel}
                 </Link>
               )}
             </Button>
