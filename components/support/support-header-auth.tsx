@@ -9,20 +9,30 @@ import { cn } from '@/lib/utils';
 
 function buildSupportLoginHref(returnUrl: string): string {
   return getSiteUrl(
-    `/giris?redirect=${encodeURIComponent(returnUrl)}`
+    `/api/auth/sync-session?redirect=${encodeURIComponent(returnUrl)}`
   );
 }
 
-export function SupportHeaderAuth({ className }: { className?: string }) {
+interface SupportHeaderAuthProps {
+  className?: string;
+  initialLoggedIn?: boolean;
+}
+
+export function SupportHeaderAuth({
+  className,
+  initialLoggedIn = false
+}: SupportHeaderAuthProps) {
   const { user, loading } = useAuth();
   const [sessionUser, setSessionUser] = useState<User | null>(null);
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(initialLoggedIn);
   const [loginHref, setLoginHref] = useState(() =>
     buildSupportLoginHref(getSiteUrl('/'))
   );
 
   useEffect(() => {
     setLoginHref(buildSupportLoginHref(window.location.href));
+
+    if (initialLoggedIn) return;
 
     let cancelled = false;
     void fetch('/api/auth/me', {
@@ -47,10 +57,11 @@ export function SupportHeaderAuth({ className }: { className?: string }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialLoggedIn]);
 
-  const effectiveUser = user ?? sessionUser;
-  const pending = loading || !sessionChecked;
+  const isLoggedIn =
+    initialLoggedIn || Boolean(user) || Boolean(sessionUser);
+  const pending = !initialLoggedIn && (loading || !sessionChecked);
 
   if (pending) {
     return (
@@ -64,7 +75,7 @@ export function SupportHeaderAuth({ className }: { className?: string }) {
     );
   }
 
-  if (effectiveUser) {
+  if (isLoggedIn) {
     return (
       <Link
         href={accountSiteHref('/profil/destek')}
