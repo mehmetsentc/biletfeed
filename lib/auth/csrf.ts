@@ -1,5 +1,10 @@
 import type { NextRequest } from 'next/server';
-import { ORGANIZER_PANEL_SUBDOMAINS, canonicalHost, resolveProductionRootHost } from '@/lib/config/domain';
+import {
+  ORGANIZER_PANEL_SUBDOMAINS,
+  SUPPORT_SUBDOMAIN,
+  canonicalHost,
+  resolveProductionRootHost
+} from '@/lib/config/domain';
 
 function collectExpectedOrigins(host: string): Set<string> {
   const expected = new Set<string>();
@@ -20,6 +25,12 @@ function collectExpectedOrigins(host: string): Set<string> {
       } else {
         expected.add(`${proto}://${sub}.localhost`);
       }
+    }
+
+    if (rootHost !== 'localhost') {
+      expected.add(`${proto}://${SUPPORT_SUBDOMAIN}.${rootHost}`);
+    } else {
+      expected.add(`${proto}://${SUPPORT_SUBDOMAIN}.localhost`);
     }
   }
 

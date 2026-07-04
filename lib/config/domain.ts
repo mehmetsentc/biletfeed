@@ -101,6 +101,11 @@ export function getPanelUrl(path = ''): string {
   return `${protocol}://${panelHost}${normalized}`;
 }
 
+/** `/destek` uygulama rotası mı — `/destek-talebi` dahil değil. */
+export function isDestekAppPath(pathname: string): boolean {
+  return pathname === '/destek' || pathname.startsWith('/destek/');
+}
+
 /** `/destek` önekini yalnızca `/destek` veya `/destek/...` için kaldırır — `/destek-talebi` korunur. */
 export function normalizeSupportPath(path: string): string {
   const withSlash = path.startsWith('/') ? path : `/${path}`;

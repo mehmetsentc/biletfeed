@@ -1,7 +1,31 @@
 /**
  * Validates post-login redirect targets to prevent open redirects.
- * Only same-origin relative paths are allowed.
+ * Relative paths and trusted BiletFeed host URLs are allowed.
  */
+export function isTrustedBiletFeedHost(hostname: string): boolean {
+  const root =
+    process.env.NEXT_PUBLIC_CANONICAL_HOST?.replace(/^www\./, '') ||
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN?.split(':')[0]?.replace(/^www\./, '') ||
+    'localhost';
+
+  const normalized = hostname.replace(/^www\./, '');
+  if (normalized === 'localhost' || normalized.endsWith('.localhost')) {
+    return (
+      normalized === 'localhost' ||
+      normalized.startsWith('panel.localhost') ||
+      normalized.startsWith('organizer.localhost') ||
+      normalized.startsWith('destek.localhost')
+    );
+  }
+
+  if (normalized === root) return true;
+  return (
+    normalized === `destek.${root}` ||
+    normalized === `panel.${root}` ||
+    normalized === `organizer.${root}`
+  );
+}
+
 export function sanitizeRedirectPath(
   raw: string | null | undefined,
   fallback = '/'
@@ -9,6 +33,22 @@ export function sanitizeRedirectPath(
   if (!raw) return fallback;
 
   const trimmed = raw.trim();
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const url = new URL(trimmed);
+      if (
+        (url.protocol === 'http:' || url.protocol === 'https:') &&
+        isTrustedBiletFeedHost(url.hostname)
+      ) {
+        return url.toString();
+      }
+      return fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
   if (!trimmed.startsWith('/') || trimmed.startsWith('//')) {
     return fallback;
   }

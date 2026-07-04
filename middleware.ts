@@ -8,6 +8,7 @@ import {
   isOrganizerPanelSubdomain,
   isProductionHost,
   isSupportSubdomain,
+  isDestekAppPath,
   protocol,
   normalizeSupportPath,
   resolveProductionRootHost,
@@ -92,7 +93,12 @@ function redirectSupportToSubdomain(
   pathname: string
 ): NextResponse | null {
   if (!isProductionHost()) return null;
-  if (!pathname.startsWith('/destek')) return null;
+  if (
+    !isDestekAppPath(pathname) &&
+    pathname !== '/destek-talebi'
+  ) {
+    return null;
+  }
 
   const subdomain = extractSubdomain(request);
   if (subdomain) return null;
@@ -142,7 +148,7 @@ function handleSupportSubdomain(
   }
 
   if (
-    pathname.startsWith('/destek') ||
+    isDestekAppPath(pathname) ||
     pathname.startsWith('/giris') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next')
