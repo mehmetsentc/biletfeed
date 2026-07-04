@@ -4,3 +4,6 @@ export const isEventJoyEnabled =
 
 /** Harici platform scraper (varsayılan: kapalı — SCRAPER_ENABLED=true ile açılır) */
 export const isScraperEnabled = process.env.SCRAPER_ENABLED === 'true';
+
+/** Apple / Google Wallet pass üretimi (varsayılan: kapalı — WALLET_ENABLED=true) */
+export const isWalletEnabled = process.env.WALLET_ENABLED === 'true';

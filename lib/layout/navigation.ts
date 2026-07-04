@@ -3,7 +3,6 @@ export const hideBottomNavPrefixes = [
   '/giris',
   '/kayit',
   '/odeme',
-  '/dashboard',
   '/organizator-panel',
   '/eventjoy',
   '/profil/ilgi-alanlari',

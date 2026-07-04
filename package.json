@@ -32,6 +32,7 @@
     "mobile:assets": "sh scripts/prepare-mobile-assets.sh",
     "scrape:run": "dotenv -e .env.local -- tsx scripts/scrape-events.ts",
     "cron:trigger": "dotenv -e .env.local -- tsx scripts/trigger-cron.ts",
+    "cron:seed-rules": "dotenv -e .env.local -- tsx scripts/trigger-cron.ts seed-event-rules",
     "event-stats": "dotenv -e .env.local -- tsx scripts/event-stats.ts",
     "preview:ticket": "tsx scripts/preview-ticket-design.ts && open public/ticket-preview/index.html",
     "events:remove-mocks": "dotenv -e .env.local -- tsx scripts/remove-mock-events.ts",

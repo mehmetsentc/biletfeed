@@ -72,7 +72,7 @@ Build command: `npm run build` (includes `prisma generate`)
 
 - [ ] Homepage loads with events from PostgreSQL
 - [ ] `npm run setup:check` passes (or only expected warnings)
-- [ ] Event rule catalog seeded (`npm run seed:event-rules`)
+- [ ] Event rule catalog seeded (`npm run seed:event-rules` veya Admin → Ayarlar)
 - [ ] Google + Email login works
 - [ ] Session cookie created after login
 - [ ] `/dashboard` blocked for ROLE_USER
@@ -97,3 +97,11 @@ UPDATE users SET role = 'ROLE_ADMIN' WHERE email = 'admin@yourdomain.com';
 ```
 
 User must re-login for Firebase custom claims to refresh.
+
+## 9. GitHub CI
+
+CI workflow yerelde hazır. PAT `workflow` scope yoksa push reddedilir — bkz. `docs/GITHUB-CI.md` ve `docs/github-actions-ci.yml`.
+
+## 10. Admin bakım
+
+Scrape, seed ve cron endpoint'leri: `docs/ADMIN-OPS.md`

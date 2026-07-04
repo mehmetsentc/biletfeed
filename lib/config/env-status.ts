@@ -216,6 +216,22 @@ export function getEnvStatusItems(): EnvCheckItem[] {
     items.push(row('Production domain', 'warn', `${siteUrl} — özel domain bekleniyor`));
   }
 
+  const hasSocial = [
+    process.env.NEXT_PUBLIC_INSTAGRAM_URL,
+    process.env.NEXT_PUBLIC_FACEBOOK_URL,
+    process.env.NEXT_PUBLIC_TWITTER_URL,
+    process.env.NEXT_PUBLIC_YOUTUBE_URL
+  ].some((url) => Boolean(url?.trim()));
+  items.push(
+    row(
+      'Sosyal medya URL',
+      hasSocial ? 'ok' : 'warn',
+      hasSocial
+        ? 'en az bir NEXT_PUBLIC_* sosyal URL ayarlı'
+        : 'footer için NEXT_PUBLIC_INSTAGRAM_URL vb. önerilir'
+    )
+  );
+
   return items;
 }
 

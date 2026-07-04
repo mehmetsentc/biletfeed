@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { AdminSettingsSnapshot } from '@/lib/config/admin-settings-snapshot';
 import type { EnvCheckStatus } from '@/lib/config/env-status';
 import { cn } from '@/lib/utils';
+import { AdminMaintenancePanel } from '@/components/admin/admin-maintenance-panel';
 import { Clock, Info } from 'lucide-react';
 
 const statusStyles: Record<EnvCheckStatus, string> = {
@@ -86,6 +87,8 @@ export function SystemSettingsPanel({ snapshot }: SystemSettingsPanelProps) {
           </CardContent>
         </Card>
       ))}
+
+      <AdminMaintenancePanel />
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex gap-2">
         <Info className="size-4 shrink-0 mt-0.5" />

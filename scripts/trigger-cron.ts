@@ -1,11 +1,15 @@
 #!/usr/bin/env tsx
 /**
- * Production cron tetikle: npm run cron:trigger
- * .env.local: CRON_SECRET + opsiyonel CRON_TARGET_URL
+ * Production cron tetikle:
+ *   npm run cron:trigger
+ *   npm run cron:trigger -- seed-event-rules
+ *   CRON_TARGET_URL=https://biletfeed.com/api/cron/accounting npm run cron:trigger
  */
+const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://biletfeed.com';
+const cronJob = process.argv[2]?.trim();
 const target =
   process.env.CRON_TARGET_URL ||
-  'https://biletfeed.com/api/cron/scrape-events';
+  (cronJob ? `${appUrl}/api/cron/${cronJob}` : `${appUrl}/api/cron/scrape-events`);
 const secret = process.env.CRON_SECRET;
 
 async function main() {

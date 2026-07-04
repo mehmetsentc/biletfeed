@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import Link from 'next/link';
 import { FeedPostCardView } from '@/components/feed/feed-post-card';
 import { Button } from '@/components/ui/button';
 import type { FeedPostCard } from '@/lib/feed/types';
@@ -34,8 +35,12 @@ export function FeedGridClient({
       <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
         <p className="text-lg font-semibold text-foreground">Feed henüz boş</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          BiletFeed AI Editor yakında konser ve festival haberlerini buraya taşıyacak.
+          Konser ve festival haberleri yakında burada olacak. Şimdilik etkinlikleri
+          keşfedin.
         </p>
+        <Button asChild className="mt-6">
+          <Link href="/etkinlikler">Etkinlikleri Keşfet</Link>
+        </Button>
       </div>
     );
   }

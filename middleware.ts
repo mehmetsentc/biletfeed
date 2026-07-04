@@ -16,8 +16,12 @@ import {
   siteHref,
 } from '@/lib/config/domain';
 import { isEventJoyEnabled } from '@/lib/config/features';
+import {
+  mapLegacyDashboardPath,
+  mapLegacyDashboardToDevPanelPath
+} from '@/lib/routing/legacy-dashboard';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/admin'];
+const PROTECTED_PREFIXES = ['/admin'];
 const SESSION_COOKIE_NAME = 'session';
 const PANEL_SESSION_COOKIE_NAME = 'panel_session';
 
@@ -95,18 +99,16 @@ function redirectLegacyDashboardToPanel(
 ): NextResponse | null {
   if (!pathname.startsWith('/dashboard')) return null;
 
-  const rest = pathname.replace(/^\/dashboard/, '') || '/baslangic';
-  const panelPath = rest === '/' ? '/baslangic' : rest;
+  const panelPath = mapLegacyDashboardPath(pathname);
 
   if (isProductionHost()) {
     return NextResponse.redirect(getPanelUrl(panelPath), 308);
   }
 
-  const devPath = panelPath.startsWith('/organizator-panel')
-    ? panelPath
-    : `/organizator-panel${panelPath}`;
-
-  return NextResponse.redirect(new URL(devPath, request.url), 308);
+  return NextResponse.redirect(
+    new URL(mapLegacyDashboardToDevPanelPath(pathname), request.url),
+    308
+  );
 }
 
 function redirectSupportToSubdomain(

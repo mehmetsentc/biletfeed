@@ -6,6 +6,7 @@ import { TicketActions } from '@/components/tickets/ticket-actions';
 import { TicketTransferForm } from '@/components/tickets/ticket-transfer-form';
 import { getTicketById } from '@/lib/services/tickets';
 import { formatEventDate, formatEventTime } from '@/lib/data/mock-events';
+import { isWalletEnabled } from '@/lib/config/features';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
@@ -71,6 +72,7 @@ export default async function TicketDetailPage({ params }: Props) {
           endDate={ticket.eventEndDate ?? ticket.eventDate}
           venue={ticket.venue}
           city={ticket.city}
+          walletEnabled={isWalletEnabled}
         />
 
         {ticket.status === 'VALID' && !ticket.isInvitation && (

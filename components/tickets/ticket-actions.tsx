@@ -26,6 +26,8 @@ interface TicketActionsProps {
   endDate: string;
   venue: string;
   city: string;
+  /** Apple / Google Wallet aktif mi (WALLET_ENABLED=true) */
+  walletEnabled?: boolean;
 }
 
 export function TicketActions({
@@ -36,13 +38,15 @@ export function TicketActions({
   startDate,
   endDate,
   venue,
-  city
+  city,
+  walletEnabled = false
 }: TicketActionsProps) {
   const [sharing, setSharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [walletMsg, setWalletMsg] = useState<string | null>(null);
 
   async function addToWallet(platform: 'apple' | 'google') {
+    if (!walletEnabled) return;
     setWalletMsg(null);
     try {
       const res = await fetch(`/api/tickets/${ticketId}/wallet`, {
@@ -51,9 +55,9 @@ export function TicketActions({
         credentials: 'include',
         body: JSON.stringify({ platform })
       });
-      const data = await res.json();
+      const data = (await res.json()) as { error?: string; message?: string };
       if (!res.ok) throw new Error(data.error);
-      setWalletMsg(data.message);
+      setWalletMsg(data.message ?? 'Wallet kaydı alındı.');
     } catch (e) {
       setWalletMsg(e instanceof Error ? e.message : 'Wallet hatası');
     }
@@ -118,20 +122,44 @@ export function TicketActions({
         <Button
           variant="outline"
           className="gap-2"
+          disabled={!walletEnabled}
+          title={
+            walletEnabled
+              ? undefined
+              : 'Apple Wallet entegrasyonu yakında — QR biletiniz geçerlidir'
+          }
           onClick={() => void addToWallet('apple')}
         >
           <Wallet className="size-4" />
           Apple Wallet
+          {!walletEnabled && (
+            <span className="text-[10px] font-normal text-muted-foreground">(yakında)</span>
+          )}
         </Button>
         <Button
           variant="outline"
           className="gap-2"
+          disabled={!walletEnabled}
+          title={
+            walletEnabled
+              ? undefined
+              : 'Google Wallet entegrasyonu yakında — QR biletiniz geçerlidir'
+          }
           onClick={() => void addToWallet('google')}
         >
           <Wallet className="size-4" />
           Google Wallet
+          {!walletEnabled && (
+            <span className="text-[10px] font-normal text-muted-foreground">(yakında)</span>
+          )}
         </Button>
       </div>
+      {!walletEnabled && (
+        <p className="text-xs text-muted-foreground">
+          Cüzdan desteği yakında. Biletinizi PDF indirerek veya QR kodu göstererek
+          kullanabilirsiniz.
+        </p>
+      )}
       {walletMsg && (
         <p className="text-xs text-muted-foreground">{walletMsg}</p>
       )}
