@@ -106,8 +106,13 @@ function buildFallbackUser(firebaseUser: FirebaseUser): User {
 }
 
 async function handleSignedInUser(
-  fbUser: FirebaseUser
+  fbUser: FirebaseUser,
+  opts?: { isSigningOut?: () => boolean }
 ): Promise<{ profile: User; sessionReady: boolean; sessionError?: string }> {
+  if (opts?.isSigningOut?.()) {
+    return { profile: buildFallbackUser(fbUser), sessionReady: false };
+  }
+
   const panelContext = isPanelAuthContext();
   const sessionEndpoint = panelContext
     ? '/api/auth/panel-session'
@@ -126,7 +131,13 @@ async function handleSignedInUser(
   }
 
   try {
+    if (opts?.isSigningOut?.()) {
+      return { profile: buildFallbackUser(fbUser), sessionReady: false };
+    }
     await establishSession(fbUser);
+    if (opts?.isSigningOut?.()) {
+      return { profile: buildFallbackUser(fbUser), sessionReady: false };
+    }
     const profile = await fetchUserProfile(fbUser, profileEndpoint);
     return { profile, sessionReady: true };
   } catch (err) {
@@ -159,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const isConfigured = isFirebaseConfigured();
   const authGenerationRef = useRef(0);
+  const signingOutRef = useRef(false);
 
   const isStaleAuth = useCallback(
     (generation: number, uid: string, currentUid: string | undefined) =>
@@ -217,10 +229,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       unsubscribe = onAuthStateChanged(readyAuth, (fbUser) => {
         void (async () => {
+          if (signingOutRef.current) {
+            if (!fbUser) {
+              authGenerationRef.current += 1;
+              setFirebaseUser(null);
+              setUser(null);
+              setSessionReady(false);
+              setSessionError(null);
+              setLoading(false);
+            }
+            return;
+          }
+
           const alignedUser = await alignFirebaseWithSessionCookie(
             readyAuth,
             fbUser
           );
+
+          if (signingOutRef.current) {
+            if (!readyAuth.currentUser) {
+              authGenerationRef.current += 1;
+              setFirebaseUser(null);
+              setUser(null);
+              setSessionReady(false);
+              setSessionError(null);
+              setLoading(false);
+            }
+            return;
+          }
 
           if (alignedUser && fbUser && alignedUser.uid !== fbUser.uid) {
             return;
@@ -231,6 +267,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const sessionUser = panelContext
             ? await fetchPanelSessionUser()
             : await fetchSessionUser();
+
+          if (signingOutRef.current) {
+            if (!readyAuth.currentUser) {
+              authGenerationRef.current += 1;
+              setFirebaseUser(null);
+              setUser(null);
+              setSessionReady(false);
+              setSessionError(null);
+              setLoading(false);
+            }
+            return;
+          }
 
           if (!activeUser && sessionUser) {
             const synced = await alignFirebaseWithSessionCookie(readyAuth, null);
@@ -253,17 +301,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSessionError(null);
             setLoading(false);
 
-            void handleSignedInUser(activeUser).then(
-              ({ profile, sessionReady: ready, sessionError: err }) => {
-                const currentUid = readyAuth.currentUser?.uid;
-                if (isStaleAuth(generation, uid, currentUid)) return;
-                if (profile.uid !== uid) return;
+            void handleSignedInUser(activeUser, {
+              isSigningOut: () => signingOutRef.current
+            }).then(({ profile, sessionReady: ready, sessionError: err }) => {
+              if (signingOutRef.current) return;
+              const currentUid = readyAuth.currentUser?.uid;
+              if (isStaleAuth(generation, uid, currentUid)) return;
+              if (profile.uid !== uid) return;
 
-                setUser(profile);
-                setSessionReady(ready);
-                setSessionError(err ?? null);
-              }
-            );
+              setUser(profile);
+              setSessionReady(ready);
+              setSessionError(err ?? null);
+            });
           } else {
             authGenerationRef.current += 1;
             setFirebaseUser(null);
@@ -317,6 +366,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const syncSession = useCallback(async (): Promise<boolean> => {
+    if (signingOutRef.current) return false;
+
     const auth = await ensureAuthReady();
     const fbUser = auth.currentUser;
     if (!fbUser) return false;
@@ -327,7 +378,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionReady(false);
     setSessionError(null);
     const { profile, sessionReady: ready, sessionError: err } =
-      await handleSignedInUser(fbUser);
+      await handleSignedInUser(fbUser, {
+        isSigningOut: () => signingOutRef.current
+      });
 
     if (isStaleAuth(generation, uid, auth.currentUser?.uid)) return false;
     if (profile.uid !== uid) return false;
@@ -339,6 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isStaleAuth]);
 
   const signOut = useCallback(async () => {
+    signingOutRef.current = true;
     authGenerationRef.current += 1;
     setUser(null);
     setFirebaseUser(null);
@@ -352,15 +406,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'DELETE',
         credentials: 'same-origin'
       });
+
+      const auth = await ensureAuthReady();
+      await firebaseSignOut(auth);
     } catch {
       // ignore
+    } finally {
+      setTimeout(() => {
+        signingOutRef.current = false;
+      }, 500);
     }
-
-    const auth = await ensureAuthReady();
-    await firebaseSignOut(auth);
   }, []);
 
   const signOutPanel = useCallback(async () => {
+    signingOutRef.current = true;
     authGenerationRef.current += 1;
     setUser(null);
     setFirebaseUser(null);
@@ -373,12 +432,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'DELETE',
         credentials: 'same-origin'
       });
+
+      const auth = await ensureAuthReady();
+      await firebaseSignOut(auth);
     } catch {
       // ignore
+    } finally {
+      setTimeout(() => {
+        signingOutRef.current = false;
+      }, 500);
     }
 
-    const auth = await ensureAuthReady();
-    await firebaseSignOut(auth);
     window.location.href = panelLoginHref();
   }, []);
 

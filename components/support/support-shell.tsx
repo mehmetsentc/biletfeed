@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Logo } from '@/components/brand/logo';
+import { SupportHeaderAuth } from '@/components/support/support-header-auth';
 import { getSiteUrl, supportHref } from '@/lib/config/domain';
 import { siteConfig } from '@/lib/config/site';
 import { cn } from '@/lib/utils';
@@ -28,19 +29,9 @@ export function SupportHeader() {
               {item.label}
             </Link>
           ))}
-          <Link
-            href={getSiteUrl('/giris')}
-            className="ml-2 rounded-lg bg-[#f5a623] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          >
-            Giriş Yap
-          </Link>
+          <SupportHeaderAuth className="ml-2" />
         </nav>
-        <Link
-          href={getSiteUrl('/giris')}
-          className="rounded-lg bg-[#f5a623] px-3 py-2 text-sm font-semibold text-white md:hidden"
-        >
-          Giriş
-        </Link>
+        <SupportHeaderAuth className="md:hidden px-3 py-2" />
       </div>
     </header>
   );

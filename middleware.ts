@@ -9,6 +9,7 @@ import {
   isProductionHost,
   isSupportSubdomain,
   protocol,
+  normalizeSupportPath,
   resolveProductionRootHost,
   rootDomain,
   siteHref,
@@ -96,7 +97,7 @@ function redirectSupportToSubdomain(
   const subdomain = extractSubdomain(request);
   if (subdomain) return null;
 
-  const cleanPath = pathname.replace(/^\/destek/, '') || '/';
+  const cleanPath = normalizeSupportPath(pathname);
   return NextResponse.redirect(getSupportUrl(cleanPath), 308);
 }
 

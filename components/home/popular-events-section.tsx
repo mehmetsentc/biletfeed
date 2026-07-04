@@ -39,9 +39,17 @@ function isThisWeekend(date: Date, now: Date) {
   return isSameDay(eventDay, saturday) || isSameDay(eventDay, sunday);
 }
 
+function sortByStartDate(events: MockEvent[]): MockEvent[] {
+  return [...events].sort(
+    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
+}
+
 function filterEvents(events: MockEvent[], filter: FilterId): MockEvent[] {
   const now = new Date();
-  const upcoming = events.filter((event) => isUpcomingEvent(event, now));
+  const upcoming = sortByStartDate(
+    events.filter((event) => isUpcomingEvent(event, now))
+  );
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
 

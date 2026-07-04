@@ -101,6 +101,16 @@ export function getPanelUrl(path = ''): string {
   return `${protocol}://${panelHost}${normalized}`;
 }
 
+/** `/destek` önekini yalnızca `/destek` veya `/destek/...` için kaldırır — `/destek-talebi` korunur. */
+export function normalizeSupportPath(path: string): string {
+  const withSlash = path.startsWith('/') ? path : `/${path}`;
+  if (withSlash === '/destek') return '/';
+  if (withSlash.startsWith('/destek/')) {
+    return withSlash.replace(/^\/destek/, '') || '/';
+  }
+  return withSlash;
+}
+
 /** Üretim destek merkezi URL'si — https://destek.biletfeed.com/... */
 export function getSupportUrl(path = ''): string {
   const rootHost = resolveProductionRootHost();
@@ -118,22 +128,14 @@ export function getSupportUrl(path = ''): string {
     return `${protocol}://${supportHost}/`;
   }
 
-  const normalized = path.startsWith('/destek')
-    ? path.replace(/^\/destek/, '') || '/'
-    : path.startsWith('/')
-      ? path
-      : `/${path}`;
+  const normalized = normalizeSupportPath(path);
 
   return `${protocol}://${supportHost}${normalized}`;
 }
 
 /** Destek merkezi linki — production'da destek alt alanı, dev'de /destek yolu */
 export function supportHref(path = ''): string {
-  const normalized = path.startsWith('/destek')
-    ? path.replace(/^\/destek/, '') || '/'
-    : path.startsWith('/')
-      ? path
-      : `/${path}`;
+  const normalized = normalizeSupportPath(path);
   const devPath =
     normalized === '/' ? '/destek' : `/destek${normalized}`;
   if (!isProductionHost()) return devPath;

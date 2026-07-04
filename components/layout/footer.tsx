@@ -4,7 +4,7 @@ import { CookiePreferencesButton } from '@/components/consent/cookie-preferences
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
 import { AppStoreBadges } from '@/components/footer/app-store-badges';
 import { siteConfig } from '@/lib/config/site';
-import { panelHref, supportHref } from '@/lib/config/domain';
+import { accountSiteHref, panelHref, supportHref } from '@/lib/config/domain';
 import { getCategories } from '@/lib/services/events';
 
 const companyLinks = [
@@ -22,7 +22,8 @@ const companyLinks = [
 ];
 
 const helpLinks = [
-  { href: supportHref('/'), label: 'Hesap Desteği' },
+  { href: accountSiteHref('/profil/destek'), label: 'Hesap Desteği' },
+  { href: supportHref('/'), label: 'Yardım Merkezi' },
   { href: supportHref('/destek-talebi'), label: 'Destek Talebi' },
   { href: panelHref('/organizator-panel/etkinlik/yeni'), label: 'Etkinlik Listeleme' },
   { href: '/biletlerim', label: 'Bilet Satın Alma' },

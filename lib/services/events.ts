@@ -360,11 +360,19 @@ export async function getEventsByCityAndNearby(
       if (seen.has(event.id)) continue;
       seen.add(event.id);
       combined.push(event);
-      if (combined.length >= minResults) return combined;
+      if (combined.length >= minResults) {
+        return sortByStartDateAsc(combined);
+      }
     }
   }
 
-  return combined;
+  return sortByStartDateAsc(combined);
+}
+
+function sortByStartDateAsc(events: MockEvent[]): MockEvent[] {
+  return [...events].sort(
+    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
 }
 
 export async function getFavoriteEvents(userId: string): Promise<MockEvent[]> {
