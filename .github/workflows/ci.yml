@@ -1,16 +1,13 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/biletfeed_ci
       NEXT_PUBLIC_APP_URL: https://biletfeed.com
       NEXT_PUBLIC_CANONICAL_HOST: biletfeed.com
       NEXT_PUBLIC_ROOT_DOMAIN: biletfeed.com
@@ -22,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
       - name: Install dependencies
         run: npm ci
