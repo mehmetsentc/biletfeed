@@ -1,4 +1,4 @@
-import { getEventRulesDisplay } from '@/lib/services/event-rules';
+import { getEventRulesDisplay } from '@/lib/services/event-rules-display';
 import { EventRulesDisplay } from '@/components/events/event-rules-display';
 import { resolveLocaleFromCookie } from '@/lib/event-rules/i18n';
 import { cookies } from 'next/headers';

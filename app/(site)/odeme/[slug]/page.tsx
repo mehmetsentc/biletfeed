@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { CheckoutForm } from './checkout-form';
 import { getEventBySlug } from '@/lib/services/events';
 import { getCheckoutTicketTypes } from '@/lib/services/orders';
-import { getEventRulesDisplay } from '@/lib/services/event-rules';
+import { getEventRulesDisplay } from '@/lib/services/event-rules-display';
 import { isExternalListing } from '@/lib/events/ticket-url';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { resolveLocaleFromCookie } from '@/lib/event-rules/i18n';

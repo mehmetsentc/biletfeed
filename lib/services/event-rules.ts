@@ -40,9 +40,14 @@ import {
   sanitizePlainText
 } from '@/lib/security/sanitize-html';
 
-import { getEventRuleSet, isMissingRulesTableError } from '@/lib/services/event-rules-query';
+import {
+  getEventRuleSet,
+  isMissingRulesTableError
+} from '@/lib/services/event-rules-query';
+import { loadEventRulesCatalog } from '@/lib/services/event-rules-catalog';
 
-export { getEventRuleSet };
+export { getEventRuleSet } from '@/lib/services/event-rules-query';
+export { getEventRulesDisplay } from '@/lib/services/event-rules-display';
 
 function normalizeAnnouncementInput(
   announcement: EventAnnouncementInput,
@@ -77,75 +82,8 @@ function parseSelectedRules(value: unknown): SelectedRuleEntry[] {
     }));
 }
 
-async function loadFullCatalog(): Promise<{
-  categories: RuleCatalogCategory[];
-  rules: RuleCatalogRule[];
-}> {
-  const cached = getCachedCatalog();
-  if (cached) {
-    return { categories: cached.categories, rules: cached.rules };
-  }
-
-  await ensureDbConnection();
-
-  try {
-    const [categoriesRaw, rulesRaw] = await Promise.all([
-      prisma.eventRuleCategory.findMany({
-        where: { status: 'active' },
-        orderBy: { sortOrder: 'asc' }
-      }),
-      prisma.eventRule.findMany({
-        where: { status: 'active' },
-        include: { category: { select: { slug: true } } },
-        orderBy: [{ categoryId: 'asc' }, { sortOrder: 'asc' }]
-      })
-    ]);
-
-    const ruleCounts = new Map<string, number>();
-    for (const rule of rulesRaw) {
-      ruleCounts.set(rule.categoryId, (ruleCounts.get(rule.categoryId) ?? 0) + 1);
-    }
-
-    const categories: RuleCatalogCategory[] = categoriesRaw.map((c) => ({
-      id: c.id,
-      slug: c.slug,
-      icon: c.icon,
-      titleTr: c.titleTr,
-      titleEn: c.titleEn,
-      descriptionTr: c.descriptionTr,
-      descriptionEn: c.descriptionEn,
-      sortOrder: c.sortOrder,
-      ruleCount: ruleCounts.get(c.id) ?? 0
-    }));
-
-    const rules: RuleCatalogRule[] = rulesRaw.map((r) => ({
-      id: r.id,
-      slug: r.slug,
-      categoryId: r.categoryId,
-      categorySlug: r.category.slug,
-      subcategory: r.subcategory,
-      titleTr: r.titleTr,
-      titleEn: r.titleEn,
-      descriptionTr: r.descriptionTr,
-      descriptionEn: r.descriptionEn,
-      icon: r.icon,
-      sortOrder: r.sortOrder,
-      eventTypes: r.eventTypes,
-      isDefault: r.isDefault,
-      isRecommended: r.isRecommended,
-      requiresParameter: r.requiresParameter,
-      parameterType: r.parameterType,
-      parameterOptions: r.parameterOptions
-    }));
-
-    setCachedCatalog(categories, rules);
-    return { categories, rules };
-  } catch (err) {
-    if (isMissingRulesTableError(err)) {
-      return { categories: [], rules: [] };
-    }
-    throw err;
-  }
+async function loadFullCatalog() {
+  return loadEventRulesCatalog();
 }
 
 export async function listRuleCategoriesWithCounts(
@@ -409,42 +347,6 @@ export async function saveEventAnnouncements(
     appliedTemplateId: existing.ruleSet?.appliedTemplateId,
     announcements
   });
-}
-
-export async function getEventRulesDisplay(
-  eventId: string,
-  locale: EventRulesLocale = 'tr'
-): Promise<EventRulesDisplayData | null> {
-  try {
-    await ensureDbConnection();
-
-    const { ruleSet, announcements } = await getEventRuleSet(eventId);
-    if (!ruleSet && announcements.length === 0) return null;
-
-    const { categories, rules } = await loadFullCatalog();
-    const rulesById = buildRulesByIdMap(rules);
-    const categoriesById = new Map(
-      categories.map((c) => [
-        c.id,
-        { slug: c.slug, icon: c.icon, titleTr: c.titleTr, titleEn: c.titleEn }
-      ])
-    );
-
-    return buildEventRulesDisplay(
-      ruleSet?.selectedRules ?? [],
-      ruleSet?.customRules ?? [],
-      announcements,
-      rulesById,
-      categoriesById,
-      locale
-    );
-  } catch (err) {
-    if (isMissingRulesTableError(err)) return null;
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('[getEventRulesDisplay]', eventId, err);
-    }
-    return null;
-  }
 }
 
 export async function getDefaultRulesForEvent(context: {
