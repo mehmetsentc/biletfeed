@@ -155,6 +155,55 @@ row(
       : `${paymentProvider} seçili ama API anahtarları eksik`
 );
 
+const resendKey = process.env.RESEND_API_KEY?.trim();
+row(
+  'E-posta (Resend)',
+  resendKey ? 'ok' : process.env.NODE_ENV === 'production' ? 'warn' : 'warn',
+  resendKey
+    ? 'RESEND_API_KEY ayarlı'
+    : 'eksik — e-postalar gönderilmez (log-only)'
+);
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+row(
+  'Redis (Upstash)',
+  redisUrl && redisToken ? 'ok' : 'warn',
+  redisUrl && redisToken
+    ? 'dağıtık rate limit aktif'
+    : 'eksik — bellek içi rate limit (serverless uyarısı)'
+);
+
+const superAdmins = process.env.SUPER_ADMIN_EMAILS?.trim();
+row(
+  'Super Admin',
+  superAdmins ? 'ok' : process.env.NODE_ENV === 'production' ? 'warn' : 'warn',
+  superAdmins ? 'SUPER_ADMIN_EMAILS ayarlı' : 'SUPER_ADMIN_EMAILS önerilir'
+);
+
+const companyIban = process.env.COMPANY_IBAN?.trim();
+row(
+  'Muhasebe IBAN',
+  companyIban ? 'ok' : 'warn',
+  companyIban ? 'COMPANY_IBAN ayarlı' : 'fatura/hakediş için COMPANY_IBAN önerilir'
+);
+
+const canonicalHost =
+  process.env.NEXT_PUBLIC_CANONICAL_HOST ||
+  process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+  '';
+row(
+  'Subdomain env',
+  canonicalHost.includes('biletfeed.com') || canonicalHost.includes('localhost')
+    ? 'ok'
+    : process.env.NODE_ENV === 'production'
+      ? 'warn'
+      : 'warn',
+  canonicalHost
+    ? `NEXT_PUBLIC_CANONICAL_HOST/ROOT_DOMAIN → ${canonicalHost}`
+    : 'NEXT_PUBLIC_CANONICAL_HOST veya ROOT_DOMAIN eksik — çerez paylaşımı etkilenebilir'
+);
+
 // Vercel / domain hints
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
 if (siteUrl.includes('biletfeed.com')) {

@@ -88,6 +88,27 @@ function redirectOrganizerPanelToSubdomain(
   return NextResponse.redirect(getPanelUrl(cleanPath), 308);
 }
 
+/** Eski /dashboard/* rotalarını organizatör paneline yönlendir */
+function redirectLegacyDashboardToPanel(
+  request: NextRequest,
+  pathname: string
+): NextResponse | null {
+  if (!pathname.startsWith('/dashboard')) return null;
+
+  const rest = pathname.replace(/^\/dashboard/, '') || '/baslangic';
+  const panelPath = rest === '/' ? '/baslangic' : rest;
+
+  if (isProductionHost()) {
+    return NextResponse.redirect(getPanelUrl(panelPath), 308);
+  }
+
+  const devPath = panelPath.startsWith('/organizator-panel')
+    ? panelPath
+    : `/organizator-panel${panelPath}`;
+
+  return NextResponse.redirect(new URL(devPath, request.url), 308);
+}
+
 function redirectSupportToSubdomain(
   request: NextRequest,
   pathname: string
@@ -232,6 +253,9 @@ export async function middleware(request: NextRequest) {
 
   const panelRedirect = redirectOrganizerPanelToSubdomain(request, pathname);
   if (panelRedirect) return panelRedirect;
+
+  const dashboardRedirect = redirectLegacyDashboardToPanel(request, pathname);
+  if (dashboardRedirect) return dashboardRedirect;
 
   const supportRedirect = redirectSupportToSubdomain(request, pathname);
   if (supportRedirect) return supportRedirect;
