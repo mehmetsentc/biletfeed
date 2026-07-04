@@ -262,7 +262,10 @@ export async function getEventBySlugForViewer(
   const canPreviewUnpublished =
     isOwner || isAdminViewer;
 
-  if (event.status === 'published' && event.listingType === 'internal') {
+  if (
+    (event.status === 'published' || event.status === 'completed') &&
+    event.listingType === 'internal'
+  ) {
     return {
       event: toMockEvent(event),
       isPreview: false,

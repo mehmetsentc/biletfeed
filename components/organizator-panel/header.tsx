@@ -6,22 +6,30 @@ import { Logo } from '@/components/brand/logo';
 import { PanelProfileMenu } from '@/components/organizator-panel/panel-profile-menu';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
+import { resolveProfileDisplayName } from '@/lib/account/display-name';
 import { siteHref } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
 export function OrganizatorHeader({
   displayName: serverDisplayName,
+  userEmail,
+  organizationName,
   onMenuClick,
   mobileOpen
 }: {
   displayName: string;
+  userEmail?: string;
+  organizationName?: string;
   onMenuClick?: () => void;
   /** Mobil menü açıkken header logosunu gizle (sidebar logosu görünsün) */
   mobileOpen?: boolean;
 }) {
   const { user } = useAuth();
-  const displayName =
-    user?.displayName || user?.email || serverDisplayName || 'Organizatör';
+  const personalName = resolveProfileDisplayName({
+    displayName: user?.displayName || serverDisplayName,
+    email: user?.email || userEmail
+  });
+  const displayName = organizationName?.trim() || personalName;
 
   return (
     <header className="bg-organizer-header flex h-14 shrink-0 items-center justify-between border-b border-[var(--ticket-border)] px-4 text-white lg:px-6">

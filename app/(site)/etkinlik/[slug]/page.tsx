@@ -12,6 +12,7 @@ import { EventDetailHeader } from '@/components/events/event-detail-header';
 import { EventPreviewBanner } from '@/components/events/event-preview-banner';
 import { Badge } from '@/components/ui/badge';
 import { filterPublicEventTags } from '@/lib/events/public-tags';
+import { isUpcomingEvent } from '@/lib/events/upcoming';
 import { isExternalListing } from '@/lib/events/ticket-url';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { createEventMetadata } from '@/lib/seo/metadata';
@@ -57,7 +58,8 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   if (!viewerResult) notFound();
 
   const { event, isPreview, previewKind } = viewerResult;
-  const purchasable = !isPreview && event.status === 'published';
+  const purchasable =
+    !isPreview && event.status === 'published' && isUpcomingEvent(event);
   const organizer = await getOrganizerBySlug(event.organizerSlug);
   const [followedOrganizerIds, favoriteEventIds] = session
     ? await Promise.all([

@@ -4,6 +4,7 @@ import {
   matchesSalesCategory,
   type SalesCategoryFilter
 } from '@/lib/services/ticket-type-category';
+import type { OrganizerTicketsFilter } from '@/lib/services/organizer-ticket-filters';
 
 export async function getOrganizerStats(organizerId: string) {
   await ensureDbConnection();
@@ -87,27 +88,48 @@ export async function getOrganizerOrders(
 
 export async function getOrganizerTickets(
   organizerId: string,
-  category: SalesCategoryFilter = 'all'
+  filter: OrganizerTicketsFilter | SalesCategoryFilter = { kind: 'all' }
 ) {
   await ensureDbConnection();
+
+  const where: {
+    event: { organizerId: string };
+    deletedAt: null;
+    ticketTypeId?: { in: string[] };
+    order?: { paymentProvider: 'invitation' | { not: 'invitation' } };
+  } = {
+    event: { organizerId },
+    deletedAt: null
+  };
+
+  if (typeof filter === 'string') {
+    if (filter !== 'all') {
+      where.order = { paymentProvider: { not: 'invitation' } };
+    }
+  } else if (filter.kind === 'invitation') {
+    where.order = { paymentProvider: 'invitation' };
+  } else if (filter.kind === 'ticketTypes') {
+    where.ticketTypeId = { in: filter.ticketTypeIds };
+  }
+
   const tickets = await prisma.purchasedTicket.findMany({
-    where: {
-      event: { organizerId },
-      deletedAt: null,
-      order: { paymentProvider: { not: 'invitation' } }
-    },
+    where,
     include: {
       event: { select: { title: true } },
       ticketType: { select: { name: true, type: true } },
-      user: { select: { displayName: true } }
+      user: { select: { displayName: true } },
+      order: { select: { paymentProvider: true } }
     },
     orderBy: { createdAt: 'desc' },
     take: 200
   });
 
-  if (category === 'all') return tickets;
+  if (typeof filter === 'string') {
+    if (filter === 'all') return tickets;
+    return tickets.filter((t) =>
+      matchesSalesCategory(t.ticketType.type, t.ticketType.name, filter)
+    );
+  }
 
-  return tickets.filter((t) =>
-    matchesSalesCategory(t.ticketType.type, t.ticketType.name, category)
-  );
+  return tickets;
 }

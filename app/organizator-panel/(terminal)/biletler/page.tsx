@@ -2,53 +2,60 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
-import {
-  getOrganizerTickets,
-  getOrganizerStats
-} from '@/lib/services/organizer-dashboard';
+import { getOrganizerStats } from '@/lib/services/organizer-dashboard';
 import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
-import type { SalesCategoryFilter } from '@/lib/services/ticket-type-category';
+import {
+  getOrganizerTicketTypeFilters,
+  resolveOrganizerTicketsFilter
+} from '@/lib/services/organizer-ticket-filters';
+import { getOrganizerTickets } from '@/lib/services/organizer-dashboard';
 import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';
 import { OrganizerTicketActions } from '@/components/organizator-panel/organizer-ticket-actions';
+import { OrganizerTicketTypeFilters } from '@/components/organizator-panel/organizer-ticket-type-filters';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 interface PageProps {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ type?: string; category?: string }>;
 }
 
-function parseCategory(raw?: string): SalesCategoryFilter {
-  if (raw === 'ticket' || raw === 'loca') return raw;
-  return 'all';
+function ticketTypeLabel(name: string): string {
+  const sep = ' — ';
+  const idx = name.indexOf(sep);
+  return idx >= 0 ? name.slice(0, idx).trim() : name.trim();
 }
-
-const CATEGORY_LABELS: Record<SalesCategoryFilter, string> = {
-  all: 'Tüm Biletler',
-  ticket: 'Satılan Biletler',
-  loca: 'Satılan Localar'
-};
 
 export default async function OrganizatorTicketsPage({ searchParams }: PageProps) {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
+  const organizer = await getOrganizerForSession(session.uid, session.email);
   if (!organizer) redirect('/organizator-panel/kurulum');
 
-  const { category: categoryParam } = await searchParams;
-  const category = parseCategory(categoryParam);
+  const params = await searchParams;
+  const filterOptions = await getOrganizerTicketTypeFilters(organizer.id);
+  const rawKey = params.type ?? params.category;
+  const { filter, active } = resolveOrganizerTicketsFilter(rawKey, filterOptions);
 
   const [tickets, stats, checkInStats] = await Promise.all([
-    getOrganizerTickets(organizer.id, category),
+    getOrganizerTickets(organizer.id, filter),
     getOrganizerStats(organizer.id),
     getOrganizerCheckInStats(organizer.id)
   ]);
+
+  const pageTitle =
+    active.kind === 'all'
+      ? 'Tüm Biletler'
+      : active.kind === 'invitation'
+        ? 'Davetiyeler'
+        : active.label;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{CATEGORY_LABELS[category]}</h1>
+          <h1 className="text-2xl font-bold text-foreground">{pageTitle}</h1>
           <p className="text-sm text-muted-foreground">
             {tickets.length} kayıt · {stats.scannedTickets} giriş yapıldı
+            {active.kind !== 'all' ? ` · ${active.label} kategorisi` : ''}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -61,17 +68,7 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button asChild variant={category === 'all' ? 'default' : 'outline'} size="sm">
-          <Link href="/organizator-panel/biletler">Tümü</Link>
-        </Button>
-        <Button asChild variant={category === 'ticket' ? 'default' : 'outline'} size="sm">
-          <Link href="/organizator-panel/biletler?category=ticket">Bilet</Link>
-        </Button>
-        <Button asChild variant={category === 'loca' ? 'default' : 'outline'} size="sm">
-          <Link href="/organizator-panel/biletler?category=loca">Loca</Link>
-        </Button>
-      </div>
+      <OrganizerTicketTypeFilters options={filterOptions} activeKey={active.key} />
 
       <CheckInStatsPanel stats={checkInStats} />
 
@@ -81,7 +78,7 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
             <tr>
               <th className="p-3 font-medium">Kod</th>
               <th className="p-3 font-medium">Etkinlik</th>
-              <th className="p-3 font-medium">Tür</th>
+              <th className="p-3 font-medium">Kategori</th>
               <th className="p-3 font-medium">Sahip</th>
               <th className="p-3 font-medium">Durum</th>
               <th className="p-3 font-medium text-right">İşlemler</th>
@@ -92,7 +89,16 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
               <tr key={ticket.id} className="border-b last:border-0">
                 <td className="p-3 font-mono text-xs">{ticket.ticketCode}</td>
                 <td className="p-3">{ticket.event.title}</td>
-                <td className="p-3">{ticket.ticketType.name}</td>
+                <td className="p-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span>{ticketTypeLabel(ticket.ticketType.name)}</span>
+                    {ticket.order.paymentProvider === 'invitation' && (
+                      <Badge variant="outline" className="text-[10px]">
+                        Davetiye
+                      </Badge>
+                    )}
+                  </div>
+                </td>
                 <td className="p-3">{ticket.user.displayName}</td>
                 <td className="p-3">
                   <Badge variant={ticket.status === 'USED' ? 'success' : 'secondary'}>
@@ -111,7 +117,9 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
             {tickets.length === 0 && (
               <tr>
                 <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                  Bu kategoride bilet bulunamadı.
+                  {filterOptions.length <= 1
+                    ? 'Henüz bilet veya davetiye kaydı yok.'
+                    : `${active.label} kategorisinde kayıt bulunamadı.`}
                 </td>
               </tr>
             )}

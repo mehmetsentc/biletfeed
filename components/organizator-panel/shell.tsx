@@ -10,11 +10,13 @@ import { cn } from '@/lib/utils';
 export function OrganizatorShell({
   children,
   organizationName,
-  displayName
+  displayName,
+  userEmail
 }: {
   children: React.ReactNode;
   organizationName: string;
   displayName: string;
+  userEmail?: string;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -64,6 +66,8 @@ export function OrganizatorShell({
         <div className="flex min-w-0 flex-1 flex-col">
           <OrganizatorHeader
             displayName={displayName}
+            userEmail={userEmail}
+            organizationName={organizationName}
             mobileOpen={mobileOpen}
             onMenuClick={() => setMobileOpen((v) => !v)}
           />

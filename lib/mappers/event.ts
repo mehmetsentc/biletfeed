@@ -1,5 +1,14 @@
 import type { MockEvent } from '@/lib/data/mock-events';
+import { resolveCategoryImage } from '@/lib/data/category-images';
 import { getExternalPlatformLabel } from '@/lib/events/ticket-url';
+
+function resolveCoverImage(coverImage: string, categorySlug: string): string {
+  const trimmed = coverImage?.trim() ?? '';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  return resolveCategoryImage(categorySlug);
+}
 
 function parseFavoriteCount(stats: unknown): number {
   if (!stats || typeof stats !== 'object' || !('favorites' in stats)) return 0;
@@ -64,7 +73,7 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     title: event.title,
     description: event.description,
     shortDescription: event.shortDescription || event.description.slice(0, 120),
-    coverImage: event.coverImage,
+    coverImage: resolveCoverImage(event.coverImage, event.category.slug),
     gallery: event.gallery,
     category: event.category.name,
     categorySlug: event.category.slug,

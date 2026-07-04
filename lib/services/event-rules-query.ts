@@ -20,7 +20,7 @@ function parseSelectedRules(value: unknown): SelectedRuleEntry[] {
     }));
 }
 
-function isMissingRulesTableError(err: unknown): boolean {
+export function isMissingRulesTableError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const code = 'code' in err ? String((err as { code?: unknown }).code) : '';
   if (code === 'P2021') return true;

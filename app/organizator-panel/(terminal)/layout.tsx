@@ -30,6 +30,7 @@ export default async function OrganizatorTerminalLayout({
     <OrganizatorShell
       organizationName={organizer.name}
       displayName={user?.displayName || session.email || 'Organizatör'}
+      userEmail={user?.email || session.email}
     >
       {children}
     </OrganizatorShell>
