@@ -19,6 +19,10 @@ import { useCity } from '@/components/providers/city-provider';
 import { SUPPORTED_CITIES, getCityName } from '@/lib/location/cities';
 import type { MockEvent } from '@/lib/data/mock-events';
 import { filterPublicEventTags } from '@/lib/events/public-tags';
+import {
+  sortEvents,
+  type EventSortOption
+} from '@/lib/events/sort-events';
 import { isUpcomingEvent } from '@/lib/events/upcoming';
 
 type CategoryItem = {
@@ -36,9 +40,7 @@ interface EventsPageClientProps {
   fixedCitySlug?: string;
 }
 
-type SortOption = 'relevance' | 'date-asc' | 'date-desc' | 'price-asc' | 'price-desc';
-
-const sortLabels: Record<SortOption, string> = {
+const sortLabels: Record<EventSortOption, string> = {
   relevance: 'İlgililik',
   'date-asc': 'Tarih (yakın)',
   'date-desc': 'Tarih (uzak)',
@@ -51,18 +53,18 @@ function SortSelect({
   onChange,
   className
 }: {
-  value: SortOption;
-  onChange: (value: SortOption) => void;
+  value: EventSortOption;
+  onChange: (value: EventSortOption) => void;
   className?: string;
 }) {
   return (
     <select
       value={value}
-      onChange={(e) => onChange(e.target.value as SortOption)}
+      onChange={(e) => onChange(e.target.value as EventSortOption)}
       className={className}
       aria-label="Sıralama"
     >
-      {(Object.keys(sortLabels) as SortOption[]).map((key) => (
+      {(Object.keys(sortLabels) as EventSortOption[]).map((key) => (
         <option key={key} value={key}>
           {sortLabels[key]}
         </option>
@@ -275,32 +277,6 @@ function filterEvents(
   });
 }
 
-function sortEvents(events: MockEvent[], sort: SortOption): MockEvent[] {
-  const sorted = [...events];
-  switch (sort) {
-    case 'date-asc':
-      return sorted.sort(
-        (a, b) =>
-          new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
-    case 'date-desc':
-      return sorted.sort(
-        (a, b) =>
-          new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-      );
-    case 'price-asc':
-      return sorted.sort((a, b) => a.price - b.price);
-    case 'price-desc':
-      return sorted.sort((a, b) => b.price - a.price);
-    default:
-      return sorted.sort((a, b) => {
-        if (a.isTrending !== b.isTrending) return a.isTrending ? -1 : 1;
-        if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
-        return b.attendees - a.attendees;
-      });
-  }
-}
-
 function EmptyState({
   cityName,
   onShowAll
@@ -345,7 +321,7 @@ export default function EventsPageClient({
     ...defaultEventsFilters,
     categories: urlKategori ? [urlKategori] : []
   }));
-  const [sort, setSort] = useState<SortOption>('date-asc');
+  const [sort, setSort] = useState<EventSortOption>('date-asc');
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [feedPill, setFeedPill] = useState<FeedCategoryPill>('all');

@@ -145,6 +145,14 @@ function main() {
   }
   addEnv('CRON_SECRET', cronSecret);
   addEnv('SUPER_ADMIN_EMAILS', env.SUPER_ADMIN_EMAILS || 'mehmetsentc@gmail.com');
+  addEnv('UPSTASH_REDIS_REST_URL', env.UPSTASH_REDIS_REST_URL);
+  addEnv('UPSTASH_REDIS_REST_TOKEN', env.UPSTASH_REDIS_REST_TOKEN);
+  addEnv('RESEND_API_KEY', env.RESEND_API_KEY);
+  addEnv('RESEND_FROM_NAME', env.RESEND_FROM_NAME || 'BiletFeed');
+  addEnv('RESEND_FROM_EMAIL', env.RESEND_FROM_EMAIL);
+  addEnv('RESEND_REPLY_TO', env.RESEND_REPLY_TO);
+  addEnv('ACCOUNTING_VAT_RATE', env.ACCOUNTING_VAT_RATE || '20');
+  addEnv('COMPANY_IBAN', env.COMPANY_IBAN);
 
   console.log('\n✅ Env yüklendi. Deploy: npm run deploy\n');
 }

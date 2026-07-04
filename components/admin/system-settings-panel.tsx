@@ -1,121 +1,98 @@
 'use client';
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Info } from 'lucide-react';
+import type { AdminSettingsSnapshot } from '@/lib/config/admin-settings-snapshot';
+import type { EnvCheckStatus } from '@/lib/config/env-status';
+import { cn } from '@/lib/utils';
+import { Clock, Info } from 'lucide-react';
 
-type Setting = { label: string; key: string; value: string; type: 'text' | 'number' | 'toggle'; hint?: string };
+const statusStyles: Record<EnvCheckStatus, string> = {
+  ok: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  warn: 'bg-amber-100 text-amber-800 border-amber-200',
+  fail: 'bg-red-100 text-red-800 border-red-200'
+};
 
-const SECTIONS: { title: string; settings: Setting[] }[] = [
-  {
-    title: 'Ödeme & Komisyon',
-    settings: [
-      { label: 'Varsayılan Komisyon Oranı (%)', key: 'DEFAULT_COMMISSION_RATE', value: '10', type: 'number', hint: 'Yeni organizatörlere atanacak varsayılan komisyon' },
-      { label: 'KDV Oranı (%)', key: 'ACCOUNTING_VAT_RATE', value: '20', type: 'number', hint: 'Fatura ve gelir hesaplamalarında kullanılacak KDV oranı' }
-    ]
-  },
-  {
-    title: 'Özellik Bayrakları',
-    settings: [
-      { label: 'AI Özellikleri', key: 'NEXT_PUBLIC_ENABLE_AI', value: 'false', type: 'toggle', hint: 'Yapay zeka destekli özellikleri etkinleştir' },
-      { label: 'Subdomain Desteği', key: 'NEXT_PUBLIC_ENABLE_SUBDOMAINS', value: 'true', type: 'toggle', hint: 'panel.biletfeed.com organizatör paneli' },
-      { label: 'Panel URL', key: 'NEXT_PUBLIC_PANEL_URL', value: 'https://panel.biletfeed.com', type: 'text', hint: 'Organizatör paneli alt alanı' },
-    ]
-  },
-  {
-    title: 'E-posta (Resend)',
-    settings: [
-      { label: 'Gönderen Adı', key: 'RESEND_FROM_NAME', value: 'BiletFeed', type: 'text', hint: 'E-postalarda görünen marka adı' },
-      { label: 'Varsayılan Gönderen', key: 'RESEND_FROM_EMAIL', value: 'tickets@biletfeed.com', type: 'text', hint: 'Bilet onayı ve varsayılan gönderen' },
-      { label: 'Yanıt Adresi', key: 'RESEND_REPLY_TO', value: 'destek@biletfeed.com', type: 'text', hint: 'Müşteri yanıtları bu adrese gider' },
-      { label: 'Fatura Gönderen', key: 'RESEND_INVOICE_FROM', value: 'fatura@biletfeed.com', type: 'text', hint: 'e-Arşiv / fatura bildirimleri' },
-      { label: 'Davetiye Gönderen', key: 'RESEND_INVITATION_FROM', value: 'davetiye@biletfeed.com', type: 'text', hint: 'EventJoy davetiye e-postaları' }
-    ]
-  }
-];
+const statusLabels: Record<EnvCheckStatus, string> = {
+  ok: 'Tamam',
+  warn: 'Uyarı',
+  fail: 'Eksik'
+};
 
-export function SystemSettingsPanel() {
-  const [values, setValues] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    SECTIONS.forEach((s) => s.settings.forEach((st) => { map[st.key] = st.value; }));
-    return map;
-  });
-  const [saved, setSaved] = useState(false);
+interface SystemSettingsPanelProps {
+  snapshot: AdminSettingsSnapshot;
+}
 
-  function handleSave() {
-    // In production: POST to /api/admin/settings to update env vars via Vercel API or DB config table
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
-
+export function SystemSettingsPanel({ snapshot }: SystemSettingsPanelProps) {
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex gap-2">
-        <Info className="size-4 shrink-0 mt-0.5" />
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex gap-2">
+        <Clock className="size-4 shrink-0 mt-0.5" />
         <span>
-          Bu ayarlar ortam değişkenleri aracılığıyla yönetilir. Değişiklikler için
-          <strong> Vercel Dashboard → Settings → Environment Variables</strong> kullanın veya
-          bir <code>config</code> DB tablosu ekleyin.
+          Panelden düzenleme <strong>yakında</strong> gelecek. Şimdilik ayarlar
+          ortam değişkenleri üzerinden yönetilir — değişiklik için{' '}
+          <strong>Vercel Dashboard → Settings → Environment Variables</strong>{' '}
+          kullanın veya <code className="text-xs">npm run deploy:checklist</code>{' '}
+          ile tam listeyi görün.
         </span>
       </div>
 
-      {SECTIONS.map((section) => (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Ortam Durumu</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {snapshot.envChecks.map((check) => (
+            <div
+              key={check.label}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-medium">{check.label}</p>
+                <p className="text-xs text-muted-foreground">{check.detail}</p>
+              </div>
+              <Badge
+                variant="outline"
+                className={cn('shrink-0', statusStyles[check.status])}
+              >
+                {statusLabels[check.status]}
+              </Badge>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {snapshot.sections.map((section) => (
         <Card key={section.title}>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{section.title}</CardTitle>
+            {section.description && (
+              <p className="text-sm text-muted-foreground">{section.description}</p>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
-            {section.settings.map((setting) => (
-              <div key={setting.key}>
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">{setting.label}</Label>
-                  <code className="text-xs text-muted-foreground">{setting.key}</code>
+            {section.fields.map((field) => (
+              <div key={field.key} className="rounded-md border bg-muted/30 px-3 py-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{field.label}</p>
+                  <code className="text-xs text-muted-foreground">{field.key}</code>
                 </div>
-                {setting.hint && (
-                  <p className="mt-0.5 text-xs text-muted-foreground">{setting.hint}</p>
+                {field.hint && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">{field.hint}</p>
                 )}
-                {setting.type === 'toggle' ? (
-                  <button
-                    onClick={() =>
-                      setValues((prev) => ({
-                        ...prev,
-                        [setting.key]: prev[setting.key] === 'true' ? 'false' : 'true'
-                      }))
-                    }
-                    className={`mt-2 relative inline-flex h-6 w-11 rounded-full transition-colors ${
-                      values[setting.key] === 'true' ? 'bg-primary' : 'bg-muted'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-1 size-4 rounded-full bg-card shadow transition-transform ${
-                        values[setting.key] === 'true' ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                ) : (
-                  <Input
-                    type={setting.type}
-                    className="mt-2 h-8 text-sm font-mono"
-                    value={values[setting.key] ?? ''}
-                    onChange={(e) =>
-                      setValues((prev) => ({ ...prev, [setting.key]: e.target.value }))
-                    }
-                  />
-                )}
+                <p className="mt-2 font-mono text-sm text-foreground/90">{field.value}</p>
               </div>
             ))}
           </CardContent>
         </Card>
       ))}
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} className="gap-2 bg-primary hover:bg-primary/90">
-          <Save className="size-4" />
-          {saved ? '✓ Kaydedildi' : 'Ayarları Kaydet'}
-        </Button>
+      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex gap-2">
+        <Info className="size-4 shrink-0 mt-0.5" />
+        <span>
+          Yerel kurulum kontrolü: <code>npm run setup:check</code> — production
+          deploy öncesi tüm kritik değişkenleri doğrular.
+        </span>
       </div>
     </div>
   );

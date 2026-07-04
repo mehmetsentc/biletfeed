@@ -19,7 +19,7 @@
     "prisma": "dotenv -e .env.local -- prisma",
     "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio",
-    "db:setup": "npm run db:push && npm run db:seed",
+    "db:setup": "npm run db:push && npm run db:seed && npm run seed:event-rules",
     "setup:check": "tsx scripts/setup-check.ts",
     "set:admin": "dotenv -e .env.local -- tsx scripts/set-admin.ts",
     "deploy:checklist": "sh scripts/vercel-env-checklist.sh",
