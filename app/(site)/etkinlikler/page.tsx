@@ -22,20 +22,20 @@ export const revalidate = 300;
 
 function EventsLoading() {
   return (
-    <div className="min-h-screen bg-ticket-page">
-      <div className="border-b border-white/10 px-4 py-8">
-        <Skeleton className="h-8 w-48 bg-white/10" />
-        <Skeleton className="mt-3 h-4 w-64 bg-white/10" />
-        <Skeleton className="mt-5 h-12 w-full rounded-xl bg-white/10" />
+    <div className="min-h-screen bg-background">
+      <div className="border-b border-border px-4 py-8">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="mt-3 h-4 w-64" />
+        <Skeleton className="mt-5 h-12 w-full rounded-xl" />
         <div className="mt-4 flex gap-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-20 rounded-full bg-white/10" />
+            <Skeleton key={i} className="h-9 w-20 rounded-full" />
           ))}
         </div>
       </div>
       <div className="container mx-auto grid gap-5 px-4 py-8 sm:grid-cols-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-[420px] rounded-xl bg-white/10" />
+          <Skeleton key={i} className="h-[420px] rounded-xl" />
         ))}
       </div>
     </div>

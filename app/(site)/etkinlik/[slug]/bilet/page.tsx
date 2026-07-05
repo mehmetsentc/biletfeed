@@ -34,11 +34,13 @@ export default async function TicketTierPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-10">
+    <div className="min-h-screen bg-background pb-10">
       <PurchaseEventBar event={event} backHref={`/etkinlik/${slug}`} />
       <div className="container mx-auto max-w-2xl px-4 py-6 md:py-8">
-        <header className="mb-6">
-          <h1 className="text-2xl font-extrabold tracking-tight">Bilet Seçin</h1>
+        <header className="mb-6 text-foreground">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+            Bilet Seçin
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Satın almak istediğiniz bilet türünü seçin.
           </p>

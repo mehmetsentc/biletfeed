@@ -163,7 +163,7 @@ export function PurchaseCheckoutForm({
           </div>
         )}
 
-        <section className="rounded-2xl border bg-card p-5 md:p-6">
+        <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
           <h1 className="text-lg font-bold">Katılımcı Bilgileri</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Bilet sahibi bilgileri giriş kapısında gösterilir.
@@ -222,7 +222,7 @@ export function PurchaseCheckoutForm({
           </div>
         </section>
 
-        <section className="rounded-2xl border bg-card p-5 md:p-6">
+        <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
           <h2 className="font-semibold">Kupon Kodu</h2>
           <div className="mt-3 flex gap-2">
             <Input
@@ -242,14 +242,14 @@ export function PurchaseCheckoutForm({
             <p className="mt-2 text-sm text-destructive">{couponError}</p>
           )}
           {couponApplied && (
-            <p className="mt-2 text-sm text-emerald-600">
+            <p className="mt-2 text-sm text-[var(--bf-success)]">
               Kupon uygulandı — {formatTry(couponDiscount)} indirim
             </p>
           )}
         </section>
 
         {requiresRulesAcceptance && hasStructuredRules && rulesDisplay && (
-          <section className="rounded-2xl border bg-card p-5 md:p-6">
+          <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
             <EventRulesAcceptanceList
               data={rulesDisplay}
               accepted={rulesAccepted}
@@ -259,7 +259,7 @@ export function PurchaseCheckoutForm({
         )}
 
         {requiresRulesAcceptance && !hasStructuredRules && (
-          <section className="rounded-2xl border bg-card p-5 md:p-6">
+          <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
             <h3 className="text-sm font-semibold">Etkinlik Kuralları</h3>
             <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto text-sm text-muted-foreground">
               {ruleLines.map((line) => (
@@ -281,7 +281,7 @@ export function PurchaseCheckoutForm({
           </section>
         )}
 
-        <section className="rounded-2xl border bg-card p-5 md:p-6">
+        <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
           <h2 className="flex items-center gap-2 font-semibold">
             <ShieldCheck className="size-5 text-primary" />
             {isPaid ? 'Güvenli Ödeme' : 'Onay'}
@@ -314,7 +314,7 @@ export function PurchaseCheckoutForm({
           type="submit"
           size="lg"
           disabled={loading || (requiresRulesAcceptance && !rulesAccepted)}
-          className="h-14 w-full rounded-xl bg-primary text-base font-bold text-white hover:bg-[var(--bf-orange-hover)] lg:hidden"
+          className="h-14 w-full rounded-xl text-base font-bold lg:hidden"
         >
           {loading
             ? 'İşleniyor...'
@@ -325,7 +325,7 @@ export function PurchaseCheckoutForm({
       </div>
 
       <aside className="lg:col-span-2">
-        <div className="sticky top-[5.5rem] space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
+        <div className="sticky top-[5.5rem] space-y-4 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm">
           <div className="relative mb-1 aspect-video overflow-hidden rounded-xl bg-muted">
             <Image
               src={event.coverImage}
@@ -365,7 +365,7 @@ export function PurchaseCheckoutForm({
             type="submit"
             size="lg"
             disabled={loading || (requiresRulesAcceptance && !rulesAccepted)}
-            className="hidden h-12 w-full rounded-xl bg-primary font-bold text-white hover:bg-[var(--bf-orange-hover)] lg:flex"
+            className="hidden h-12 w-full rounded-xl font-bold lg:flex"
           >
             {loading
               ? 'İşleniyor...'

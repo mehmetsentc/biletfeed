@@ -25,7 +25,7 @@ export function BfCheckoutSteps({ current, className }: BfCheckoutStepsProps) {
                   'flex size-8 items-center justify-center rounded-full text-xs font-bold transition-colors',
                   done && 'bg-primary text-primary-foreground',
                   active && 'bg-primary/15 text-primary ring-2 ring-primary',
-                  !done && !active && 'bg-zinc-100 text-zinc-400'
+                  !done && !active && 'bg-muted text-muted-foreground'
                 )}
               >
                 {done ? '✓' : step}
@@ -45,7 +45,7 @@ export function BfCheckoutSteps({ current, className }: BfCheckoutStepsProps) {
               <div
                 className={cn(
                   'mb-5 h-0.5 flex-1 rounded-full sm:mb-6',
-                  done ? 'bg-primary' : 'bg-zinc-200'
+                  done ? 'bg-primary' : 'bg-border'
                 )}
               />
             )}

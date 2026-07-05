@@ -153,9 +153,27 @@
   --admin-sidebar-active: var(--bf-orange);
   --admin-sidebar-hover: rgba(255, 255, 255, 0.06);
 
-  /* Ticket pages */
+  /* Ticket / davetiye hero surfaces (city SEO, print — not purchase checkout) */
   --ticket-page-bg: var(--bf-orange-500);
   --ticket-card-bg: var(--bf-card);
+  --events-accent: var(--bf-orange);
+
+  /* Category accent colors (badges on images — white text, theme-stable) */
+  --category-muzik: var(--bf-orange);
+  --category-konser: var(--bf-orange);
+  --category-party: #7c3aed;
+  --category-festival: #9333ea;
+  --category-tiyatro: #6366f1;
+  --category-spor: #059669;
+  --category-sanat: #4f46e5;
+  --category-komedi: var(--bf-orange-hover);
+  --category-cocuk: #d97706;
+  --category-teknoloji: #0284c7;
+  --category-online: #0891b2;
+  --category-yemek: #dc2626;
+  --category-yemek-icecek: #dc2626;
+  --category-workshop: #2563eb;
+  --category-diger: #525252;
 
   /* Organizatör panel (Linear + Stripe) */
   --organizer-shell-bg: var(--bf-bg);
@@ -241,4 +259,7 @@
   --header-border: color-mix(in srgb, var(--bf-border) 80%, transparent);
   --header-hover: rgba(255, 255, 255, 0.06);
   --header-btn-outline: rgba(255, 255, 255, 0.14);
+
+  --ticket-page-bg: var(--bf-bg);
+  --ticket-card-bg: var(--bf-card);
 }

@@ -285,9 +285,9 @@ function EmptyState({
   onShowAll?: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-[#151b24] py-16 text-center">
-      <p className="font-medium text-white">Etkinlik bulunamadı</p>
-      <p className="mt-1 text-sm text-white/50">
+    <div className="rounded-xl border border-border bg-card py-16 text-center shadow-sm">
+      <p className="font-medium text-foreground">Etkinlik bulunamadı</p>
+      <p className="mt-1 text-sm text-muted-foreground">
         Filtreleri veya arama terimini değiştirmeyi deneyin
       </p>
       {onShowAll && (
@@ -375,12 +375,13 @@ export default function EventsPageClient({
     <SortSelect
       value={sort}
       onChange={setSort}
-      className="hidden h-10 rounded-lg border border-white/15 bg-ticket-card px-3 text-sm font-medium text-white/80 md:block"
+      className="hidden h-10 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground md:block"
     />
   );
 
   return (
-    <div className="min-h-screen bg-ticket-page">
+    <div className="min-h-screen bg-background">
+      <div className="h-1 bg-gradient-to-r from-primary via-[var(--bf-orange-400)] to-primary/70" aria-hidden />
       <EventsFeedHeader
         cityLabel={cityLabel}
         searchValue={searchQuery}

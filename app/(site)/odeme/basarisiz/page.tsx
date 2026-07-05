@@ -17,8 +17,8 @@ export default async function PaymentFailurePage({ searchParams }: Props) {
 
   return (
     <div className="container mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center">
-      <div className="flex size-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
-        <XCircle className="size-10 text-red-600" />
+      <div className="flex size-20 items-center justify-center rounded-full bg-destructive/10">
+        <XCircle className="size-10 text-destructive" />
       </div>
       <h1 className="mt-6 text-2xl font-bold">Ödeme Tamamlanamadı</h1>
       <p className="mt-2 text-muted-foreground">

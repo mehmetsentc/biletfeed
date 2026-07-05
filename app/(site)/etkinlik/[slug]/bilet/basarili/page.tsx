@@ -72,7 +72,8 @@ export default async function TicketPurchaseSuccessPage({
   }
 
   return (
-    <div className="container mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center text-foreground">
       <div className="flex size-20 items-center justify-center rounded-full bg-[var(--bf-orange-surface)]">
         <CheckCircle2 className="size-10 text-primary" />
       </div>
@@ -83,7 +84,7 @@ export default async function TicketPurchaseSuccessPage({
       </p>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <Link href="/biletlerim">
-          <Button className="gap-2 bg-primary hover:bg-[var(--bf-orange-hover)]">
+          <Button className="gap-2">
             <Ticket className="size-4" />
             Biletlerimi Gör
           </Button>
@@ -92,6 +93,7 @@ export default async function TicketPurchaseSuccessPage({
           <Button variant="outline">Etkinlik Detayı</Button>
         </Link>
       </div>
+    </div>
     </div>
   );
 }

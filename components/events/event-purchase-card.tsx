@@ -28,7 +28,6 @@ export function EventPurchaseCard({
   const external = isExternalListing(event);
   const ticketUrl = getEventTicketUrl(event);
   const accent = external ? theme.accent : brandTheme.orange;
-  const accentSoft = external ? theme.accentSoft : brandTheme.orangeSoft;
   const ctaLabel = external ? theme.ctaLabel : 'Bilet Al';
 
   const priceText =
@@ -42,12 +41,7 @@ export function EventPurchaseCard({
   return (
     <aside
       className={className}
-      style={
-        {
-          '--event-accent': accent,
-          '--event-accent-soft': accentSoft
-        } as React.CSSProperties
-      }
+      style={{ '--event-accent': accent } as React.CSSProperties}
     >
       <div
         className={
@@ -60,12 +54,7 @@ export function EventPurchaseCard({
           className={
             variant === 'embedded'
               ? 'rounded-xl px-1 py-1'
-              : 'px-5 py-4'
-          }
-          style={
-            variant === 'embedded'
-              ? undefined
-              : { backgroundColor: 'var(--event-accent-soft)' }
+              : 'bg-accent px-5 py-4'
           }
         >
           {variant === 'standalone' && (
@@ -73,7 +62,7 @@ export function EventPurchaseCard({
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Bilet fiyatı
               </p>
-              <p className="mt-1 text-3xl font-extrabold tracking-tight text-foreground">
+              <p className="mt-1 text-3xl font-extrabold tracking-tight text-accent-foreground">
                 {priceText}
               </p>
               {!event.isFree && event.price > 0 && (
@@ -82,11 +71,11 @@ export function EventPurchaseCard({
             </>
           )}
           {variant === 'embedded' && (
-            <div className="rounded-xl px-4 py-3" style={{ backgroundColor: 'var(--event-accent-soft)' }}>
+            <div className="rounded-xl bg-accent px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Bilet fiyatı
               </p>
-              <p className="mt-1 text-3xl font-extrabold tracking-tight text-foreground">
+              <p className="mt-1 text-3xl font-extrabold tracking-tight text-accent-foreground">
                 {priceText}
               </p>
               {!event.isFree && event.price > 0 && (

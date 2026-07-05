@@ -59,8 +59,8 @@ export function EventifyHorizontalCard({
           <p className="mt-1 text-sm text-muted-foreground">
             {formatEventTimeRange(event)}
           </p>
-          <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
-            <Tag className="size-3.5" />
+          <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <Tag className="size-3.5 shrink-0 text-primary/80" aria-hidden />
             {formatPrice(event)}
           </p>
         </div>

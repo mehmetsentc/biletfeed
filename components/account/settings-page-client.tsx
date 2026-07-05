@@ -9,15 +9,12 @@ import {
   LogOut,
   Mail,
   MessageSquare,
-  Monitor,
-  Moon,
   Newspaper,
   Palette,
   Shield,
-  Sun,
   Trash2
 } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { ThemeSelector } from '@/components/theme/theme-selector';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
 import { ChangePasswordDialog } from '@/components/account/change-password-dialog';
 import { Switch } from '@/components/ui/switch';
@@ -29,43 +26,6 @@ import {
   saveNotificationPreferences,
   type NotificationPreferences
 } from '@/lib/account/notification-preferences';
-
-const THEME_OPTIONS = [
-  { value: 'light', label: 'Açık', icon: Sun },
-  { value: 'dark',  label: 'Koyu', icon: Moon },
-  { value: 'system', label: 'Sistem', icon: Monitor },
-] as const;
-
-function ThemeSelector() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return <div className="h-16 animate-pulse rounded-xl bg-muted" />;
-
-  return (
-    <div className="grid grid-cols-3 gap-2 py-4">
-      {THEME_OPTIONS.map(({ value, label, icon: Icon }) => {
-        const active = theme === value;
-        return (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setTheme(value)}
-            className={cn(
-              'flex flex-col items-center gap-2 rounded-xl border-2 py-3 text-xs font-semibold transition-all',
-              active
-                ? 'border-primary bg-primary/8 text-primary'
-                : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
-            )}
-          >
-            <Icon className={cn('size-5', active && 'text-primary')} strokeWidth={active ? 2.25 : 1.75} />
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 function SettingsCard({
   title,
@@ -224,8 +184,12 @@ export function SettingsPageClient() {
 
       <div className="mb-6">
         <SettingsCard title="Görünüm" icon={Palette}>
-          <p className="pt-1 text-sm text-muted-foreground">Uygulama temasını seçin.</p>
-          <ThemeSelector />
+          <p className="px-4 pt-4 text-sm text-muted-foreground">
+            Site temasını seçin. Otomatik mod sistem ayarınızı kullanır.
+          </p>
+          <div className="px-4 pb-4">
+            <ThemeSelector />
+          </div>
         </SettingsCard>
       </div>
 

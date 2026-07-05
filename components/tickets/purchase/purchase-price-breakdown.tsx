@@ -58,7 +58,7 @@ export function PriceBreakdownRows({
           label="Kupon indirimi"
           value={`-${formatTry(pricing.discount)}`}
           compact={compact}
-          valueClassName="text-emerald-600"
+          valueClassName="text-[var(--bf-success)]"
         />
       )}
       <Separator className="my-3" />

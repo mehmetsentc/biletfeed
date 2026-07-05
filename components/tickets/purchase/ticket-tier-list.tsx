@@ -23,7 +23,7 @@ export function TicketTierList({
 }: TicketTierListProps) {
   if (ticketTypes.length === 0) {
     return (
-      <div className={cn('rounded-2xl border bg-card p-6 text-center', className)}>
+      <div className={cn('rounded-2xl border border-border bg-card p-6 text-center text-card-foreground', className)}>
         <p className="text-muted-foreground">Bu etkinlik için aktif bilet bulunamadı.</p>
       </div>
     );
@@ -40,7 +40,7 @@ export function TicketTierList({
           <article
             key={type.id}
             className={cn(
-              'flex flex-col gap-4 rounded-2xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5',
+              'flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 text-card-foreground sm:flex-row sm:items-center sm:justify-between sm:p-5',
               !available && 'opacity-60'
             )}
           >
@@ -73,7 +73,7 @@ export function TicketTierList({
               {available ? (
                 <Button
                   asChild
-                  className="h-11 rounded-xl bg-primary px-6 font-bold text-white hover:bg-[var(--bf-orange-hover)]"
+                  className="h-11 rounded-xl px-6 font-bold"
                 >
                   <Link href={`/etkinlik/${eventSlug}/bilet/${type.id}`}>
                     <Ticket className="size-4" />

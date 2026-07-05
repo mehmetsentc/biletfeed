@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { AppSpeedInsights } from '@/components/analytics/speed-insights';
 import { Providers } from '@/components/providers';
+import { ThemeInitScript } from '@/components/theme/theme-init-script';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 import { siteConfig } from '@/lib/config/site';
 import { JsonLd } from '@/lib/seo/json-ld';
@@ -53,6 +54,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" suppressHydrationWarning>
+      <head>
+        <ThemeInitScript />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <JsonLd
           data={[buildOrganizationSchema(), buildWebsiteSchema()]}

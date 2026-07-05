@@ -9,6 +9,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { mainNavLinks } from '@/lib/layout/navigation';
 
 export function Header() {
@@ -65,6 +66,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <ThemeToggle />
           {!loading && (
             <div className="flex items-center gap-2">
               {user ? (

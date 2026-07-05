@@ -30,7 +30,7 @@ export function BfOrderSummary({
   return (
     <aside
       className={cn(
-        'overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm',
+        'overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm',
         className
       )}
     >
@@ -50,7 +50,7 @@ export function BfOrderSummary({
             </span>
           </div>
           {discount > 0 && (
-            <div className="flex justify-between gap-3 text-emerald-600">
+            <div className="flex justify-between gap-3 text-[var(--bf-success)]">
               <span>İndirim</span>
               <span>-{discount.toLocaleString('tr-TR')} ₺</span>
             </div>
@@ -67,7 +67,7 @@ export function BfOrderSummary({
         </div>
 
         {isPaid && (
-          <div className="mt-5 space-y-3 rounded-xl bg-zinc-50 p-3">
+          <div className="mt-5 space-y-3 rounded-xl bg-muted p-3">
             <PaymentCardLogos className="justify-center" logoClassName="h-5 w-auto" />
             <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
               <Lock className="size-3 shrink-0 text-primary" aria-hidden />

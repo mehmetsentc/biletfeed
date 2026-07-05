@@ -40,13 +40,13 @@ export default async function PaymentSuccessPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="relative min-h-[70vh] overflow-hidden bg-zinc-50">
+    <div className="relative min-h-[70vh] overflow-hidden bg-background">
       <div
         className="absolute inset-x-0 top-0 h-48 bg-gradient-to-br from-primary via-bf-orange-400 to-bf-orange-600"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute left-0 top-0 h-32 w-20 bg-[#1A1A1A] opacity-20"
+        className="pointer-events-none absolute left-0 top-0 h-32 w-20 bg-foreground/10"
         style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}
         aria-hidden
       />
@@ -59,11 +59,11 @@ export default async function PaymentSuccessPage({ searchParams }: Props) {
           className="mb-8 h-8 w-auto"
         />
 
-        <div className="w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white p-8 shadow-lg shadow-orange-100/40">
-          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-orange-50">
+        <div className="w-full overflow-hidden rounded-2xl border border-border bg-card p-8 text-card-foreground shadow-lg shadow-primary/10">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-accent">
             <CheckCircle2 className="size-8 text-primary" />
           </div>
-          <h1 className="mt-5 text-2xl font-extrabold text-zinc-900">Biletiniz hazır!</h1>
+          <h1 className="mt-5 text-2xl font-extrabold text-foreground">Biletiniz hazır!</h1>
           <p className="mt-3 text-muted-foreground">
             {eventTitle ? (
               <>

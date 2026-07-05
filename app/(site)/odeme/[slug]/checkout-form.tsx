@@ -196,7 +196,7 @@ export function CheckoutForm({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-background">
       <BfCheckoutContextBar event={event} />
 
       <div className="container mx-auto max-w-5xl px-4 py-8">
@@ -212,15 +212,15 @@ export function CheckoutForm({
           <div className="lg:col-span-3 space-y-6">
             {/* ——— Adım 1: Bilet seçimi ——— */}
             {step === 1 && tierPhase === 'pick' && (
-              <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-                <div className="border-b border-zinc-100 px-6 py-5">
+              <section className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
+                <div className="border-b border-border px-6 py-5">
                   <BfSubStepLabel label="Adım 1" />
                   <h2 className="mt-1 text-lg font-bold">Bilet türünü seçin</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Size uygun bilet kategorisini seçerek devam edin.
                   </p>
                 </div>
-                <ul className="divide-y divide-zinc-100">
+                <ul className="divide-y divide-border">
                   {ticketTypes.map((type) => {
                     const left = type.capacity - type.sold;
                     return (
@@ -228,7 +228,7 @@ export function CheckoutForm({
                         <button
                           type="button"
                           onClick={() => selectTier(type.id)}
-                          className="group flex w-full items-center gap-4 px-6 py-5 text-left transition-colors hover:bg-orange-50/50"
+                          className="group flex w-full items-center gap-4 px-6 py-5 text-left transition-colors hover:bg-accent/50"
                         >
                           <div className="h-12 w-1 shrink-0 rounded-full bg-primary opacity-80 group-hover:opacity-100" />
                           <div className="min-w-0 flex-1">
@@ -248,7 +248,7 @@ export function CheckoutForm({
                             <span className="text-lg font-extrabold text-primary">
                               {priceLabel(type.price)}
                             </span>
-                            <ChevronRight className="size-5 text-zinc-300 group-hover:text-primary" />
+                            <ChevronRight className="size-5 text-muted-foreground/50 group-hover:text-primary" />
                           </div>
                         </button>
                       </li>
@@ -259,8 +259,8 @@ export function CheckoutForm({
             )}
 
             {step === 1 && tierPhase === 'qty' && (
-              <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-                <div className="border-b border-zinc-100 px-6 py-5">
+              <section className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
+                <div className="border-b border-border px-6 py-5">
                   {ticketTypes.length > 1 && (
                     <button
                       type="button"
@@ -304,7 +304,7 @@ export function CheckoutForm({
                     </Button>
                   </div>
 
-                  <div className="mx-auto mt-8 max-w-sm rounded-xl bg-zinc-50 px-5 py-4">
+                  <div className="mx-auto mt-8 max-w-sm rounded-xl bg-muted px-5 py-4">
                     <BfPriceRow
                       label="Bilet fiyatı"
                       value={
@@ -335,7 +335,7 @@ export function CheckoutForm({
                     </div>
                   )}
                   {requiresRulesAcceptance && !hasStructuredRules && (
-                    <div className="mt-6 space-y-3 rounded-xl border bg-zinc-50 p-4">
+                    <div className="mt-6 space-y-3 rounded-xl border border-border bg-muted p-4">
                       <h3 className="text-sm font-semibold">Etkinlik kuralları</h3>
                       <ul className="max-h-36 space-y-1.5 overflow-y-auto text-sm text-muted-foreground">
                         {ruleLines.map((line) => (
@@ -371,8 +371,8 @@ export function CheckoutForm({
 
             {/* ——— Adım 2: Katılımcı ——— */}
             {step === 2 && (
-              <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-                <div className="border-b border-zinc-100 px-6 py-5">
+              <section className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
+                <div className="border-b border-border px-6 py-5">
                   <BfSubStepLabel label="Adım 2" />
                   <h2 className="mt-1 flex items-center gap-2 text-lg font-bold">
                     <User className="size-5 text-primary" />
@@ -455,7 +455,7 @@ export function CheckoutForm({
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/80 p-4">
+                  <div className="rounded-xl border border-dashed border-border bg-muted/80 p-4">
                     <p className="flex items-center gap-2 text-sm font-semibold">
                       <Tag className="size-4 text-primary" />
                       İndirim kodu (isteğe bağlı)
@@ -484,7 +484,7 @@ export function CheckoutForm({
                       <p className="mt-2 text-sm text-destructive">{couponError}</p>
                     )}
                     {couponApplied && (
-                      <p className="mt-2 text-sm font-medium text-emerald-600">
+                      <p className="mt-2 text-sm font-medium text-[var(--bf-success)]">
                         Kupon uygulandı — {couponDiscount.toLocaleString('tr-TR')} ₺ indirim
                       </p>
                     )}
@@ -515,9 +515,9 @@ export function CheckoutForm({
             {step === 3 && (
               <form
                 onSubmit={handleCheckout}
-                className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm"
+                className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm"
               >
-                <div className="border-b border-zinc-100 px-6 py-5">
+                <div className="border-b border-border px-6 py-5">
                   <BfSubStepLabel label="Adım 3" />
                   <h2 className="mt-1 flex items-center gap-2 text-lg font-bold">
                     <ShieldCheck className="size-5 text-primary" />
@@ -526,7 +526,7 @@ export function CheckoutForm({
                 </div>
 
                 <div className="space-y-4 px-6 py-6">
-                  <div className="rounded-xl bg-zinc-50 p-4 text-sm">
+                  <div className="rounded-xl bg-muted p-4 text-sm">
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Etkinlik</span>
@@ -550,7 +550,7 @@ export function CheckoutForm({
                   </div>
 
                   {isPaid ? (
-                    <div className="space-y-3 rounded-xl border border-primary/20 bg-orange-50/50 p-4 text-sm">
+                    <div className="space-y-3 rounded-xl border border-primary/20 bg-accent/50 p-4 text-sm">
                       <p>
                         Kart bilgileriniz BiletFeed sunucularında{' '}
                         <strong>saklanmaz</strong>. Ödeme banka sanal POS altyapısı ile

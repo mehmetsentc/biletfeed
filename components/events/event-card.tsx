@@ -42,9 +42,7 @@ export function EventCard({
           />
         </div>
         <div className="flex min-w-0 flex-1 flex-col justify-center">
-          <Badge variant="secondary" className="mb-1 w-fit text-xs">
-            {event.category}
-          </Badge>
+          <CategoryBadge slug={event.categorySlug} label={event.category} className="mb-1 w-fit" />
           <h3 className="line-clamp-2 font-semibold leading-tight group-hover:text-primary">
             {event.title}
           </h3>
@@ -85,9 +83,12 @@ export function EventCard({
           />
           <div className="absolute inset-0 event-image-overlay" />
           <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-            <Badge className="mb-3 bg-white/20 text-white backdrop-blur-sm">
-              {event.category}
-            </Badge>
+            <CategoryBadge
+              slug={event.categorySlug}
+              label={event.category}
+              variant="overlay"
+              className="mb-3"
+            />
             <h3 className="text-xl font-bold leading-tight">{event.title}</h3>
             <div className="mt-2 flex items-center gap-4 text-sm text-white/80">
               <span className="flex items-center gap-1">
@@ -154,7 +155,7 @@ export function EventCard({
               {event.venue}, {event.city}
             </span>
           </div>
-          <Button className="mt-4 w-full" size="sm">
+          <Button className="mt-4 w-full ring-2 ring-background" size="sm">
             Bilet Al
           </Button>
         </div>

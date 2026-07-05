@@ -45,7 +45,8 @@ export default async function MockPaymentPage({ params, searchParams }: Props) {
   }
 
   return (
-    <div className="container mx-auto flex min-h-[70vh] items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto flex min-h-[70vh] items-center justify-center px-4 py-12">
       <MockPaymentClient
         orderId={order.id}
         sessionId={paymentSession || order.paymentSessionId || undefined}
@@ -53,6 +54,7 @@ export default async function MockPaymentPage({ params, searchParams }: Props) {
         eventTitle={order.event.title}
         eventSlug={order.event.slug}
       />
+      </div>
     </div>
   );
 }

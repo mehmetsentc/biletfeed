@@ -44,7 +44,7 @@ export default async function TicketQuantityPage({ params }: Props) {
       : `/etkinlik/${slug}`;
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-10">
+    <div className="min-h-screen bg-background pb-10">
       <PurchaseEventBar event={ctx.event} backHref={backHref} />
       <div className="container mx-auto max-w-lg px-4 py-6 md:py-8">
         <QuantityStep eventSlug={slug} ticketType={ticketType} />

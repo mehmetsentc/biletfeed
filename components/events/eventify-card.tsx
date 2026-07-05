@@ -81,8 +81,8 @@ export function EventifyCard({
               {formatEventTimeRange(event)}
             </p>
             <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs font-medium text-muted-foreground">
-              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                <Tag className="size-3" />
+              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                <Tag className="size-3 shrink-0 text-primary/80" aria-hidden />
                 {formatPrice(event)}
               </span>
               {interested > 0 && (

@@ -1,80 +1,170 @@
-/** Semantic category badge colors — brand-aligned, not generic purple */
+/** Semantic category badge colors — brand-aligned, theme-aware */
 export type CategoryBadgeStyle = {
   bg: string;
   text: string;
   ring?: string;
 };
 
+/** Solid overlay badges on event images (high contrast, white text) */
+export type CategoryOverlayStyle = {
+  bg: string;
+  text: string;
+  shadow?: string;
+};
+
 const STYLES: Record<string, CategoryBadgeStyle> = {
   muzik: {
-    bg: 'bg-[color-mix(in_srgb,var(--bf-orange)_18%,transparent)]',
-    text: 'text-[var(--bf-orange)]',
-    ring: 'ring-[color-mix(in_srgb,var(--bf-orange)_35%,transparent)]'
+    bg: 'bg-[color-mix(in_srgb,var(--category-muzik)_16%,transparent)]',
+    text: 'text-[var(--category-muzik)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-muzik)_32%,transparent)]'
   },
   konser: {
-    bg: 'bg-[color-mix(in_srgb,var(--bf-orange)_18%,transparent)]',
-    text: 'text-[var(--bf-orange)]',
-    ring: 'ring-[color-mix(in_srgb,var(--bf-orange)_35%,transparent)]'
+    bg: 'bg-[color-mix(in_srgb,var(--category-konser)_16%,transparent)]',
+    text: 'text-[var(--category-konser)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-konser)_32%,transparent)]'
   },
   festival: {
-    bg: 'bg-pink-500/15',
-    text: 'text-pink-600 dark:text-pink-400',
-    ring: 'ring-pink-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-festival)_16%,transparent)]',
+    text: 'text-[var(--category-festival)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-festival)_32%,transparent)]'
   },
   party: {
-    bg: 'bg-pink-500/15',
-    text: 'text-pink-600 dark:text-pink-400',
-    ring: 'ring-pink-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-party)_16%,transparent)]',
+    text: 'text-[var(--category-party)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-party)_32%,transparent)]'
   },
   teknoloji: {
-    bg: 'bg-blue-500/15',
-    text: 'text-blue-600 dark:text-blue-400',
-    ring: 'ring-blue-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-teknoloji)_16%,transparent)]',
+    text: 'text-[var(--category-teknoloji)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-teknoloji)_32%,transparent)]'
   },
   workshop: {
-    bg: 'bg-blue-500/15',
-    text: 'text-blue-600 dark:text-blue-400',
-    ring: 'ring-blue-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-workshop)_16%,transparent)]',
+    text: 'text-[var(--category-workshop)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-workshop)_32%,transparent)]'
   },
   spor: {
-    bg: 'bg-emerald-500/15',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    ring: 'ring-emerald-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-spor)_16%,transparent)]',
+    text: 'text-[var(--category-spor)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-spor)_32%,transparent)]'
   },
   tiyatro: {
-    bg: 'bg-violet-500/15',
-    text: 'text-violet-600 dark:text-violet-400',
-    ring: 'ring-violet-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-tiyatro)_16%,transparent)]',
+    text: 'text-[var(--category-tiyatro)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-tiyatro)_32%,transparent)]'
   },
   cocuk: {
-    bg: 'bg-amber-400/20',
-    text: 'text-amber-700 dark:text-amber-300',
-    ring: 'ring-amber-400/30'
+    bg: 'bg-[color-mix(in_srgb,var(--category-cocuk)_18%,transparent)]',
+    text: 'text-[var(--category-cocuk)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-cocuk)_32%,transparent)]'
   },
   online: {
-    bg: 'bg-cyan-500/15',
-    text: 'text-cyan-600 dark:text-cyan-400',
-    ring: 'ring-cyan-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-online)_16%,transparent)]',
+    text: 'text-[var(--category-online)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-online)_32%,transparent)]'
   },
   yemek: {
-    bg: 'bg-red-500/15',
-    text: 'text-red-600 dark:text-red-400',
-    ring: 'ring-red-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-yemek)_16%,transparent)]',
+    text: 'text-[var(--category-yemek)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-yemek)_32%,transparent)]'
   },
   'yemek-icecek': {
-    bg: 'bg-red-500/15',
-    text: 'text-red-600 dark:text-red-400',
-    ring: 'ring-red-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-yemek-icecek)_16%,transparent)]',
+    text: 'text-[var(--category-yemek-icecek)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-yemek-icecek)_32%,transparent)]'
   },
   komedi: {
-    bg: 'bg-[color-mix(in_srgb,var(--bf-orange)_12%,transparent)]',
-    text: 'text-[var(--bf-orange-hover)]',
-    ring: 'ring-[color-mix(in_srgb,var(--bf-orange)_25%,transparent)]'
+    bg: 'bg-[color-mix(in_srgb,var(--category-komedi)_14%,transparent)]',
+    text: 'text-[var(--category-komedi)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-komedi)_28%,transparent)]'
   },
   sanat: {
-    bg: 'bg-indigo-500/15',
-    text: 'text-indigo-600 dark:text-indigo-400',
-    ring: 'ring-indigo-500/25'
+    bg: 'bg-[color-mix(in_srgb,var(--category-sanat)_16%,transparent)]',
+    text: 'text-[var(--category-sanat)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-sanat)_32%,transparent)]'
+  },
+  diger: {
+    bg: 'bg-[color-mix(in_srgb,var(--category-diger)_14%,transparent)]',
+    text: 'text-[var(--category-diger)]',
+    ring: 'ring-[color-mix(in_srgb,var(--category-diger)_28%,transparent)]'
+  }
+};
+
+const OVERLAY_STYLES: Record<string, CategoryOverlayStyle> = {
+  muzik: {
+    bg: 'bg-[var(--category-muzik)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  konser: {
+    bg: 'bg-[var(--category-konser)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  festival: {
+    bg: 'bg-[var(--category-festival)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  party: {
+    bg: 'bg-[var(--category-party)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  teknoloji: {
+    bg: 'bg-[var(--category-teknoloji)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  workshop: {
+    bg: 'bg-[var(--category-workshop)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  spor: {
+    bg: 'bg-[var(--category-spor)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  tiyatro: {
+    bg: 'bg-[var(--category-tiyatro)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  cocuk: {
+    bg: 'bg-[var(--category-cocuk)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  online: {
+    bg: 'bg-[var(--category-online)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  yemek: {
+    bg: 'bg-[var(--category-yemek)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  'yemek-icecek': {
+    bg: 'bg-[var(--category-yemek-icecek)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  komedi: {
+    bg: 'bg-[var(--category-komedi)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  sanat: {
+    bg: 'bg-[var(--category-sanat)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+  },
+  diger: {
+    bg: 'bg-[var(--category-diger)]',
+    text: 'text-white',
+    shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
   }
 };
 
@@ -84,6 +174,20 @@ const FALLBACK: CategoryBadgeStyle = {
   ring: 'ring-border'
 };
 
+const OVERLAY_FALLBACK: CategoryOverlayStyle = {
+  bg: 'bg-[var(--bf-text)]',
+  text: 'text-[var(--bf-text-inverse)]',
+  shadow: 'shadow-[0_2px_8px_rgba(0,0,0,0.35)]'
+};
+
+function normalizeSlug(slug: string): string {
+  return slug.toLowerCase().trim();
+}
+
 export function getCategoryBadgeStyle(slug: string): CategoryBadgeStyle {
-  return STYLES[slug.toLowerCase().trim()] ?? FALLBACK;
+  return STYLES[normalizeSlug(slug)] ?? FALLBACK;
+}
+
+export function getCategoryOverlayStyle(slug: string): CategoryOverlayStyle {
+  return OVERLAY_STYLES[normalizeSlug(slug)] ?? OVERLAY_FALLBACK;
 }

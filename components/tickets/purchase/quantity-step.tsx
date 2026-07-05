@@ -30,7 +30,7 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border bg-card p-5 md:p-6">
+      <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
         <h1 className="text-lg font-bold">Adet Seçin</h1>
         <p className="mt-1 text-sm text-muted-foreground">{ticketType.name}</p>
         <p className="mt-3 text-2xl font-extrabold">{unitLabel}</p>
@@ -70,7 +70,7 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
         )}
       </section>
 
-      <section className="rounded-2xl border bg-card p-5 md:p-6">
+      <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           Fiyat Özeti
         </h2>
@@ -85,7 +85,7 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
       <Button
         asChild
         size="lg"
-        className="h-14 w-full rounded-xl bg-primary text-base font-bold text-white hover:bg-[var(--bf-orange-hover)]"
+        className="h-14 w-full rounded-xl text-base font-bold"
       >
         <Link
           href={`/etkinlik/${eventSlug}/bilet/${ticketType.id}/odeme?adet=${quantity}`}

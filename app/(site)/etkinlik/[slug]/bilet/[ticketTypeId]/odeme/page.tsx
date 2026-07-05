@@ -53,14 +53,16 @@ export default async function TicketCheckoutPage({ params, searchParams }: Props
   const rulesDisplay = await getEventRulesDisplay(ctx.event.id, locale);
 
   return (
-    <div className="min-h-screen bg-zinc-50 pb-12">
+    <div className="min-h-screen bg-background pb-12">
       <PurchaseEventBar
         event={ctx.event}
         backHref={`/etkinlik/${slug}/bilet/${ticketTypeId}`}
       />
       <div className="container mx-auto max-w-5xl px-4 py-6 md:py-8">
-        <header className="mb-6">
-          <h1 className="text-2xl font-extrabold tracking-tight">Ödeme</h1>
+        <header className="mb-6 text-foreground">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+            Ödeme
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Bilgilerinizi girin ve siparişinizi tamamlayın.
           </p>

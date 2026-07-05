@@ -1,15 +1,37 @@
-import { getCategoryBadgeStyle } from '@/lib/categories/badge-styles';
+import {
+  getCategoryBadgeStyle,
+  getCategoryOverlayStyle
+} from '@/lib/categories/badge-styles';
 import { cn } from '@/lib/utils';
 
 export function CategoryBadge({
   slug,
   label,
+  variant = 'default',
   className
 }: {
   slug: string;
   label: string;
+  variant?: 'default' | 'overlay';
   className?: string;
 }) {
+  if (variant === 'overlay') {
+    const style = getCategoryOverlayStyle(slug);
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-wide',
+          style.bg,
+          style.text,
+          style.shadow,
+          className
+        )}
+      >
+        {label}
+      </span>
+    );
+  }
+
   const style = getCategoryBadgeStyle(slug);
 
   return (
