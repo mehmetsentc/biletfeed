@@ -85,7 +85,7 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
       <Button
         asChild
         size="lg"
-        className="h-14 w-full rounded-xl bg-[#FF8A00] text-base font-bold text-white hover:bg-[#F57C00]"
+        className="h-14 w-full rounded-xl bg-primary text-base font-bold text-white hover:bg-[var(--bf-orange-hover)]"
       >
         <Link
           href={`/etkinlik/${eventSlug}/bilet/${ticketType.id}/odeme?adet=${quantity}`}

@@ -264,7 +264,7 @@ export function PurchaseCheckoutForm({
             <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto text-sm text-muted-foreground">
               {ruleLines.map((line) => (
                 <li key={line} className="flex gap-2">
-                  <span className="text-[#FF8A00]">•</span>
+                  <span className="text-primary">•</span>
                   <span>{line}</span>
                 </li>
               ))}
@@ -283,7 +283,7 @@ export function PurchaseCheckoutForm({
 
         <section className="rounded-2xl border bg-card p-5 md:p-6">
           <h2 className="flex items-center gap-2 font-semibold">
-            <ShieldCheck className="size-5 text-[#FF8A00]" />
+            <ShieldCheck className="size-5 text-primary" />
             {isPaid ? 'Güvenli Ödeme' : 'Onay'}
           </h2>
           {isPaid ? (
@@ -295,7 +295,7 @@ export function PurchaseCheckoutForm({
               </p>
               <PaymentCardLogos />
               <p className="flex items-center gap-2">
-                <Lock className="size-3.5 shrink-0 text-[#FF8A00]" />
+                <Lock className="size-3.5 shrink-0 text-primary" />
                 SSL ile güvenli bağlantı
               </p>
               <p className="flex items-center gap-2">
@@ -314,7 +314,7 @@ export function PurchaseCheckoutForm({
           type="submit"
           size="lg"
           disabled={loading || (requiresRulesAcceptance && !rulesAccepted)}
-          className="h-14 w-full rounded-xl bg-[#FF8A00] text-base font-bold text-white hover:bg-[#F57C00] lg:hidden"
+          className="h-14 w-full rounded-xl bg-primary text-base font-bold text-white hover:bg-[var(--bf-orange-hover)] lg:hidden"
         >
           {loading
             ? 'İşleniyor...'
@@ -365,7 +365,7 @@ export function PurchaseCheckoutForm({
             type="submit"
             size="lg"
             disabled={loading || (requiresRulesAcceptance && !rulesAccepted)}
-            className="hidden h-12 w-full rounded-xl bg-[#FF8A00] font-bold text-white hover:bg-[#F57C00] lg:flex"
+            className="hidden h-12 w-full rounded-xl bg-primary font-bold text-white hover:bg-[var(--bf-orange-hover)] lg:flex"
           >
             {loading
               ? 'İşleniyor...'

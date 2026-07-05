@@ -83,7 +83,7 @@ export function EventCard({
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width:768px) 100vw, 33vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute inset-0 event-image-overlay" />
           <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
             <Badge className="mb-3 bg-white/20 text-white backdrop-blur-sm">
               {event.category}
@@ -109,7 +109,7 @@ export function EventCard({
   return (
     <div
       className={cn(
-        'card-premium group relative overflow-hidden rounded-[var(--radius-card)] border border-border/80 bg-card',
+        'card-premium group relative overflow-hidden rounded-[var(--radius-card)] border border-border/60 bg-card',
         className
       )}
     >
@@ -122,14 +122,14 @@ export function EventCard({
             className="object-cover transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:scale-[1.03]"
             sizes="(max-width:768px) 100vw, (max-width:1200px) 50vw, 33vw"
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 event-image-overlay-subtle" />
           {event.discountPercent && event.discountPercent > 0 && (
-            <Badge className="absolute left-3 top-3 bg-primary text-primary-foreground">
+            <Badge variant="discount" className="absolute left-3 top-3">
               %{event.discountPercent} indirim
             </Badge>
           )}
           {event.isFree && !event.discountPercent && (
-            <Badge className="absolute left-3 top-3 bg-emerald-500 text-white">
+            <Badge variant="free" className="absolute left-3 top-3">
               Ücretsiz
             </Badge>
           )}

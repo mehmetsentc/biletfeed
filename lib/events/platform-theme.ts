@@ -49,8 +49,8 @@ const EXTERNAL_THEMES: Record<string, PlatformTheme> = {
 
 const INTERNAL_THEME: PlatformTheme = {
   label: 'Bilet Feed',
-  accent: '#FF8A00',
-  accentSoft: 'rgba(255, 138, 0, 0.12)',
+  accent: '#EB672B',
+  accentSoft: 'rgba(235, 103, 43, 0.12)',
   ctaLabel: 'Bilet Al'
 };
 
@@ -64,8 +64,8 @@ export function getEventPlatformTheme(event: MockEvent): PlatformTheme {
   const label = getExternalPlatformLabel(event.externalPlatform) ?? 'Resmi site';
   return {
     label,
-    accent: '#FF8A00',
-    accentSoft: 'rgba(255, 138, 0, 0.12)',
+    accent: '#EB672B',
+    accentSoft: 'rgba(235, 103, 43, 0.12)',
     ctaLabel: `${label}'da Bilet Al`
   };
 }

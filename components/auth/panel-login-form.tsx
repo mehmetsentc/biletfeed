@@ -147,7 +147,7 @@ export function PanelLoginForm() {
               <Label htmlFor="panel-password">Şifre</Label>
               <Link
                 href="/sifremi-unuttum"
-                className="text-sm text-[#f5a623] hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 Şifremi unuttum
               </Link>
@@ -166,7 +166,7 @@ export function PanelLoginForm() {
 
           <Button
             type="submit"
-            className="w-full bg-[#f5a623] text-black hover:bg-[#e09510]"
+            className="w-full bg-primary text-black hover:bg-[var(--bf-orange-hover)]"
             disabled={loading}
           >
             {loading ? 'Giriş yapılıyor...' : 'Panele giriş yap'}
@@ -204,7 +204,7 @@ export function PanelLoginForm() {
           Bilet almak için{' '}
           <Link
             href={siteHref('/giris')}
-            className="text-[#f5a623] hover:underline"
+            className="text-primary hover:underline"
           >
             ana siteye giriş yapın
           </Link>

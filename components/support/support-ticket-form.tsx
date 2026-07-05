@@ -117,7 +117,7 @@ export function SupportTicketForm({
           Destek talebi göndermek için BiletFeed hesabınızla giriş yapın. Ana
           sitede oturumunuz açıksa tek tıkla senkronize olursunuz.
         </p>
-        <Button asChild className="mt-4 w-full bg-[#f5a623] hover:bg-[#e09520]">
+        <Button asChild className="mt-4 w-full bg-primary hover:bg-[var(--bf-orange-hover)]">
           <Link href={loginHref}>Giriş yap / oturumu eşitle</Link>
         </Button>
       </div>
@@ -135,7 +135,7 @@ export function SupportTicketForm({
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className="flex w-full items-center justify-between rounded-xl bg-zinc-50 px-4 py-3.5 text-left text-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f5a623]/40"
+            className="flex w-full items-center justify-between rounded-xl bg-zinc-50 px-4 py-3.5 text-left text-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <span>
               <span className="font-medium">{selected.label}</span>
@@ -170,7 +170,7 @@ export function SupportTicketForm({
                     </span>
                   </span>
                   {category === option.value && (
-                    <Check className="mt-0.5 size-4 shrink-0 text-[#f5a623]" />
+                    <Check className="mt-0.5 size-4 shrink-0 text-primary" />
                   )}
                 </button>
               ))}
@@ -189,7 +189,7 @@ export function SupportTicketForm({
           onChange={(e) => setBody(e.target.value.slice(0, MAX_LENGTH))}
           rows={8}
           placeholder="Sorununuzu, sipariş veya etkinlik bilgisini detaylı yazın…"
-          className="w-full resize-none rounded-xl border-0 bg-zinc-50 px-4 py-3 text-sm ring-1 ring-zinc-200 outline-none placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-[#f5a623]/40"
+          className="w-full resize-none rounded-xl border-0 bg-zinc-50 px-4 py-3 text-sm ring-1 ring-zinc-200 outline-none placeholder:text-zinc-400 focus:bg-white focus:ring-2 focus:ring-primary/40"
         />
         <div className="flex items-center justify-between gap-4 text-xs text-zinc-500">
           <span>Detaylı açıklama daha hızlı çözüm sağlar</span>
@@ -206,7 +206,7 @@ export function SupportTicketForm({
       )}
 
       {success && (
-        <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-[#c78600]">
+        <p className="rounded-xl bg-[var(--bf-orange-surface)] px-4 py-3 text-sm text-[#c78600]">
           Destek talebiniz alındı. En kısa sürede size dönüş yapacağız.
         </p>
       )}
@@ -214,7 +214,7 @@ export function SupportTicketForm({
       <Button
         type="submit"
         disabled={submitting || success}
-        className="h-12 w-full rounded-full bg-[#f5a623] text-base font-semibold hover:bg-[#e09520]"
+        className="h-12 w-full rounded-full bg-primary text-base font-semibold hover:bg-[var(--bf-orange-hover)]"
       >
         <Check className="size-4" />
         {submitting ? 'Gönderiliyor…' : 'Destek Talebi Gönder'}

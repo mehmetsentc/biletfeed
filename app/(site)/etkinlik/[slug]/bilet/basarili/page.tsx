@@ -73,8 +73,8 @@ export default async function TicketPurchaseSuccessPage({
 
   return (
     <div className="container mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center px-4 py-20 text-center">
-      <div className="flex size-20 items-center justify-center rounded-full bg-[#FFF4E8]">
-        <CheckCircle2 className="size-10 text-[#FF8A00]" />
+      <div className="flex size-20 items-center justify-center rounded-full bg-[var(--bf-orange-surface)]">
+        <CheckCircle2 className="size-10 text-primary" />
       </div>
       <h1 className="mt-6 text-2xl font-bold">Ödeme Başarılı!</h1>
       <p className="mt-2 text-muted-foreground">
@@ -83,7 +83,7 @@ export default async function TicketPurchaseSuccessPage({
       </p>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <Link href="/biletlerim">
-          <Button className="gap-2 bg-[#FF8A00] hover:bg-[#F57C00]">
+          <Button className="gap-2 bg-primary hover:bg-[var(--bf-orange-hover)]">
             <Ticket className="size-4" />
             Biletlerimi Gör
           </Button>

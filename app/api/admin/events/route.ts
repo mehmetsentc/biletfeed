@@ -1,40 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { guardAdminRead } from '@/lib/auth/guard-admin-api';
-import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { eventInclude, toMockEvent } from '@/lib/mappers/event';
+import {
+  adminEventEditorHasActiveFilter,
+  listAdminEditorEvents
+} from '@/lib/services/admin-events';
 
 export async function GET(request: NextRequest) {
   const guard = await guardAdminRead('events.view');
   if ('error' in guard) return guard.error;
 
-  await ensureDbConnection();
-
   const { searchParams } = new URL(request.url);
-  const needsReview = searchParams.get('needsReview') === '1';
-  const platform = searchParams.get('platform');
+  const filterInput = {
+    kategori: searchParams.get('kategori') ?? undefined,
+    sehir: searchParams.get('sehir') ?? undefined,
+    tarih: searchParams.get('tarih') ?? undefined,
+    q: searchParams.get('q') ?? undefined
+  };
 
-  const events = await prisma.event.findMany({
-    where: {
-      deletedAt: null,
-      listingType: 'external',
-      ...(platform ? { externalPlatform: platform as never } : {}),
-      ...(needsReview
-        ? {
-            OR: [
-              { tags: { has: 'eksik-gorsel' } },
-              { tags: { has: 'eksik-aciklama' } },
-              { coverImage: { contains: 'favicon' } }
-            ]
-          }
-        : {})
-    },
-    include: eventInclude,
-    orderBy: [{ startDate: 'asc' }],
-    take: 200
+  const { rows } = await listAdminEditorEvents({
+    ...filterInput,
+    upcomingOnly: !adminEventEditorHasActiveFilter(filterInput)
   });
 
   return NextResponse.json({
-    events: events.map(toMockEvent),
-    total: events.length
+    events: rows,
+    total: rows.length
   });
 }

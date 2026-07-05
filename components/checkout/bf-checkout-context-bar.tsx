@@ -17,7 +17,7 @@ export function BfCheckoutContextBar({
   const back = backHref ?? `/etkinlik/${event.slug}`;
 
   return (
-    <div className="relative overflow-hidden bg-[#0A0A0A] text-white">
+    <div className="relative overflow-hidden bg-[#1A1A1A] text-white">
       <div
         className="pointer-events-none absolute left-0 top-0 h-full w-16 bg-primary sm:w-20"
         style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}

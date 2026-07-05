@@ -28,6 +28,13 @@ const DATE_LABELS: Record<DatePreset, string> = {
   weekend: 'Bu Hafta Sonu'
 };
 
+const DATE_LABELS_SHORT: Record<DatePreset, string> = {
+  any: 'Tüm tarihler',
+  today: 'Bugün',
+  tomorrow: 'Yarın',
+  weekend: 'Hafta sonu'
+};
+
 function formatDateInput(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -51,18 +58,26 @@ type HomeEventSearchBarProps = {
   className?: string;
 };
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+    <span
+      className={cn(
+        'mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground',
+        className
+      )}
+    >
       {children}
     </span>
   );
 }
 
-function SelectChevron() {
+function SelectChevron({ className }: { className?: string }) {
   return (
     <ChevronDown
-      className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+      className={cn(
+        'pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground lg:right-3 lg:size-4',
+        className
+      )}
       aria-hidden
     />
   );
@@ -93,6 +108,11 @@ export function HomeEventSearchBar({
     return SUPPORTED_CITIES.find((c) => c.slug === citySlug)?.name ?? 'Herhangi Yer';
   }, [citySlug]);
 
+  const categoryLabel = useMemo(() => {
+    if (!category) return 'Kategori';
+    return categories.find((c) => c.slug === category)?.name ?? 'Kategori';
+  }, [category, categories]);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const params = new URLSearchParams();
@@ -107,8 +127,11 @@ export function HomeEventSearchBar({
     router.push(qs ? `/etkinlikler?${qs}` : '/etkinlikler');
   }
 
-  const fieldClass =
+  const fieldClassDesktop =
     'h-11 w-full appearance-none rounded-lg border-0 bg-transparent pl-9 pr-8 text-base font-semibold text-foreground outline-none sm:text-sm';
+
+  const fieldClassMobile =
+    'h-9 w-full appearance-none truncate rounded-lg border border-border/60 bg-muted/30 pl-8 pr-7 text-xs font-semibold text-foreground outline-none';
 
   return (
     <form
@@ -118,9 +141,129 @@ export function HomeEventSearchBar({
         className
       )}
     >
-      <div className="grid grid-cols-1 divide-y divide-border/70 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto_auto] lg:divide-x lg:divide-y-0">
-        {/* Arama */}
-        <div className="relative px-3 py-2.5 lg:py-3">
+      {/* —— Mobil: kompakt 2 satır —— */}
+      <div className="space-y-2 p-2.5 lg:hidden">
+        <div className="flex gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Etkinlik, mekân, sanatçı…"
+              className="h-10 w-full rounded-xl border border-border/60 bg-muted/30 pl-9 pr-3 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+              autoComplete="off"
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn-gradient-primary h-10 shrink-0 rounded-xl px-4 text-sm font-bold text-primary-foreground shadow-sm"
+          >
+            Ara
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="relative min-w-0">
+            <Tag
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-primary"
+              aria-hidden
+            />
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className={fieldClassMobile}
+              aria-label="Kategori seç"
+            >
+              <option value="">Kategori</option>
+              {categories.map((cat) => (
+                <option key={cat.slug} value={cat.slug}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <SelectChevron />
+          </div>
+
+          <div className="relative min-w-0">
+            <MapPin
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-primary"
+              aria-hidden
+            />
+            <select
+              value={citySlug}
+              onChange={(e) => setCitySlug(e.target.value)}
+              className={fieldClassMobile}
+              aria-label="Şehir seç"
+            >
+              <option value="">Konum</option>
+              {SUPPORTED_CITIES.map((city) => (
+                <option key={city.slug} value={city.slug}>
+                  {city.name}
+                </option>
+              ))}
+            </select>
+            <SelectChevron />
+          </div>
+
+          <div className="relative min-w-0">
+            <CalendarDays
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-primary"
+              aria-hidden
+            />
+            <select
+              value={datePreset}
+              onChange={(e) => setDatePreset(e.target.value as DatePreset)}
+              className={fieldClassMobile}
+              aria-label="Tarih seç"
+            >
+              {(Object.keys(DATE_LABELS_SHORT) as DatePreset[]).map((key) => (
+                <option key={key} value={key}>
+                  {DATE_LABELS_SHORT[key]}
+                </option>
+              ))}
+            </select>
+            <SelectChevron />
+          </div>
+
+          <label
+            className={cn(
+              'flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition-colors',
+              onlineOnly
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : 'border-border/60 bg-muted/30 text-foreground'
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={onlineOnly}
+              onChange={(e) => setOnlineOnly(e.target.checked)}
+              className="sr-only"
+            />
+            <Globe className="size-3.5 shrink-0" aria-hidden />
+            Online
+          </label>
+        </div>
+
+        <p className="truncate px-0.5 text-center text-[11px] text-muted-foreground">
+          {cityName !== 'Herhangi Yer' ? (
+            <span className="font-semibold text-foreground">{cityName}</span>
+          ) : (
+            'Tüm şehirler'
+          )}
+          {' · '}
+          {categoryLabel}
+          {' · '}
+          {DATE_LABELS_SHORT[datePreset]}
+        </p>
+      </div>
+
+      {/* —— Masaüstü: mevcut yatay şerit —— */}
+      <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto_auto] lg:divide-x lg:divide-y-0 lg:divide-border/70">
+        <div className="relative px-3 py-3">
           <FieldLabel>Arama</FieldLabel>
           <Search
             className="pointer-events-none absolute left-3 top-[calc(50%+6px)] size-4 -translate-y-1/2 text-muted-foreground"
@@ -131,13 +274,12 @@ export function HomeEventSearchBar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Etkinlik, mekân, sanatçı…"
-            className={fieldClass}
+            className={fieldClassDesktop}
             autoComplete="off"
           />
         </div>
 
-        {/* Kategori */}
-        <div className="relative px-3 py-2.5 lg:py-3">
+        <div className="relative px-3 py-3">
           <FieldLabel>Kategori</FieldLabel>
           <Tag
             className="pointer-events-none absolute left-3 top-[calc(50%+6px)] size-4 -translate-y-1/2 text-muted-foreground"
@@ -146,7 +288,7 @@ export function HomeEventSearchBar({
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className={fieldClass}
+            className={fieldClassDesktop}
             aria-label="Kategori seç"
           >
             <option value="">Herhangi Kategori</option>
@@ -159,8 +301,7 @@ export function HomeEventSearchBar({
           <SelectChevron />
         </div>
 
-        {/* Konum */}
-        <div className="relative px-3 py-2.5 lg:py-3">
+        <div className="relative px-3 py-3">
           <FieldLabel>Konum</FieldLabel>
           <MapPin
             className="pointer-events-none absolute left-3 top-[calc(50%+6px)] size-4 -translate-y-1/2 text-muted-foreground"
@@ -169,7 +310,7 @@ export function HomeEventSearchBar({
           <select
             value={citySlug}
             onChange={(e) => setCitySlug(e.target.value)}
-            className={fieldClass}
+            className={fieldClassDesktop}
             aria-label="Şehir seç"
           >
             <option value="">Herhangi Yer</option>
@@ -182,8 +323,7 @@ export function HomeEventSearchBar({
           <SelectChevron />
         </div>
 
-        {/* Tarih */}
-        <div className="relative px-3 py-2.5 lg:py-3">
+        <div className="relative px-3 py-3">
           <FieldLabel>Tarih</FieldLabel>
           <CalendarDays
             className="pointer-events-none absolute left-3 top-[calc(50%+6px)] size-4 -translate-y-1/2 text-muted-foreground"
@@ -192,7 +332,7 @@ export function HomeEventSearchBar({
           <select
             value={datePreset}
             onChange={(e) => setDatePreset(e.target.value as DatePreset)}
-            className={fieldClass}
+            className={fieldClassDesktop}
             aria-label="Tarih seç"
           >
             {(Object.keys(DATE_LABELS) as DatePreset[]).map((key) => (
@@ -204,32 +344,30 @@ export function HomeEventSearchBar({
           <SelectChevron />
         </div>
 
-        {/* Online */}
-        <label className="flex cursor-pointer items-center justify-center gap-2 px-3 py-3 text-sm font-semibold text-foreground transition hover:bg-muted/40 lg:min-w-[7rem] lg:flex-col lg:gap-1 lg:py-3">
+        <label className="flex min-w-[7rem] cursor-pointer flex-col items-center justify-center gap-1 px-3 py-3 text-sm font-semibold text-foreground transition hover:bg-muted/40">
           <input
             type="checkbox"
             checked={onlineOnly}
             onChange={(e) => setOnlineOnly(e.target.checked)}
             className="size-4 rounded border-border text-primary focus:ring-primary"
           />
-          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide lg:flex-col">
+          <span className="flex flex-col items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
             <Globe className="size-4 shrink-0 text-primary" aria-hidden />
             Online
           </span>
         </label>
 
-        {/* Ara butonu */}
-        <div className="flex items-stretch p-2 lg:p-0">
+        <div className="flex items-stretch">
           <button
             type="submit"
-            className="btn-gradient-primary flex w-full min-w-[5.5rem] items-center justify-center rounded-xl px-6 py-3 text-sm font-bold uppercase tracking-wide text-primary-foreground shadow-[var(--shadow-sm)] transition hover:-translate-y-px hover:shadow-[var(--shadow-md)] lg:rounded-none lg:px-8"
+            className="btn-gradient-primary flex min-w-[5.5rem] items-center justify-center px-8 py-3 text-sm font-bold uppercase tracking-wide text-primary-foreground shadow-[var(--shadow-sm)] transition hover:-translate-y-px hover:shadow-[var(--shadow-md)]"
           >
             Ara
           </button>
         </div>
       </div>
 
-      <p className="border-t border-border/60 bg-muted/30 px-4 py-2 text-center text-xs text-muted-foreground md:text-left">
+      <p className="hidden border-t border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground lg:block">
         {cityName !== 'Herhangi Yer' ? (
           <>
             Seçili şehir: <span className="font-semibold text-foreground">{cityName}</span>

@@ -23,7 +23,7 @@ export function OrganizerAuthShell({ children }: OrganizerAuthShellProps) {
         <div className="relative z-10 flex flex-col justify-between p-10 text-white">
           <Logo href="/baslangic" variant="on-dark" />
           <div>
-            <p className="text-sm font-medium uppercase tracking-wider text-[#f5a623]">
+            <p className="text-sm font-medium uppercase tracking-wider text-primary">
               Organizatör Paneli
             </p>
             <h1 className="mt-3 text-3xl font-bold leading-tight md:text-4xl">
@@ -49,7 +49,7 @@ export function OrganizerAuthShell({ children }: OrganizerAuthShellProps) {
         <p className="mt-8 text-center text-sm text-white/50 lg:hidden">
           <Link
             href={siteHref('/')}
-            className="underline-offset-4 hover:text-[#f5a623] hover:underline"
+            className="underline-offset-4 hover:text-primary hover:underline"
           >
             BiletFeed ana siteye dön
           </Link>

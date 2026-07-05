@@ -42,11 +42,11 @@ export default async function PaymentSuccessPage({ searchParams }: Props) {
   return (
     <div className="relative min-h-[70vh] overflow-hidden bg-zinc-50">
       <div
-        className="absolute inset-x-0 top-0 h-48 bg-gradient-to-br from-primary via-[#FF9F2E] to-[#F57C00]"
+        className="absolute inset-x-0 top-0 h-48 bg-gradient-to-br from-primary via-bf-orange-400 to-bf-orange-600"
         aria-hidden
       />
       <div
-        className="pointer-events-none absolute left-0 top-0 h-32 w-20 bg-[#0A0A0A] opacity-20"
+        className="pointer-events-none absolute left-0 top-0 h-32 w-20 bg-[#1A1A1A] opacity-20"
         style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}
         aria-hidden
       />

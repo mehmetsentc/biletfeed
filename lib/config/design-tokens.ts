@@ -1,59 +1,102 @@
 /**
  * BiletFeed Design System — TypeScript token referansı
- * CSS kaynağı: app/theme.css
+ * Tek kaynak CSS: app/theme.css
+ * Logo turuncusu: premium, sıcak, hafif kırmızı alt ton (#EB672B)
  */
 export const designTokens = {
   color: {
-    primary: '#FF8A00',
-    primaryHover: '#F57C00',
-    primaryPressed: '#E56F00',
-    primarySoft: '#FFF4E8',
-    primaryBorder: '#FFD199',
-    dark: {
-      bg: '#0A0A0A',
-      surface: '#101010',
-      card: '#151515',
-      border: '#2B2B2B'
+    orange: {
+      50: '#FFF5EE',
+      100: '#FFE7D6',
+      200: '#FFD4B8',
+      300: '#FFB888',
+      400: '#F58A17',
+      500: '#EB672B',
+      600: '#D9581C',
+      700: '#C44A18',
+      800: '#A33D14',
+      900: '#7A2E0F',
+      950: '#451A08'
+    },
+    primary: '#EB672B',
+    primaryLight: '#F58A17',
+    primaryHover: '#D9581C',
+    primaryPressed: '#C44A18',
+    primarySoft: '#FFE7D6',
+    primarySurface: '#FFF5EE',
+    primaryBorder: '#FFD4B8',
+    text: {
+      primary: '#1A1A1A',
+      secondary: '#525252',
+      muted: '#737373',
+      disabled: '#A3A3A3',
+      inverse: '#FFFFFF',
+      link: '#EB672B',
+      linkHover: '#D9581C'
     },
     light: {
-      bg: '#FFFFFF',
-      surface: '#FAFAFA',
+      background: '#FAFAFA',
+      surface: '#FFFFFF',
       card: '#FFFFFF',
-      border: '#E9E9E9'
+      sidebar: '#FFFFFF',
+      navbar: '#FFFFFF',
+      divider: '#ECECEC',
+      input: '#FFFFFF',
+      secondary: '#F7F7F7',
+      muted: '#F5F5F5'
     },
-    text: {
-      primary: '#111111',
-      secondary: '#5A5A5A',
-      muted: '#777777',
-      inverse: '#FFFFFF'
+    dark: {
+      background: '#111111',
+      surface: '#181818',
+      card: '#1D1D1D',
+      sidebar: '#171717',
+      navbar: '#181818',
+      border: '#2A2A2A',
+      input: '#202020'
     },
     status: {
       success: '#16A34A',
-      warning: '#F59E0B',
+      successSoft: '#DCFCE7',
+      warning: '#D97706',
+      warningSoft: '#FEF3C7',
       danger: '#DC2626',
-      info: '#2563EB'
+      dangerSoft: '#FEE2E2',
+      info: '#2563EB',
+      infoSoft: '#DBEAFE'
     }
   },
   radius: {
-    button: 14,
-    input: 14,
-    card: 20,
-    dialog: 24,
-    image: 18
+    sm: 8,
+    button: 12,
+    input: 12,
+    badge: 8,
+    card: 16,
+    cardLg: 20,
+    dialog: 20,
+    image: 16,
+    full: 9999
+  },
+  shadow: {
+    card: '0 2px 12px rgba(26, 26, 26, 0.06)',
+    cardHover: '0 12px 32px rgba(26, 26, 26, 0.1)',
+    focus: '0 0 0 3px color-mix(in srgb, #EB672B 32%, transparent)'
   },
   spacing: [4, 8, 12, 16, 20, 24, 32, 48, 64] as const,
   motion: {
-    hover: 150,
-    fade: 250,
-    page: 300
+    fast: 180,
+    normal: 220,
+    slow: 280,
+    ease: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
   },
   typography: {
-    fontFamily: 'var(--font-sans), system-ui, sans-serif',
-    weights: {
-      normal: 400,
-      semibold: 600,
-      bold: 700
-    }
+    fontFamily: 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
+    display: { size: '2.75rem', weight: 800, lineHeight: 1.1 },
+    heading: { size: '2rem', weight: 800, lineHeight: 1.2 },
+    title: { size: '1.25rem', weight: 700, lineHeight: 1.3 },
+    subtitle: { size: '1rem', weight: 600, lineHeight: 1.4 },
+    body: { size: '1rem', weight: 400, lineHeight: 1.6 },
+    caption: { size: '0.75rem', weight: 500, lineHeight: 1.5 },
+    label: { size: '0.6875rem', weight: 600, lineHeight: 1.4, letterSpacing: '0.06em' }
   }
 } as const;
 

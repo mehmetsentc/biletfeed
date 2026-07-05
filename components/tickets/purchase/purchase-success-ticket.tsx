@@ -54,7 +54,7 @@ export function PurchaseSuccessTicket({
   return (
     <div
       className={cn(
-        'min-h-screen bg-[#FF8A00] px-4 py-8 md:py-12',
+        'min-h-screen bg-primary px-4 py-8 md:py-12',
         className
       )}
     >
@@ -80,7 +80,7 @@ export function PurchaseSuccessTicket({
 
         <article className="overflow-hidden rounded-2xl bg-white shadow-2xl">
           <div className="border-b border-border/60 px-6 py-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#FF8A00]">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">
               Etkinlik Bileti
             </p>
             <h2 className="mt-1 text-lg font-extrabold leading-snug text-foreground">
@@ -106,7 +106,7 @@ export function PurchaseSuccessTicket({
                 key={label}
                 className="rounded-xl border border-border/60 bg-white px-3 py-2.5"
               >
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#FF8A00]">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-primary">
                   {label}
                 </p>
                 <p className="mt-0.5 text-xs font-semibold leading-snug text-foreground">
@@ -135,7 +135,7 @@ export function PurchaseSuccessTicket({
           <Button
             asChild
             variant="secondary"
-            className="h-12 flex-1 rounded-xl bg-white font-bold text-[#FF8A00] hover:bg-white/90"
+            className="h-12 flex-1 rounded-xl bg-white font-bold text-primary hover:bg-white/90"
           >
             <Link href="/biletlerim">Biletlerim</Link>
           </Button>

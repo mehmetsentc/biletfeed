@@ -1,23 +1,28 @@
-/** BiletFeed marka renkleri — logo referans: Siyah · Beyaz · #FF8A00 */
+import { designTokens } from '@/lib/config/design-tokens';
+
+/** BiletFeed marka renkleri — logo referans (#EB672B premium turuncu) */
 export const brandTheme = {
-  orange: '#FF8A00',
-  orangeHover: '#F57C00',
-  orangePressed: '#E56F00',
-  orangeSoft: '#FFF4E8',
-  orangeBorder: '#FFD199',
-  black: '#0A0A0A',
-  white: '#FFFFFF',
-  surfaceDark: '#0A0A0A',
-  surfaceElevated: '#151515',
-  surfaceCard: '#151515',
-  hero: '#FFFFFF',
+  orange: designTokens.color.primary,
+  orangeLight: designTokens.color.primaryLight,
+  orangeHover: designTokens.color.primaryHover,
+  orangePressed: designTokens.color.primaryPressed,
+  orangeSoft: designTokens.color.primarySoft,
+  orangeSurface: designTokens.color.primarySurface,
+  orangeBorder: designTokens.color.primaryBorder,
+  orangeScale: designTokens.color.orange,
+  black: designTokens.color.text.primary,
+  white: designTokens.color.text.inverse,
+  surfaceDark: designTokens.color.dark.background,
+  surfaceElevated: designTokens.color.dark.surface,
+  surfaceCard: designTokens.color.dark.card,
+  hero: designTokens.color.light.background,
   gray: {
-    50: '#FAFAFA',
-    100: '#F5F5F5',
-    400: '#A3A3A3',
-    500: '#777777',
-    600: '#5A5A5A',
-    900: '#111111'
+    50: designTokens.color.light.background,
+    100: designTokens.color.light.muted,
+    400: designTokens.color.text.disabled,
+    500: designTokens.color.text.muted,
+    600: designTokens.color.text.secondary,
+    900: designTokens.color.text.primary
   }
 } as const;
 
@@ -27,7 +32,7 @@ export const brandLogos = {
   favicon: '/brand/favicon.png'
 } as const;
 
-export const brandAssetsVersion = '16';
+export const brandAssetsVersion = '17';
 
 export function brandAssetUrl(path: string): string {
   return `${path}?v=${brandAssetsVersion}`;

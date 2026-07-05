@@ -61,7 +61,7 @@ export function PanelAlreadySignedIn() {
   }
 
   return (
-    <Card className="mb-4 w-full max-w-md border-[#f5a623]/40 bg-[#151a24] text-white">
+    <Card className="mb-4 w-full max-w-md border-[var(--bf-orange-border)] bg-[#151a24] text-white">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Panele giriş yapıldı</CardTitle>
         <CardDescription className="text-white/60">{email}</CardDescription>
@@ -73,7 +73,7 @@ export function PanelAlreadySignedIn() {
           </p>
         )}
         <Button
-          className="w-full bg-[#f5a623] text-black hover:bg-[#e09510]"
+          className="w-full bg-primary text-black hover:bg-[var(--bf-orange-hover)]"
           onClick={() => void continueToPanel()}
           disabled={syncing}
         >

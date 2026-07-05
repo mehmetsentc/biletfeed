@@ -1,61 +1,41 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Suspense } from 'react';
-import type { Prisma } from '@prisma/client';
 import { formatEventDate, formatEventTimeRange } from '@/lib/data/mock-events';
-import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { eventInclude, toMockEvent } from '@/lib/mappers/event';
+import {
+  adminEventEditorHasActiveFilter,
+  listAdminEditorEvents
+} from '@/lib/services/admin-events';
+import { isUpcomingEvent } from '@/lib/events/upcoming';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrapeNowButton } from '@/components/admin/scrape-now-button';
 import { EventFilters } from '@/components/admin/event-filters';
 
 export default async function AdminEventsPage({
   searchParams
 }: {
-  searchParams: Promise<{ review?: string; kategori?: string; sehir?: string; tarih?: string }>;
+  searchParams: Promise<{
+    kategori?: string;
+    sehir?: string;
+    tarih?: string;
+    q?: string;
+  }>;
 }) {
-  const { review, kategori, sehir, tarih } = await searchParams;
-  await ensureDbConnection();
+  const { kategori, sehir, tarih, q } = await searchParams;
 
-  // Filtre koşulları
-  const where: Prisma.EventWhereInput = {
-    deletedAt: null,
-    listingType: 'external',
-    ...(review === '1' ? {
-      OR: [
-        { tags: { has: 'eksik-gorsel' } },
-        { tags: { has: 'eksik-aciklama' } }
-      ]
-    } : {}),
-    ...(kategori ? { category: { slug: kategori } } : {}),
-    ...(sehir ? { city: { slug: sehir } } : {}),
-    ...(tarih ? { startDate: { gte: new Date(tarih) } } : {}),
+  const filterInput = {
+    kategori: kategori || undefined,
+    sehir: sehir || undefined,
+    tarih: tarih || undefined,
+    q: q || undefined
   };
 
-  const [events, allCities] = await Promise.all([
-    prisma.event.findMany({
-      where,
-      include: eventInclude,
-      orderBy: [{ startDate: 'asc' }],
-      take: 300
-    }),
-    prisma.city.findMany({
-      where: { deletedAt: null },
-      orderBy: { name: 'asc' },
-      select: { slug: true, name: true }
-    })
-  ]);
+  const searching = adminEventEditorHasActiveFilter(filterInput);
 
-  const rows = events.map(toMockEvent);
-  const needsReview = rows.filter(
-    (e) =>
-      e.tags.includes('eksik-gorsel') ||
-      e.tags.includes('eksik-aciklama') ||
-      e.coverImage.includes('favicon')
-  ).length;
-
-  const cityNames = allCities.map((c) => c.slug);
+  const { rows, cities } = await listAdminEditorEvents({
+    ...filterInput,
+    upcomingOnly: !searching
+  });
 
   return (
     <div className="space-y-4">
@@ -63,23 +43,17 @@ export default async function AdminEventsPage({
         <div>
           <h1 className="text-2xl font-bold">Etkinlik Editörü</h1>
           <p className="text-sm text-muted-foreground">
-            {rows.length} etkinlik gösteriliyor
-            {needsReview > 0 && ` · ${needsReview} inceleme bekliyor`}
+            {rows.length} onaylı organizatör etkinliği
+            {searching ? ' · arama sonucu (geçmiş dahil)' : ' · yaklaşan'}
           </p>
         </div>
-        <div className="flex flex-wrap items-start gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/admin/etkinlikler">Tümü</Link>
-          </Button>
-          <Button variant={review === '1' ? 'default' : 'outline'} asChild>
-            <Link href="/admin/etkinlikler?review=1">Eksik bilgi</Link>
-          </Button>
-          <ScrapeNowButton />
-        </div>
+        <Button variant="outline" asChild>
+          <Link href="/admin/etkinlikler">Yaklaşanlar</Link>
+        </Button>
       </div>
 
       <Suspense>
-        <EventFilters cities={cityNames} />
+        <EventFilters cities={cities} />
       </Suspense>
 
       <div className="overflow-hidden rounded-lg border">
@@ -90,63 +64,84 @@ export default async function AdminEventsPage({
               <th className="p-3 font-medium">Tarih / Saat</th>
               <th className="p-3 font-medium">Kategori</th>
               <th className="p-3 font-medium">Şehir</th>
-              <th className="p-3 font-medium">Kaynak</th>
+              <th className="p-3 font-medium">Organizatör</th>
               <th className="p-3 font-medium">Durum</th>
               <th className="p-3 font-medium" />
             </tr>
           </thead>
           <tbody>
-            {rows.map((event) => (
-              <tr key={event.id} className="border-b last:border-0 hover:bg-muted/20">
-                <td className="p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative size-12 shrink-0 overflow-hidden rounded bg-muted">
-                      {event.coverImage && (
-                        <Image
-                          src={event.coverImage}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      )}
+            {rows.map((event) => {
+              const upcoming = isUpcomingEvent(event);
+              return (
+                <tr key={event.id} className="border-b last:border-0 hover:bg-muted/20">
+                  <td className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative size-12 shrink-0 overflow-hidden rounded bg-muted">
+                        {event.coverImage && (
+                          <Image
+                            src={event.coverImage}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="font-medium line-clamp-2">{event.title}</span>
+                        <a
+                          href={`/etkinlik/${event.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline"
+                        >
+                          Sitede gör
+                        </a>
+                      </div>
                     </div>
-                    <span className="font-medium line-clamp-2">{event.title}</span>
-                  </div>
-                </td>
-                <td className="p-3 whitespace-nowrap text-muted-foreground">
-                  {formatEventDate(event.startDate)}
-                  <br />
-                  {formatEventTimeRange(event)}
-                </td>
-                <td className="p-3">
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
-                    {event.categorySlug || '—'}
-                  </span>
-                </td>
-                <td className="p-3 text-sm">{event.city}</td>
-                <td className="p-3 text-xs text-muted-foreground">{event.externalPlatform || '—'}</td>
-                <td className="p-3">
-                  <div className="flex flex-wrap gap-1">
-                    {event.tags.includes('eksik-gorsel') && (
-                      <Badge variant="destructive" className="text-xs">Görsel</Badge>
-                    )}
-                    {event.tags.includes('eksik-aciklama') && (
-                      <Badge variant="secondary" className="text-xs">Açıklama</Badge>
-                    )}
-                  </div>
-                </td>
-                <td className="p-3">
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href={`/admin/etkinlikler/${event.id}`}>Düzenle</Link>
-                  </Button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="p-3 whitespace-nowrap text-muted-foreground">
+                    {formatEventDate(event.startDate)}
+                    <br />
+                    {formatEventTimeRange(event)}
+                  </td>
+                  <td className="p-3">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                      {event.category || event.categorySlug || '—'}
+                    </span>
+                  </td>
+                  <td className="p-3 text-sm">{event.city}</td>
+                  <td className="p-3 text-xs text-muted-foreground">{event.organizer}</td>
+                  <td className="p-3">
+                    <Badge variant={upcoming ? 'success' : 'secondary'} className="text-xs">
+                      {upcoming ? 'Yayında' : 'Geçmiş'}
+                    </Badge>
+                  </td>
+                  <td className="p-3">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/admin/etkinlikler/${event.id}`}>Düzenle</Link>
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
             {rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                  Filtrele uyan etkinlik yok.
+                  <p>
+                    {searching
+                      ? 'Arama kriterlerine uyan etkinlik bulunamadı.'
+                      : 'Yaklaşan onaylı etkinlik yok.'}
+                  </p>
+                  {!searching && (
+                    <p className="mt-2 text-xs">
+                      Onay bekleyenler için{' '}
+                      <Link href="/admin/etkinlik-onay" className="text-primary hover:underline">
+                        Etkinlik Onay
+                      </Link>
+                      {' · '}Geçmiş etkinlikler için kategori veya arama kullanın
+                    </p>
+                  )}
                 </td>
               </tr>
             )}

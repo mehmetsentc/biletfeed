@@ -50,7 +50,7 @@ export function TicketTierList({
                 {type.showLowStockBadge && available && (
                   <Badge
                     variant="secondary"
-                    className="rounded-full bg-[#FFF4E8] text-[#FF8A00]"
+                    className="rounded-full bg-[var(--bf-orange-surface)] text-primary"
                   >
                     Tükenmek üzere
                   </Badge>
@@ -73,7 +73,7 @@ export function TicketTierList({
               {available ? (
                 <Button
                   asChild
-                  className="h-11 rounded-xl bg-[#FF8A00] px-6 font-bold text-white hover:bg-[#F57C00]"
+                  className="h-11 rounded-xl bg-primary px-6 font-bold text-white hover:bg-[var(--bf-orange-hover)]"
                 >
                   <Link href={`/etkinlik/${eventSlug}/bilet/${type.id}`}>
                     <Ticket className="size-4" />

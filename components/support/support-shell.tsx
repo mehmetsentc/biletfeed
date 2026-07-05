@@ -14,19 +14,19 @@ export function SupportFooter() {
         <div className="flex flex-wrap gap-4 text-sm">
           <Link
             href={getSiteUrl('/')}
-            className="text-zinc-600 hover:text-[#f5a623]"
+            className="text-zinc-600 hover:text-primary"
           >
             biletfeed.com
           </Link>
           <Link
             href={getSiteUrl('/gizlilik')}
-            className="text-zinc-600 hover:text-[#f5a623]"
+            className="text-zinc-600 hover:text-primary"
           >
             Gizlilik
           </Link>
           <Link
             href={getSiteUrl('/kosullar')}
-            className="text-zinc-600 hover:text-[#f5a623]"
+            className="text-zinc-600 hover:text-primary"
           >
             Kullanım Koşulları
           </Link>

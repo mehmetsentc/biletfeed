@@ -80,7 +80,7 @@ export function SupportHeaderAuth({
       <Link
         href={accountSiteHref('/profil/destek')}
         className={cn(
-          'rounded-lg border border-[#f5a623]/40 bg-amber-50 px-4 py-2 text-sm font-semibold text-[#c78600] transition-colors hover:bg-amber-100',
+          'rounded-lg border border-[var(--bf-orange-border)] bg-[var(--bf-orange-surface)] px-4 py-2 text-sm font-semibold text-[#c78600] transition-colors hover:bg-[var(--bf-orange-soft)]',
           className
         )}
       >
@@ -93,7 +93,7 @@ export function SupportHeaderAuth({
     <Link
       href={loginHref}
       className={cn(
-        'rounded-lg bg-[#f5a623] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90',
+        'rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90',
         className
       )}
     >

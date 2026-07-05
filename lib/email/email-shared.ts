@@ -10,7 +10,7 @@ export const EMAIL_BRAND = {
   pageBg: '#F4F4F5',
   cardBg: '#FFFFFF',
   headerBg: '#FFFFFF',
-  text: '#111111',
+  text: '#1A1A1A',
   textSecondary: '#52525B',
   textMuted: '#71717A',
   border: '#E4E4E7',
@@ -79,7 +79,7 @@ export function emailAccentBar(): string {
 export function emailPrimaryButton(href: string, label: string): string {
   return `
     <a href="${href}"
-       style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:#111111;font-size:15px;font-weight:700;text-decoration:none;border-radius:999px;letter-spacing:0.2px;">
+       style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:999px;letter-spacing:0.2px;">
       ${esc(label)}
     </a>`;
 }

@@ -34,7 +34,7 @@ export function BfOrderSummary({
         className
       )}
     >
-      <div className="h-1 bg-gradient-to-r from-primary to-[#F57C00]" />
+      <div className="h-1 bg-gradient-to-r from-primary to-bf-orange-600" />
       <div className="p-5">
         <h3 className="text-sm font-bold text-foreground">Sipariş Özeti</h3>
 

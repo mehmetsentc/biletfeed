@@ -32,15 +32,15 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#FF8A00] via-[#FF9F2E] to-[#F57C00] px-4 py-8">
+    <div className="relative min-h-screen bg-gradient-to-br from-bf-orange-500 via-bf-orange-400 to-bf-orange-600 px-4 py-8">
       <div
         className="pointer-events-none absolute left-0 top-0 h-32 w-24 opacity-30 sm:h-40 sm:w-32"
-        style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', background: '#0A0A0A' }}
+        style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', background: '#1A1A1A' }}
         aria-hidden
       />
       <div
         className="pointer-events-none absolute bottom-0 right-0 h-32 w-24 opacity-20 sm:h-40 sm:w-32"
-        style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)', background: '#0A0A0A' }}
+        style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)', background: '#1A1A1A' }}
         aria-hidden
       />
 

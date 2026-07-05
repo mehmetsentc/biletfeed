@@ -348,7 +348,7 @@ export function CheckoutForm({
                       <label className="flex cursor-pointer items-start gap-2 text-sm">
                         <input
                           type="checkbox"
-                          className="mt-1 accent-[#FF8A00]"
+                          className="mt-1 accent-primary"
                           checked={rulesAccepted}
                           onChange={(e) => setRulesAccepted(e.target.checked)}
                         />

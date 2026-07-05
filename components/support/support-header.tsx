@@ -25,7 +25,7 @@ export async function SupportHeader() {
               href={item.href}
               className={cn(
                 'rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors',
-                'hover:bg-amber-50 hover:text-[#f5a623]'
+                'hover:bg-[var(--bf-orange-surface)] hover:text-primary'
               )}
             >
               {item.label}
