@@ -11,8 +11,6 @@ import {
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
-import { useAccountMode } from '@/hooks/use-account-mode';
-import { useOrganizerApproval } from '@/hooks/use-organizer-approval';
 import { isAccountAreaActive } from '@/lib/account/navigation';
 import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -22,8 +20,6 @@ import { cn } from '@/lib/utils';
 export function ProfileDropdown() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const { isOrganizerMode, isModeLocked } = useAccountMode();
-  const { isApproved } = useOrganizerApproval();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -110,32 +106,30 @@ export function ProfileDropdown() {
             onNavigate={() => setOpen(false)}
             onSignOut={handleSignOut}
             organizerLinks={
-              isModeLocked && isOrganizerMode && isApproved ? (
-                <>
-                  <div className="my-1 border-t border-border" />
-                  <Link
-                    href={panelHref('/organizator-panel/etkinlik/yeni')}
-                    {...PANEL_EXTERNAL_LINK_PROPS}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
-                  >
-                    <Plus className="size-4 shrink-0" strokeWidth={1.75} />
-                    Etkinlik Oluştur
-                  </Link>
-                  <Link
-                    href={panelHref('/organizator-panel/baslangic')}
-                    {...PANEL_EXTERNAL_LINK_PROPS}
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    <LayoutDashboard
-                      className="size-4 shrink-0"
-                      strokeWidth={1.75}
-                    />
-                    Organizatör Panel
-                  </Link>
-                </>
-              ) : undefined
+              <>
+                <div className="my-1 border-t border-border" />
+                <Link
+                  href={panelHref('/organizator-panel/etkinlik/yeni')}
+                  {...PANEL_EXTERNAL_LINK_PROPS}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+                >
+                  <Plus className="size-4 shrink-0" strokeWidth={1.75} />
+                  Etkinlik Oluştur
+                </Link>
+                <Link
+                  href={panelHref('/organizator-panel/baslangic')}
+                  {...PANEL_EXTERNAL_LINK_PROPS}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <LayoutDashboard
+                    className="size-4 shrink-0"
+                    strokeWidth={1.75}
+                  />
+                  Organizatör Panel
+                </Link>
+              </>
             }
           />
         </div>

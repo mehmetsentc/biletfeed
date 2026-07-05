@@ -2,17 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard, Plus } from 'lucide-react';
 import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
-import { useAccountMode } from '@/hooks/use-account-mode';
 import { cn } from '@/lib/utils';
 import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function AccountSidebar() {
   const { user, signOut } = useAuth();
-  const { isOrganizerMode, isModeLocked } = useAccountMode();
 
   const displayName = user?.displayName || 'Misafir Kullanıcı';
   const email = user?.email || '';
@@ -22,15 +20,6 @@ export function AccountSidebar() {
     .join('')
     .slice(0, 2)
     .toUpperCase();
-
-  const panelItem =
-    isModeLocked && isOrganizerMode
-      ? {
-          href: panelHref('/organizator-panel/baslangic'),
-          icon: LayoutDashboard,
-          label: 'Organizatör Panel'
-        }
-      : null;
 
   async function handleSignOut() {
     await signOut();
@@ -57,24 +46,31 @@ export function AccountSidebar() {
         <AccountMenuList
           variant="sidebar"
           onSignOut={handleSignOut}
+          organizerLinks={
+            <>
+              <div className="my-2 border-t border-border" />
+              <Link
+                href={panelHref('/organizator-panel/etkinlik/yeni')}
+                {...PANEL_EXTERNAL_LINK_PROPS}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+              >
+                <Plus className="size-4 shrink-0" strokeWidth={1.75} />
+                Etkinlik Oluştur
+              </Link>
+              <Link
+                href={panelHref('/organizator-panel/baslangic')}
+                {...PANEL_EXTERNAL_LINK_PROPS}
+                className={cn(
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                  'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <LayoutDashboard className="size-4 shrink-0" strokeWidth={1.75} />
+                Organizatör Panel
+              </Link>
+            </>
+          }
         />
-
-        {panelItem && (
-          <>
-            <div className="my-2 border-t border-border" />
-            <Link
-              href={panelItem.href}
-              {...PANEL_EXTERNAL_LINK_PROPS}
-              className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
-                'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <panelItem.icon className="size-4 shrink-0" strokeWidth={1.75} />
-              {panelItem.label}
-            </Link>
-          </>
-        )}
       </nav>
     </aside>
   );

@@ -9,7 +9,6 @@ import {
   accountMenuGroups,
   accountYardimMenuItem
 } from '@/lib/account/navigation';
-import { useAccountMode } from '@/hooks/use-account-mode';
 import {
   accountSiteHref,
   isOnOrganizerPanelHost
@@ -34,9 +33,7 @@ export function AccountMenuList({
   organizerLinks
 }: AccountMenuListProps) {
   const pathname = usePathname();
-  const { isOrganizerMode, isModeLocked } = useAccountMode();
   const isSidebar = variant === 'sidebar';
-  const showUserOnlyItems = !isModeLocked || !isOrganizerMode;
   const onPanelHost = useMemo(
     () =>
       typeof window !== 'undefined' &&
@@ -62,7 +59,6 @@ export function AccountMenuList({
             />
           )}
           {group.items
-            .filter((item) => !item.userOnly || showUserOnlyItems)
             .filter(
               (item) =>
                 !item.hideOnPathPrefixes?.some((prefix) =>

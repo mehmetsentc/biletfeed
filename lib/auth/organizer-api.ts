@@ -1,6 +1,7 @@
 import type { UserRole } from '@/types';
 import { verifyOrganizerPanelSession, sessionHasRole } from '@/lib/auth/session';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { canAccessOrganizerPanel } from '@/lib/services/organizer-profile-readiness';
 
 function normalizeEmail(email?: string): string | undefined {
   const value = email?.trim().toLowerCase();
@@ -339,7 +340,7 @@ export async function requireOrganizerSession() {
   const organizer = await prisma.organizer.findFirst({
     where: { ownerId: user.id, deletedAt: null }
   });
-  if (!organizer || organizer.status !== 'approved') return null;
+  if (!organizer || !canAccessOrganizerPanel(organizer)) return null;
 
   return { session, organizer };
 }

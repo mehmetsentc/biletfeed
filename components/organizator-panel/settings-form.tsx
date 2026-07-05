@@ -83,6 +83,7 @@ export function OrganizerSettingsForm({ initial }: { initial: Settings }) {
               type="email"
               value={form.contactEmail || ''}
               onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+              required
             />
           </div>
           <div className="space-y-2">

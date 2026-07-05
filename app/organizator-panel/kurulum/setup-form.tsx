@@ -12,6 +12,7 @@ import { panelHref } from '@/lib/config/domain';
 export function OrganizatorSetupForm() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +46,20 @@ export function OrganizatorSetupForm() {
 
       if (!res.ok) throw new Error(data.error || 'Kurulum başarısız');
 
+      const patchRes = await fetch('/api/organizer/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          contactEmail: contactEmail.trim()
+        })
+      });
+
+      if (!patchRes.ok) {
+        const patchData = (await patchRes.json()) as { error?: string };
+        throw new Error(patchData.error || 'İletişim bilgileri kaydedilemedi');
+      }
+
       window.location.href = panelHref('/organizator-panel/baslangic');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hata oluştu');
@@ -58,7 +73,8 @@ export function OrganizatorSetupForm() {
         <p className="text-sm text-primary">{siteConfig.name}</p>
         <h1 className="mt-1 text-2xl font-bold">{ORGANIZATOR_BRAND}</h1>
         <p className="text-organizer-chrome-muted mt-2 text-sm">
-          Organizasyon profilinizi oluşturun ve etkinlik satmaya başlayın.
+          Etkinlik oluşturmak için organizasyon bilgilerinizi girin. Bilet almak için
+          ek bir kayıt gerekmez.
         </p>
 
         <form onSubmit={submit} className="mt-8 space-y-4">
@@ -73,6 +89,20 @@ export function OrganizatorSetupForm() {
               placeholder="Örn: Let Us Event"
               required
               minLength={2}
+              className="border-[var(--ticket-border)] bg-organizer-header text-white"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="org-email" className="text-organizer-chrome">
+              İletişim E-postası
+            </Label>
+            <Input
+              id="org-email"
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="iletisim@sirket.com"
+              required
               className="border-[var(--ticket-border)] bg-organizer-header text-white"
             />
           </div>
@@ -92,7 +122,7 @@ export function OrganizatorSetupForm() {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Oluşturuluyor...' : 'Organizatör Paneline Geç'}
+            {loading ? 'Kaydediliyor…' : 'Devam Et'}
           </Button>
         </form>
 

@@ -12,7 +12,6 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerProfile } from '@/lib/services/organizer-onboarding';
 import { updateOrganizerSettings } from '@/lib/services/organizer-panel';
 import { requireOrganizerApi } from '@/lib/auth/organizer-route';
-import { isOrganizerApproved } from '@/lib/config/organizer-approval';
 import { resolveScannerUser } from '@/lib/auth/organizer-api';
 
 const patchSchema = z.object({
@@ -61,20 +60,17 @@ export async function POST(request: NextRequest) {
     });
 
     const response = NextResponse.json({ success: true, organizer });
-
-    if (isOrganizerApproved(organizer.status)) {
-      const refreshed = buildSessionCookie(
-        session.uid,
-        session.email ?? user.email,
-        'ROLE_ORGANIZER',
-        SESSION_EXPIRES_MS
-      );
-      response.cookies.set(
-        PANEL_SESSION_COOKIE_NAME,
-        refreshed,
-        getSessionCookieOptions(SESSION_EXPIRES_MS / 1000)
-      );
-    }
+    const refreshed = buildSessionCookie(
+      session.uid,
+      session.email ?? user.email,
+      'ROLE_ORGANIZER',
+      SESSION_EXPIRES_MS
+    );
+    response.cookies.set(
+      PANEL_SESSION_COOKIE_NAME,
+      refreshed,
+      getSessionCookieOptions(SESSION_EXPIRES_MS / 1000)
+    );
 
     return response;
   } catch (err) {

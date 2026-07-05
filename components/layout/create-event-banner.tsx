@@ -3,17 +3,13 @@
 import Link from 'next/link';
 import { ArrowRight, CalendarPlus } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
-import { useAccountMode } from '@/hooks/use-account-mode';
-import { useOrganizerApproval } from '@/hooks/use-organizer-approval';
 import { panelHref } from '@/lib/config/domain';
 
-/** Ana sayfa CTA — yalnızca hesap türü olarak organizatör seçmiş kullanıcılara. */
+/** Ana sayfa CTA — giriş yapmış tüm kullanıcılara. */
 export function CreateEventBanner() {
   const { user } = useAuth();
-  const { isOrganizerMode, isModeLocked } = useAccountMode();
-  const { isApproved } = useOrganizerApproval();
 
-  if (!user || !isModeLocked || !isOrganizerMode || !isApproved) {
+  if (!user) {
     return null;
   }
 
