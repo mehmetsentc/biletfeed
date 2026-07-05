@@ -12,10 +12,9 @@ export function isThemePreference(value: string): value is ThemePreference {
   return (THEME_PREFERENCES as string[]).includes(value);
 }
 
-/** Client-side: persist theme for SSR init script + next-themes */
+/** Client-side: persist theme cookie for SSR init script (localStorage is owned by next-themes). */
 export function persistThemePreference(theme: ThemePreference) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(THEME_STORAGE_KEY, theme);
   const secure = window.location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${THEME_COOKIE_NAME}=${encodeURIComponent(theme)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
 }
