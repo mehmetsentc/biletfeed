@@ -5,6 +5,7 @@ import { createPageMetadata } from '@/lib/seo/metadata';
 import { EventifyCard } from '@/components/events/eventify-card';
 import { CategoryExplore } from '@/components/home/category-explore';
 import { HomeCityEvents } from '@/components/home/home-city-events';
+import { HomeMobileEventRails } from '@/components/home/home-mobile-event-rails';
 import { CreateEventBanner } from '@/components/layout/create-event-banner';
 import { Button } from '@/components/ui/button';
 import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
@@ -42,16 +43,22 @@ export default async function HomePage() {
     <>
       <HomeHeroSection slides={heroSlides} categories={categories} />
 
-      <section className="container mx-auto px-4 py-6">
+      <HomeMobileEventRails initial={cityBundle} />
+
+      <section className="container mx-auto hidden px-4 py-6 md:block">
         <HomeFeedTabs />
       </section>
 
-      <CategoryExplore />
+      <div className="hidden md:block">
+        <CategoryExplore />
+      </div>
 
-      <HomeCityEvents initial={cityBundle} />
+      <div className="hidden md:contents">
+        <HomeCityEvents initial={cityBundle} />
+      </div>
 
       {online.length > 0 && (
-        <section className="border-y border-border/80 bg-muted/30 py-14 md:py-20">
+        <section className="hidden border-y border-border/80 bg-muted/30 py-14 md:block md:py-20">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl font-extrabold tracking-tight md:text-3xl">
               En İyi Online Etkinlikler
