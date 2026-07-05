@@ -2,21 +2,23 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
-import { getOrganizerStats } from '@/lib/services/organizer-dashboard';
 import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
 import {
+  buildOrganizerTicketsHref,
+  getOrganizerTicketEvents,
   getOrganizerTicketTypeFilters,
   resolveOrganizerTicketsFilter
 } from '@/lib/services/organizer-ticket-filters';
 import { getOrganizerTickets } from '@/lib/services/organizer-dashboard';
 import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';
 import { OrganizerTicketActions } from '@/components/organizator-panel/organizer-ticket-actions';
+import { OrganizerTicketEventFilter } from '@/components/organizator-panel/organizer-ticket-event-filter';
 import { OrganizerTicketTypeFilters } from '@/components/organizator-panel/organizer-ticket-type-filters';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 interface PageProps {
-  searchParams: Promise<{ type?: string; category?: string }>;
+  searchParams: Promise<{ event?: string; type?: string; category?: string }>;
 }
 
 function ticketTypeLabel(name: string): string {
@@ -31,22 +33,41 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
   if (!organizer) redirect('/organizator-panel/kurulum');
 
   const params = await searchParams;
-  const filterOptions = await getOrganizerTicketTypeFilters(organizer.id);
-  const rawKey = params.type ?? params.category;
-  const { filter, active } = resolveOrganizerTicketsFilter(rawKey, filterOptions);
+  const eventId = params.event?.trim() || undefined;
+  const rawTypeKey = params.type ?? params.category;
 
-  const [tickets, stats, checkInStats] = await Promise.all([
-    getOrganizerTickets(organizer.id, filter),
-    getOrganizerStats(organizer.id),
-    getOrganizerCheckInStats(organizer.id)
+  const events = await getOrganizerTicketEvents(organizer.id);
+  const activeEvent = eventId
+    ? events.find((event) => event.id === eventId)
+    : undefined;
+
+  if (eventId && !activeEvent) {
+    redirect('/organizator-panel/biletler');
+  }
+
+  const filterOptions = await getOrganizerTicketTypeFilters(organizer.id, eventId);
+  const { filter, active } = resolveOrganizerTicketsFilter(rawTypeKey, filterOptions);
+
+  const [tickets, checkInStats] = await Promise.all([
+    getOrganizerTickets(organizer.id, filter, eventId),
+    getOrganizerCheckInStats(organizer.id, eventId)
   ]);
 
-  const pageTitle =
-    active.kind === 'all'
+  const pageTitle = activeEvent
+    ? active.kind === 'all'
+      ? activeEvent.title
+      : active.kind === 'invitation'
+        ? `${activeEvent.title} · Davetiyeler`
+        : `${activeEvent.title} · ${active.label}`
+    : active.kind === 'all'
       ? 'Tüm Biletler'
       : active.kind === 'invitation'
         ? 'Davetiyeler'
         : active.label;
+
+  const csvHref = eventId
+    ? `/api/organizer/tickets/export?eventId=${encodeURIComponent(eventId)}`
+    : '/api/organizer/tickets/export';
 
   return (
     <div className="space-y-6">
@@ -54,8 +75,11 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
         <div>
           <h1 className="text-2xl font-bold text-foreground">{pageTitle}</h1>
           <p className="text-sm text-muted-foreground">
-            {tickets.length} kayıt · {stats.scannedTickets} giriş yapıldı
-            {active.kind !== 'all' ? ` · ${active.label} kategorisi` : ''}
+            {tickets.length} kayıt · {checkInStats.checkedIn} giriş yapıldı
+            {activeEvent && active.kind !== 'all' ? ` · ${active.label} kategorisi` : ''}
+            {!activeEvent && events.length > 0
+              ? ` · ${events.length} etkinlik`
+              : ''}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -63,12 +87,20 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
             <Button>QR Tarayıcı</Button>
           </Link>
           <Button variant="outline" asChild>
-            <a href="/api/organizer/tickets/export">CSV İndir</a>
+            <a href={csvHref}>CSV İndir</a>
           </Button>
         </div>
       </div>
 
-      <OrganizerTicketTypeFilters options={filterOptions} activeKey={active.key} />
+      {events.length > 0 && (
+        <OrganizerTicketEventFilter events={events} activeEventId={eventId} />
+      )}
+
+      <OrganizerTicketTypeFilters
+        options={filterOptions}
+        activeKey={active.key}
+        eventId={eventId}
+      />
 
       <CheckInStatsPanel stats={checkInStats} />
 
@@ -77,7 +109,7 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
           <thead className="border-b bg-muted text-left">
             <tr>
               <th className="p-3 font-medium">Kod</th>
-              <th className="p-3 font-medium">Etkinlik</th>
+              {!activeEvent && <th className="p-3 font-medium">Etkinlik</th>}
               <th className="p-3 font-medium">Kategori</th>
               <th className="p-3 font-medium">Sahip</th>
               <th className="p-3 font-medium">Durum</th>
@@ -88,12 +120,21 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
             {tickets.map((ticket) => (
               <tr key={ticket.id} className="border-b last:border-0">
                 <td className="p-3 font-mono text-xs">{ticket.ticketCode}</td>
-                <td className="p-3">{ticket.event.title}</td>
+                {!activeEvent && (
+                  <td className="p-3">
+                    <Link
+                      href={buildOrganizerTicketsHref(ticket.event.id)}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {ticket.event.title}
+                    </Link>
+                  </td>
+                )}
                 <td className="p-3">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span>{ticketTypeLabel(ticket.ticketType.name)}</span>
                     {ticket.order.paymentProvider === 'invitation' && (
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="secondary" className="text-[10px]">
                         Davetiye
                       </Badge>
                     )}
@@ -116,10 +157,15 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
             ))}
             {tickets.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                  {filterOptions.length <= 1
-                    ? 'Henüz bilet veya davetiye kaydı yok.'
-                    : `${active.label} kategorisinde kayıt bulunamadı.`}
+                <td
+                  colSpan={activeEvent ? 5 : 6}
+                  className="p-8 text-center text-muted-foreground"
+                >
+                  {!eventId && events.length > 0
+                    ? 'Bu filtrede kayıt yok. Belirli kategoriler için bir etkinlik seçin.'
+                    : filterOptions.length <= 1
+                      ? 'Henüz bilet veya davetiye kaydı yok.'
+                      : `${active.label} kategorisinde kayıt bulunamadı.`}
                 </td>
               </tr>
             )}

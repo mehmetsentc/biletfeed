@@ -88,17 +88,21 @@ export async function getOrganizerOrders(
 
 export async function getOrganizerTickets(
   organizerId: string,
-  filter: OrganizerTicketsFilter | SalesCategoryFilter = { kind: 'all' }
+  filter: OrganizerTicketsFilter | SalesCategoryFilter = { kind: 'all' },
+  eventId?: string
 ) {
   await ensureDbConnection();
 
   const where: {
-    event: { organizerId: string };
+    event: { organizerId: string; id?: string };
     deletedAt: null;
     ticketTypeId?: { in: string[] };
     order?: { paymentProvider: 'invitation' | { not: 'invitation' } };
   } = {
-    event: { organizerId },
+    event: {
+      organizerId,
+      ...(eventId ? { id: eventId } : {})
+    },
     deletedAt: null
   };
 
@@ -115,7 +119,7 @@ export async function getOrganizerTickets(
   const tickets = await prisma.purchasedTicket.findMany({
     where,
     include: {
-      event: { select: { title: true } },
+      event: { select: { id: true, title: true } },
       ticketType: { select: { name: true, type: true } },
       user: { select: { displayName: true } },
       order: { select: { paymentProvider: true } }

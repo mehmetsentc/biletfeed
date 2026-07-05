@@ -7,34 +7,42 @@ import {
   ticketCsvIncludeWithEvent
 } from '@/lib/export/csv';
 
-export async function getOrganizerCheckInStats(organizerId: string) {
+export async function getOrganizerCheckInStats(
+  organizerId: string,
+  eventId?: string
+) {
   await ensureDbConnection();
+
+  const eventScope = {
+    organizerId,
+    ...(eventId ? { id: eventId } : {})
+  };
 
   const [sold, checkedIn, waiting, recentCheckIns, capacity] = await Promise.all([
     prisma.purchasedTicket.count({
       where: {
-        event: { organizerId },
+        event: eventScope,
         deletedAt: null,
         status: { in: ['VALID', 'USED'] }
       }
     }),
     prisma.purchasedTicket.count({
       where: {
-        event: { organizerId },
+        event: eventScope,
         deletedAt: null,
         entryCount: { gt: 0 }
       }
     }),
     prisma.purchasedTicket.count({
       where: {
-        event: { organizerId },
+        event: eventScope,
         deletedAt: null,
         status: 'VALID',
         entryCount: 0
       }
     }),
     prisma.ticketCheckIn.findMany({
-      where: { event: { organizerId } },
+      where: { event: eventScope },
       orderBy: { createdAt: 'desc' },
       take: 8,
       include: {
@@ -49,7 +57,7 @@ export async function getOrganizerCheckInStats(organizerId: string) {
       }
     }),
     prisma.event.aggregate({
-      where: { organizerId, deletedAt: null },
+      where: { organizerId, deletedAt: null, ...(eventId ? { id: eventId } : {}) },
       _sum: { capacity: true }
     })
   ]);

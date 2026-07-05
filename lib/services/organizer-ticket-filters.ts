@@ -9,6 +9,13 @@ export type OrganizerTicketFilterOption = {
   count: number;
 };
 
+export type OrganizerTicketEventOption = {
+  id: string;
+  title: string;
+  startDate: Date;
+  ticketCount: number;
+};
+
 export type OrganizerTicketsFilter =
   | { kind: 'all' }
   | { kind: 'invitation' }
@@ -24,7 +31,131 @@ function normalizeTicketTypeKey(name: string): string {
   return slugify(ticketTypeDisplayLabel(name)) || 'diger';
 }
 
+const ticketCountWhere = (organizerId: string, eventId?: string) => ({
+  deletedAt: null,
+  event: {
+    organizerId,
+    ...(eventId ? { id: eventId } : {})
+  }
+});
+
+export async function getOrganizerTicketEvents(
+  organizerId: string
+): Promise<OrganizerTicketEventOption[]> {
+  await ensureDbConnection();
+
+  const events = await prisma.event.findMany({
+    where: { organizerId, deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      startDate: true,
+      _count: {
+        select: {
+          purchasedTickets: { where: { deletedAt: null } }
+        }
+      }
+    },
+    orderBy: { startDate: 'desc' }
+  });
+
+  return events.map((event) => ({
+    id: event.id,
+    title: event.title,
+    startDate: event.startDate,
+    ticketCount: event._count.purchasedTickets
+  }));
+}
+
+/** Global filters (no event): Tümü + Davetiye only. With eventId: per-ticket-type for that event. */
 export async function getOrganizerTicketTypeFilters(
+  organizerId: string,
+  eventId?: string
+): Promise<OrganizerTicketFilterOption[]> {
+  await ensureDbConnection();
+
+  const baseWhere = ticketCountWhere(organizerId, eventId);
+
+  const [totalCount, invitationCount] = await Promise.all([
+    prisma.purchasedTicket.count({ where: baseWhere }),
+    prisma.purchasedTicket.count({
+      where: {
+        ...baseWhere,
+        order: { paymentProvider: 'invitation' }
+      }
+    })
+  ]);
+
+  const filters: OrganizerTicketFilterOption[] = [
+    {
+      key: 'all',
+      label: 'Tümü',
+      kind: 'all',
+      ticketTypeIds: [],
+      count: totalCount
+    }
+  ];
+
+  if (!eventId) {
+    if (invitationCount > 0) {
+      filters.push({
+        key: 'invitation',
+        label: 'Davetiye',
+        kind: 'invitation',
+        ticketTypeIds: [],
+        count: invitationCount
+      });
+    }
+    return filters;
+  }
+
+  const ticketTypes = await prisma.ticketType.findMany({
+    where: {
+      deletedAt: null,
+      eventId,
+      event: { organizerId, deletedAt: null }
+    },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' }
+  });
+
+  const typeCounts = await Promise.all(
+    ticketTypes.map(async (ticketType) => {
+      const count = await prisma.purchasedTicket.count({
+        where: {
+          ...baseWhere,
+          ticketTypeId: ticketType.id
+        }
+      });
+      return { ticketType, count };
+    })
+  );
+
+  for (const { ticketType, count } of typeCounts) {
+    filters.push({
+      key: `type:${ticketType.id}`,
+      label: ticketTypeDisplayLabel(ticketType.name),
+      kind: 'ticketTypes',
+      ticketTypeIds: [ticketType.id],
+      count
+    });
+  }
+
+  if (invitationCount > 0) {
+    filters.push({
+      key: 'invitation',
+      label: 'Davetiye',
+      kind: 'invitation',
+      ticketTypeIds: [],
+      count: invitationCount
+    });
+  }
+
+  return filters;
+}
+
+/** @deprecated Cross-event slug grouping — kept for sales stats links using legacy keys */
+export async function getOrganizerTicketTypeFiltersGrouped(
   organizerId: string
 ): Promise<OrganizerTicketFilterOption[]> {
   await ensureDbConnection();
@@ -140,4 +271,15 @@ export function resolveOrganizerTicketsFilter(
     };
   }
   return { filter: { kind: 'all' }, active: fallback };
+}
+
+export function buildOrganizerTicketsHref(
+  eventId?: string,
+  typeKey?: string
+): string {
+  const params = new URLSearchParams();
+  if (eventId) params.set('event', eventId);
+  if (typeKey && typeKey !== 'all') params.set('type', typeKey);
+  const qs = params.toString();
+  return qs ? `/organizator-panel/biletler?${qs}` : '/organizator-panel/biletler';
 }
