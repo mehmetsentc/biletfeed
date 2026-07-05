@@ -89,20 +89,7 @@ export const designTokens = {
     ease: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
   },
   category: {
-    muzik: 'var(--category-muzik)',
-    konser: 'var(--category-konser)',
-    party: 'var(--category-party)',
-    festival: 'var(--category-festival)',
-    tiyatro: 'var(--category-tiyatro)',
-    spor: 'var(--category-spor)',
-    sanat: 'var(--category-sanat)',
-    komedi: 'var(--category-komedi)',
-    cocuk: 'var(--category-cocuk)',
-    teknoloji: 'var(--category-teknoloji)',
-    online: 'var(--category-online)',
-    yemek: 'var(--category-yemek)',
-    workshop: 'var(--category-workshop)',
-    diger: 'var(--category-diger)'
+    accent: 'var(--category-accent)'
   },
   typography: {
     fontFamily: 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',

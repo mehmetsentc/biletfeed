@@ -20,10 +20,11 @@ export function CategoryBadge({
     return (
       <span
         className={cn(
-          'inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold uppercase tracking-wide',
+          'inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide',
           style.bg,
           style.text,
           style.shadow,
+          style.ring,
           className
         )}
       >
@@ -37,7 +38,7 @@ export function CategoryBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 backdrop-blur-sm',
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 backdrop-blur-sm',
         style.bg,
         style.text,
         style.ring,

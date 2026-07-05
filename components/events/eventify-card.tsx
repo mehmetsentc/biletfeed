@@ -57,7 +57,11 @@ export function EventifyCard({
             </span>
           )}
           <span className="absolute bottom-3 left-3 z-10">
-            <CategoryBadge slug={event.categorySlug} label={event.category} />
+            <CategoryBadge
+              slug={event.categorySlug}
+              label={event.category}
+              variant="overlay"
+            />
           </span>
         </div>
 

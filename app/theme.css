@@ -158,22 +158,23 @@
   --ticket-card-bg: var(--bf-card);
   --events-accent: var(--bf-orange);
 
-  /* Category accent colors (badges on images — white text, theme-stable) */
-  --category-muzik: var(--bf-orange);
-  --category-konser: var(--bf-orange);
-  --category-party: #7c3aed;
-  --category-festival: #9333ea;
-  --category-tiyatro: #6366f1;
-  --category-spor: #059669;
-  --category-sanat: #4f46e5;
-  --category-komedi: var(--bf-orange-hover);
-  --category-cocuk: #d97706;
-  --category-teknoloji: #0284c7;
-  --category-online: #0891b2;
-  --category-yemek: #dc2626;
-  --category-yemek-icecek: #dc2626;
-  --category-workshop: #2563eb;
-  --category-diger: #525252;
+  /* Category badges — single brand accent for all categories */
+  --category-accent: var(--bf-orange);
+  --category-muzik: var(--category-accent);
+  --category-konser: var(--category-accent);
+  --category-party: var(--category-accent);
+  --category-festival: var(--category-accent);
+  --category-tiyatro: var(--category-accent);
+  --category-spor: var(--category-accent);
+  --category-sanat: var(--category-accent);
+  --category-komedi: var(--category-accent);
+  --category-cocuk: var(--category-accent);
+  --category-teknoloji: var(--category-accent);
+  --category-online: var(--category-accent);
+  --category-yemek: var(--category-accent);
+  --category-yemek-icecek: var(--category-accent);
+  --category-workshop: var(--category-accent);
+  --category-diger: var(--category-accent);
 
   /* Organizatör panel (Linear + Stripe) */
   --organizer-shell-bg: var(--bf-bg);
