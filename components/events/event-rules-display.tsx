@@ -1,8 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronDown, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import type { EventRulesDisplayData } from '@/lib/event-rules/types';
 import { cn } from '@/lib/utils';
 
@@ -127,29 +135,162 @@ export function EventRulesDisplay({ data, compact, className }: EventRulesDispla
 
 export function EventRulesAcceptanceList({
   data,
+  plainLines,
+  eventTitle,
   accepted,
   onAcceptedChange
 }: {
-  data: EventRulesDisplayData;
+  data?: EventRulesDisplayData;
+  plainLines?: string[];
+  eventTitle?: string;
   accepted: boolean;
   onAcceptedChange: (v: boolean) => void;
 }) {
-  const allItems = data.sections.flatMap((s) => s.items);
-  if (allItems.length === 0 && data.announcements.length === 0) return null;
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const hasStructured =
+    data &&
+    (data.sections.some((s) => s.items.length > 0) || data.announcements.length > 0);
+  const lines = plainLines?.filter(Boolean) ?? [];
+  const hasPlain = lines.length > 0;
+
+  if (!hasStructured && !hasPlain) return null;
+
+  const previewItems = useMemo(() => {
+    if (!data) return [];
+    return data.sections.flatMap((s) => s.items).slice(0, 3);
+  }, [data]);
+
+  const totalRuleCount = useMemo(() => {
+    if (!data) return lines.length;
+    const items = data.sections.reduce((n, s) => n + s.items.length, 0);
+    return items + data.announcements.length;
+  }, [data, lines.length]);
+
+  const dialogTitle = eventTitle
+    ? `Etkinlik Kuralları — ${eventTitle}`
+    : 'Etkinlik Kuralları';
 
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
-      <h3 className="text-sm font-semibold">Etkinlik Hakkında Bilmeniz Gerekenler</h3>
-      <EventRulesDisplay data={data} compact />
-      <label className="flex cursor-pointer items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          className="mt-1"
-          checked={accepted}
-          onChange={(e) => onAcceptedChange(e.target.checked)}
-        />
-        <span>Etkinlik kurallarını okudum ve kabul ediyorum.</span>
-      </label>
-    </div>
+    <>
+      <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Etkinlik Kuralları</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Satın almadan önce kuralları okuyup onaylamanız gerekir.
+            </p>
+          </div>
+          <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+            {totalRuleCount} madde
+          </span>
+        </div>
+
+        {hasStructured && previewItems.length > 0 && (
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            {previewItems.map((item) => (
+              <li key={item.id} className="flex gap-2 leading-snug">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                <span>
+                  <span className="font-medium text-foreground">{item.title}</span>
+                  {item.displayText ? (
+                    <span className="text-muted-foreground"> — {item.displayText}</span>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+            {totalRuleCount > previewItems.length && (
+              <li className="text-xs text-muted-foreground">
+                + {totalRuleCount - previewItems.length} madde daha
+              </li>
+            )}
+          </ul>
+        )}
+
+        {hasPlain && !hasStructured && (
+          <ul className="max-h-28 space-y-2 overflow-y-auto text-sm text-muted-foreground">
+            {lines.slice(0, 4).map((line) => (
+              <li key={line} className="flex gap-2 leading-snug">
+                <span className="text-primary">•</span>
+                <span>{line}</span>
+              </li>
+            ))}
+            {lines.length > 4 && (
+              <li className="text-xs text-muted-foreground">
+                + {lines.length - 4} madde daha
+              </li>
+            )}
+          </ul>
+        )}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          onClick={() => setDialogOpen(true)}
+        >
+          <FileText className="size-4" />
+          Kuralları Oku
+        </Button>
+
+        <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-snug">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 shrink-0 accent-primary"
+            checked={accepted}
+            onChange={(e) => onAcceptedChange(e.target.checked)}
+          />
+          <span className="text-foreground">
+            <button
+              type="button"
+              className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+              onClick={(e) => {
+                e.preventDefault();
+                setDialogOpen(true);
+              }}
+            >
+              Etkinlik kurallarını
+            </button>{' '}
+            okudum ve kabul ediyorum.
+          </span>
+        </label>
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="flex max-h-[min(90dvh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="border-b border-border px-5 py-4 text-left">
+            <DialogTitle className="text-base font-bold">{dialogTitle}</DialogTitle>
+            <DialogDescription>
+              Aşağıdaki kurallar bu etkinlik için geçerlidir. Onaylamadan önce
+              lütfen tamamını okuyun.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            {hasStructured && data ? (
+              <EventRulesDisplay data={data} compact />
+            ) : (
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                {lines.map((line) => (
+                  <li key={line} className="flex gap-2 leading-relaxed">
+                    <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+                    <span className="text-foreground">{line}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <DialogFooter className="border-t border-border px-5 py-4">
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              onClick={() => setDialogOpen(false)}
+            >
+              Okudum, Kapat
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

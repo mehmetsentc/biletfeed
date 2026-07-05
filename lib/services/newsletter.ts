@@ -1,5 +1,6 @@
 import { ensureDbConnection, prisma } from '@/lib/db/prisma';
 import { buildNewsletterWelcomeEmail } from '@/lib/email/newsletter-welcome-template';
+import { fetchUpcomingHighlightEvents } from '@/lib/services/newsletter-digest';
 import { sendEmail } from '@/lib/email/resend';
 
 export interface SubscribeNewsletterResult {
@@ -72,12 +73,23 @@ export async function subscribeToNewsletter(
     created = true;
   }
 
+  const { nationalEvents, cityEvents } = await fetchUpcomingHighlightEvents({
+    citySlug,
+    nationalLimit: 5,
+    cityLimit: 4
+  });
+
   const emailResult = await sendEmail({
     to: normalized,
     subject: cityName
       ? `BiletFeed bültenine hoş geldiniz — ${cityName} etkinlikleri`
       : 'BiletFeed bültenine hoş geldiniz',
-    html: buildNewsletterWelcomeEmail({ cityName }),
+    html: buildNewsletterWelcomeEmail({
+      cityName,
+      citySlug,
+      nationalEvents,
+      cityEvents
+    }),
     sender: 'noreply',
   });
 

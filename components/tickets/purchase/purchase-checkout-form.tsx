@@ -248,36 +248,15 @@ export function PurchaseCheckoutForm({
           )}
         </section>
 
-        {requiresRulesAcceptance && hasStructuredRules && rulesDisplay && (
+        {requiresRulesAcceptance && (
           <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
             <EventRulesAcceptanceList
-              data={rulesDisplay}
+              data={hasStructuredRules ? rulesDisplay ?? undefined : undefined}
+              plainLines={hasStructuredRules ? undefined : ruleLines}
+              eventTitle={event.title}
               accepted={rulesAccepted}
               onAcceptedChange={setRulesAccepted}
             />
-          </section>
-        )}
-
-        {requiresRulesAcceptance && !hasStructuredRules && (
-          <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
-            <h3 className="text-sm font-semibold">Etkinlik Kuralları</h3>
-            <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto text-sm text-muted-foreground">
-              {ruleLines.map((line) => (
-                <li key={line} className="flex gap-2">
-                  <span className="text-primary">•</span>
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-            <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={rulesAccepted}
-                onChange={(e) => setRulesAccepted(e.target.checked)}
-              />
-              <span>Etkinlik kurallarını okudum ve kabul ediyorum.</span>
-            </label>
           </section>
         )}
 

@@ -5,7 +5,7 @@ import {
   type NewsletterDigestEvent
 } from '@/lib/email/newsletter-digest-template';
 import { sendEmail } from '@/lib/email/resend';
-import { publishedFilter, upcomingStartFilter, internalPublishedFilter } from '@/lib/services/events';
+import { upcomingStartFilter, internalPublishedFilter } from '@/lib/services/events';
 
 const DEFAULT_DIGEST_DAYS = 7;
 const NATIONAL_LIMIT = 8;
@@ -31,6 +31,61 @@ function toDigestEvent(event: {
     coverImage: event.coverImage,
     basePrice: event.basePrice,
     isFree: event.isFree
+  };
+}
+
+const upcomingEventSelect = {
+  title: true,
+  slug: true,
+  startDate: true,
+  coverImage: true,
+  basePrice: true,
+  isFree: true,
+  city: { select: { name: true } },
+  category: { select: { name: true } }
+} as const;
+
+/** Hoş geldin e-postası — yaklaşan öne çıkan etkinlikler */
+export async function fetchUpcomingHighlightEvents(params: {
+  citySlug?: string | null;
+  nationalLimit?: number;
+  cityLimit?: number;
+}): Promise<{
+  nationalEvents: NewsletterDigestEvent[];
+  cityEvents: NewsletterDigestEvent[];
+}> {
+  await ensureDbConnection();
+
+  const nationalLimit = params.nationalLimit ?? 5;
+  const cityLimit = params.cityLimit ?? 4;
+
+  const [nationalEvents, cityEvents] = await Promise.all([
+    prisma.event.findMany({
+      where: {
+        ...internalPublishedFilter,
+        ...upcomingStartFilter()
+      },
+      select: upcomingEventSelect,
+      orderBy: [{ startDate: 'asc' }, { createdAt: 'desc' }],
+      take: nationalLimit
+    }),
+    params.citySlug
+      ? prisma.event.findMany({
+          where: {
+            ...internalPublishedFilter,
+            ...upcomingStartFilter(),
+            city: { slug: params.citySlug, deletedAt: null }
+          },
+          select: upcomingEventSelect,
+          orderBy: [{ startDate: 'asc' }, { createdAt: 'desc' }],
+          take: cityLimit
+        })
+      : Promise.resolve([])
+  ]);
+
+  return {
+    nationalEvents: nationalEvents.map(toDigestEvent),
+    cityEvents: cityEvents.map(toDigestEvent)
   };
 }
 

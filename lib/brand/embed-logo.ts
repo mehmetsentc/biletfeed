@@ -25,10 +25,10 @@ export function ticketHeaderLogoSrc(): string {
   return loadBrandLogoDataUrl('dark');
 }
 
-/** E-posta koyu zemin üst barı */
+/** E-posta açık zemin — barındırılan HTTPS logo (data: URI birçok istemcide engellenir) */
 export function emailHeaderLogoSrc(): string {
-  if (process.env.TICKET_LOGO_EMBED === '0') {
-    return getSiteUrl(brandAssetUrl(brandLogos.forDarkSurface));
+  if (process.env.TICKET_LOGO_EMBED === '1') {
+    return loadBrandLogoDataUrl('dark');
   }
-  return loadBrandLogoDataUrl('light');
+  return getSiteUrl(brandAssetUrl(brandLogos.forLightSurface));
 }

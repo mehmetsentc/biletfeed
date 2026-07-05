@@ -18,41 +18,68 @@ const statusConfig: Record<
 > = {
   VALID: {
     icon: CheckCircle2,
-    cardClass: 'border-emerald-500/40 bg-emerald-500/15',
-    iconClass: 'text-emerald-400',
+    cardClass: 'border-primary/35 bg-primary/10',
+    iconClass: 'text-primary',
     label: 'Giriş yapıldı'
   },
   USED: {
     icon: AlertCircle,
-    cardClass: 'border-amber-500/40 bg-amber-500/15',
-    iconClass: 'text-amber-400',
+    cardClass: 'border-amber-500/35 bg-amber-500/10',
+    iconClass: 'text-amber-600 dark:text-amber-400',
     label: 'Daha önce kullanıldı'
   },
   REFUNDED: {
     icon: XCircle,
-    cardClass: 'border-red-500/40 bg-red-500/15',
-    iconClass: 'text-red-400',
+    cardClass: 'border-destructive/35 bg-destructive/10',
+    iconClass: 'text-destructive',
     label: 'İade edilmiş'
   },
   CANCELLED: {
     icon: XCircle,
-    cardClass: 'border-red-500/40 bg-red-500/15',
-    iconClass: 'text-red-400',
+    cardClass: 'border-destructive/35 bg-destructive/10',
+    iconClass: 'text-destructive',
     label: 'İptal edilmiş'
   },
   EXPIRED: {
     icon: AlertCircle,
-    cardClass: 'border-amber-500/40 bg-amber-500/15',
-    iconClass: 'text-amber-400',
+    cardClass: 'border-amber-500/35 bg-amber-500/10',
+    iconClass: 'text-amber-600 dark:text-amber-400',
     label: 'Süresi dolmuş'
   },
   INVALID: {
     icon: XCircle,
-    cardClass: 'border-red-500/40 bg-red-500/15',
-    iconClass: 'text-red-400',
+    cardClass: 'border-destructive/35 bg-destructive/10',
+    iconClass: 'text-destructive',
     label: 'Geçersiz bilet'
   }
 };
+
+function getEntryStatusStyle(status: string): {
+  iconWrap: string;
+  titleClass: string;
+  messageClass: string;
+} {
+  if (status === 'VALID') {
+    return {
+      iconWrap:
+        'bg-primary text-primary-foreground shadow-[0_8px_32px_rgba(235,103,43,0.4)]',
+      titleClass: 'text-white',
+      messageClass: 'text-white/75'
+    };
+  }
+  if (status === 'USED' || status === 'EXPIRED') {
+    return {
+      iconWrap: 'bg-amber-500/15 text-amber-400 ring-2 ring-amber-500/35',
+      titleClass: 'text-white',
+      messageClass: 'text-white/75'
+    };
+  }
+  return {
+    iconWrap: 'bg-destructive/15 text-destructive ring-2 ring-destructive/35',
+    titleClass: 'text-white',
+    messageClass: 'text-white/75'
+  };
+}
 
 function TicketScanDetails({
   ticket,
@@ -64,23 +91,31 @@ function TicketScanDetails({
   return (
     <div
       className={cn(
-        'space-y-1 rounded-xl bg-black/20 px-3 py-3 text-sm',
-        compact && 'mt-4 text-left text-sm font-medium opacity-90'
+        'space-y-1.5 rounded-2xl border border-white/10 bg-[#1a1a1a] px-4 py-4 text-sm shadow-[0_12px_40px_rgba(0,0,0,0.45)]',
+        compact && 'mt-5 w-full text-left'
       )}
     >
       {ticket.isInvitation && (
-        <p className="mb-2 inline-flex rounded-full bg-violet-500/25 px-2.5 py-0.5 text-xs font-semibold text-violet-200">
+        <p className="mb-2 inline-flex rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary ring-1 ring-primary/30">
           Davetiye Bileti
         </p>
       )}
-      <p className={cn('font-semibold', compact && 'text-base')}>{ticket.holderName}</p>
-      <p className="opacity-80">{ticket.ticketType}</p>
-      {!compact && <p className="font-semibold opacity-90">{ticket.eventTitle}</p>}
-      {ticket.guestEmail && <p className="opacity-75">{ticket.guestEmail}</p>}
-      {ticket.guestPhone && <p className="opacity-75">{ticket.guestPhone}</p>}
-      <p className="font-mono text-xs opacity-70">{ticket.code}</p>
+      <p className={cn('font-bold text-white', compact && 'text-lg')}>
+        {ticket.holderName}
+      </p>
+      <p className="text-white/72">{ticket.ticketType}</p>
+      {!compact && (
+        <p className="font-medium text-white/85">{ticket.eventTitle}</p>
+      )}
+      {ticket.guestEmail && (
+        <p className="text-white/60">{ticket.guestEmail}</p>
+      )}
+      {ticket.guestPhone && (
+        <p className="text-white/60">{ticket.guestPhone}</p>
+      )}
+      <p className="font-mono text-xs text-white/50">{ticket.code}</p>
       {ticket.entryCount != null && ticket.entryCount > 0 && (
-        <p className="text-xs opacity-60">Giriş sayısı: {ticket.entryCount}</p>
+        <p className="text-xs text-primary/90">Giriş sayısı: {ticket.entryCount}</p>
       )}
     </div>
   );
@@ -178,38 +213,38 @@ export function QrScanner({
 
   const config = result ? statusConfig[result.status] ?? statusConfig.INVALID : null;
   const StatusIcon = config?.icon ?? XCircle;
-
-  const entryOverlayClass =
-    result?.status === 'VALID'
-      ? 'bg-emerald-600'
-      : result?.status === 'USED'
-        ? 'bg-amber-500'
-        : result
-          ? 'bg-red-600'
-          : '';
+  const entryStyle = result ? getEntryStatusStyle(result.status) : null;
 
   return (
     <div className={cn('mx-auto w-full max-w-lg space-y-4', isEntry && 'max-w-none')}>
-      {isEntry && result && entryOverlayClass && (
+      {isEntry && result && entryStyle && (
         <div
-          className={cn(
-            'fixed inset-0 z-50 flex flex-col items-center justify-center px-6 text-center text-white transition-colors duration-300',
-            entryOverlayClass
-          )}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a] px-6 text-center transition-colors duration-300"
           role="alert"
           aria-live="assertive"
         >
-          <StatusIcon className="mb-4 size-24" strokeWidth={1.5} />
-          <p className="text-3xl font-bold">{config?.label}</p>
-          <p className="mt-2 max-w-sm text-lg opacity-90">{result.message}</p>
+          <div
+            className={cn(
+              'mb-5 flex size-24 items-center justify-center rounded-full',
+              entryStyle.iconWrap
+            )}
+          >
+            <StatusIcon className="size-14" strokeWidth={1.75} />
+          </div>
+          <p className={cn('text-3xl font-bold tracking-tight', entryStyle.titleClass)}>
+            {config?.label}
+          </p>
+          <p className={cn('mt-2 max-w-sm text-lg', entryStyle.messageClass)}>
+            {result.message}
+          </p>
           {result.ticket && (
-            <div className="mt-4 w-full max-w-sm">
+            <div className="mt-1 w-full max-w-sm">
               <TicketScanDetails ticket={result.ticket} compact />
             </div>
           )}
           <Button
             type="button"
-            className="mt-10 h-14 min-w-[200px] bg-white text-lg font-bold text-black hover:bg-white/90"
+            className="mt-10 h-14 min-w-[220px] rounded-xl bg-primary text-lg font-bold text-primary-foreground shadow-[0_8px_24px_rgba(235,103,43,0.35)] hover:bg-[var(--bf-orange-hover)]"
             onClick={handleNext}
           >
             Sonraki bilet
@@ -355,11 +390,8 @@ export function QrScanner({
           </div>
           <Button
             type="button"
-            className={cn(
-              'mt-5 h-12 w-full text-base font-semibold',
-              isEntry ? 'bg-white text-black hover:bg-white/90' : ''
-            )}
-            variant={isEntry ? 'secondary' : 'outline'}
+            className="mt-5 h-12 w-full rounded-xl text-base font-semibold"
+            variant="outline"
             onClick={handleNext}
           >
             Sonraki bilet
