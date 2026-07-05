@@ -2,9 +2,14 @@ import { emailConfig } from '@/lib/config/email';
 import {
   EMAIL_BRAND,
   emailAccentBar,
+  emailEsc as esc,
   emailFooter,
+  emailInfoGrid,
   emailLogoBar,
+  emailPrimaryButton,
+  emailSectionLabel,
   emailShell,
+  emailSummaryBox,
   formatCurrencyTr
 } from '@/lib/email/email-shared';
 
@@ -27,12 +32,16 @@ export function buildRefundNotificationEmail(
       ? formatCurrencyTr(params.refundAmount)
       : `${params.refundAmount.toFixed(2)} ${params.currency}`;
 
+  const preheader = `${params.eventTitle} — iade tutarı ${amountLabel}`;
+
   const reasonBlock = params.reason?.trim()
     ? `
       <tr>
         <td style="padding:0 28px 16px;">
-          <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.5);">İade gerekçesi</p>
-          <p style="margin:4px 0 0;font-size:14px;color:rgba(255,255,255,0.75);line-height:1.5;">${params.reason.trim()}</p>
+          <div style="padding:14px 16px;background:${EMAIL_BRAND.pageBg};border-radius:10px;border-left:3px solid ${EMAIL_BRAND.border};">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:${EMAIL_BRAND.textMuted};">İade gerekçesi</p>
+            <p style="margin:0;font-size:14px;color:${EMAIL_BRAND.textSecondary};line-height:1.55;">${esc(params.reason.trim())}</p>
+          </div>
         </td>
       </tr>`
     : '';
@@ -41,10 +50,7 @@ export function buildRefundNotificationEmail(
     ? `
       <tr>
         <td style="padding:0 28px 28px;" align="center">
-          <a href="${params.ticketsUrl}"
-             style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:#111111;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;">
-            Biletlerime Git
-          </a>
+          ${emailPrimaryButton(params.ticketsUrl, 'Biletlerime Git')}
         </td>
       </tr>`
     : '';
@@ -54,39 +60,38 @@ export function buildRefundNotificationEmail(
     ${emailAccentBar()}
     <tr>
       <td style="padding:28px 28px 8px;">
-        <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#fff;">İade işleminiz tamamlandı</h1>
-        <p style="margin:0;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;">
-          Merhaba ${params.customerName || 'Değerli Müşterimiz'}, <strong style="color:#fff;">${params.eventTitle}</strong> etkinliğine ait siparişiniz için iade işlemi gerçekleştirildi.
+        ${emailSectionLabel('İade bildirimi')}
+        <h1 style="margin:0 0 10px;font-size:24px;font-weight:800;color:${EMAIL_BRAND.text};line-height:1.25;">
+          İade işleminiz tamamlandı
+        </h1>
+        <p style="margin:0;font-size:15px;color:${EMAIL_BRAND.textSecondary};line-height:1.65;">
+          Merhaba ${esc(params.customerName || 'Değerli Müşterimiz')},
+          <strong style="color:${EMAIL_BRAND.text};">${esc(params.eventTitle)}</strong> etkinliğine ait siparişiniz için iade işlemi gerçekleştirildi.
         </p>
       </td>
     </tr>
     <tr>
       <td style="padding:8px 28px 20px;">
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-               style="background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
-          <tr>
-            <td style="padding:20px;">
-              <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,0.45);">Sipariş No</p>
-              <p style="margin:0 0 16px;font-size:14px;color:rgba(255,255,255,0.85);font-family:monospace;">${params.orderNumber}</p>
-              <p style="margin:0 0 4px;font-size:12px;color:rgba(255,255,255,0.45);">İade tutarı</p>
-              <p style="margin:0;font-size:22px;font-weight:700;color:#fff;">${amountLabel}</p>
-            </td>
-          </tr>
-        </table>
+        ${emailSummaryBox(
+          emailInfoGrid([
+            { label: 'Sipariş No', value: params.orderNumber },
+            { label: 'İade tutarı', value: amountLabel }
+          ])
+        )}
       </td>
     </tr>
     ${reasonBlock}
     <tr>
       <td style="padding:0 28px 16px;">
-        <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;">
+        <p style="margin:0;font-size:14px;color:${EMAIL_BRAND.textSecondary};line-height:1.65;">
           Biletleriniz geçersiz kılınmıştır. Ödeme sağlayıcınıza bağlı olarak tutarın hesabınıza yansıması 3–10 iş günü sürebilir.
           Sorularınız için
-          <a href="mailto:${emailConfig.supportEmail}" style="color:${EMAIL_BRAND.accent};text-decoration:none;">${emailConfig.supportEmail}</a>.
+          <a href="mailto:${emailConfig.supportEmail}" style="color:${EMAIL_BRAND.accentDark};text-decoration:none;font-weight:600;">${emailConfig.supportEmail}</a>.
         </p>
       </td>
     </tr>
     ${ticketsBlock}
     ${emailFooter()}`;
 
-  return emailShell(content);
+  return emailShell(content, preheader);
 }

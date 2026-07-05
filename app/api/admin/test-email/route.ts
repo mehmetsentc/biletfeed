@@ -8,39 +8,43 @@ import {
 } from '@/lib/config/email';
 import { sendEmail } from '@/lib/email/resend';
 import {
+  EMAIL_BRAND,
   emailAccentBar,
   emailFooter,
   emailLogoBar,
-  emailShell
+  emailSectionLabel,
+  emailShell,
+  emailSummaryBox
 } from '@/lib/email/email-shared';
 
 function buildTestEmailHtml(): string {
+  const configDetails = `
+    <p style="margin:0;font-size:12px;color:${EMAIL_BRAND.textSecondary};font-family:ui-monospace,Menlo,Consolas,monospace;line-height:1.8;">
+      from: ${formatEmailFrom('default')}<br/>
+      tickets: ${getSenderAddress('tickets')}<br/>
+      davetiye: ${getSenderAddress('invitation')}<br/>
+      fatura: ${getSenderAddress('invoice')}<br/>
+      reply-to: ${emailConfig.replyTo}
+    </p>`;
+
   const content = `
     ${emailLogoBar()}
     ${emailAccentBar()}
     <tr>
-      <td style="padding:28px;">
-        <h1 style="margin:0 0 12px;font-size:20px;color:#fff;">E-posta testi başarılı ✓</h1>
-        <p style="margin:0 0 16px;font-size:14px;color:rgba(255,255,255,0.65);line-height:1.6;">
+      <td style="padding:28px 28px 8px;">
+        ${emailSectionLabel('Sistem testi')}
+        <h1 style="margin:0 0 10px;font-size:24px;font-weight:800;color:${EMAIL_BRAND.text};line-height:1.25;">
+          E-posta testi başarılı ✓
+        </h1>
+        <p style="margin:0 0 20px;font-size:15px;color:${EMAIL_BRAND.textSecondary};line-height:1.65;">
           BiletFeed Resend entegrasyonu çalışıyor. Bu mesaj admin test endpoint'inden gönderildi.
         </p>
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
-               style="background:rgba(255,255,255,0.04);border-radius:8px;">
-          <tr>
-            <td style="padding:16px;font-size:12px;color:rgba(255,255,255,0.5);font-family:monospace;line-height:1.8;">
-              from: ${formatEmailFrom('default')}<br/>
-              tickets: ${getSenderAddress('tickets')}<br/>
-              davetiye: ${getSenderAddress('invitation')}<br/>
-              fatura: ${getSenderAddress('invoice')}<br/>
-              reply-to: ${emailConfig.replyTo}
-            </td>
-          </tr>
-        </table>
+        ${emailSummaryBox(configDetails)}
       </td>
     </tr>
     ${emailFooter()}`;
 
-  return emailShell(content);
+  return emailShell(content, 'BiletFeed e-posta entegrasyonu testi başarılı.');
 }
 
 /**

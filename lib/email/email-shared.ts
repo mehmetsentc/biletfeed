@@ -91,6 +91,31 @@ export function emailSecondaryLink(href: string, label: string): string {
     </a>`;
 }
 
+export function emailSectionLabel(text: string): string {
+  return `<p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${EMAIL_BRAND.accentDark};">${esc(text)}</p>`;
+}
+
+export function emailSummaryBox(content: string): string {
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+           style="background:${EMAIL_BRAND.pageBg};border-radius:14px;border:1px solid ${EMAIL_BRAND.border};">
+      <tr>
+        <td style="padding:20px 22px;">
+          ${content}
+        </td>
+      </tr>
+    </table>`;
+}
+
+export function emailQuoteBlock(text: string): string {
+  return `
+    <div style="margin:0 0 20px;padding:14px 16px;background:${EMAIL_BRAND.accentSoft};border-left:3px solid ${EMAIL_BRAND.accent};border-radius:0 10px 10px 0;">
+      <p style="margin:0;font-size:14px;font-style:italic;color:${EMAIL_BRAND.textSecondary};line-height:1.6;">
+        &ldquo;${esc(text)}&rdquo;
+      </p>
+    </div>`;
+}
+
 export function emailInfoGrid(
   rows: Array<{ label: string; value: string; icon?: string }>
 ): string {
