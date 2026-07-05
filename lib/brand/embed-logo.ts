@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 import { getSiteUrl } from '@/lib/config/domain';
 
@@ -10,6 +8,12 @@ export function loadBrandLogoDataUrl(variant: 'dark' | 'light' = 'dark'): string
   const key = `logo-${variant}`;
   const cached = cache.get(key);
   if (cached) return cached;
+
+  // Dynamic require — webpack'in statik analizini atlatarak fs'i client bundle'a sokmayı önler
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require('fs') as typeof import('fs');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const path = require('path') as typeof import('path');
 
   const file = variant === 'dark' ? 'logo-dark.png' : 'logo-light.png';
   const filePath = path.join(process.cwd(), 'public/brand', file);

@@ -13,8 +13,8 @@ import {
 import { startPaymentCheckout } from '@/lib/payments/process';
 import { processOrderAccounting } from '@/lib/accounting/fulfillment';
 import { createCreditNoteForRefund } from '@/lib/accounting/invoice';
-import { sendTicketPurchaseEmail } from '@/lib/email/send-ticket-purchase-email';
-import { sendRefundNotificationEmail } from '@/lib/email/send-refund-email';
+// Email modülleri dynamic import — statik importlar webpack'i client bundle'a
+// fs/Node.js built-in çekebileceğinden, runtime'da yüklenir
 import { validateCoupon, incrementCouponUsage } from '@/lib/services/coupons';
 import { notifyTicketPurchase } from '@/lib/services/notifications';
 import { findOrCreateGuestUser } from '@/lib/services/guest-user';
@@ -356,7 +356,9 @@ async function fulfillFreeOrder(params: {
     console.error('[accounting] free order', order.id, err);
   });
 
-  void sendTicketPurchaseEmail(order.id).catch((err) => {
+  void import('@/lib/email/send-ticket-purchase-email').then(({ sendTicketPurchaseEmail }) =>
+    sendTicketPurchaseEmail(order.id)
+  ).catch((err) => {
     console.error('[email] free order confirmation', order.id, err);
   });
 
@@ -514,7 +516,9 @@ export async function fulfillPaidOrder(params: {
       void processOrderAccounting(result.orderId).catch((err) => {
         console.error('[accounting] paid order', result.orderId, err);
       });
-      void sendTicketPurchaseEmail(result.orderId).catch((err) => {
+      void import('@/lib/email/send-ticket-purchase-email').then(({ sendTicketPurchaseEmail }) =>
+        sendTicketPurchaseEmail(result.orderId)
+      ).catch((err) => {
         console.error('[email] paid order confirmation', result.orderId, err);
       });
     }
@@ -745,7 +749,9 @@ export async function requestOrderRefund(params: {
     console.error('[accounting] refund credit note', order.id, err);
   });
 
-  void sendRefundNotificationEmail(order.id, params.reason).catch((err) => {
+  void import('@/lib/email/send-refund-email').then(({ sendRefundNotificationEmail }) =>
+    sendRefundNotificationEmail(order.id, params.reason)
+  ).catch((err) => {
     console.error('[email] refund notification', order.id, err);
   });
 
