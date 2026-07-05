@@ -7,6 +7,7 @@ import { MobileHeader } from '@/components/layout/mobile/mobile-header';
 import { HomeCityBar } from '@/components/home/home-city-bar';
 import { NewsletterBanner } from '@/components/layout/newsletter-banner';
 import {
+  mobileBottomNavClearanceClass,
   shouldHideBottomNav,
   shouldHideSiteFooter,
   shouldShowNewsletterBanner
@@ -47,7 +48,8 @@ export function SiteChrome({
         className={cn(
           'flex-1',
           !hideBottomNav &&
-            'pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-0'
+            hideSiteFooter &&
+            `${mobileBottomNavClearanceClass} md:pb-0`
         )}
       >
         {children}
@@ -64,7 +66,14 @@ export function SiteChrome({
       {!hideSiteFooter && (
         <>
           <div className="hidden md:block">{footer}</div>
-          <div className="md:hidden">{mobileFooter}</div>
+          <div
+            className={cn(
+              'md:hidden',
+              !hideBottomNav && mobileBottomNavClearanceClass
+            )}
+          >
+            {mobileFooter}
+          </div>
         </>
       )}
     </div>

@@ -9,7 +9,7 @@ import {
 } from '@/lib/events/ticket-url';
 import { getEventPlatformTheme } from '@/lib/events/platform-theme';
 import type { MockEvent } from '@/lib/data/mock-events';
-import { shouldHideBottomNav } from '@/lib/layout/navigation';
+import { mobileBottomNavOffsetClass, shouldHideBottomNav } from '@/lib/layout/navigation';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 
@@ -39,7 +39,7 @@ export function EventMobileTicketBar({
         'fixed inset-x-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur-md md:hidden',
         hideBottomNav
           ? 'bottom-0 pb-[calc(0.75rem+env(safe-area-inset-bottom))]'
-          : 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]'
+          : cn(mobileBottomNavOffsetClass)
       )}
     >
       <div className="mx-auto flex max-w-lg items-center gap-4">

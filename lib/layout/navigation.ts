@@ -1,3 +1,11 @@
+/** Mobil alt navigasyon yüksekliği + safe area — sabit nav altında içerik kalmaması için */
+export const mobileBottomNavClearanceClass =
+  'pb-[calc(4.75rem+env(safe-area-inset-bottom))]';
+
+/** Sabit alt barların (bilet CTA vb.) nav üstüne oturması için */
+export const mobileBottomNavOffsetClass =
+  'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]';
+
 /** Alt navigasyonun gizleneceği rotalar */
 export const hideBottomNavPrefixes = [
   '/giris',

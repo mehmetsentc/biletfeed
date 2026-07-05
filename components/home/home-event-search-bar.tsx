@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   CalendarDays,
   ChevronDown,
@@ -10,7 +10,7 @@ import {
   Search,
   Tag
 } from 'lucide-react';
-import { useCityOptional } from '@/components/providers/city-provider';
+import { useCity } from '@/components/providers/city-provider';
 import { SUPPORTED_CITIES } from '@/lib/location/cities';
 import { cn } from '@/lib/utils';
 
@@ -88,25 +88,19 @@ export function HomeEventSearchBar({
   className
 }: HomeEventSearchBarProps) {
   const router = useRouter();
-  const cityCtx = useCityOptional();
-  const defaultCitySlug = cityCtx?.citySlug ?? 'istanbul';
+  const { citySlug, cityName, setCity } = useCity();
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
-  const [citySlug, setCitySlug] = useState(defaultCitySlug);
   const [datePreset, setDatePreset] = useState<DatePreset>('any');
   const [onlineOnly, setOnlineOnly] = useState(false);
 
-  useEffect(() => {
-    if (cityCtx?.citySlug) {
-      setCitySlug(cityCtx.citySlug);
-    }
-  }, [cityCtx?.citySlug]);
+  function handleCityChange(nextSlug: string) {
+    if (!nextSlug) return;
+    setCity(nextSlug, { refreshOnly: true });
+  }
 
-  const cityName = useMemo(() => {
-    if (!citySlug) return 'Herhangi Yer';
-    return SUPPORTED_CITIES.find((c) => c.slug === citySlug)?.name ?? 'Herhangi Yer';
-  }, [citySlug]);
+  const displayCityName = useMemo(() => cityName || 'Herhangi Yer', [cityName]);
 
   const categoryLabel = useMemo(() => {
     if (!category) return 'Kategori';
@@ -195,7 +189,7 @@ export function HomeEventSearchBar({
             />
             <select
               value={citySlug}
-              onChange={(e) => setCitySlug(e.target.value)}
+              onChange={(e) => handleCityChange(e.target.value)}
               className={fieldClassMobile}
               aria-label="Şehir seç"
             >
@@ -249,8 +243,8 @@ export function HomeEventSearchBar({
         </div>
 
         <p className="truncate px-0.5 text-center text-[11px] text-muted-foreground">
-          {cityName !== 'Herhangi Yer' ? (
-            <span className="font-semibold text-foreground">{cityName}</span>
+          {displayCityName !== 'Herhangi Yer' ? (
+            <span className="font-semibold text-foreground">{displayCityName}</span>
           ) : (
             'Tüm şehirler'
           )}
@@ -309,7 +303,7 @@ export function HomeEventSearchBar({
           />
           <select
             value={citySlug}
-            onChange={(e) => setCitySlug(e.target.value)}
+            onChange={(e) => handleCityChange(e.target.value)}
             className={fieldClassDesktop}
             aria-label="Şehir seç"
           >
@@ -368,9 +362,9 @@ export function HomeEventSearchBar({
       </div>
 
       <p className="hidden border-t border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground lg:block">
-        {cityName !== 'Herhangi Yer' ? (
+        {displayCityName !== 'Herhangi Yer' ? (
           <>
-            Seçili şehir: <span className="font-semibold text-foreground">{cityName}</span>
+            Seçili şehir: <span className="font-semibold text-foreground">{displayCityName}</span>
             {' · '}
           </>
         ) : null}
