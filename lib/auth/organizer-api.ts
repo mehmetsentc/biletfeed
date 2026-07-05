@@ -339,7 +339,7 @@ export async function requireOrganizerSession() {
   const organizer = await prisma.organizer.findFirst({
     where: { ownerId: user.id, deletedAt: null }
   });
-  if (!organizer) return null;
+  if (!organizer || organizer.status !== 'approved') return null;
 
   return { session, organizer };
 }

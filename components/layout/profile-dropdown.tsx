@@ -12,6 +12,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useAccountMode } from '@/hooks/use-account-mode';
+import { useOrganizerApproval } from '@/hooks/use-organizer-approval';
 import { isAccountAreaActive } from '@/lib/account/navigation';
 import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -22,6 +23,7 @@ export function ProfileDropdown() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const { isOrganizerMode, isModeLocked } = useAccountMode();
+  const { isApproved } = useOrganizerApproval();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -108,7 +110,7 @@ export function ProfileDropdown() {
             onNavigate={() => setOpen(false)}
             onSignOut={handleSignOut}
             organizerLinks={
-              isModeLocked && isOrganizerMode ? (
+              isModeLocked && isOrganizerMode && isApproved ? (
                 <>
                   <div className="my-1 border-t border-border" />
                   <Link

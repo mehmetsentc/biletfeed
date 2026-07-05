@@ -10,12 +10,13 @@ import { AvatarUpload } from '@/components/profile/avatar-upload';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useAccountMode } from '@/hooks/use-account-mode';
 import type { AccountMode } from '@/lib/auth/account-mode';
-import { Building2, User as UserIcon, CheckCircle2, Loader2, LayoutDashboard, Plus } from 'lucide-react';
+import { Building2, User as UserIcon, CheckCircle2, Loader2, LayoutDashboard, Plus, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
 import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { isEventJoyEnabled } from '@/lib/config/features';
 import { cn } from '@/lib/utils';
+import { isOrganizerApproved } from '@/lib/config/organizer-approval';
 
 type OrganizerInfo = {
   id: string;
@@ -27,14 +28,13 @@ type OrganizerInfo = {
 };
 
 export default function ProfilePage() {
-  const { user, loading, syncSession } = useAuth();
+  const { user, loading } = useAuth();
   const { accountMode, isModeLocked, selectAccountMode, isOrganizerMode } =
     useAccountMode();
   const [pendingMode, setPendingMode] = useState<AccountMode | null>(null);
   const [showOrganizerSetup, setShowOrganizerSetup] = useState(false);
 
   // Organizatör durumu
-  const isAlreadyOrganizer = user?.role === 'ROLE_ORGANIZER' || user?.role === 'ROLE_ADMIN' || user?.role === 'ROLE_SUPER_ADMIN';
   const [orgInfo, setOrgInfo] = useState<OrganizerInfo | null>(null);
   const [orgLoading, setOrgLoading] = useState(false);
 
@@ -70,16 +70,16 @@ export default function ProfilePage() {
 
   // Mevcut organizatör profilini çek
   useEffect(() => {
-    if (!user?.uid || !isAlreadyOrganizer || !isOrganizerMode || !isModeLocked) return;
+    if (!user?.uid || !isOrganizerMode || !isModeLocked) return;
     setOrgLoading(true);
-    fetch('/api/organizer/profile', { credentials: 'same-origin' })
+    fetch('/api/account/organizer', { credentials: 'same-origin' })
       .then((r) => r.json())
       .then((data) => {
         if (data.organizer) setOrgInfo(data.organizer);
       })
       .catch(() => {})
       .finally(() => setOrgLoading(false));
-  }, [user?.uid, isAlreadyOrganizer, isOrganizerMode, isModeLocked]);
+  }, [user?.uid, isOrganizerMode, isModeLocked]);
 
   async function handleOrganizerSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -94,13 +94,15 @@ export default function ProfilePage() {
     setOrgSubmitting(true);
     setOrgError('');
     try {
-      const res = await fetch('/api/organizer/profile', {
+      const res = await fetch('/api/account/organizer', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           organizationName: orgName.trim(),
-          description: orgDesc.trim() || undefined
+          description: orgDesc.trim() || undefined,
+          contactEmail: orgEmail.trim(),
+          contactPhone: orgPhone.trim() || null
         })
       });
       const data = await res.json();
@@ -109,21 +111,10 @@ export default function ProfilePage() {
         return;
       }
 
-      await fetch('/api/organizer/profile', {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactEmail: orgEmail.trim(),
-          contactPhone: orgPhone.trim() || null
-        })
-      });
-
       setOrgSuccess(true);
       setOrgInfo(data.organizer);
       setShowOrganizerSetup(false);
       selectAccountMode('organizer');
-      await syncSession();
     } catch {
       setOrgError('Bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
@@ -144,7 +135,9 @@ export default function ProfilePage() {
 
   const needsOrganizerSetup =
     showOrganizerSetup ||
-    (isModeLocked && isOrganizerMode && !isAlreadyOrganizer && !orgSuccess);
+    (isModeLocked && isOrganizerMode && !orgInfo && !orgSuccess);
+
+  const isOrganizerApprovedStatus = isOrganizerApproved(orgInfo?.status);
 
   const selectedMode = isModeLocked
     ? accountMode
@@ -187,7 +180,13 @@ export default function ProfilePage() {
               : 'Hesap türünüzü bir kez seçin. Kullanıcı modunda etkinlik keşfedip bilet alabilirsiniz; organizatör modunda bilet satış paneli açılır.'
         }
       >
-        <div className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2">
+        <div
+          className={cn(
+            'grid gap-3 py-4',
+            isModeLocked ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'
+          )}
+        >
+          {(!isModeLocked || accountMode === 'user') && (
           <button
             type="button"
             disabled={isModeLocked || showOrganizerSetup}
@@ -207,7 +206,9 @@ export default function ProfilePage() {
               Etkinlik keşfet, bilet al
             </span>
           </button>
+          )}
 
+          {(!isModeLocked || accountMode === 'organizer') && (
           <button
             type="button"
             disabled={isModeLocked || showOrganizerSetup}
@@ -227,6 +228,7 @@ export default function ProfilePage() {
               Etkinlik oluştur, bilet sat
             </span>
           </button>
+          )}
         </div>
 
         {!isModeLocked && pendingMode && !showOrganizerSetup && (
@@ -265,7 +267,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {isOrganizerMode && isModeLocked && !needsOrganizerSetup && (
+        {isOrganizerMode && isModeLocked && isOrganizerApprovedStatus && !needsOrganizerSetup && (
           <div className="flex flex-col gap-2 border-t border-border py-4 sm:flex-row">
             <Link
               href={panelHref('/organizator-panel/etkinlik/yeni')}
@@ -293,7 +295,7 @@ export default function ProfilePage() {
           >
             <p className="py-4 text-sm text-muted-foreground">
               Organizatör hesabı için aşağıdaki zorunlu bilgileri doldurun.
-              Onayın ardından etkinlik oluşturabilir ve bilet satabilirsiniz.
+              Başvurunuz incelendikten sonra etkinlik oluşturabilir ve bilet satabilirsiniz.
             </p>
 
             <div className="space-y-0 rounded-lg border border-border px-4">
@@ -387,7 +389,8 @@ export default function ProfilePage() {
 
         {isModeLocked &&
           isOrganizerMode &&
-          (orgSuccess || (isAlreadyOrganizer && orgInfo)) && (
+          orgInfo &&
+          isOrganizerApprovedStatus && (
           <div className="border-t border-border py-5">
             <div className="flex items-start gap-3 rounded-xl bg-green-500/10 p-4">
               <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-green-600" />
@@ -395,12 +398,9 @@ export default function ProfilePage() {
                 <p className="font-semibold text-green-700 dark:text-green-400">
                   Organizatör Hesabı Aktif
                 </p>
-                {orgInfo && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    <strong>{orgInfo.name}</strong> — Durum:{' '}
-                    {orgInfo.status === 'approved' ? '✅ Onaylı' : '⏳ İncelemede'}
-                  </p>
-                )}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  <strong>{orgInfo.name}</strong> — Durum: ✅ Onaylı
+                </p>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Etkinlik oluşturmak ve paneli kullanmak için profil menüsündeki{' '}
                   <strong>Etkinlik Oluştur</strong> ve{' '}
@@ -415,6 +415,29 @@ export default function ProfilePage() {
                 Organizatör bilgileri yükleniyor…
               </div>
             )}
+          </div>
+        )}
+
+        {isModeLocked &&
+          isOrganizerMode &&
+          orgInfo &&
+          orgInfo.status === 'pending' && (
+          <div className="border-t border-border py-5">
+            <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 p-4">
+              <Clock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-semibold text-amber-800 dark:text-amber-400">
+                  Organizatör Başvurusu İnceleniyor
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  <strong>{orgInfo.name}</strong> — Durum: ⏳ Onay bekliyor
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Başvurunuz yönetici tarafından inceleniyor. Onaylandığında
+                  e-posta ile bilgilendirilecek ve organizatör paneline erişebileceksiniz.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </SettingsSection>

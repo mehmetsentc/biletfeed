@@ -1,4 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { ROLES } from '@/lib/auth/roles';
 import { publishedFilter, buildUpcomingFilter } from '@/lib/services/events';
 
 export type AdminEventSalesRow = {
@@ -155,6 +156,24 @@ export async function updateOrganizerStatus(
   status: 'approved' | 'pending' | 'suspended'
 ) {
   await ensureDbConnection();
+
+  if (status === 'approved') {
+    const organizer = await prisma.organizer.update({
+      where: { id },
+      data: { status },
+      select: { ownerId: true, owner: { select: { role: true } } }
+    });
+
+    if (organizer.owner.role === ROLES.USER) {
+      await prisma.user.update({
+        where: { id: organizer.ownerId },
+        data: { role: ROLES.ORGANIZER }
+      });
+    }
+
+    return organizer;
+  }
+
   return prisma.organizer.update({ where: { id }, data: { status } });
 }
 

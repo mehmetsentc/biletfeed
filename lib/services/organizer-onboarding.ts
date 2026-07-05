@@ -1,6 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { ROLES } from '@/lib/auth/roles';
-import { slugify, uniqueSlug } from '@/lib/utils/slug';
+import { uniqueSlug } from '@/lib/utils/slug';
 
 export async function ensureOrganizerProfile(params: {
   userId: string;
@@ -20,31 +19,18 @@ export async function ensureOrganizerProfile(params: {
     return Boolean(row);
   });
 
-  const organizer = await prisma.$transaction(async (tx) => {
-    const owner = await tx.user.findUnique({
-      where: { id: params.userId },
-      select: { role: true }
-    });
-    // Admin / süperadmin rollerini organizatör kurulumunda düşürme
-    if (owner?.role === ROLES.USER) {
-      await tx.user.update({
-        where: { id: params.userId },
-        data: { role: ROLES.ORGANIZER }
-      });
+  // Yeni başvurular admin onayına gider; ROLE_ORGANIZER onay sonrası verilir.
+  const organizer = await prisma.organizer.create({
+    data: {
+      slug,
+      name: params.organizationName.trim(),
+      description:
+        params.description?.trim() ||
+        `${params.organizationName} etkinlikleri Biletfeed üzerinde.`,
+      ownerId: params.userId,
+      status: 'pending',
+      verified: false
     }
-
-    return tx.organizer.create({
-      data: {
-        slug,
-        name: params.organizationName.trim(),
-        description:
-          params.description?.trim() ||
-          `${params.organizationName} etkinlikleri Biletfeed üzerinde.`,
-        ownerId: params.userId,
-        status: 'approved',
-        verified: false
-      }
-    });
   });
 
   return organizer;
