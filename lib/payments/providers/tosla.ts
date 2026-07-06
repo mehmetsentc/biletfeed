@@ -115,7 +115,7 @@ export const toslaPaymentProvider: PaymentProvider = {
     const amountKurus = Math.round(input.amount * 100);
 
     const body = {
-      clientId,
+      clientId:         Number(clientId), // API long (number) bekler
       apiUser,
       rnd,
       timeSpan,
