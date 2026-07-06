@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, Lock, ShieldCheck } from 'lucide-react';
+import { ExternalLink, Lock, ShieldCheck, CreditCard } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
 import { CheckoutBillingSection } from '@/components/checkout/checkout-billing-section';
 import { PurchasePriceBreakdown } from '@/components/tickets/purchase/purchase-price-breakdown';
@@ -44,6 +44,8 @@ export function PurchaseCheckoutForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [attendeeName, setAttendeeName] = useState('');
   const [attendeeEmail, setAttendeeEmail] = useState('');
   const [attendeePhone, setAttendeePhone] = useState('');
@@ -165,7 +167,9 @@ export function PurchaseCheckoutForm({
       }
 
       if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
+        // Tosla sayfasını iframe modal içinde göster (full redirect yerine)
+        setPaymentUrl(data.redirectUrl);
+        setLoading(false);
         return;
       }
 
@@ -175,6 +179,53 @@ export function PurchaseCheckoutForm({
     } finally {
       setLoading(false);
     }
+  }
+
+  // Iframe yüklenince biletfeed.com'a döndüğünü algıla → parent yönlendir
+  function handleIframeLoad() {
+    try {
+      const href = iframeRef.current?.contentWindow?.location?.href ?? '';
+      if (href && href.includes('biletfeed.com/odeme/')) {
+        window.location.href = href;
+      }
+    } catch {
+      // Cross-origin (Tosla sayfası) — normal, ignore
+    }
+  }
+
+  if (paymentUrl) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-background">
+        {/* Üst bar */}
+        <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <CreditCard className="size-5 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Güvenli Ödeme</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Lock className="size-3.5 text-primary" />
+            256-bit SSL
+          </div>
+        </div>
+
+        {/* Tosla iframe */}
+        <iframe
+          ref={iframeRef}
+          src={paymentUrl}
+          onLoad={handleIframeLoad}
+          className="flex-1 w-full border-0 bg-white"
+          title="Güvenli Kart Ödeme"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
+        />
+
+        {/* Alt bar */}
+        <div className="border-t border-border bg-card px-4 py-2">
+          <p className="text-center text-[11px] text-muted-foreground">
+            Kart bilgileriniz BiletFeed sunucularında saklanmaz. Ödeme Tosla İşim güvenli sanal POS altyapısı ile tamamlanır.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

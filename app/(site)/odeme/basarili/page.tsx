@@ -6,6 +6,7 @@ import { verifySessionCookie } from '@/lib/auth/session';
 import { getOrderForUser } from '@/lib/services/orders';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
+import { IframeBreaker } from '@/components/payments/iframe-breaker';
 
 export const metadata = createPageMetadata({
   title: 'Ödeme Başarılı',
@@ -41,6 +42,7 @@ export default async function PaymentSuccessPage({ searchParams }: Props) {
 
   return (
     <div className="relative min-h-[70vh] overflow-hidden bg-background">
+      <IframeBreaker />
       <div
         className="absolute inset-x-0 top-0 h-48 bg-gradient-to-br from-primary via-bf-orange-400 to-bf-orange-600"
         aria-hidden
