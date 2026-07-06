@@ -1,33 +1,29 @@
 'use client';
 
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 
-export function ToslaHostedFallbackModal({
-  hostedPaymentUrl,
-  onClose
-}: {
-  hostedPaymentUrl: string;
-  onClose: () => void;
-}) {
+/** Tosla ortak ödeme sayfasına tam sayfa yönlendirme (iframe X-Frame-Options ile engellenir). */
+export function ToslaHostedFallbackModal({ hostedPaymentUrl }: { hostedPaymentUrl: string }) {
+  useEffect(() => {
+    window.location.assign(hostedPaymentUrl);
+  }, [hostedPaymentUrl]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4">
-      <div className="flex h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-card shadow-2xl sm:h-[85vh] sm:rounded-2xl">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div>
-            <p className="text-sm font-bold text-foreground">Alternatif ödeme sayfası</p>
-            <p className="text-xs text-muted-foreground">Tosla güvenli ödeme ekranı</p>
-          </div>
-          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Kapat">
-            <X className="size-4" />
-          </Button>
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 p-6 backdrop-blur-sm">
+      <div className="flex max-w-sm flex-col items-center text-center">
+        <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10">
+          <ShieldCheck className="size-7 text-primary" />
         </div>
-        <iframe
-          src={hostedPaymentUrl}
-          title="Tosla ödeme"
-          className="min-h-0 flex-1 w-full border-0 bg-white"
-          allow="payment"
-        />
+        <Loader2 className="mb-4 size-8 animate-spin text-primary" />
+        <p className="text-lg font-bold text-foreground">Tosla güvenli ödeme sayfasına yönlendiriliyorsunuz</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Birkaç saniye içinde otomatik olarak yönlendirileceksiniz. Sayfa açılmazsa{' '}
+          <a href={hostedPaymentUrl} className="font-medium text-primary underline-offset-2 hover:underline">
+            buraya tıklayın
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

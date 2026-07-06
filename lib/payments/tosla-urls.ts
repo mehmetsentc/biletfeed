@@ -13,7 +13,7 @@ function get3DHostBase(): string {
 /** Kart formu doğrudan Tosla'ya POST edilir — kart bilgisi BiletFeed sunucusuna gitmez */
 export function getToslaProcessCardFormUrl(): string {
   return (
-    process.env.TOSLA_PROCESS_CARD_FORM_URL ?? `${getApiBase()}/processCardForm`
+    process.env.TOSLA_PROCESS_CARD_FORM_URL ?? `${getApiBase()}/ProcessCardForm`
   ).replace(/\/$/, '');
 }
 

@@ -55,12 +55,7 @@ export function ToslaPaymentPageClient({ context }: { context: PaymentPageContex
         </p>
       </div>
 
-      {showHostedFallback && (
-        <ToslaHostedFallbackModal
-          hostedPaymentUrl={context.hostedPaymentUrl}
-          onClose={() => setShowHostedFallback(false)}
-        />
-      )}
+      {showHostedFallback && <ToslaHostedFallbackModal hostedPaymentUrl={context.hostedPaymentUrl} />}
     </div>
   );
 }

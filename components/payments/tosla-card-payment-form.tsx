@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { CreditCard, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
@@ -40,12 +40,13 @@ export function ToslaCardPaymentForm({
   cancelHref,
   onUseHostedFallback
 }: ToslaCardPaymentFormProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [holderName, setHolderName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [submitting, setSubmitting] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   const brand = useMemo(() => detectCardBrand(cardNumber), [cardNumber]);
   const formattedTotal = total.toLocaleString('tr-TR', {
@@ -75,12 +76,12 @@ export function ToslaCardPaymentForm({
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    if (!validate()) {
-      e.preventDefault();
-      return;
-    }
-    setSubmitting(true);
-    // Native form POST — kart bilgisi doğrudan Tosla'ya gider
+    e.preventDefault();
+    if (!validate()) return;
+
+    setRedirecting(true);
+    // Native submit bypasses React handler — disabled button re-render cannot cancel POST
+    formRef.current?.submit();
   }
 
   return (
@@ -103,6 +104,7 @@ export function ToslaCardPaymentForm({
       </div>
 
       <form
+        ref={formRef}
         action={processCardFormUrl}
         method="POST"
         encType="multipart/form-data"
@@ -149,6 +151,7 @@ export function ToslaCardPaymentForm({
               autoComplete="cc-name"
               className="mt-1.5 uppercase"
               required
+              readOnly={redirecting}
             />
             {errors.holder && <p className="mt-1 text-xs text-destructive">{errors.holder}</p>}
           </div>
@@ -167,6 +170,7 @@ export function ToslaCardPaymentForm({
               placeholder="0000 0000 0000 0000"
               className="mt-1.5 font-mono tracking-wider"
               required
+              readOnly={redirecting}
             />
             {errors.number && <p className="mt-1 text-xs text-destructive">{errors.number}</p>}
           </div>
@@ -186,6 +190,7 @@ export function ToslaCardPaymentForm({
                 placeholder="MM/YY"
                 className="mt-1.5 font-mono"
                 required
+                readOnly={redirecting}
               />
               {errors.expiry && <p className="mt-1 text-xs text-destructive">{errors.expiry}</p>}
             </div>
@@ -205,14 +210,19 @@ export function ToslaCardPaymentForm({
                 placeholder="•••"
                 className="mt-1.5 font-mono"
                 required
+                readOnly={redirecting}
               />
               {errors.cvv && <p className="mt-1 text-xs text-destructive">{errors.cvv}</p>}
             </div>
           </div>
         </div>
 
-        <Button type="submit" className="mt-6 h-12 w-full rounded-xl text-base font-bold" disabled={submitting}>
-          {submitting ? (
+        <Button
+          type="submit"
+          className="mt-6 h-12 w-full rounded-xl text-base font-bold"
+          aria-busy={redirecting}
+        >
+          {redirecting ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" />
               Banka doğrulamasına yönlendiriliyor…
@@ -239,7 +249,7 @@ export function ToslaCardPaymentForm({
           <Link href={cancelHref} className="text-muted-foreground hover:text-foreground">
             Vazgeç ve geri dön
           </Link>
-          {onUseHostedFallback && (
+          {onUseHostedFallback && !redirecting && (
             <button
               type="button"
               onClick={onUseHostedFallback}
