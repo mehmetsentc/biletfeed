@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ExternalLink, Lock, ShieldCheck } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
+import { CheckoutBillingSection } from '@/components/checkout/checkout-billing-section';
 import { PurchasePriceBreakdown } from '@/components/tickets/purchase/purchase-price-breakdown';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,12 @@ import {
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import { calculatePurchasePricing, formatTry } from '@/lib/tickets/purchase-pricing';
 import { validateCheckoutAttendee } from '@/lib/validation/checkout-attendee';
+import {
+  emptyCheckoutBilling,
+  validateCheckoutBilling,
+  type CheckoutBillingFormState,
+  type CheckoutBillingInput
+} from '@/lib/validation/checkout-billing';
 import { normalizeTrPhone } from '@/lib/validation/tr-phone';
 
 interface PurchaseCheckoutFormProps {
@@ -46,6 +53,8 @@ export function PurchaseCheckoutForm({
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [billing, setBilling] = useState<CheckoutBillingFormState>(emptyCheckoutBilling);
+  const [billingErrors, setBillingErrors] = useState<Record<string, string>>({});
 
   const eventRules = event.rules?.trim() ?? '';
   const ruleLines = eventRules
@@ -114,6 +123,19 @@ export function PurchaseCheckoutForm({
       return;
     }
 
+    let billingPayload: CheckoutBillingInput | undefined;
+    if (isPaid) {
+      const billingResult = validateCheckoutBilling(billing);
+      if (!billingResult.success) {
+        setBillingErrors(billingResult.errors);
+        setError('Lütfen fatura bilgilerini kontrol edin.');
+        setLoading(false);
+        return;
+      }
+      billingPayload = billingResult.data;
+      setBillingErrors({});
+    }
+
     try {
       const res = await fetch('/api/orders/checkout', {
         method: 'POST',
@@ -125,7 +147,8 @@ export function PurchaseCheckoutForm({
           attendeeName: attendee.data.attendeeName,
           attendeeEmail: attendee.data.attendeeEmail,
           attendeePhone: attendee.data.attendeePhone,
-          couponCode: couponApplied ? couponCode.trim() : undefined
+          couponCode: couponApplied ? couponCode.trim() : undefined,
+          ...(billingPayload ? { billing: billingPayload } : {})
         })
       });
       const data = await res.json();
@@ -247,6 +270,18 @@ export function PurchaseCheckoutForm({
             </p>
           )}
         </section>
+
+        {isPaid && (
+          <CheckoutBillingSection
+            value={billing}
+            onChange={setBilling}
+            errors={billingErrors}
+            onClearError={(field) =>
+              setBillingErrors((prev) => ({ ...prev, [field]: '' }))
+            }
+            suggestedName={attendeeName}
+          />
+        )}
 
         {requiresRulesAcceptance && (
           <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">

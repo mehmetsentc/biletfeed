@@ -5,12 +5,14 @@ import { verifySessionCookie } from '@/lib/auth/session';
 import { createCheckout } from '@/lib/services/orders';
 import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 import { checkoutAttendeeSchema } from '@/lib/validation/checkout-attendee';
+import { checkoutBillingSchema } from '@/lib/validation/checkout-billing';
 
 const bodySchema = checkoutAttendeeSchema.extend({
   eventSlug: z.string().min(1),
   quantity: z.number().int().min(1).max(10),
   ticketTypeId: z.string().uuid().optional(),
-  couponCode: z.string().max(50).optional()
+  couponCode: z.string().max(50).optional(),
+  billing: checkoutBillingSchema.optional()
 });
 
 export async function POST(request: NextRequest) {
@@ -42,7 +44,8 @@ export async function POST(request: NextRequest) {
       attendeeName: parsed.data.attendeeName,
       attendeeEmail: parsed.data.attendeeEmail,
       attendeePhone: parsed.data.attendeePhone,
-      couponCode: parsed.data.couponCode
+      couponCode: parsed.data.couponCode,
+      billing: parsed.data.billing
     });
 
     // redirectUrl ödeme sağlayıcısından gelir (Tosla, Iyzico vb.) —

@@ -31,6 +31,7 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
   const profile = order.user.billingProfile;
   const buyerName =
     profile?.companyName?.trim() ||
+    order.attendeeName?.trim() ||
     order.user.displayName?.trim() ||
     'Bireysel Müşteri';
 

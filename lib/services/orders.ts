@@ -18,6 +18,8 @@ import { createCreditNoteForRefund } from '@/lib/accounting/invoice';
 import { validateCoupon, incrementCouponUsage } from '@/lib/services/coupons';
 import { notifyTicketPurchase } from '@/lib/services/notifications';
 import { findOrCreateGuestUser } from '@/lib/services/guest-user';
+import { upsertUserBillingProfile } from '@/lib/services/user-billing';
+import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 
 export interface CheckoutResult {
@@ -132,6 +134,7 @@ export async function createCheckout(params: {
   attendeeEmail: string;
   attendeePhone: string;
   couponCode?: string;
+  billing?: UserBillingInput;
 }): Promise<CheckoutResult> {
   const attendeeName = params.attendeeName.trim();
   const attendeeEmail = params.attendeeEmail.trim().toLowerCase();
@@ -168,6 +171,16 @@ export async function createCheckout(params: {
   }
 
   const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
+  const isPaidCheckout = total > 0 && !event.isFree;
+
+  if (isPaidCheckout) {
+    if (!params.billing) {
+      throw new Error('Ücretli siparişler için fatura bilgileri zorunludur');
+    }
+    await upsertUserBillingProfile(user.id, params.billing);
+  } else if (params.billing) {
+    await upsertUserBillingProfile(user.id, params.billing);
+  }
 
   if (total <= 0 || event.isFree) {
     const orderId = await fulfillFreeOrder({

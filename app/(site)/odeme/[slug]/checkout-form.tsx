@@ -15,6 +15,7 @@ import {
 import { BfCheckoutContextBar } from '@/components/checkout/bf-checkout-context-bar';
 import { BfCheckoutSteps, BfSubStepLabel } from '@/components/checkout/bf-checkout-steps';
 import { BfOrderSummary, BfPriceRow } from '@/components/checkout/bf-order-summary';
+import { CheckoutBillingSection } from '@/components/checkout/checkout-billing-section';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,11 @@ import {
 } from '@/lib/data/mock-events';
 import type { EventRulesDisplayData } from '@/lib/event-rules/types';
 import { validateCheckoutAttendee } from '@/lib/validation/checkout-attendee';
+import {
+  emptyCheckoutBilling,
+  validateCheckoutBilling,
+  type CheckoutBillingFormState
+} from '@/lib/validation/checkout-billing';
 import { normalizeTrPhone } from '@/lib/validation/tr-phone';
 
 type TicketTypeRow = {
@@ -67,6 +73,8 @@ export function CheckoutForm({
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [billing, setBilling] = useState<CheckoutBillingFormState>(emptyCheckoutBilling);
+  const [billingErrors, setBillingErrors] = useState<Record<string, string>>({});
 
   const eventRules = event.rules?.trim() ?? '';
   const ruleLines = eventRules
@@ -154,6 +162,57 @@ export function CheckoutForm({
       setStep(2);
       setError('Lütfen katılımcı bilgilerini eksiksiz doldurun.');
       setLoading(false);
+      return;
+    }
+
+    if (isPaid) {
+      const billingResult = validateCheckoutBilling(billing);
+      if (!billingResult.success) {
+        setBillingErrors(billingResult.errors);
+        setStep(3);
+        setError('Lütfen fatura bilgilerini kontrol edin.');
+        setLoading(false);
+        return;
+      }
+      setBillingErrors({});
+
+      try {
+        const res = await fetch('/api/orders/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventSlug: event.slug,
+            quantity,
+            ticketTypeId: selectedType?.id,
+            attendeeName: attendee.data.attendeeName,
+            attendeeEmail: attendee.data.attendeeEmail,
+            attendeePhone: attendee.data.attendeePhone,
+            couponCode: couponApplied ? couponCode.trim() : undefined,
+            billing: billingResult.data
+          })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Sipariş oluşturulamadı');
+        }
+
+        if (data.status === 'paid') {
+          router.push(`/odeme/basarili?order=${data.orderId}`);
+          return;
+        }
+
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+          return;
+        }
+
+        throw new Error('Ödeme sayfası alınamadı');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'İşlem başarısız');
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -528,6 +587,19 @@ export function CheckoutForm({
                       </div>
                     </div>
                   </div>
+
+                  {isPaid && (
+                    <CheckoutBillingSection
+                      value={billing}
+                      onChange={setBilling}
+                      errors={billingErrors}
+                      onClearError={(field) =>
+                        setBillingErrors((prev) => ({ ...prev, [field]: '' }))
+                      }
+                      suggestedName={attendeeName}
+                      className="rounded-xl border border-border bg-muted/30 p-4"
+                    />
+                  )}
 
                   {isPaid ? (
                     <div className="space-y-3 rounded-xl border border-primary/20 bg-accent/50 p-4 text-sm">
