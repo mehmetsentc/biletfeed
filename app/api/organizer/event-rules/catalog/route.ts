@@ -1,11 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireOrganizerSession } from '@/lib/auth/organizer-api';
+import {
+  resolveOrganizerSession,
+  type OrganizerSessionDenyReason
+} from '@/lib/auth/organizer-api';
 import { getRuleCatalog } from '@/lib/services/event-rules';
 
+function organizerSessionError(reason: OrganizerSessionDenyReason): NextResponse {
+  switch (reason) {
+    case 'no_session':
+      return NextResponse.json({ error: 'Panel girişi gerekli' }, { status: 401 });
+    case 'no_user':
+      return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 401 });
+    case 'no_organizer':
+      return NextResponse.json(
+        { error: 'Organizatör profili bulunamadı. Kurulumu tamamlayın.' },
+        { status: 403 }
+      );
+    case 'suspended':
+      return NextResponse.json({ error: 'Hesabınız askıya alındı.' }, { status: 403 });
+  }
+}
+
 export async function GET(_request: NextRequest) {
-  const ctx = await requireOrganizerSession();
-  if (!ctx) {
-    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
+  const resolved = await resolveOrganizerSession();
+  if (!resolved.ok) {
+    return organizerSessionError(resolved.reason);
   }
 
   try {

@@ -28,6 +28,8 @@ export function isMissingRulesTableError(err: unknown): boolean {
   return (
     message.includes('event_rule_sets') ||
     message.includes('event_announcements') ||
+    message.includes('event_rule_categories') ||
+    message.includes('event_rules') ||
     message.includes('does not exist')
   );
 }

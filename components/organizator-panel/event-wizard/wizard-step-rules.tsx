@@ -164,6 +164,7 @@ export function WizardStepRules({
   const [rules, setRules] = useState<RuleCatalogRule[]>([]);
   const [templates, setTemplates] = useState<OrganizerRuleTemplateData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [suggesting, setSuggesting] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState<Record<string, string>>({});
@@ -179,25 +180,45 @@ export function WizardStepRules({
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [catalogRes, templatesRes] = await Promise.all([
         fetch('/api/organizer/event-rules/catalog'),
         fetch('/api/organizer/rule-templates')
       ]);
-      if (catalogRes.ok) {
+
+      if (!catalogRes.ok) {
+        const data = (await catalogRes.json().catch(() => ({}))) as { error?: string };
+        setCategories([]);
+        setRules([]);
+        setLoadError(
+          data.error ??
+            'Kural kataloğu yüklenemedi. Oturumunuzu kontrol edip sayfayı yenileyin.'
+        );
+      } else {
         const data = (await catalogRes.json()) as {
           categories: RuleCatalogCategory[];
           rules: RuleCatalogRule[];
         };
-        setCategories(data.categories);
-        setRules(data.rules);
+        setCategories(data.categories ?? []);
+        setRules(data.rules ?? []);
+        if ((data.rules ?? []).length === 0) {
+          setLoadError(
+            'Kural kataloğu henüz tanımlanmamış. Lütfen yönetici ile iletişime geçin.'
+          );
+        }
       }
+
       if (templatesRes.ok) {
         const data = (await templatesRes.json()) as {
           templates: OrganizerRuleTemplateData[];
         };
         setTemplates(data.templates);
       }
+    } catch {
+      setCategories([]);
+      setRules([]);
+      setLoadError('Kural kataloğu yüklenemedi. Lütfen sayfayı yenileyin.');
     } finally {
       setLoading(false);
     }
@@ -424,11 +445,15 @@ export function WizardStepRules({
           />
         </div>
 
-        {rules.length === 0 ? (
-          <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
-            Kural kataloğu yüklenemedi. Lütfen sayfayı yenileyin veya yönetici ile iletişime
-            geçin.
-          </p>
+        {loadError ? (
+          <div className="mt-4 space-y-3">
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+              {loadError}
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={() => void loadCatalog()}>
+              Yeniden dene
+            </Button>
+          </div>
         ) : (
         <Accordion type="multiple" className="mt-4 w-full">
           {wizardCategories.map((cat) => {

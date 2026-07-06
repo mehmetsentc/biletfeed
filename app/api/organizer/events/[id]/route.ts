@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { requireOrganizerSession } from '@/lib/auth/organizer-api';
+import {
+  resolveOrganizerSession,
+  type OrganizerSessionDenyReason
+} from '@/lib/auth/organizer-api';
+import {
+  isOrganizerProfileComplete,
+  organizerProfileIncompleteError
+} from '@/lib/services/organizer-profile-readiness';
 import {
   updateOrganizerEvent,
   updateOrganizerEventStatus
@@ -59,17 +66,33 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+function organizerSessionError(reason: OrganizerSessionDenyReason): NextResponse {
+  switch (reason) {
+    case 'no_session':
+      return NextResponse.json({ error: 'Panel girişi gerekli' }, { status: 401 });
+    case 'no_user':
+      return NextResponse.json({ error: 'Kullanıcı bulunamadı' }, { status: 401 });
+    case 'no_organizer':
+      return NextResponse.json(
+        { error: 'Organizatör profili bulunamadı. Kurulumu tamamlayın.' },
+        { status: 403 }
+      );
+    case 'suspended':
+      return NextResponse.json({ error: 'Hesabınız askıya alındı.' }, { status: 403 });
+  }
+}
+
 export async function GET(_request: NextRequest, { params }: RouteParams) {
-  const ctx = await requireOrganizerSession();
-  if (!ctx) {
-    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
+  const resolved = await resolveOrganizerSession();
+  if (!resolved.ok) {
+    return organizerSessionError(resolved.reason);
   }
 
   const { id } = await params;
   await ensureDbConnection();
 
   const event = await prisma.event.findFirst({
-    where: { id, organizerId: ctx.organizer.id, deletedAt: null },
+    where: { id, organizerId: resolved.ctx.organizer.id, deletedAt: null },
     include: {
       city: true,
       venue: true,
@@ -90,10 +113,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const ctx = await requireOrganizerSession();
-  if (!ctx) {
-    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
+  const resolved = await resolveOrganizerSession();
+  if (!resolved.ok) {
+    return organizerSessionError(resolved.reason);
   }
+  const { organizer } = resolved.ctx;
 
   const { id } = await params;
   const json = await request.json();
@@ -103,6 +127,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const data = parsed.data;
+
+  if (data.status === 'pending' && !isOrganizerProfileComplete(organizer)) {
+    return NextResponse.json({ error: organizerProfileIncompleteError() }, { status: 403 });
+  }
 
   if (data.status === 'published') {
     return NextResponse.json(
@@ -126,7 +154,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     if (hasContentUpdate) {
       const event = await updateOrganizerEvent({
-        organizerId: ctx.organizer.id,
+        organizerId: organizer.id,
         eventId: id,
         ...(data.title && { title: data.title }),
         ...(data.description && { description: data.description }),
@@ -169,7 +197,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const event = await updateOrganizerEventStatus(
-      ctx.organizer.id,
+      organizer.id,
       id,
       data.status
     );

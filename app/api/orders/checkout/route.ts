@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { isAllowedAppRedirectUrl } from '@/lib/auth/safe-redirect';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { createCheckout } from '@/lib/services/orders';
-import { getAppBaseUrl } from '@/lib/payments/config';
 import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 import { checkoutAttendeeSchema } from '@/lib/validation/checkout-attendee';
 
@@ -47,16 +45,12 @@ export async function POST(request: NextRequest) {
       couponCode: parsed.data.couponCode
     });
 
-    const allowedOrigins = [getAppBaseUrl()];
-    if (
-      result.redirectUrl &&
-      !isAllowedAppRedirectUrl(result.redirectUrl, allowedOrigins)
-    ) {
-      return NextResponse.json({ error: 'Geçersiz ödeme yönlendirmesi' }, { status: 500 });
-    }
-
+    // redirectUrl ödeme sağlayıcısından gelir (Tosla, Iyzico vb.) —
+    // harici domain olabilir, same-origin kontrolü yapılmaz.
     return NextResponse.json({ success: true, ...result });
-  } catch {
-    return NextResponse.json({ error: 'Sipariş oluşturulamadı' }, { status: 400 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Sipariş oluşturulamadı';
+    console.error('[checkout] error:', message, err);
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

@@ -1,7 +1,6 @@
 import type { UserRole } from '@/types';
 import { verifyOrganizerPanelSession, sessionHasRole } from '@/lib/auth/session';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { canAccessOrganizerPanel } from '@/lib/services/organizer-profile-readiness';
 
 function normalizeEmail(email?: string): string | undefined {
   const value = email?.trim().toLowerCase();
@@ -330,17 +329,43 @@ export async function canManageEventTickets(
   return Boolean(event);
 }
 
-export async function requireOrganizerSession() {
+export type OrganizerSessionContext = {
+  session: NonNullable<Awaited<ReturnType<typeof verifyOrganizerPanelSession>>>;
+  organizer: NonNullable<
+    Awaited<ReturnType<typeof prisma.organizer.findFirst>>
+  >;
+};
+
+export type OrganizerSessionDenyReason =
+  | 'no_session'
+  | 'no_user'
+  | 'no_organizer'
+  | 'suspended';
+
+export type OrganizerSessionResolve =
+  | { ok: true; ctx: OrganizerSessionContext }
+  | { ok: false; reason: OrganizerSessionDenyReason };
+
+/** Panel API oturumu — tamamlanmış profil zorunlu değil (ayarlar / mevcut etkinlik düzenleme). */
+export async function resolveOrganizerSession(): Promise<OrganizerSessionResolve> {
   const session = await verifyOrganizerPanelSession();
-  if (!session) return null;
+  if (!session) return { ok: false, reason: 'no_session' };
+
+  await ensureDbConnection();
 
   const user = await resolveScannerUser(session.uid, session.email);
-  if (!user) return null;
+  if (!user) return { ok: false, reason: 'no_user' };
 
   const organizer = await prisma.organizer.findFirst({
     where: { ownerId: user.id, deletedAt: null }
   });
-  if (!organizer || !canAccessOrganizerPanel(organizer)) return null;
+  if (!organizer) return { ok: false, reason: 'no_organizer' };
+  if (organizer.status === 'suspended') return { ok: false, reason: 'suspended' };
 
-  return { session, organizer };
+  return { ok: true, ctx: { session, organizer } };
+}
+
+export async function requireOrganizerSession(): Promise<OrganizerSessionContext | null> {
+  const resolved = await resolveOrganizerSession();
+  return resolved.ok ? resolved.ctx : null;
 }
