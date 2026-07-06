@@ -7,7 +7,7 @@ import { getActiveHomeBanners, type HomeBannerRecord } from '@/lib/services/home
 import {
   getFeaturedEvents,
   getTrendingEvents,
-  getEventsByCityAndNearby
+  getEventsByCity
 } from '@/lib/services/events';
 
 function bannerToSlide(banner: HomeBannerRecord): HeroBannerSlide {
@@ -69,7 +69,7 @@ export async function getHomeHeroSlides(citySlug: string): Promise<HeroBannerSli
     getActiveHomeBanners(),
     getFeaturedEvents(),
     getTrendingEvents(),
-    getEventsByCityAndNearby(citySlug)
+    getEventsByCity(citySlug)
   ]);
 
   const slides: HeroBannerSlide[] = manualBanners

@@ -345,37 +345,9 @@ export async function getCitiesWithEvents() {
   return withEvents.length > 0 ? withEvents : cities;
 }
 
-export async function getEventsByCityAndNearby(
-  citySlug: string,
-  minResults = 6
-): Promise<MockEvent[]> {
-  const { getNearbyCitySlugs } = await import('@/lib/location/detect-city');
-  const primary = await getEventsByCity(citySlug);
-  if (primary.length >= minResults) return primary;
-
-  const seen = new Set(primary.map((event) => event.id));
-  const combined = [...primary];
-
-  for (const slug of getNearbyCitySlugs(citySlug, 5)) {
-    if (slug === citySlug) continue;
-    const nearbyEvents = await getEventsByCity(slug);
-    for (const event of nearbyEvents) {
-      if (seen.has(event.id)) continue;
-      seen.add(event.id);
-      combined.push(event);
-      if (combined.length >= minResults) {
-        return sortByStartDateAsc(combined);
-      }
-    }
-  }
-
-  return sortByStartDateAsc(combined);
-}
-
-function sortByStartDateAsc(events: MockEvent[]): MockEvent[] {
-  return [...events].sort(
-    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-  );
+/** @deprecated Yakın şehir doldurması kaldırıldı — getEventsByCity kullanın */
+export async function getEventsByCityAndNearby(citySlug: string): Promise<MockEvent[]> {
+  return getEventsByCity(citySlug);
 }
 
 export async function getFavoriteEvents(userId: string): Promise<MockEvent[]> {

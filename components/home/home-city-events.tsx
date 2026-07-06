@@ -80,7 +80,7 @@ export function HomeCityEvents({ initial }: HomeCityEventsProps) {
       <section className="bg-background py-12 md:py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold md:text-3xl">
-            {displayName} ve Yakın Çevrede Yaklaşan Etkinlikler
+            {displayName}&apos;da Yaklaşan Etkinlikler
           </h2>
           <p className="mt-2 text-muted-foreground">
             Biletix, Bubilet, Biletimo ve diğer kaynaklardan güncel etkinlikler

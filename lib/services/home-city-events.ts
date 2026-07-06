@@ -1,9 +1,7 @@
 import { getCityNameOrDefault, isSupportedCitySlug } from '@/lib/location/cities';
-import { getNearbyCitySlugs } from '@/lib/location/detect-city';
 import type { MockEvent } from '@/lib/data/mock-events';
 import {
-  getAllEvents,
-  getEventsByCityAndNearby,
+  getEventsByCity,
   getTrendingEvents,
   getCategories
 } from '@/lib/services/events';
@@ -42,6 +40,12 @@ function sortByStartDate(events: MockEvent[]): MockEvent[] {
   );
 }
 
+function filterUpcomingInCity(events: MockEvent[], citySlug: string): MockEvent[] {
+  return sortByStartDate(
+    events.filter((event) => event.citySlug === citySlug && isUpcomingEvent(event))
+  );
+}
+
 function buildCategorySections(
   cityEvents: MockEvent[],
   categories: Array<{ slug: string; name: string }>
@@ -62,11 +66,7 @@ function buildCategorySections(
     .filter((section) => section.events.length > 0);
 }
 
-function buildBestSellers(
-  cityEvents: MockEvent[],
-  trending: MockEvent[],
-  nearbySlugs: string[]
-): MockEvent[] {
+function buildBestSellers(cityEvents: MockEvent[], trending: MockEvent[]): MockEvent[] {
   const now = new Date();
   const fromCity = sortByStartDate(
     cityEvents.filter((e) => e.isTrending && isUpcomingEvent(e, now))
@@ -74,27 +74,9 @@ function buildBestSellers(
   if (fromCity.length >= 3) return fromCity.slice(0, 12);
 
   const fromTrending = sortByStartDate(
-    trending.filter(
-      (e) =>
-        isUpcomingEvent(e, now) &&
-        (nearbySlugs.includes(e.citySlug) || e.isTrending)
-    )
+    trending.filter((e) => isUpcomingEvent(e, now) && e.isTrending)
   );
   return (fromTrending.length > 0 ? fromTrending : cityEvents).slice(0, 12);
-}
-
-function pickCityEvents(
-  cityEvents: MockEvent[],
-  allUpcoming: MockEvent[],
-  citySlug: string,
-  nearbySlugs: string[]
-): MockEvent[] {
-  if (cityEvents.length >= 3) return cityEvents;
-  const filtered = allUpcoming.filter(
-    (event) =>
-      event.citySlug === citySlug || nearbySlugs.includes(event.citySlug)
-  );
-  return filtered.length > 0 ? filtered : cityEvents;
 }
 
 export function resolveHomeCitySlug(slug: string | null | undefined): string {
@@ -109,41 +91,25 @@ export async function getHomeCityEventsBundle(
 ): Promise<HomeCityEventsBundle> {
   const citySlug = resolveHomeCitySlug(citySlugInput);
   const cityName = getCityNameOrDefault(citySlug);
-  const nearbySlugs = getNearbyCitySlugs(citySlug, 4);
 
-  const [cityEvents, trending, allUpcoming, categories] = await Promise.all([
-    getEventsByCityAndNearby(citySlug),
+  const [cityEvents, trending, categories] = await Promise.all([
+    getEventsByCity(citySlug),
     getTrendingEvents(),
-    getAllEvents(),
     getCategories()
   ]);
 
-  const heroEvents = pickCityEvents(
-    cityEvents,
-    allUpcoming,
-    citySlug,
-    nearbySlugs
-  );
-  const upcomingCity = sortByStartDate(
-    heroEvents.filter((e) => isUpcomingEvent(e))
-  );
-  const trendingNearby = trending.filter((event) =>
-    nearbySlugs.includes(event.citySlug)
-  );
+  const upcomingCity = filterUpcomingInCity(cityEvents, citySlug);
+  const trendingInCity = trending.filter((event) => event.citySlug === citySlug);
   const displayTrending =
-    trendingNearby.length >= 3
-      ? trendingNearby
-      : heroEvents.length > 0
-        ? heroEvents
-        : trending.slice(0, 6);
+    trendingInCity.length >= 3 ? trendingInCity : upcomingCity.slice(0, 6);
 
   return {
     citySlug,
     cityName,
-    heroEvents,
+    heroEvents: upcomingCity,
     displayTrending,
     popularEvents: upcomingCity.slice(0, 12),
-    bestSellers: buildBestSellers(heroEvents, trending, nearbySlugs),
-    categorySections: buildCategorySections(heroEvents, categories)
+    bestSellers: buildBestSellers(upcomingCity, trendingInCity),
+    categorySections: buildCategorySections(upcomingCity, categories)
   };
 }
