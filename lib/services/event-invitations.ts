@@ -107,6 +107,91 @@ export async function listEventInvitations(
   return rows.map(mapInvitation);
 }
 
+const invitationEmailInclude = {
+  purchasedTicket: {
+    select: { id: true, ticketCode: true, validationToken: true, orderId: true }
+  },
+  ticketType: { select: { name: true } },
+  event: {
+    select: {
+      title: true,
+      coverImage: true,
+      startDate: true,
+      endDate: true,
+      organizer: { select: { name: true } },
+      venue: { select: { name: true, address: true } },
+      city: { select: { name: true } }
+    }
+  }
+} as const;
+
+/** Tek davetiye e-postası — PDF eki ile */
+export async function sendEventInvitationEmail(
+  invitationId: string,
+  organizerId: string
+): Promise<void> {
+  await ensureDbConnection();
+
+  const row = await prisma.eventInvitation.findFirst({
+    where: { id: invitationId, organizerId, deletedAt: null },
+    include: invitationEmailInclude
+  });
+
+  if (!row?.guestEmail?.trim()) return;
+
+  const eventDate = formatTurkeyDateLong(row.event.startDate);
+  const eventTime = formatTurkeyTime(row.event.startDate);
+  const venueName = row.event.venue?.name ?? 'Online';
+  const cityName = row.event.city.name;
+  const inviteUrl = getSiteUrl(`/davetiye/${row.inviteToken}`);
+  const calendarUrl = buildInvitationCalendarUrl({
+    title: row.event.title,
+    startDate: row.event.startDate,
+    endDate: row.event.endDate,
+    venue: venueName,
+    city: cityName,
+    address: row.event.venue?.address,
+    inviteUrl
+  });
+
+  const qrDataUrl = await qrToDataUrl(inviteUrl);
+  const pdf = await generateOrganizerInvitationPdf(invitationId, organizerId);
+
+  await queueEmail({
+    to: row.guestEmail.trim(),
+    subject: `BiletFeed — ${row.event.title} davetiyeniz`,
+    template: 'event_invitation',
+    html: buildInvitationEmail({
+      guestName: row.guestName,
+      eventTitle: row.event.title,
+      eventDate,
+      eventTime,
+      eventVenue: venueName,
+      eventCity: cityName,
+      coverImage: row.event.coverImage ?? '',
+      ticketTypeName: row.ticketType.name,
+      ticketCode: row.purchasedTicket.ticketCode,
+      qrDataUrl,
+      personalMessage: row.personalMessage ?? undefined,
+      inviteUrl,
+      calendarUrl,
+      organizerName: row.event.organizer.name
+    }),
+    text: buildInvitationPlainText({
+      guestName: row.guestName,
+      eventTitle: row.event.title,
+      eventDate,
+      eventTime,
+      eventVenue: venueName,
+      eventCity: cityName,
+      ticketCode: row.purchasedTicket.ticketCode,
+      inviteUrl
+    }),
+    orderId: row.purchasedTicket.orderId,
+    attachments: pdf ? [{ filename: pdf.filename, content: pdf.buffer }] : undefined
+  });
+}
+
 export async function createEventInvitation(params: {
   organizerId: string;
   eventId: string;
@@ -115,6 +200,8 @@ export async function createEventInvitation(params: {
   guestEmail?: string;
   guestPhone?: string;
   personalMessage?: string;
+  /** Toplu gönderimde e-posta toplu işlem sonunda gönderilir */
+  skipEmail?: boolean;
 }): Promise<InvitationRow> {
   await ensureDbConnection();
 
@@ -147,7 +234,7 @@ export async function createEventInvitation(params: {
   const ticketCode = generateTicketCode();
   const validationToken = generateValidationToken(ticketId, params.eventId);
 
-  const { invitation, orderId } = await prisma.$transaction(async (tx) => {
+  const { invitation } = await prisma.$transaction(async (tx) => {
     const reserved = await tx.ticketType.updateMany({
       where: {
         id: params.ticketTypeId,
@@ -219,65 +306,13 @@ export async function createEventInvitation(params: {
       include: invitationInclude
     });
 
-    return { invitation: createdInvitation, orderId: order.id };
+    return { invitation: createdInvitation };
   });
 
   const result = mapInvitation(invitation);
 
-  // Auto-send email to guest if they provided an address
-  if (params.guestEmail) {
-    const eventDate = formatTurkeyDateLong(event.startDate);
-    const eventTime = formatTurkeyTime(event.startDate);
-
-    const venueName = event.venue?.name ?? 'Online';
-    const cityName = event.city.name;
-    const calendarUrl = buildInvitationCalendarUrl({
-      title: event.title,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      venue: venueName,
-      city: cityName,
-      address: event.venue?.address,
-      inviteUrl: result.inviteUrl
-    });
-
-    void (async () => {
-      const qrDataUrl = await qrToDataUrl(result.inviteUrl);
-      const pdf = await generateOrganizerInvitationPdf(invitation.id, params.organizerId);
-      await queueEmail({
-        to: params.guestEmail!,
-        subject: `BiletFeed — ${event.title} davetiyeniz`,
-        template: 'event_invitation',
-        html: buildInvitationEmail({
-          guestName: params.guestName,
-          eventTitle: event.title,
-          eventDate,
-          eventTime,
-          eventVenue: venueName,
-          eventCity: cityName,
-          coverImage: event.coverImage ?? '',
-          ticketTypeName: ticketType.name,
-          ticketCode: result.ticketCode,
-          qrDataUrl,
-          personalMessage: params.personalMessage,
-          inviteUrl: result.inviteUrl,
-          calendarUrl,
-          organizerName: event.organizer.name
-        }),
-        text: buildInvitationPlainText({
-          guestName: params.guestName,
-          eventTitle: event.title,
-          eventDate,
-          eventTime,
-          eventVenue: venueName,
-          eventCity: cityName,
-          ticketCode: result.ticketCode,
-          inviteUrl: result.inviteUrl
-        }),
-        orderId,
-        attachments: pdf ? [{ filename: pdf.filename, content: pdf.buffer }] : undefined
-      });
-    })().catch((err) => {
+  if (params.guestEmail && !params.skipEmail) {
+    void sendEventInvitationEmail(invitation.id, params.organizerId).catch((err) => {
       console.error('[email] invitation', invitation.id, err);
     });
   }

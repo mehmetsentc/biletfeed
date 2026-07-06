@@ -206,7 +206,8 @@ export function BulkInvitationsPanel({
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         Bir firmaya veya kişiye tek seferde çok sayıda davetiye gönderin. Her bilet için
-        ayrı QR kodlu PDF oluşturulur; toplu işlemde ZIP otomatik indirilir.
+        ayrı QR kodlu PDF oluşturulur; aynı e-posta adresine tek mail ve ZIP eki gider,
+        tarayıcıdan ZIP otomatik indirilir.
       </p>
 
       {overDirectLimit && (
@@ -349,7 +350,7 @@ export function BulkInvitationsPanel({
             onChange={(e) => setSendEmails(e.target.checked)}
             className="size-4 rounded border-border"
           />
-          E-posta adresi olanlara PDF ekli davetiye gönder
+          E-posta adresi olanlara ZIP dosyasında PDF davetiyeleri gönder (aynı adrese tek mail)
         </label>
 
         <Button

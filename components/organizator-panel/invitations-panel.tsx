@@ -223,7 +223,7 @@ export function InvitationsPanel({
         setInvitations((prev) => [...created, ...prev]);
         setSuccess(
           hadEmail
-            ? `${trimmedName} için ${created.length} davetiye oluşturuldu, PDF'ler e-posta ile gönderildi.`
+            ? `${trimmedName} için ${created.length} davetiye oluşturuldu, PDF'ler ZIP ekiyle e-posta ile gönderildi.`
             : `${trimmedName} için ${created.length} PDF davetiye oluşturuldu.`
         );
 
