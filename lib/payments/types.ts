@@ -35,8 +35,11 @@ export interface PaymentInitInput {
 export interface PaymentInitResult {
   provider: PaymentProviderName;
   sessionId: string;
-  /** Hosted ödeme sayfası — kart bilgisi bizde toplanmaz */
+  /** Ödeme sayfası URL — kart bilgisi bizde toplanmaz (Tosla: BiletFeed kart sayfası) */
   checkoutUrl: string;
+  /** Tosla ortak ödeme sayfası — yedek */
+  hostedFallbackUrl?: string;
+  processCardFormUrl?: string;
 }
 
 export interface PaymentCallbackPayload {

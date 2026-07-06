@@ -50,7 +50,15 @@ ENABLE_MOCK_PAYMENTS=true
 4. `PAYMENT_PROVIDER=iyzico` yap, `ENABLE_MOCK_PAYMENTS` kaldır
 5. Küçük tutarla canlı test
 
-## Admin
+## Tosla (canlı)
+
+1. `PAYMENT_PROVIDER=tosla`
+2. `TOSLA_CLIENT_ID`, `TOSLA_API_USER`, `TOSLA_STORE_KEY`
+3. İsteğe bağlı: `TOSLA_API_BASE_URL`, `TOSLA_PROCESS_CARD_FORM_URL`, `TOSLA_3D_HOST_URL`
+4. Callback URL: `https://biletfeed.com/api/payments/callback/tosla`
+5. Kart formu BiletFeed `/odeme/kart/[orderId]` sayfasında; kart bilgisi doğrudan Tosla `processCardForm` endpoint'ine POST edilir
+6. Yedek: aynı sayfada Tosla ortak ödeme sayfası iframe modal
+
 
 - `/admin/islemler` — sipariş listesi
 - `POST /api/admin/orders/{id}/refund` — mock/free iade; gerçek provider için 501 döner

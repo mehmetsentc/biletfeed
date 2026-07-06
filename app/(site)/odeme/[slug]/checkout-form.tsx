@@ -203,7 +203,7 @@ export function CheckoutForm({
         }
 
         if (data.redirectUrl) {
-          window.location.href = data.redirectUrl;
+          router.push(data.redirectUrl);
           return;
         }
 

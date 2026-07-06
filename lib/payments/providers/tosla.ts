@@ -1,5 +1,9 @@
 import crypto from 'crypto';
-import { isToslaConfigured } from '@/lib/payments/config';
+import { getAppBaseUrl, isToslaConfigured } from '@/lib/payments/config';
+import {
+  getToslaHostedPaymentUrl,
+  getToslaProcessCardFormUrl
+} from '@/lib/payments/tosla-urls';
 import {
   PaymentNotConfiguredError,
   type PaymentInitInput,
@@ -8,18 +12,9 @@ import {
   type PaymentVerifyResult
 } from '@/lib/payments/types';
 
-// Production: https://entegrasyon.tosla.com/api/Payment
-// Test:       https://prepentegrasyon.tosla.com/api/Payment
 function getApiBase(): string {
   return (
     process.env.TOSLA_API_BASE_URL ?? 'https://entegrasyon.tosla.com/api/Payment'
-  ).replace(/\/$/, '');
-}
-
-function get3DHostBase(): string {
-  return (
-    process.env.TOSLA_3D_HOST_URL ??
-    `${getApiBase()}/threeDSecure`
   ).replace(/\/$/, '');
 }
 
@@ -167,7 +162,10 @@ export const toslaPaymentProvider: PaymentProvider = {
     return {
       provider:    'tosla',
       sessionId:   data.ThreeDSessionId,
-      checkoutUrl: `${get3DHostBase()}/${data.ThreeDSessionId}`,
+      /** BiletFeed markalı kart formu — ProcessCardForm ile Tosla'ya POST */
+      checkoutUrl: `${getAppBaseUrl()}/odeme/kart/${input.orderId}`,
+      hostedFallbackUrl: getToslaHostedPaymentUrl(data.ThreeDSessionId),
+      processCardFormUrl: getToslaProcessCardFormUrl()
     };
   },
 

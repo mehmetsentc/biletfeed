@@ -11,6 +11,7 @@ import {
   PENDING_ORDER_TTL_MINUTES
 } from '@/lib/payments/config';
 import { startPaymentCheckout } from '@/lib/payments/process';
+import { createPaymentAccessToken } from '@/lib/payments/payment-access-token';
 import { processOrderAccounting } from '@/lib/accounting/fulfillment';
 import { createCreditNoteForRefund } from '@/lib/accounting/invoice';
 // Email modülleri dynamic import — statik importlar webpack'i client bundle'a
@@ -280,10 +281,16 @@ export async function createCheckout(params: {
     data: { paymentSessionId: payment.sessionId }
   });
 
+  const paymentToken = createPaymentAccessToken(order.id);
+  const redirectBase =
+    payment.provider === 'tosla'
+      ? `${base}/odeme/kart/${order.id}?pt=${encodeURIComponent(paymentToken)}`
+      : payment.checkoutUrl;
+
   return {
     orderId: order.id,
     status: 'pending',
-    redirectUrl: payment.checkoutUrl,
+    redirectUrl: redirectBase,
     provider: payment.provider
   };
 }

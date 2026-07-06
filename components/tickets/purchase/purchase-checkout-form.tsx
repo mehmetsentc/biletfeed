@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, Lock, ShieldCheck, CreditCard } from 'lucide-react';
+import { ExternalLink, Lock, ShieldCheck } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
 import { CheckoutBillingSection } from '@/components/checkout/checkout-billing-section';
 import { PurchasePriceBreakdown } from '@/components/tickets/purchase/purchase-price-breakdown';
@@ -44,7 +44,6 @@ export function PurchaseCheckoutForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [attendeeName, setAttendeeName] = useState('');
   const [attendeeEmail, setAttendeeEmail] = useState('');
   const [attendeePhone, setAttendeePhone] = useState('');
@@ -166,9 +165,7 @@ export function PurchaseCheckoutForm({
       }
 
       if (data.redirectUrl) {
-        // Tosla sayfasını iframe modal içinde göster (full redirect yerine)
-        setPaymentUrl(data.redirectUrl);
-        setLoading(false);
+        router.push(data.redirectUrl);
         return;
       }
 
@@ -180,41 +177,7 @@ export function PurchaseCheckoutForm({
     }
   }
 
-  // Yönlendirme overlay'i — Tosla sayfasına geçmeden önce BiletFeed markalı ekran
-  if (paymentUrl) {
-    // 1.8 saniye sonra Tosla'ya yönlendir
-    if (typeof window !== 'undefined') {
-      setTimeout(() => { window.location.href = paymentUrl; }, 1800);
-    }
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-6">
-        {/* Spinner */}
-        <div className="mb-8 flex size-20 items-center justify-center rounded-full bg-primary/10">
-          <CreditCard className="size-9 text-primary" />
-        </div>
-
-        <h2 className="text-xl font-bold text-foreground">Güvenli ödeme sayfasına yönlendiriliyorsunuz</h2>
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          Lütfen bekleyin, banka sanal POS altyapısına bağlanıyoruz…
-        </p>
-
-        {/* Animasyonlu çubuk */}
-        <div className="mt-8 h-1.5 w-64 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary"
-            style={{ animation: 'progress 1.8s linear forwards' }}
-          />
-        </div>
-
-        <style>{`@keyframes progress { from { width: 0% } to { width: 100% } }`}</style>
-
-        <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
-          <Lock className="size-3.5 text-primary" />
-          256-bit SSL şifrelemeli güvenli bağlantı
-        </div>
-      </div>
-    );
-  }
+  // Yönlendirme overlay kaldırıldı — markalı /odeme/kart sayfasına gidilir
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-5 lg:gap-8">
