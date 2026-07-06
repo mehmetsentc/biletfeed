@@ -18,6 +18,7 @@ const updateSchema = z.object({
   endDate: z.string().datetime().optional(),
   basePrice: z.number().min(0).optional(),
   isFree: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
   externalUrl: z.string().url().optional(),
   tags: z.array(z.string()).optional()
 });
@@ -135,6 +136,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       ...(data.endDate && { endDate: new Date(data.endDate) }),
       ...(data.basePrice !== undefined && { basePrice: data.basePrice }),
       ...(data.isFree !== undefined && { isFree: data.isFree }),
+      ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
       ...(data.externalUrl && { externalUrl: data.externalUrl }),
       cityId,
       venueId,

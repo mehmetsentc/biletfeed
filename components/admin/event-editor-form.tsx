@@ -36,6 +36,7 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
     endDate: toDatetimeLocalValue(event.endDate),
     basePrice: String(event.price),
     isFree: event.isFree,
+    isFeatured: event.isFeatured ?? false,
     externalUrl: event.externalUrl || ''
   });
 
@@ -75,6 +76,7 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
           basePrice: Number(form.basePrice) || 0,
           categorySlug: form.categorySlug,
           isFree: form.isFree,
+          isFeatured: form.isFeatured,
           externalUrl: form.externalUrl,
           tags: event.tags.filter(
             (t) => t !== 'eksik-gorsel' && t !== 'eksik-aciklama'
@@ -219,6 +221,15 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
             onChange={(e) => setForm({ ...form, isFree: e.target.checked })}
           />
           <Label htmlFor="isFree">Ücretsiz</Label>
+        </div>
+        <div className="flex items-end gap-2 pb-2">
+          <input
+            id="isFeatured"
+            type="checkbox"
+            checked={form.isFeatured}
+            onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
+          />
+          <Label htmlFor="isFeatured">⭐ Öne Çıkan</Label>
         </div>
       </div>
 
