@@ -84,6 +84,14 @@ export function emailPrimaryButton(href: string, label: string): string {
     </a>`;
 }
 
+export function emailSecondaryButton(href: string, label: string): string {
+  return `
+    <a href="${href}"
+       style="display:inline-block;padding:12px 24px;background:#FFFFFF;color:${EMAIL_BRAND.accentDark};font-size:15px;font-weight:700;text-decoration:none;border-radius:999px;border:2px solid ${EMAIL_BRAND.accent};">
+      ${esc(label)}
+    </a>`;
+}
+
 export function emailSecondaryLink(href: string, label: string): string {
   return `
     <a href="${href}" style="color:${EMAIL_BRAND.accentDark};font-size:14px;font-weight:600;text-decoration:underline;">

@@ -2,6 +2,7 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { getSiteUrl } from '@/lib/config/domain';
 import { queueEmail } from '@/lib/accounting/email';
 import { buildGoogleCalendarUrl } from '@/lib/email/calendar';
+import { buildOrderTicketPdfAttachments } from '@/lib/email/build-order-ticket-pdf-attachments';
 import { buildTicketPurchaseEmail, buildTicketPurchasePlainText } from '@/lib/email/ticket-purchase-template';
 import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
 import { buildTicketQrPayload } from '@/lib/tickets/sign';
@@ -47,7 +48,14 @@ export async function sendTicketPurchaseEmail(
       organizer: { select: { name: true } },
       items: { include: { ticketType: { select: { name: true } } } },
       purchasedTickets: {
-        select: { ticketCode: true, validationToken: true, id: true }
+        select: {
+          id: true,
+          ticketCode: true,
+          validationToken: true,
+          status: true,
+          attendeeName: true,
+          ticketType: { select: { name: true } }
+        }
       },
       event: {
         select: {
@@ -80,11 +88,20 @@ export async function sendTicketPurchaseEmail(
     : [event.venue?.name, event.venue?.address, cityName].filter(Boolean).join(', ');
 
   const firstTicket = order.purchasedTickets[0];
-  const printUrl = firstTicket
+  const pdfDownloadUrl = firstTicket
     ? getSiteUrl(
         `/api/tickets/pdf?code=${encodeURIComponent(firstTicket.ticketCode)}&token=${encodeURIComponent(firstTicket.validationToken)}&id=${encodeURIComponent(firstTicket.id)}`
       )
     : undefined;
+
+  const pdfAttachments =
+    order.purchasedTickets.length > 0
+      ? await buildOrderTicketPdfAttachments({
+          event,
+          holderFallback: order.user.displayName?.trim() ?? '',
+          tickets: order.purchasedTickets
+        })
+      : [];
 
   const calendarUrl = buildGoogleCalendarUrl({
     title: event.title,
@@ -104,7 +121,7 @@ export async function sendTicketPurchaseEmail(
       validationToken: firstTicket.validationToken,
       ticketId: firstTicket.id
     });
-  const qrDataUrl = qrPayload ? await qrToDataUrl(qrPayload) : '';
+  const qrDataUrl = qrPayload ? await qrToDataUrl(qrPayload, 96) : '';
 
   const html = buildTicketPurchaseEmail({
     customerName: order.user.displayName?.trim() ?? '',
@@ -126,9 +143,10 @@ export async function sendTicketPurchaseEmail(
     qrDataUrl,
     ticketsUrl: getSiteUrl('/biletlerim'),
     eventUrl: getSiteUrl(`/etkinlik/${event.slug}`),
-    printUrl,
+    pdfDownloadUrl,
     calendarUrl,
-    rules: event.rules?.trim() || undefined
+    rules: event.rules?.trim() || undefined,
+    hasPdfAttachment: pdfAttachments.length > 0
   });
 
   const plainParams = {
@@ -141,7 +159,9 @@ export async function sendTicketPurchaseEmail(
     orderNumber: order.id.slice(0, 8).toUpperCase(),
     totalLabel: formatMoney(order.total, currency),
     ticketCodes: order.purchasedTickets.map((t) => t.ticketCode),
-    ticketsUrl: getSiteUrl('/biletlerim')
+    ticketsUrl: getSiteUrl('/biletlerim'),
+    pdfDownloadUrl,
+    hasPdfAttachment: pdfAttachments.length > 0
   };
 
   await queueEmail({
@@ -150,6 +170,7 @@ export async function sendTicketPurchaseEmail(
     template: 'ticket_purchase',
     html,
     text: buildTicketPurchasePlainText(plainParams),
-    orderId: order.id
+    orderId: order.id,
+    attachments: pdfAttachments
   });
 }

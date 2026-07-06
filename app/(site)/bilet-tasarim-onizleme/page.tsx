@@ -70,7 +70,8 @@ export default async function TicketDesignPreviewPage() {
     qrDataUrl: qrTicket,
     ticketsUrl: 'https://biletfeed.com/biletlerim',
     eventUrl: 'https://biletfeed.com/etkinlik/manifest',
-    printUrl: 'https://biletfeed.com/api/tickets/pdf'
+    pdfDownloadUrl: 'https://biletfeed.com/api/tickets/pdf',
+    hasPdfAttachment: true
   });
 
   const logoSrc = ticketHeaderLogoSrc();

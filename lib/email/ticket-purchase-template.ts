@@ -6,10 +6,10 @@ import {
   emailFooter,
   emailLogoBar,
   emailPrimaryButton,
+  emailSecondaryButton,
   emailSecondaryLink,
   emailShell
 } from '@/lib/email/email-shared';
-import { buildTicketReceiptEmailCard } from '@/lib/email/ticket-receipt-email';
 
 export interface TicketPurchaseEmailParams {
   customerName: string;
@@ -28,9 +28,81 @@ export interface TicketPurchaseEmailParams {
   qrDataUrl: string;
   ticketsUrl: string;
   eventUrl: string;
-  printUrl?: string;
+  pdfDownloadUrl?: string;
   calendarUrl?: string;
   rules?: string;
+  hasPdfAttachment?: boolean;
+}
+
+/** Gmail 102KB kırpma limiti için hafif bilet özeti — gömülü logo / kurallar yok */
+function buildCompactPurchaseTicketBlock(params: {
+  eventTitle: string;
+  eventDate: string;
+  eventTime: string;
+  eventVenue: string;
+  eventCity: string;
+  ticketTypeName: string;
+  holderName: string;
+  ticketCode: string;
+  qrDataUrl: string;
+}): string {
+  const location = [params.eventVenue, params.eventCity].filter(Boolean).join(', ');
+
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+           style="margin:0 0 20px;border:1px solid ${EMAIL_BRAND.border};border-radius:12px;background:${EMAIL_BRAND.cardBg};">
+      <tr>
+        <td style="padding:18px 20px;">
+          <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${EMAIL_BRAND.textMuted};">
+            Bilet özeti
+          </p>
+          <h2 style="margin:0 0 12px;font-size:18px;font-weight:800;color:${EMAIL_BRAND.text};line-height:1.3;">
+            ${esc(params.eventTitle)}
+          </h2>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px;">
+            <tr>
+              <td style="padding:0 0 8px;font-size:13px;color:${EMAIL_BRAND.textSecondary};line-height:1.5;">
+                <strong style="color:${EMAIL_BRAND.text};">Tarih:</strong> ${esc(params.eventDate)} · ${esc(params.eventTime)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 0 8px;font-size:13px;color:${EMAIL_BRAND.textSecondary};line-height:1.5;">
+                <strong style="color:${EMAIL_BRAND.text};">Mekan:</strong> ${esc(location)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 0 8px;font-size:13px;color:${EMAIL_BRAND.textSecondary};line-height:1.5;word-break:break-word;">
+                <strong style="color:${EMAIL_BRAND.text};">Tür:</strong> ${esc(params.ticketTypeName)}
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:13px;color:${EMAIL_BRAND.textSecondary};">
+                <strong style="color:${EMAIL_BRAND.text};">Katılımcı:</strong> ${esc(params.holderName)}
+              </td>
+            </tr>
+          </table>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td width="108" style="vertical-align:top;">
+                <img src="${params.qrDataUrl}" alt="QR kod" width="96" height="96"
+                     style="display:block;border:1px solid ${EMAIL_BRAND.border};border-radius:8px;" />
+              </td>
+              <td style="padding-left:14px;vertical-align:middle;">
+                <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;color:${EMAIL_BRAND.textMuted};">
+                  Bilet kodu
+                </p>
+                <p style="margin:0 0 8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;font-weight:800;letter-spacing:1px;color:${EMAIL_BRAND.accentDark};word-break:break-all;">
+                  ${esc(params.ticketCode)}
+                </p>
+                <p style="margin:0;font-size:12px;color:${EMAIL_BRAND.textSecondary};line-height:1.5;">
+                  Girişte QR kodu veya bilet kodunu gösterin.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>`;
 }
 
 export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): string {
@@ -50,9 +122,10 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
     qrDataUrl,
     ticketsUrl,
     eventUrl,
-    printUrl,
+    pdfDownloadUrl,
     calendarUrl,
-    rules
+    rules,
+    hasPdfAttachment
   } = params;
 
   const preheader = `${eventTitle} — ${eventDate} ${eventTime}. Biletiniz ve QR kodunuz hazır.`;
@@ -61,7 +134,7 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
     .map(
       (line) => `
         <tr>
-          <td style="padding:10px 0;border-bottom:1px solid ${EMAIL_BRAND.border};font-size:14px;color:${EMAIL_BRAND.text};">
+          <td style="padding:10px 0;border-bottom:1px solid ${EMAIL_BRAND.border};font-size:14px;color:${EMAIL_BRAND.text};word-break:break-word;line-height:1.45;">
             ${esc(line.name)} <span style="color:${EMAIL_BRAND.textMuted};">×${line.quantity}</span>
           </td>
           <td align="right" style="padding:10px 0;border-bottom:1px solid ${EMAIL_BRAND.border};font-size:14px;font-weight:600;color:${EMAIL_BRAND.text};">
@@ -75,19 +148,16 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
   const primaryType = ticketLines[0]?.name ?? 'Bilet';
 
   const receiptCard = primaryCode
-    ? buildTicketReceiptEmailCard({
-        kind: 'ticket',
+    ? buildCompactPurchaseTicketBlock({
         eventTitle,
         eventDate,
         eventTime,
-        venue: eventVenue,
-        city: eventCity,
+        eventVenue,
+        eventCity,
         ticketTypeName: primaryType,
         holderName: customerName || 'Misafir',
         ticketCode: primaryCode,
-        qrDataUrl,
-        orderNumber,
-        categoryLabel: primaryType
+        qrDataUrl
       })
     : '';
 
@@ -161,14 +231,30 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
         ${receiptCard}
         ${extraCodes}
 
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:16px;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:12px;">
           <tr>
             <td align="center">${emailPrimaryButton(ticketsUrl, 'Biletlerimi Görüntüle')}</td>
           </tr>
+          ${
+            pdfDownloadUrl
+              ? `<tr>
+                  <td align="center" style="padding-top:12px;">
+                    ${emailSecondaryButton(pdfDownloadUrl, 'PDF Bilet İndir')}
+                  </td>
+                </tr>`
+              : ''
+          }
         </table>
 
+        ${
+          hasPdfAttachment
+            ? `<p style="margin:0 0 16px;font-size:13px;color:${EMAIL_BRAND.textSecondary};text-align:center;line-height:1.55;">
+                 PDF biletiniz bu e-postanın ekinde gönderilmiştir.
+               </p>`
+            : ''
+        }
+
         <p style="margin:0 0 16px;text-align:center;line-height:2;">
-          ${printUrl ? `${emailSecondaryLink(printUrl, 'PDF indir')} · ` : ''}
           ${calendarUrl ? `${emailSecondaryLink(calendarUrl, 'Takvime ekle')} · ` : ''}
           ${emailSecondaryLink(eventUrl, 'Etkinlik detayı')}
         </p>
@@ -204,6 +290,8 @@ export function buildTicketPurchasePlainText(params: {
   totalLabel: string;
   ticketCodes: string[];
   ticketsUrl: string;
+  pdfDownloadUrl?: string;
+  hasPdfAttachment?: boolean;
 }): string {
   return [
     params.customerName ? `Merhaba ${params.customerName},` : 'Merhaba,',
@@ -217,9 +305,14 @@ export function buildTicketPurchasePlainText(params: {
     `Toplam: ${params.totalLabel}`,
     `Bilet kodu: ${params.ticketCodes.join(', ')}`,
     '',
+    params.hasPdfAttachment ? 'PDF biletiniz e-posta ekinde gönderilmiştir.' : '',
+    params.pdfDownloadUrl ? `PDF indir: ${params.pdfDownloadUrl}` : '',
+    '',
     `Biletleriniz: ${params.ticketsUrl}`,
     '',
     '— BiletFeed · biletfeed.com',
     'Bu e-posta satın alma onayınız için otomatik gönderilmiştir.'
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
