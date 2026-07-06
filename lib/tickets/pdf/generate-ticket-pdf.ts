@@ -72,19 +72,46 @@ function drawPerforatedLine(doc: PdfDoc, x: number, y: number, w: number) {
   doc.restore();
 }
 
-function drawDetailRow(doc: PdfDoc, x: number, y: number, w: number, label: string, value: string) {
+function drawDetailRow(doc: PdfDoc, x: number, y: number, w: number, label: string, value: string): number {
   doc.fillColor(p.textMuted).fontSize(7).font(pdfFont(true)).text(label.toUpperCase(), x, y, { width: w });
-  doc.fillColor(p.text).fontSize(10).font(pdfFont(true)).text(value, x, y + 10, { width: w, lineGap: 0.5 });
+  const labelH = doc.heightOfString(label.toUpperCase(), { width: w });
+  const valueY = y + labelH + 4;
+  doc.fillColor(p.text).fontSize(10).font(pdfFont(true)).text(value, x, valueY, { width: w, lineGap: 0.5 });
+  const valueH = doc.heightOfString(value, { width: w, lineGap: 0.5 });
+  return labelH + 4 + valueH;
 }
 
-function drawSummaryRow(doc: PdfDoc, x: number, y: number, w: number, label: string, value: string) {
+function drawDetailRowPair(
+  doc: PdfDoc,
+  x: number,
+  y: number,
+  colW: number,
+  gap: number,
+  left: { label: string; value: string },
+  right: { label: string; value: string }
+): number {
+  const leftH = drawDetailRow(doc, x, y, colW, left.label, left.value);
+  const rightH = drawDetailRow(doc, x + colW + gap, y, colW, right.label, right.value);
+  return Math.max(leftH, rightH);
+}
+
+function drawSummaryRow(doc: PdfDoc, x: number, y: number, w: number, label: string, value: string): number {
   const labelW = w * 0.42;
+  const valueW = w - labelW;
+  const labelH = doc.heightOfString(label, { width: labelW - 12 });
+  const valueH = doc.heightOfString(value, { width: valueW - 12, lineGap: 0.5 });
+  const rowH = Math.max(22, Math.max(labelH, valueH) + 14);
+
   doc.save();
-  doc.rect(x, y, labelW, 18).fill(p.accentSoft);
-  doc.rect(x, y, w, 18).lineWidth(0.5).strokeColor(p.border).stroke();
+  doc.rect(x, y, labelW, rowH).fill(p.accentSoft);
+  doc.rect(x, y, w, rowH).lineWidth(0.5).strokeColor(p.border).stroke();
   doc.restore();
-  doc.fillColor(p.textMuted).fontSize(7).font(pdfFont(true)).text(label, x + 6, y + 5, { width: labelW - 10 });
-  doc.fillColor(p.text).fontSize(8.5).font(pdfFont(true)).text(value, x + labelW + 6, y + 5, { width: w - labelW - 10 });
+  doc.fillColor(p.textMuted).fontSize(7).font(pdfFont(true)).text(label, x + 6, y + 6, { width: labelW - 12 });
+  doc.fillColor(p.text).fontSize(8.5).font(pdfFont(true)).text(value, x + labelW + 6, y + 6, {
+    width: valueW - 12,
+    lineGap: 0.5
+  });
+  return rowH;
 }
 
 export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> {
@@ -198,11 +225,8 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     cursorY += 18;
 
     // ── Main ticket body ──
-    const bodyLeftBarX = innerX + 6;
-    drawVerticalBarcodePdf(doc, bodyLeftBarX, cursorY + 72, input.ticketCode, 90, 24, p.text);
-
-    const bodyX = innerX + 28;
-    const bodyW = innerW - 100;
+    const bodyX = innerX;
+    const bodyW = innerW;
 
     // Watermark
     doc.save();
@@ -242,30 +266,44 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
     cursorY += 14;
 
     const colW = (bodyW - 16) / 2;
-    const row1Y = cursorY;
-    drawDetailRow(doc, bodyX, row1Y, colW, bilingualFieldLabels.venue, `${input.venue}, ${input.city}`);
-    drawDetailRow(doc, bodyX + colW + 16, row1Y, colW, bilingualFieldLabels.date, input.eventDate);
+    const colGap = 16;
+    const rowGap = 10;
 
-    const row2Y = row1Y + 34;
-    drawDetailRow(doc, bodyX, row2Y, colW, bilingualFieldLabels.time, input.eventTime);
-    drawDetailRow(
-      doc,
-      bodyX + colW + 16,
-      row2Y,
-      colW,
-      isInvitation ? 'DAVETİYE TÜRÜ / TYPE' : bilingualFieldLabels.type,
-      input.ticketTypeName
-    );
+    cursorY +=
+      drawDetailRowPair(
+        doc,
+        bodyX,
+        cursorY,
+        colW,
+        colGap,
+        { label: bilingualFieldLabels.venue, value: `${input.venue}, ${input.city}` },
+        { label: bilingualFieldLabels.date, value: input.eventDate }
+      ) + rowGap;
 
-    const row3Y = row2Y + 34;
-    drawDetailRow(doc, bodyX, row3Y, colW, bilingualFieldLabels.holder, input.holderName);
-    drawDetailRow(doc, bodyX + colW + 16, row3Y, colW, labels.codeLabelEn, input.ticketCode);
+    cursorY +=
+      drawDetailRowPair(
+        doc,
+        bodyX,
+        cursorY,
+        colW,
+        colGap,
+        { label: bilingualFieldLabels.time, value: input.eventTime },
+        { label: bilingualFieldLabels.holder, value: input.holderName }
+      ) + rowGap;
 
-    cursorY = row3Y + 40;
-    drawSummaryRow(doc, bodyX, cursorY, bodyW, 'Kod / Code', input.ticketCode);
-    cursorY += 20;
-    drawSummaryRow(doc, bodyX, cursorY, bodyW, 'Kategori / Category', input.ticketTypeName);
-    cursorY += 24;
+    cursorY +=
+      drawDetailRow(
+        doc,
+        bodyX,
+        cursorY,
+        bodyW,
+        isInvitation ? 'DAVETİYE TÜRÜ / TYPE' : bilingualFieldLabels.type,
+        input.ticketTypeName
+      ) + rowGap;
+
+    cursorY += drawDetailRow(doc, bodyX, cursorY, bodyW, labels.codeLabelEn, input.ticketCode) + rowGap;
+
+    cursorY += drawSummaryRow(doc, bodyX, cursorY, bodyW, 'Kod / Code', input.ticketCode) + 6;
 
     const badgeLabel = isValid ? 'GEÇERLİ / VALID' : 'GEÇERSİZ / INVALID';
     const badgeColor = isValid ? p.success : p.danger;
@@ -277,10 +315,10 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
       align: 'center'
     });
 
-    // Horizontal barcode under details
-    drawBarcodePdf(doc, bodyX + 90, cursorY - 2, input.ticketCode, Math.min(bodyW - 90, 200), 26, p.text);
+    cursorY += 26;
+    drawBarcodePdf(doc, bodyX, cursorY, input.ticketCode, Math.min(bodyW, 200), 26, p.text);
 
-    cursorY += 28;
+    cursorY += 36;
     drawPerforatedLine(doc, innerX, cursorY, innerW);
     cursorY += 14;
 

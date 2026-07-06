@@ -26,14 +26,14 @@ function InfoCell({
     return (
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5">
         <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">{label}</p>
-        <p className="text-[13px] font-semibold leading-snug text-zinc-900">{value}</p>
+        <p className="text-[13px] font-semibold leading-snug break-words text-zinc-900">{value}</p>
       </div>
     );
   }
   return (
     <div className="rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5">
       <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">{label}</p>
-      <p className="text-[13px] font-semibold leading-snug text-white">{value}</p>
+      <p className="text-[13px] font-semibold leading-snug break-words text-white">{value}</p>
     </div>
   );
 }

@@ -17,9 +17,9 @@ import {
 import type { TicketDocumentData } from '@/lib/tickets/design/types';
 import { barcodeToDataUrl } from '@/lib/tickets/design/barcode';
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailRow({ label, value, fullWidth }: { label: string; value: string; fullWidth?: boolean }) {
   return (
-    <div style={{ minWidth: 0 }}>
+    <div style={{ minWidth: 0, flex: fullWidth ? '1 1 100%' : '1 1 0' }}>
       <p
         style={{
           fontSize: 8,
@@ -32,7 +32,35 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       >
         {label}
       </p>
-      <p style={{ fontSize: 12, color: p.text, fontWeight: 600, lineHeight: 1.35, margin: 0 }}>{value}</p>
+      <p
+        style={{
+          fontSize: 12,
+          color: p.text,
+          fontWeight: 600,
+          lineHeight: 1.4,
+          margin: 0,
+          wordBreak: 'break-word',
+          overflowWrap: 'anywhere',
+          whiteSpace: 'normal'
+        }}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function DetailRowPair({
+  left,
+  right
+}: {
+  left: { label: string; value: string };
+  right: { label: string; value: string };
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 12 }}>
+      <DetailRow label={left.label} value={left.value} />
+      <DetailRow label={right.label} value={right.value} />
     </div>
   );
 }
@@ -132,7 +160,10 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
           border: `1px solid ${p.border}`,
           fontSize: 11,
           fontWeight: 600,
-          color: p.text
+          color: p.text,
+          wordBreak: 'break-word',
+          overflowWrap: 'anywhere',
+          verticalAlign: 'top'
         }}
       >
         {value}
@@ -332,31 +363,43 @@ export function TicketDocument({
             {labels.typeLabel}
           </p>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '12px 20px',
-              marginBottom: 12
-            }}
-          >
-            <DetailRow label={bilingualFieldLabels.venue} value={`${venue}, ${city}`} />
-            <DetailRow label={bilingualFieldLabels.date} value={eventDate} />
-            <DetailRow label={bilingualFieldLabels.time} value={eventTime} />
-            <DetailRow
-              label={kind === 'invitation' ? 'DAVETİYE TÜRÜ / TYPE' : bilingualFieldLabels.type}
-              value={ticketTypeName}
+          <div style={{ marginBottom: 4 }}>
+            <DetailRowPair
+              left={{ label: bilingualFieldLabels.venue, value: `${venue}, ${city}` }}
+              right={{ label: bilingualFieldLabels.date, value: eventDate }}
             />
-            <DetailRow label={bilingualFieldLabels.holder} value={holderName} />
-            <DetailRow label={labels.codeLabelEn} value={ticketCode} />
-            {categoryLabel && <DetailRow label={bilingualFieldLabels.category} value={categoryLabel} />}
-            {sectorGate && <DetailRow label={bilingualFieldLabels.sector} value={sectorGate} />}
+            <DetailRowPair
+              left={{ label: bilingualFieldLabels.time, value: eventTime }}
+              right={{ label: bilingualFieldLabels.holder, value: holderName }}
+            />
+            <div style={{ marginBottom: 12 }}>
+              <DetailRow
+                fullWidth
+                label={kind === 'invitation' ? 'DAVETİYE TÜRÜ / TYPE' : bilingualFieldLabels.type}
+                value={ticketTypeName}
+              />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <DetailRow fullWidth label={labels.codeLabelEn} value={ticketCode} />
+            </div>
+            {categoryLabel && categoryLabel !== ticketTypeName && (
+              <div style={{ marginBottom: 12 }}>
+                <DetailRow fullWidth label={bilingualFieldLabels.category} value={categoryLabel} />
+              </div>
+            )}
+            {sectorGate && (
+              <div style={{ marginBottom: 12 }}>
+                <DetailRow fullWidth label={bilingualFieldLabels.sector} value={sectorGate} />
+              </div>
+            )}
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16, tableLayout: 'fixed' }}>
             <tbody>
               <SummaryRow label="Kod / Code" value={ticketCode} />
-              <SummaryRow label="Kategori / Category" value={categoryLabel ?? ticketTypeName} />
+              {categoryLabel && categoryLabel !== ticketTypeName && (
+                <SummaryRow label="Kategori / Category" value={categoryLabel} />
+              )}
               {orderNumber && <SummaryRow label="Sipariş / Order" value={orderNumber} />}
             </tbody>
           </table>
@@ -365,7 +408,16 @@ export function TicketDocument({
             <p style={{ fontSize: 11, color: p.textSecondary, lineHeight: 1.55, margin: '0 0 12px' }}>{description}</p>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 4 }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 12,
+              marginTop: 8,
+              marginBottom: 8
+            }}
+          >
             <span
               style={{
                 padding: '3px 10px',
@@ -380,7 +432,13 @@ export function TicketDocument({
               {isValid ? 'GEÇERLİ / VALID' : 'GEÇERSİZ / INVALID'}
             </span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={barcodeUrl} alt="" width={200} height={36} style={{ display: 'block', marginLeft: 'auto' }} />
+            <img
+              src={barcodeUrl}
+              alt=""
+              width={200}
+              height={36}
+              style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
+            />
           </div>
 
           <p style={{ fontSize: 9, color: p.textMuted, lineHeight: 1.5, margin: '8px 0 0' }}>
