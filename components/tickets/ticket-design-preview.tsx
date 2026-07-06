@@ -73,7 +73,7 @@ export function TicketDesignPreview({
     <div className="min-h-screen bg-zinc-100 py-10 px-4">
       <div className="mx-auto max-w-4xl space-y-10">
         <header className="text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#FF8A00]">Önizleme — henüz yayında değil</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">Önizleme — henüz yayında değil</p>
           <h1 className="mt-2 text-2xl font-bold text-zinc-900">Bilet &amp; Davetiye Tasarımı</h1>
           <p className="mt-2 text-sm text-zinc-600">
             BiletFeed marka renkleri (#FF8A00) ve logo. Onayınızdan sonra deploy edilecek.
