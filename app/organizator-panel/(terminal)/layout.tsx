@@ -3,6 +3,7 @@ import { verifyOrganizerPanelSession } from '@/lib/auth/session';
 import { resolveScannerUser } from '@/lib/auth/organizer-api';
 import { OrganizatorShell } from '@/components/organizator-panel/shell';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { ensureOrganizerContactEmail } from '@/lib/services/organizer-panel';
 
 export default async function OrganizatorTerminalLayout({
   children
@@ -24,6 +25,10 @@ export default async function OrganizatorTerminalLayout({
 
   if (!organizer) {
     redirect('/organizator-panel/kurulum');
+  }
+
+  if (user) {
+    await ensureOrganizerContactEmail(organizer.id, user.email);
   }
 
   return (

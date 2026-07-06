@@ -23,7 +23,7 @@ export async function ensureOrganizerProfile(params: {
   const organizer = await prisma.$transaction(async (tx) => {
     const owner = await tx.user.findUnique({
       where: { id: params.userId },
-      select: { role: true }
+      select: { role: true, email: true }
     });
 
     if (owner?.role === ROLES.USER) {
@@ -33,6 +33,8 @@ export async function ensureOrganizerProfile(params: {
       });
     }
 
+    const contactEmail = owner?.email?.trim().toLowerCase() || null;
+
     return tx.organizer.create({
       data: {
         slug,
@@ -41,6 +43,7 @@ export async function ensureOrganizerProfile(params: {
           params.description?.trim() ||
           `${params.organizationName} etkinlikleri Biletfeed üzerinde.`,
         ownerId: params.userId,
+        contactEmail,
         status: 'approved',
         verified: false
       }

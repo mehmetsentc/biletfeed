@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
   }
 
-  if (!isOrganizerProfileComplete(organizer)) {
+  if (!isOrganizerProfileComplete(organizer, resolved.ctx.user.email)) {
     return NextResponse.json({ error: organizerProfileIncompleteError() }, { status: 403 });
   }
 

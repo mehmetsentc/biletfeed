@@ -213,6 +213,27 @@ export async function getOrganizerSettings(organizerId: string) {
   });
 }
 
+/** Eski organizatörlerde boş kalan contactEmail alanını hesap e-postasıyla doldurur */
+export async function ensureOrganizerContactEmail(
+  organizerId: string,
+  ownerEmail?: string | null
+): Promise<void> {
+  const email = ownerEmail?.trim().toLowerCase();
+  if (!email || !email.includes('@')) return;
+
+  await ensureDbConnection();
+  const organizer = await prisma.organizer.findFirst({
+    where: { id: organizerId, deletedAt: null },
+    select: { contactEmail: true }
+  });
+  if (!organizer || organizer.contactEmail?.trim()) return;
+
+  await prisma.organizer.update({
+    where: { id: organizerId },
+    data: { contactEmail: email }
+  });
+}
+
 export async function updateOrganizerSettings(
   organizerId: string,
   input: {

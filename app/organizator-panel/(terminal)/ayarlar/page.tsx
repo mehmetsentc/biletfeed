@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
-import { getOrganizerForSession } from '@/lib/auth/organizer-api';
+import { getOrganizerForSession, resolveScannerUser } from '@/lib/auth/organizer-api';
 import { getOrganizerSettings } from '@/lib/services/organizer-panel';
 import { OrganizerSettingsForm } from '@/components/organizator-panel/settings-form';
 
@@ -11,9 +11,10 @@ export default async function OrganizatorSettingsPage({
 }) {
   const { complete } = await searchParams;
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
+  const organizer = await getOrganizerForSession(session.uid, session.email);
   if (!organizer) redirect('/organizator-panel/kurulum');
 
+  const user = await resolveScannerUser(session.uid, session.email);
   const settings = await getOrganizerSettings(organizer.id);
   if (!settings) redirect('/organizator-panel/kurulum');
 
@@ -35,7 +36,7 @@ export default async function OrganizatorSettingsPage({
         initial={{
           name: settings.name,
           description: settings.description ?? '',
-          contactEmail: settings.contactEmail,
+          contactEmail: settings.contactEmail ?? user?.email ?? null,
           contactPhone: settings.contactPhone,
           notifyEmail: settings.notifyEmail,
           notifySms: settings.notifySms,

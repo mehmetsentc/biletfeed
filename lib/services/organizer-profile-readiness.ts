@@ -5,12 +5,24 @@ export type OrganizerProfileSnapshot = {
   status: string;
 };
 
+/** Organizatör iletişim e-postası veya hesap e-postası */
+export function resolveOrganizerContactEmail(
+  organizer: Pick<OrganizerProfileSnapshot, 'contactEmail'>,
+  ownerEmail?: string | null
+): string | null {
+  const contact = organizer.contactEmail?.trim();
+  if (contact) return contact;
+  const owner = ownerEmail?.trim();
+  return owner || null;
+}
+
 export function isOrganizerProfileComplete(
-  organizer: OrganizerProfileSnapshot
+  organizer: OrganizerProfileSnapshot,
+  ownerEmail?: string | null
 ): boolean {
   return (
     organizer.name.trim().length >= 2 &&
-    Boolean(organizer.contactEmail?.trim())
+    Boolean(resolveOrganizerContactEmail(organizer, ownerEmail))
   );
 }
 

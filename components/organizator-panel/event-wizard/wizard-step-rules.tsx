@@ -183,8 +183,8 @@ export function WizardStepRules({
     setLoadError(null);
     try {
       const [catalogRes, templatesRes] = await Promise.all([
-        fetch('/api/organizer/event-rules/catalog'),
-        fetch('/api/organizer/rule-templates')
+        fetch('/api/organizer/event-rules/catalog', { credentials: 'include' }),
+        fetch('/api/organizer/rule-templates', { credentials: 'include' })
       ]);
 
       if (!catalogRes.ok) {
@@ -234,6 +234,7 @@ export function WizardStepRules({
     void (async () => {
       const res = await fetch('/api/organizer/event-rules/suggest', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           categorySlug,
@@ -295,6 +296,7 @@ export function WizardStepRules({
     try {
       const res = await fetch('/api/organizer/event-rules/suggest', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           categorySlug,

@@ -1,6 +1,7 @@
 import type { UserRole } from '@/types';
 import { verifyOrganizerPanelSession, sessionHasRole } from '@/lib/auth/session';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { ensureOrganizerContactEmail } from '@/lib/services/organizer-panel';
 
 function normalizeEmail(email?: string): string | undefined {
   const value = email?.trim().toLowerCase();
@@ -334,6 +335,7 @@ export type OrganizerSessionContext = {
   organizer: NonNullable<
     Awaited<ReturnType<typeof prisma.organizer.findFirst>>
   >;
+  user: { id: string; email: string };
 };
 
 export type OrganizerSessionDenyReason =
@@ -362,7 +364,20 @@ export async function resolveOrganizerSession(): Promise<OrganizerSessionResolve
   if (!organizer) return { ok: false, reason: 'no_organizer' };
   if (organizer.status === 'suspended') return { ok: false, reason: 'suspended' };
 
-  return { ok: true, ctx: { session, organizer } };
+  await ensureOrganizerContactEmail(organizer.id, user.email);
+  const syncedOrganizer =
+    (await prisma.organizer.findFirst({
+      where: { id: organizer.id, deletedAt: null }
+    })) ?? organizer;
+
+  return {
+    ok: true,
+    ctx: {
+      session,
+      organizer: syncedOrganizer,
+      user: { id: user.id, email: user.email }
+    }
+  };
 }
 
 export async function requireOrganizerSession(): Promise<OrganizerSessionContext | null> {

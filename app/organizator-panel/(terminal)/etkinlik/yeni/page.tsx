@@ -24,7 +24,7 @@ export default async function OrganizatorCreateEventPage() {
     redirect('/organizator-panel/kurulum');
   }
 
-  if (!isOrganizerProfileComplete(organizer)) {
+  if (!isOrganizerProfileComplete(organizer, user?.email)) {
     redirect('/organizator-panel/ayarlar?complete=1');
   }
 

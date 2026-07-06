@@ -545,6 +545,7 @@ export function CreateOrganizerEventWizard({
         fd.append('file', imageFileRef.current);
         const uploadRes = await fetch('/api/organizer/upload-image', {
           method: 'POST',
+          credentials: 'include',
           body: fd
         });
         if (uploadRes.ok) {
@@ -603,6 +604,7 @@ export function CreateOrganizerEventWizard({
         isEdit && eventId ? `/api/organizer/events/${eventId}` : '/api/organizer/events',
         {
           method: isEdit ? 'PATCH' : 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         }
@@ -619,6 +621,7 @@ export function CreateOrganizerEventWizard({
       for (const ev of savedEvents) {
         await fetch(`/api/organizer/events/${ev.id}/rules`, {
           method: 'PUT',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             selectedRules: ruleSet.selectedRules,

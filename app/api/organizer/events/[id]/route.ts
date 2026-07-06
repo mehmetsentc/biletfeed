@@ -128,7 +128,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const data = parsed.data;
 
-  if (data.status === 'pending' && !isOrganizerProfileComplete(organizer)) {
+  if (data.status === 'pending' && !isOrganizerProfileComplete(organizer, resolved.ctx.user.email)) {
     return NextResponse.json({ error: organizerProfileIncompleteError() }, { status: 403 });
   }
 
