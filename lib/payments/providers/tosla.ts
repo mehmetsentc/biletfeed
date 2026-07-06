@@ -114,6 +114,10 @@ export const toslaPaymentProvider: PaymentProvider = {
     // Tutar kuruşa çevrilir: 10.50 TRY → 1050
     const amountKurus = Math.round(input.amount * 100);
 
+    // Tosla orderId max 20 karakter — UUID'yi (36 karakter) kısaltıyoruz.
+    // Tam UUID'yi echo alanında gönderiyoruz; callback'te geri döner.
+    const toslaOrderId = input.orderId.replace(/-/g, '').slice(0, 20);
+
     const body = {
       clientId:         Number(clientId), // API long (number) bekler
       apiUser,
@@ -121,7 +125,8 @@ export const toslaPaymentProvider: PaymentProvider = {
       timeSpan,
       hash,
       callbackUrl:      input.callbackUrl,
-      orderId:          input.orderId,
+      orderId:          toslaOrderId,     // max 20 karakter
+      echo:             input.orderId,    // tam UUID — callback'te geri döner
       amount:           amountKurus,
       currency:         949,  // TRY ISO 4217 sayısal kod
       installmentCount: 0,
@@ -207,9 +212,13 @@ export const toslaPaymentProvider: PaymentProvider = {
     const amountRaw = data['Amount'];
     const amount    = amountRaw ? parseInt(amountRaw, 10) / 100 : undefined;
 
+    // echo alanı tam UUID'yi geri döndürür (bizim gönderdiğimiz).
+    // OrderId ise Tosla'ya gönderdiğimiz 20 karakterli kısaltılmış ID'dir.
+    const resolvedOrderId = data['echo'] || data['OrderId'] || '';
+
     return {
       valid:             true,
-      orderId:           data['OrderId'] ?? '',
+      orderId:           resolvedOrderId,
       providerPaymentId: data['TransactionId'] ?? data['ThreeDSessionId'] ?? '',
       status:            isPaid ? 'paid' : 'failed',
       amount,

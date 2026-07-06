@@ -435,8 +435,22 @@ export async function fulfillPaidOrder(params: {
   await ensureDbConnection();
 
   return prisma.$transaction(async (tx) => {
+    // Tosla 20 karakterli orderId gönderir (kısaltılmış UUID); echo ile tam UUID
+    // geri gelmezse prefix arama ile bul.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let resolvedOrderId = params.orderId;
+    if (!UUID_RE.test(params.orderId) && params.orderId.length <= 32) {
+      const rows = await tx.$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT id FROM orders WHERE REPLACE(id::text, '-', '') ILIKE $1 AND deleted_at IS NULL LIMIT 1`,
+        params.orderId.toLowerCase() + '%'
+      );
+      if ((rows as Array<{ id: string }>)[0]?.id) {
+        resolvedOrderId = (rows as Array<{ id: string }>)[0].id;
+      }
+    }
+
     const order = await tx.order.findFirst({
-      where: { id: params.orderId, deletedAt: null },
+      where: { id: resolvedOrderId, deletedAt: null },
       include: { items: true, purchasedTickets: true }
     });
     if (!order) throw new Error('Sipariş bulunamadı');
@@ -534,7 +548,19 @@ export async function failPendingOrder(params: {
   await ensureDbConnection();
 
   await prisma.$transaction(async (tx) => {
-    const order = await tx.order.findUnique({ where: { id: params.orderId } });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let resolvedOrderId = params.orderId;
+    if (!UUID_RE.test(params.orderId) && params.orderId.length <= 32) {
+      const rows = await tx.$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT id FROM orders WHERE REPLACE(id::text, '-', '') ILIKE $1 AND deleted_at IS NULL LIMIT 1`,
+        params.orderId.toLowerCase() + '%'
+      );
+      if ((rows as Array<{ id: string }>)[0]?.id) {
+        resolvedOrderId = (rows as Array<{ id: string }>)[0].id;
+      }
+    }
+
+    const order = await tx.order.findUnique({ where: { id: resolvedOrderId } });
     if (!order || order.status !== 'pending') return;
 
     await tx.order.update({
