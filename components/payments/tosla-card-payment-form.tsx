@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CreditCard, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
@@ -40,7 +40,6 @@ export function ToslaCardPaymentForm({
   cancelHref,
   onUseHostedFallback
 }: ToslaCardPaymentFormProps) {
-  const formRef = useRef<HTMLFormElement>(null);
   const [holderName, setHolderName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -75,13 +74,40 @@ export function ToslaCardPaymentForm({
     return Object.keys(next).length === 0;
   }
 
+  function submitToTosla() {
+    const fields: Record<string, string> = {
+      ThreeDSessionId: sessionId,
+      CardHolderName: holderName.trim(),
+      CardNo: normalizeCardNumber(cardNumber),
+      ExpireDate: normalizeExpiry(expiry),
+      Cvv: cvv
+    };
+
+    const detached = document.createElement('form');
+    detached.method = 'POST';
+    detached.action = processCardFormUrl;
+    detached.enctype = 'multipart/form-data';
+    detached.style.display = 'none';
+
+    for (const [name, value] of Object.entries(fields)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      detached.appendChild(input);
+    }
+
+    document.body.appendChild(detached);
+    detached.submit();
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!validate()) return;
 
+    // State update before navigation can cancel cross-origin POST in React 18+
     setRedirecting(true);
-    // Native submit bypasses React handler — disabled button re-render cannot cancel POST
-    formRef.current?.submit();
+    window.setTimeout(submitToTosla, 0);
   }
 
   return (
@@ -104,7 +130,6 @@ export function ToslaCardPaymentForm({
       </div>
 
       <form
-        ref={formRef}
         action={processCardFormUrl}
         method="POST"
         encType="multipart/form-data"
