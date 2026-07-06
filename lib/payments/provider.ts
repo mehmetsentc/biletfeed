@@ -3,6 +3,7 @@ import { iyzicoPaymentProvider } from '@/lib/payments/providers/iyzico';
 import { mockPaymentProvider } from '@/lib/payments/providers/mock';
 import { paytrPaymentProvider } from '@/lib/payments/providers/paytr';
 import { stripePaymentProvider } from '@/lib/payments/providers/stripe';
+import { toslaPaymentProvider } from '@/lib/payments/providers/tosla';
 import type { PaymentProvider, PaymentProviderName } from '@/lib/payments/types';
 
 const providers: Record<PaymentProviderName, PaymentProvider | undefined> = {
@@ -10,7 +11,8 @@ const providers: Record<PaymentProviderName, PaymentProvider | undefined> = {
   mock: mockPaymentProvider,
   iyzico: iyzicoPaymentProvider,
   paytr: paytrPaymentProvider,
-  stripe: stripePaymentProvider
+  stripe: stripePaymentProvider,
+  tosla: toslaPaymentProvider,
 };
 
 export function getPaymentProvider(

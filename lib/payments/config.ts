@@ -12,14 +12,15 @@ export function getAppBaseUrl(): string {
 
 export function getPaymentProviderName(): PaymentProviderName {
   const fallback =
-    process.env.NODE_ENV === 'production' ? 'iyzico' : 'mock';
+    process.env.NODE_ENV === 'production' ? 'tosla' : 'mock';
   const raw = (process.env.PAYMENT_PROVIDER || fallback).toLowerCase();
   if (
     raw === 'free' ||
     raw === 'mock' ||
     raw === 'iyzico' ||
     raw === 'paytr' ||
-    raw === 'stripe'
+    raw === 'stripe' ||
+    raw === 'tosla'
   ) {
     return raw;
   }
@@ -67,6 +68,14 @@ export function isStripeConfigured(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
 }
 
+export function isToslaConfigured(): boolean {
+  return Boolean(
+    process.env.TOSLA_CLIENT_ID?.trim() &&
+      process.env.TOSLA_API_USER?.trim() &&
+      process.env.TOSLA_STORE_KEY?.trim()
+  );
+}
+
 export function isPaymentProviderConfigured(
   provider: PaymentProviderName = getPaymentProviderName()
 ): boolean {
@@ -74,5 +83,6 @@ export function isPaymentProviderConfigured(
   if (provider === 'iyzico') return isIyzicoConfigured();
   if (provider === 'paytr') return isPaytrConfigured();
   if (provider === 'stripe') return isStripeConfigured();
+  if (provider === 'tosla') return isToslaConfigured();
   return false;
 }

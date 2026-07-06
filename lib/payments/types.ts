@@ -3,7 +3,8 @@ export type PaymentProviderName =
   | 'mock'
   | 'iyzico'
   | 'paytr'
-  | 'stripe';
+  | 'stripe'
+  | 'tosla';
 
 export interface PaymentBuyer {
   id: string;

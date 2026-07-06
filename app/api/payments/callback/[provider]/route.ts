@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { PaymentProviderName } from '@/lib/payments/types';
-import { isMockPaymentAllowed } from '@/lib/payments/config';
+import { getAppBaseUrl, isMockPaymentAllowed } from '@/lib/payments/config';
 import { logPaymentAudit } from '@/lib/payments/payment-audit';
 import { verifyPaymentCallback } from '@/lib/payments/process';
 import { verifyOrderPaymentAmount } from '@/lib/payments/verify-order-payment';
@@ -9,11 +9,33 @@ import {
   fulfillPaidOrder
 } from '@/lib/services/orders';
 
+/** Tosla 3D Host, JSON değil browser redirect ile callback yapar */
+const BROWSER_REDIRECT_PROVIDERS: PaymentProviderName[] = ['tosla'];
+
+function isBrowserRedirectProvider(p: PaymentProviderName) {
+  return BROWSER_REDIRECT_PROVIDERS.includes(p);
+}
+
+function redirectResponse(provider: PaymentProviderName, orderId: string, success: boolean) {
+  const base = getAppBaseUrl();
+  const url = success
+    ? `${base}/odeme/basarili?order=${orderId}`
+    : `${base}/odeme/basarisiz?order=${orderId}`;
+  // Tosla, POST callback'e dönen 302'yi takip eder
+  return NextResponse.redirect(url, { status: 302 });
+}
+
+function errorRedirect(provider: PaymentProviderName) {
+  const base = getAppBaseUrl();
+  return NextResponse.redirect(`${base}/odeme/basarisiz`, { status: 302 });
+}
+
 const ALLOWED: PaymentProviderName[] = [
   'mock',
   'iyzico',
   'paytr',
-  'stripe'
+  'stripe',
+  'tosla',
 ];
 
 interface RouteParams {
@@ -42,6 +64,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         provider,
         reason: 'invalid_verification'
       });
+      if (isBrowserRedirectProvider(provider)) return errorRedirect(provider);
       return NextResponse.json({ error: 'Doğrulama başarısız' }, { status: 400 });
     }
 
@@ -60,6 +83,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         provider
       });
       if (!amountCheck.ok) {
+        if (isBrowserRedirectProvider(provider)) return redirectResponse(provider, verified.orderId, false);
         return NextResponse.json({ error: amountCheck.reason }, { status: 400 });
       }
 
@@ -75,6 +99,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         ticketCount: result.ticketCount
       });
 
+      if (isBrowserRedirectProvider(provider)) return redirectResponse(provider, verified.orderId, true);
       return NextResponse.json({ success: true, ...result });
     }
 
@@ -84,12 +109,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       providerPaymentId: verified.providerPaymentId
     });
 
+    if (isBrowserRedirectProvider(provider)) return redirectResponse(provider, verified.orderId, false);
     return NextResponse.json({ success: false, status: verified.status });
   } catch (err) {
     logPaymentAudit('callback_failed', {
       provider,
       reason: err instanceof Error ? err.message : 'unknown'
     });
+    if (isBrowserRedirectProvider(provider)) return errorRedirect(provider);
     return NextResponse.json({ error: 'Callback işlenemedi' }, { status: 500 });
   }
 }
