@@ -133,11 +133,25 @@ export const toslaPaymentProvider: PaymentProvider = {
       body:    JSON.stringify(body),
     });
 
+    const responseText = await res.text();
+    console.log('[tosla] threeDPayment status:', res.status, 'body:', responseText.slice(0, 300));
+
     if (!res.ok) {
-      throw new Error(`Tosla API hatası: HTTP ${res.status}`);
+      throw new Error(`Tosla API hatası: HTTP ${res.status} — ${responseText.slice(0, 200)}`);
     }
 
-    const data = (await res.json()) as ToslaRegisterResponse;
+    if (!responseText.trim()) {
+      throw new Error(
+        `Tosla API boş yanıt döndürdü (HTTP ${res.status}). ClientId/ApiUser/StoreKey bilgilerini kontrol edin.`
+      );
+    }
+
+    let data: ToslaRegisterResponse;
+    try {
+      data = JSON.parse(responseText) as ToslaRegisterResponse;
+    } catch {
+      throw new Error(`Tosla API geçersiz yanıt: ${responseText.slice(0, 200)}`);
+    }
 
     if (data.Code !== 0 || !data.ThreeDSessionId) {
       throw new Error(
