@@ -3,7 +3,7 @@ import {
   resolveOrganizerSession,
   type OrganizerSessionDenyReason
 } from '@/lib/auth/organizer-api';
-import { getRuleCatalog } from '@/lib/services/event-rules';
+import { loadEventRulesCatalog } from '@/lib/services/event-rules-catalog';
 
 function organizerSessionError(reason: OrganizerSessionDenyReason): NextResponse {
   switch (reason) {
@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest) {
   }
 
   try {
-    const catalog = await getRuleCatalog();
+    const catalog = await loadEventRulesCatalog();
     return NextResponse.json(catalog);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Katalog yüklenemedi';

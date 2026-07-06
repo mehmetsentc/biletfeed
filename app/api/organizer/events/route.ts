@@ -9,6 +9,11 @@ import {
   isOrganizerProfileComplete,
   organizerProfileIncompleteError
 } from '@/lib/services/organizer-profile-readiness';
+import {
+  optionalCoverImageSchema,
+  optionalOnlineUrlSchema,
+  zodErrorMessage
+} from '@/lib/api/zod-validation';
 import { createOrganizerEvent, createOrganizerEventSeries } from '@/lib/services/organizer-events';
 import { listOrganizerEventsDetailed } from '@/lib/services/organizer-events';
 
@@ -35,7 +40,7 @@ const eventExtrasSchema = {
   venueDetail: z.string().max(2000).optional(),
   rules: z.string().max(10000).optional(),
   isOnline: z.boolean().optional(),
-  onlineUrl: z.string().url().max(500).optional().or(z.literal('')),
+  onlineUrl: optionalOnlineUrlSchema,
   performers: z.array(performerSchema).max(50).optional(),
   attendeeQuestions: z.array(attendeeQuestionSchema).max(30).optional(),
   preventQuestionCopy: z.boolean().optional(),
@@ -61,7 +66,7 @@ const createSchema = z.object({
   isFree: z.boolean().default(false),
   price: z.number().min(0).default(0),
   capacity: z.number().int().min(1).max(1000000),
-  coverImage: z.string().url().optional(),
+  coverImage: optionalCoverImageSchema,
   status: z.enum(['draft', 'published', 'pending']).optional(),
   ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
   sessions: z.array(sessionDateSchema).min(2).max(50).optional(),
@@ -108,7 +113,7 @@ export async function POST(request: NextRequest) {
   const json = await request.json();
   const parsed = createSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
+    return NextResponse.json({ error: zodErrorMessage(parsed.error) }, { status: 400 });
   }
 
   if (!isOrganizerProfileComplete(organizer, resolved.ctx.user.email)) {

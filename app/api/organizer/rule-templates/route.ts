@@ -6,7 +6,7 @@ import {
   deleteOrganizerTemplate,
   listOrganizerTemplates,
   saveOrganizerTemplate
-} from '@/lib/services/event-rules';
+} from '@/lib/services/event-rules-templates';
 
 const selectedRuleSchema = z.object({
   ruleId: z.string().uuid(),

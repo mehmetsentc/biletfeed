@@ -5,7 +5,7 @@ import type {
   SelectedRuleEntry
 } from '@/lib/event-rules/types';
 
-function parseSelectedRules(value: unknown): SelectedRuleEntry[] {
+export function parseSelectedRules(value: unknown): SelectedRuleEntry[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter(

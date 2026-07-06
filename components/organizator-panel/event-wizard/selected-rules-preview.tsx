@@ -138,7 +138,9 @@ export function RulesPreviewWithCatalog({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch('/api/organizer/event-rules/catalog');
+        const res = await fetch('/api/organizer/event-rules/catalog', {
+          credentials: 'include'
+        });
         if (!res.ok) return;
         const data = (await res.json()) as {
           rules: RuleCatalogRule[];

@@ -13,6 +13,11 @@ import {
   updateOrganizerEvent,
   updateOrganizerEventStatus
 } from '@/lib/services/organizer-events';
+import {
+  optionalCoverImageSchema,
+  optionalOnlineUrlSchema,
+  zodErrorMessage
+} from '@/lib/api/zod-validation';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 const ticketCategorySchema = z.object({
@@ -47,13 +52,13 @@ const patchSchema = z.object({
   isFree: z.boolean().optional(),
   price: z.number().min(0).optional(),
   capacity: z.number().int().min(1).max(1000000).optional(),
-  coverImage: z.string().url().optional(),
+  coverImage: optionalCoverImageSchema,
   ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   venueDetail: z.string().max(2000).optional(),
   rules: z.string().max(10000).optional(),
   isOnline: z.boolean().optional(),
-  onlineUrl: z.string().url().max(500).optional().or(z.literal('')),
+  onlineUrl: optionalOnlineUrlSchema,
   performers: z.array(performerSchema).max(50).optional(),
   attendeeQuestions: z.array(attendeeQuestionSchema).max(30).optional(),
   preventQuestionCopy: z.boolean().optional(),
@@ -123,7 +128,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const json = await request.json();
   const parsed = patchSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
+    return NextResponse.json({ error: zodErrorMessage(parsed.error) }, { status: 400 });
   }
 
   const data = parsed.data;

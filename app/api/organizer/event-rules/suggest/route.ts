@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { requireOrganizerSession } from '@/lib/auth/organizer-api';
-import { suggestRulesWithAI } from '@/lib/services/event-rules';
+import { resolveOrganizerSession } from '@/lib/auth/organizer-api';
+
+export const runtime = 'nodejs';
 
 const bodySchema = z.object({
   eventType: z.string().optional(),
@@ -19,9 +20,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const ctx = await requireOrganizerSession();
-  if (!ctx) {
-    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
+  const resolved = await resolveOrganizerSession();
+  if (!resolved.ok) {
+    return NextResponse.json({ error: 'Panel girişi gerekli' }, { status: 401 });
   }
 
   const json = await request.json();
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const { suggestRulesWithAI } = await import('@/lib/services/event-rules');
     const result = await suggestRulesWithAI(parsed.data);
     return NextResponse.json(result);
   } catch (err) {

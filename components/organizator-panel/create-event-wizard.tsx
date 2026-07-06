@@ -575,9 +575,11 @@ export function CreateOrganizerEventWizard({
         capacity: totalCapacity,
         coverImage: coverImageUrl,
         isOnline,
-        onlineUrl: onlineUrl.trim() || undefined,
+        ...(isOnline && onlineUrl.trim() ? { onlineUrl: onlineUrl.trim() } : {}),
         tags,
-        performers: performers.map((p) => ({ name: p.name, type: p.type })),
+        performers: performers
+          .filter((p) => p.name.trim())
+          .map((p) => ({ name: p.name.trim(), type: p.type })),
         attendeeQuestions: attendeeQuestions.map((q) => ({
           question: q.question,
           required: q.required
@@ -619,7 +621,7 @@ export function CreateOrganizerEventWizard({
           : [];
 
       for (const ev of savedEvents) {
-        await fetch(`/api/organizer/events/${ev.id}/rules`, {
+        const rulesRes = await fetch(`/api/organizer/events/${ev.id}/rules`, {
           method: 'PUT',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -630,6 +632,10 @@ export function CreateOrganizerEventWizard({
             announcements: ruleSet.announcements
           })
         });
+        if (!rulesRes.ok) {
+          const rulesData = (await rulesRes.json().catch(() => ({}))) as { error?: string };
+          throw new Error(rulesData.error || 'Etkinlik kuralları kaydedilemedi');
+        }
       }
 
       if (!isEdit) clearEventWizardDraft();
