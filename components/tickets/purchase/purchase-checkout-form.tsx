@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ExternalLink, Lock, ShieldCheck, CreditCard } from 'lucide-react';
@@ -45,7 +45,6 @@ export function PurchaseCheckoutForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [attendeeName, setAttendeeName] = useState('');
   const [attendeeEmail, setAttendeeEmail] = useState('');
   const [attendeePhone, setAttendeePhone] = useState('');
@@ -181,48 +180,37 @@ export function PurchaseCheckoutForm({
     }
   }
 
-  // Iframe yüklenince biletfeed.com'a döndüğünü algıla → parent yönlendir
-  function handleIframeLoad() {
-    try {
-      const href = iframeRef.current?.contentWindow?.location?.href ?? '';
-      if (href && href.includes('biletfeed.com/odeme/')) {
-        window.location.href = href;
-      }
-    } catch {
-      // Cross-origin (Tosla sayfası) — normal, ignore
-    }
-  }
-
+  // Yönlendirme overlay'i — Tosla sayfasına geçmeden önce BiletFeed markalı ekran
   if (paymentUrl) {
+    // 1.8 saniye sonra Tosla'ya yönlendir
+    if (typeof window !== 'undefined') {
+      setTimeout(() => { window.location.href = paymentUrl; }, 1800);
+    }
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-background">
-        {/* Üst bar */}
-        <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3 shadow-sm">
-          <div className="flex items-center gap-2">
-            <CreditCard className="size-5 text-primary" />
-            <span className="text-sm font-semibold text-foreground">Güvenli Ödeme</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Lock className="size-3.5 text-primary" />
-            256-bit SSL
-          </div>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background px-6">
+        {/* Spinner */}
+        <div className="mb-8 flex size-20 items-center justify-center rounded-full bg-primary/10">
+          <CreditCard className="size-9 text-primary" />
         </div>
 
-        {/* Tosla iframe */}
-        <iframe
-          ref={iframeRef}
-          src={paymentUrl}
-          onLoad={handleIframeLoad}
-          className="flex-1 w-full border-0 bg-white"
-          title="Güvenli Kart Ödeme"
-          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
-        />
+        <h2 className="text-xl font-bold text-foreground">Güvenli ödeme sayfasına yönlendiriliyorsunuz</h2>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          Lütfen bekleyin, banka sanal POS altyapısına bağlanıyoruz…
+        </p>
 
-        {/* Alt bar */}
-        <div className="border-t border-border bg-card px-4 py-2">
-          <p className="text-center text-[11px] text-muted-foreground">
-            Kart bilgileriniz BiletFeed sunucularında saklanmaz. Ödeme Tosla İşim güvenli sanal POS altyapısı ile tamamlanır.
-          </p>
+        {/* Animasyonlu çubuk */}
+        <div className="mt-8 h-1.5 w-64 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary"
+            style={{ animation: 'progress 1.8s linear forwards' }}
+          />
+        </div>
+
+        <style>{`@keyframes progress { from { width: 0% } to { width: 100% } }`}</style>
+
+        <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
+          <Lock className="size-3.5 text-primary" />
+          256-bit SSL şifrelemeli güvenli bağlantı
         </div>
       </div>
     );
