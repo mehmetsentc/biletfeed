@@ -99,7 +99,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         ticketCount: result.ticketCount
       });
 
-      if (isBrowserRedirectProvider(provider)) return redirectResponse(provider, verified.orderId, true);
+      if (isBrowserRedirectProvider(provider)) return redirectResponse(provider, result.orderId, true);
       return NextResponse.json({ success: true, ...result });
     }
 
