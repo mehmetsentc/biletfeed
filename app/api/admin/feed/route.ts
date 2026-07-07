@@ -6,7 +6,11 @@ import {
   listAdminFeedPosts,
   publishFeedPost
 } from '@/lib/services/feed';
-import { listEditorialQueue, processEditorialQueueItem } from '@/lib/services/feed-editorial';
+import {
+  listEditorialQueue,
+  processEditorialQueueItem,
+  runEditorialPipeline
+} from '@/lib/services/feed-editorial';
 
 export async function GET(request: NextRequest) {
   const guard = await guardAdminRead('feed.view');
@@ -30,6 +34,12 @@ export async function POST(request: NextRequest) {
 
   const json = await request.json();
   const action = (json as { action?: string }).action;
+
+  if (action === 'discover') {
+    // Tavily + RSS keşfi başlat (harici + dahili)
+    const result = await runEditorialPipeline(5, true);
+    return NextResponse.json({ success: true, ...result });
+  }
 
   if (action === 'process-queue') {
     const queueId = (json as { queueId?: string }).queueId;
