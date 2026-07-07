@@ -8,6 +8,7 @@ import {
 import { createFeedPostFromDraft } from '@/lib/services/feed';
 import type { EditorialQueueItem } from '@/lib/feed/types';
 import { getDefaultOgImage } from '@/lib/seo/constants';
+import { fetchOgImage } from '@/lib/feed/discovery/og-image';
 import { discoverViaTavily } from '@/lib/feed/discovery/tavily';
 import { discoverViaRss } from '@/lib/feed/discovery/rss';
 import { TAVILY_QUERIES, RSS_SOURCES } from '@/lib/feed/discovery/sources';
@@ -92,6 +93,9 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
       data: { stage: 'seo' }
     });
 
+    // Kaynak URL'den og:image çek — başarısız olursa varsayılan logo kullan
+    const coverImage = await fetchOgImage(item.sourceUrl) ?? getDefaultOgImage();
+
     const post = await createFeedPostFromDraft({
       title: draft.title,
       headline: draft.headline,
@@ -99,7 +103,7 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
       content: draft.content,
       excerpt: draft.excerpt,
       contentType: draft.contentType,
-      coverImage: getDefaultOgImage(),
+      coverImage,
       tags: draft.tags,
       sourceUrl: item.sourceUrl,
       sourceName: item.sourceName ?? undefined,

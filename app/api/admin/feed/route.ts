@@ -11,6 +11,7 @@ import {
   processEditorialQueueItem,
   runEditorialPipeline
 } from '@/lib/services/feed-editorial';
+import { fetchOgImage } from '@/lib/feed/discovery/og-image';
 
 export async function GET(request: NextRequest) {
   const guard = await guardAdminRead('feed.view');
@@ -63,6 +64,45 @@ export async function POST(request: NextRequest) {
       where: { status: 'pending' }
     });
     return NextResponse.json({ success: true, processed, errors, remaining });
+  }
+
+  if (action === 'reset-failed') {
+    // failed durumdaki queue öğelerini tekrar pending'e al
+    const { prisma } = await import('@/lib/db/prisma');
+    const result = await prisma.feedEditorialQueue.updateMany({
+      where: { status: 'failed' },
+      data: { status: 'pending', errorMessage: null, processedAt: null, stage: 'discovery' }
+    });
+    return NextResponse.json({ success: true, reset: result.count });
+  }
+
+  if (action === 'fix-images') {
+    // Varsayılan logo kullanan makalelerde sourceUrl'den og:image çek
+    const { prisma } = await import('@/lib/db/prisma');
+    const posts = await prisma.feedPost.findMany({
+      where: {
+        coverImage: { contains: 'brand/logo' },
+        sourceUrl: { not: null }
+      },
+      select: { id: true, sourceUrl: true }
+    });
+
+    let updated = 0;
+    const errors: string[] = [];
+    for (const post of posts) {
+      try {
+        const img = await fetchOgImage(post.sourceUrl!);
+        if (img) {
+          await prisma.feedPost.update({ where: { id: post.id }, data: { coverImage: img } });
+          updated += 1;
+        }
+      } catch (err) {
+        errors.push(err instanceof Error ? err.message : String(err));
+      }
+      // Rate limit — kaynağa çok hızlı gitme
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return NextResponse.json({ success: true, total: posts.length, updated, errors });
   }
 
   if (action === 'process-queue') {
