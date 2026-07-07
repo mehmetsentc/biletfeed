@@ -1,6 +1,11 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { getCouponLabelMap } from '@/lib/services/coupons';
 import {
+  entryCategoryLabel,
+  resolveEntryCategory,
+  resolveTicketKind
+} from '@/lib/tickets/entry-display';
+import {
   buildCsv,
   buildTicketDetailRow,
   TICKET_DETAIL_HEADERS_WITH_EVENT,
@@ -51,7 +56,10 @@ export async function getOrganizerCheckInStats(
             ticketCode: true,
             attendeeName: true,
             user: { select: { displayName: true } },
-            event: { select: { title: true } }
+            event: { select: { title: true } },
+            ticketType: { select: { name: true, type: true } },
+            invitation: { select: { id: true, guestName: true } },
+            order: { select: { paymentProvider: true } }
           }
         }
       }
@@ -72,15 +80,28 @@ export async function getOrganizerCheckInStats(
     waiting,
     totalCapacity,
     attendancePct,
-    recentCheckIns: recentCheckIns.map((row) => ({
-      id: row.id,
-      result: row.result,
-      createdAt: row.createdAt,
-      ticketCode: row.ticket.ticketCode,
-      holderName:
-        row.ticket.attendeeName?.trim() || row.ticket.user.displayName,
-      eventTitle: row.ticket.event.title
-    }))
+    recentCheckIns: recentCheckIns.map((row) => {
+      const isInvitation =
+        Boolean(row.ticket.invitation) || row.ticket.order.paymentProvider === 'invitation';
+      const entryCategory = resolveEntryCategory(
+        row.ticket.ticketType.type,
+        row.ticket.ticketType.name
+      );
+      return {
+        id: row.id,
+        result: row.result,
+        createdAt: row.createdAt,
+        ticketCode: row.ticket.ticketCode,
+        holderName:
+          row.ticket.invitation?.guestName?.trim() ||
+          row.ticket.attendeeName?.trim() ||
+          row.ticket.user.displayName,
+        eventTitle: row.ticket.event.title,
+        ticketKind: resolveTicketKind(isInvitation),
+        categoryLabel: entryCategoryLabel(entryCategory, row.ticket.ticketType.name),
+        entryCategory
+      };
+    })
   };
 }
 

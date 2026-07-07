@@ -1,5 +1,6 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { slugify } from '@/lib/utils/slug';
+import { ticketTypeDisplayLabel } from '@/lib/tickets/entry-display';
 
 export type OrganizerTicketFilterOption = {
   key: string;
@@ -20,12 +21,6 @@ export type OrganizerTicketsFilter =
   | { kind: 'all' }
   | { kind: 'invitation' }
   | { kind: 'ticketTypes'; ticketTypeIds: string[] };
-
-function ticketTypeDisplayLabel(name: string): string {
-  const sep = ' — ';
-  const idx = name.indexOf(sep);
-  return idx >= 0 ? name.slice(0, idx).trim() : name.trim();
-}
 
 function normalizeTicketTypeKey(name: string): string {
   return slugify(ticketTypeDisplayLabel(name)) || 'diger';

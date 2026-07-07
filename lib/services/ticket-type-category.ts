@@ -7,6 +7,7 @@ export function isLocaTicketType(type: TicketTypeEnum | string, name: string): b
     n.includes('loca') ||
     n.includes('loge') ||
     n.includes('lodge') ||
+    n.includes('loja') ||
     n.includes('box') ||
     n.includes('skybox')
   ) {

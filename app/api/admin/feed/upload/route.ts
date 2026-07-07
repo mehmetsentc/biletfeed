@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import sharp from 'sharp';
 import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { uploadAdminFeedMedia, isFirebaseStorageUploadConfigured } from '@/lib/firebase/admin-storage';
 import { assertImageUpload } from '@/lib/security/image-upload';
@@ -28,8 +29,13 @@ export async function POST(request: NextRequest) {
       if (buffer.length > MAX_IMAGE_BYTES) {
         return NextResponse.json({ error: 'Görsel 5 MB sınırını aşıyor' }, { status: 400 });
       }
-      const verifiedType = assertImageUpload(buffer, contentType);
-      const url = await uploadAdminFeedMedia(buffer, verifiedType);
+      const assertImageUpload(buffer, contentType);
+      const webp = await sharp(buffer, { failOn: 'none' })
+        .rotate()
+        .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer();
+      const url = await uploadAdminFeedMedia(webp, 'image/webp');
       return NextResponse.json({ url, type: 'image' as const });
     }
 

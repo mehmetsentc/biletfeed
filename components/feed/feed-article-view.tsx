@@ -1,3 +1,4 @@
+import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Clock, Eye, Heart, MessageCircle } from 'lucide-react';
@@ -31,7 +32,7 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
   return (
     <article className="pb-24">
       <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
-        <Image src={post.coverImage} alt={post.title} fill className="object-cover" priority />
+        <FeedCoverImage src={post.coverImage} alt={post.title} fill className="object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
           <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold">{typeLabel}</span>

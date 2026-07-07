@@ -9,6 +9,7 @@ import { createFeedPostFromDraft } from '@/lib/services/feed';
 import type { EditorialQueueItem } from '@/lib/feed/types';
 import { getDefaultOgImage } from '@/lib/seo/constants';
 import { fetchOgImage } from '@/lib/feed/discovery/og-image';
+import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { discoverViaTavily } from '@/lib/feed/discovery/tavily';
 import { discoverViaRss } from '@/lib/feed/discovery/rss';
 import { TAVILY_QUERIES, RSS_SOURCES } from '@/lib/feed/discovery/sources';
@@ -93,8 +94,12 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
       data: { stage: 'seo' }
     });
 
-    // Kaynak URL'den og:image çek — başarısız olursa varsayılan logo kullan
-    const coverImage = await fetchOgImage(item.sourceUrl) ?? getDefaultOgImage();
+    // Kaynak URL'den og:image çek → WebP/JPEG olarak Firebase'e kaydet
+    const rawCover = await fetchOgImage(item.sourceUrl);
+    const normalizedCover = rawCover
+      ? await normalizeCoverImageUrl(rawCover, item.sourceUrl)
+      : null;
+    const coverImage = normalizedCover ?? getDefaultOgImage();
 
     const post = await createFeedPostFromDraft({
       title: draft.title,

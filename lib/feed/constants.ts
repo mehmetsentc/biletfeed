@@ -2,6 +2,10 @@ import type { FeedPostType } from '@prisma/client';
 
 export const FEED_AUTHOR_NAME = 'BiletFeed Editör';
 
+/** Harici kapak görseli yüklenemediğinde kullanılan yedek */
+export const FEED_FALLBACK_COVER =
+  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80';
+
 export const FEED_POST_TYPE_LABELS: Record<FeedPostType, string> = {
   concert_news: 'Konser Haberi',
   festival_news: 'Festival Haberi',

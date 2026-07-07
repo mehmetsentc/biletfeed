@@ -13,6 +13,7 @@ import {
   runEditorialPipeline
 } from '@/lib/services/feed-editorial';
 import { fetchOgImage } from '@/lib/feed/discovery/og-image';
+import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { FeedPostType, FeedPostStatus } from '@prisma/client';
 
 const createSchema = z.object({
@@ -69,7 +70,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Geçersiz veri', details: parsed.error.flatten() }, { status: 400 });
     }
     const { action: _a, ...payload } = parsed.data;
-    const post = await createManualAdminFeedPost(payload);
+    const normalizedCover = await normalizeCoverImageUrl(payload.coverImage);
+    const post = await createManualAdminFeedPost({
+      ...payload,
+      coverImage: normalizedCover ?? payload.coverImage
+    });
     return NextResponse.json({ success: true, id: post.id, slug: post.slug });
   }
 
@@ -114,30 +119,49 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === 'fix-images') {
-    // Varsayılan logo kullanan makalelerde sourceUrl'den og:image çek
+    // Logo veya harici kapak görsellerini og:image + WebP dönüşümü ile düzelt
     const { prisma } = await import('@/lib/db/prisma');
+    const batchSize = Math.min(Number((json as { batchSize?: number }).batchSize ?? 20), 50);
+
     const posts = await prisma.feedPost.findMany({
       where: {
-        coverImage: { contains: 'brand/logo' },
-        sourceUrl: { not: null }
+        deletedAt: null,
+        OR: [
+          { coverImage: { contains: 'brand/logo' } },
+          {
+            AND: [
+              { coverImage: { startsWith: 'http' } },
+              { NOT: { coverImage: { contains: 'firebasestorage.googleapis.com' } } },
+              { NOT: { coverImage: { contains: 'storage.googleapis.com' } } }
+            ]
+          }
+        ]
       },
-      select: { id: true, sourceUrl: true }
+      select: { id: true, sourceUrl: true, coverImage: true },
+      take: batchSize,
+      orderBy: { publishedAt: 'desc' }
     });
 
     let updated = 0;
     const errors: string[] = [];
     for (const post of posts) {
       try {
-        const img = await fetchOgImage(post.sourceUrl!);
-        if (img) {
-          await prisma.feedPost.update({ where: { id: post.id }, data: { coverImage: img } });
+        const raw =
+          post.coverImage.includes('brand/logo') && post.sourceUrl
+            ? await fetchOgImage(post.sourceUrl)
+            : post.coverImage;
+
+        if (!raw) continue;
+
+        const normalized = await normalizeCoverImageUrl(raw, post.sourceUrl ?? undefined);
+        if (normalized && normalized !== post.coverImage) {
+          await prisma.feedPost.update({ where: { id: post.id }, data: { coverImage: normalized } });
           updated += 1;
         }
       } catch (err) {
         errors.push(err instanceof Error ? err.message : String(err));
       }
-      // Rate limit — kaynağa çok hızlı gitme
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 400));
     }
     return NextResponse.json({ success: true, total: posts.length, updated, errors });
   }

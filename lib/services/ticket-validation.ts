@@ -1,8 +1,14 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { verifyValidationToken, parseQrPayload, normalizeTicketCode, resolveManualScanInput } from '@/lib/tickets/sign';
 import { canScannerAccessTicket } from '@/lib/auth/organizer-api';
+import {
+  entryCategoryLabel,
+  resolveEntryCategory,
+  resolveTicketKind,
+  ticketTypeDisplayLabel
+} from '@/lib/tickets/entry-display';
 import type { UserRole } from '@/types';
-import type { EntryPolicy } from '@prisma/client';
+import type { EntryPolicy, TicketTypeEnum } from '@prisma/client';
 
 export type TicketValidationStatus =
   | 'VALID'
@@ -17,6 +23,9 @@ export interface TicketSummary {
   code: string;
   eventTitle: string;
   ticketType: string;
+  categoryLabel: string;
+  entryCategory: 'genel' | 'bistro' | 'loca' | 'diger';
+  ticketKind: 'bilet' | 'davetiye';
   holderName: string;
   scannedAt: string | null;
   entryCount: number;
@@ -39,7 +48,7 @@ function toSummary(ticket: {
   entryCount: number;
   attendeeName: string | null;
   event: { title: string };
-  ticketType: { name: string };
+  ticketType: { name: string; type: TicketTypeEnum };
   user: { displayName: string };
   invitation?: {
     guestName: string;
@@ -49,11 +58,16 @@ function toSummary(ticket: {
   } | null;
 }): TicketSummary {
   const isInvitation = Boolean(ticket.invitation);
+  const entryCategory = resolveEntryCategory(ticket.ticketType.type, ticket.ticketType.name);
+  const categoryLabel = entryCategoryLabel(entryCategory, ticket.ticketType.name);
   return {
     id: ticket.id,
     code: ticket.ticketCode,
     eventTitle: ticket.event.title,
-    ticketType: ticket.ticketType.name,
+    ticketType: ticketTypeDisplayLabel(ticket.ticketType.name),
+    categoryLabel,
+    entryCategory,
+    ticketKind: resolveTicketKind(isInvitation),
     holderName:
       ticket.invitation?.guestName?.trim() ||
       ticket.attendeeName?.trim() ||
@@ -167,7 +181,7 @@ export async function validateTicketInput(input: {
           entryPolicy: true
         }
       },
-      ticketType: { select: { name: true } },
+      ticketType: { select: { name: true, type: true } },
       user: { select: { displayName: true } },
       invitation: {
         select: {

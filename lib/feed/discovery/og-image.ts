@@ -2,6 +2,8 @@
  * Kaynak URL'den og:image / twitter:image meta etiketini çeker.
  * Başarısız olursa null döner — çağıran taraf fallback uygular.
  */
+import { resolveImageUrl } from '@/lib/images/normalize-remote-image';
+
 export async function fetchOgImage(url: string): Promise<string | null> {
   try {
     const response = await fetch(url, {
@@ -33,13 +35,13 @@ export async function fetchOgImage(url: string): Promise<string | null> {
     const ogMatch =
       /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i.exec(html) ??
       /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i.exec(html);
-    if (ogMatch?.[1]) return ogMatch[1];
+    if (ogMatch?.[1]) return resolveImageUrl(ogMatch[1], url);
 
     // twitter:image
     const twMatch =
       /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i.exec(html) ??
       /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i.exec(html);
-    if (twMatch?.[1]) return twMatch[1];
+    if (twMatch?.[1]) return resolveImageUrl(twMatch[1], url);
 
     return null;
   } catch {

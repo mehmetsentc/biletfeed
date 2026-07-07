@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
 import { Bookmark, Clock, Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
 import { FEED_CATEGORY_BADGE_COLORS, FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
@@ -32,8 +32,8 @@ export function FeedPostCardView({
         href={`/feed/${post.slug}`}
         className={cn('relative block overflow-hidden', featured ? 'aspect-[16/10] md:aspect-auto md:min-h-[280px]' : 'aspect-[16/10]')}
       >
-        <Image
-          src={post.coverImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80'}
+        <FeedCoverImage
+          src={post.coverImage}
           alt={post.title}
           fill
           className="object-cover transition duration-500 group-hover:scale-[1.03]"

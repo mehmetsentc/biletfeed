@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
 import { Bookmark, Clock, Eye, Heart } from 'lucide-react';
 import { FEED_CATEGORY_BADGE_COLORS, FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
@@ -57,8 +57,8 @@ export function FeedTimelineCard({
         className="group mb-8 min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/8 bg-zinc-900/80 shadow-lg transition hover:border-primary/30 hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
       >
         <div className="relative aspect-[16/10] overflow-hidden">
-          <Image
-            src={post.coverImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80'}
+          <FeedCoverImage
+            src={post.coverImage}
             alt={post.title}
             fill
             className="object-cover transition duration-500 group-hover:scale-[1.04]"

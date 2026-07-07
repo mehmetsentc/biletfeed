@@ -1,4 +1,6 @@
 import { Users, UserCheck, Clock, TrendingUp } from 'lucide-react';
+import { EntryMetaBadges } from '@/components/tickets/entry-meta-badges';
+import { checkInResultLabel } from '@/lib/tickets/entry-display';
 import type { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
 
 export function CheckInStatsPanel({
@@ -24,21 +26,39 @@ export function CheckInStatsPanel({
           <h3 className="mb-3 text-sm font-semibold text-foreground">Son Girişler</h3>
           <ul className="space-y-2">
             {stats.recentCheckIns.map((row) => (
-              <li key={row.id} className="flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-medium text-foreground">{row.holderName}</p>
-                  <p className="text-xs text-muted-foreground">{row.eventTitle} · {row.ticketCode}</p>
+              <li key={row.id} className="flex items-start justify-between gap-3 text-sm">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-foreground">{row.holderName}</p>
+                    <EntryMetaBadges
+                      ticketKind={row.ticketKind}
+                      categoryLabel={row.categoryLabel}
+                      entryCategory={row.entryCategory}
+                      size="xs"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {row.eventTitle} · {row.ticketCode}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground/80">
+                    {new Intl.DateTimeFormat('tr-TR', {
+                      day: 'numeric',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }).format(new Date(row.createdAt))}
+                  </p>
                 </div>
                 <span
                   className={
                     row.result === 'VALID'
-                      ? 'text-[var(--bf-success)]'
+                      ? 'shrink-0 text-xs font-semibold text-[var(--bf-success)]'
                       : row.result === 'USED'
-                        ? 'text-amber-600'
-                        : 'text-destructive'
+                        ? 'shrink-0 text-xs font-semibold text-amber-600'
+                        : 'shrink-0 text-xs font-semibold text-destructive'
                   }
                 >
-                  {row.result}
+                  {checkInResultLabel(row.result)}
                 </span>
               </li>
             ))}

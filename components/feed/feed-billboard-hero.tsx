@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
 import { ArrowRight, Clock, Sparkles } from 'lucide-react';
 import { FEED_CATEGORY_BADGE_COLORS, FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
@@ -22,8 +22,8 @@ export function FeedBillboardHero({ post }: { post: FeedPostCard }) {
       className="group relative block overflow-hidden rounded-2xl bg-zinc-900 md:rounded-3xl"
     >
       <div className="relative aspect-[4/5] sm:aspect-[16/10]">
-        <Image
-          src={post.coverImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80'}
+        <FeedCoverImage
+          src={post.coverImage}
           alt={post.title}
           fill
           priority

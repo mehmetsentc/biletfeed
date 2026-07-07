@@ -17,6 +17,9 @@ export type ScanResult = {
     code: string;
     eventTitle: string;
     ticketType: string;
+    categoryLabel?: string;
+    entryCategory?: 'genel' | 'bistro' | 'loca' | 'diger';
+    ticketKind?: 'bilet' | 'davetiye';
     holderName: string;
     entryCount?: number;
     isInvitation?: boolean;

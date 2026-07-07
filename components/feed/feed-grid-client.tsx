@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
+import { FeedCoverBackground } from '@/components/feed/feed-cover-image';
 import { Loader2 } from 'lucide-react';
 import { FeedPostCardView } from '@/components/feed/feed-post-card';
 import { FeedBillboardHero } from '@/components/feed/feed-billboard-hero';
@@ -77,11 +78,9 @@ export function FeedGridClient({
                   href={`/feed/${post.slug}`}
                   className="w-[72vw] max-w-[280px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900"
                 >
-                  <div
+                  <FeedCoverBackground
+                    src={post.coverImage}
                     className="h-28 bg-cover bg-center"
-                    style={{
-                      backgroundImage: `url(${post.coverImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&q=80'})`
-                    }}
                   />
                   <div className="p-3">
                     <p className="line-clamp-2 text-sm font-bold leading-snug text-white">

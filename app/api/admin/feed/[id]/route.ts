@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { FeedPostType, FeedPostStatus } from '@prisma/client';
 import { guardAdminMutation, guardAdminRead } from '@/lib/auth/guard-admin-api';
 import { getAdminFeedPostById, updateAdminFeedPost } from '@/lib/services/feed';
+import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 const mediaSchema = z.object({
@@ -54,7 +55,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
-    const result = await updateAdminFeedPost(id, parsed.data);
+    const data = { ...parsed.data };
+    if (data.coverImage) {
+      const normalized = await normalizeCoverImageUrl(data.coverImage);
+      if (normalized) data.coverImage = normalized;
+    }
+    const result = await updateAdminFeedPost(id, data);
     return NextResponse.json({ success: true, slug: result.slug });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Güncellenemedi';
