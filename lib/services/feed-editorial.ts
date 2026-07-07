@@ -8,6 +8,9 @@ import {
 import { createFeedPostFromDraft } from '@/lib/services/feed';
 import type { EditorialQueueItem } from '@/lib/feed/types';
 import { getDefaultOgImage } from '@/lib/seo/constants';
+import { discoverViaTavily } from '@/lib/feed/discovery/tavily';
+import { discoverViaRss } from '@/lib/feed/discovery/rss';
+import { TAVILY_QUERIES, RSS_SOURCES } from '@/lib/feed/discovery/sources';
 
 export async function enqueueDiscoveryItem(item: DiscoveredItem): Promise<{ id: string; duplicate: boolean }> {
   await ensureDbConnection();
@@ -186,19 +189,79 @@ export async function discoverFromPublishedEvents(limit = 5): Promise<number> {
   return enqueued;
 }
 
-export async function runEditorialPipeline(batchSize = 3): Promise<{
+/**
+ * Tavily + RSS kaynaklarından harici haber keşfi.
+ * Bulunan öğeleri editorial kuyruğuna ekler.
+ */
+export async function discoverFromExternalSources(): Promise<{
+  tavilyCount: number;
+  rssCount: number;
+  enqueued: number;
+  errors: string[];
+}> {
+  const allErrors: string[] = [];
+
+  // Tavily araması
+  const tavily = await discoverViaTavily(TAVILY_QUERIES);
+  allErrors.push(...tavily.errors);
+
+  // RSS feed'leri
+  const rss = await discoverViaRss(RSS_SOURCES);
+  allErrors.push(...rss.errors);
+
+  // Tüm öğeleri kuyruğa ekle (duplicate kontrolü enqueueDiscoveryItem içinde)
+  const allItems: DiscoveredItem[] = [...tavily.items, ...rss.items];
+  let enqueued = 0;
+  for (const item of allItems) {
+    try {
+      const result = await enqueueDiscoveryItem(item);
+      if (!result.duplicate) enqueued += 1;
+    } catch (err) {
+      allErrors.push(`Kuyruk hatası: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  return {
+    tavilyCount: tavily.items.length,
+    rssCount: rss.items.length,
+    enqueued,
+    errors: allErrors
+  };
+}
+
+export async function runEditorialPipeline(
+  batchSize = 3,
+  includeExternal = false
+): Promise<{
   discovered: number;
+  externalDiscovered?: { tavilyCount: number; rssCount: number; enqueued: number };
   processed: number;
   errors: string[];
 }> {
+  const errors: string[] = [];
+
+  // Dahili: BiletFeed etkinliklerinden keşif
   const discovered = await discoverFromPublishedEvents(batchSize);
+
+  // Harici: Tavily + RSS (isteğe bağlı — günlük cron'da true gönderilir)
+  let externalDiscovered: { tavilyCount: number; rssCount: number; enqueued: number } | undefined;
+  if (includeExternal) {
+    const ext = await discoverFromExternalSources();
+    externalDiscovered = {
+      tavilyCount: ext.tavilyCount,
+      rssCount: ext.rssCount,
+      enqueued: ext.enqueued
+    };
+    errors.push(...ext.errors);
+  }
+
+  // Bekleyen öğeleri işle
   const pending = await prisma.feedEditorialQueue.findMany({
     where: { status: 'pending' },
     orderBy: { createdAt: 'asc' },
     take: batchSize
   });
 
-  const errors: string[] = [];
   let processed = 0;
   for (const item of pending) {
     try {
@@ -209,5 +272,5 @@ export async function runEditorialPipeline(batchSize = 3): Promise<{
     }
   }
 
-  return { discovered, processed, errors };
+  return { discovered, externalDiscovered, processed, errors };
 }
