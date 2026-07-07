@@ -104,8 +104,32 @@ function isValidTicketCategory(c: TicketCategory): boolean {
   const name = c.name.trim();
   const capacityRaw = String(c.capacity ?? '').trim();
   if (!name || !capacityRaw) return false;
+  if (name.length > 200) return false;
+  if ((c.description ?? '').trim().length > 500) return false;
   const capacityNum = Number(capacityRaw);
   return Number.isFinite(capacityNum) && capacityNum > 0;
+}
+
+function ticketCategoryValidationError(categories: TicketCategory[]): string | null {
+  for (let i = 0; i < categories.length; i++) {
+    const c = categories[i]!;
+    const label = `Kategori ${i + 1}`;
+    const name = c.name.trim();
+    if (!name) {
+      return `${label}: "Kategori Adı" boş bırakılamaz.`;
+    }
+    if (name.length > 200) {
+      return `${label}: "Kategori Adı" en fazla 200 karakter olabilir (şu an ${name.length}).`;
+    }
+    if ((c.description ?? '').trim().length > 500) {
+      return `${label}: Açıklama en fazla 500 karakter olabilir.`;
+    }
+    const capacityNum = Number(String(c.capacity ?? '').trim());
+    if (!Number.isFinite(capacityNum) || capacityNum < 1) {
+      return `${label}: Geçerli bir kontenjan girin.`;
+    }
+  }
+  return null;
 }
 
 function ticketCategoriesFromDraft(
@@ -459,8 +483,13 @@ export function CreateOrganizerEventWizard({
 
   function goToNextStep() {
     setError(null);
-    const categories = ticketCategoriesRef.current;
     if (step === 4) {
+      const categories = ticketCategoriesRef.current;
+      const categoryError = ticketCategoryValidationError(categories);
+      if (categoryError) {
+        setError(categoryError);
+        return;
+      }
       const valid = categories.filter(isValidTicketCategory);
       if (valid.length === 0) {
         setError('En az bir bilet kategorisi ekleyin.');
@@ -520,6 +549,11 @@ export function CreateOrganizerEventWizard({
       return;
     }
     const categories = ticketCategoriesRef.current;
+    const categoryError = ticketCategoryValidationError(categories);
+    if (categoryError) {
+      setError(categoryError);
+      return;
+    }
     const validCategories = categories.filter(isValidTicketCategory);
     if (validCategories.length === 0) {
       setError('En az bir bilet kategorisi ekleyin.');
@@ -997,6 +1031,7 @@ export function CreateOrganizerEventWizard({
                           value={cat.name}
                           onChange={(e) => updateTicketCategory(cat.id, 'name', e.target.value)}
                           placeholder="Örn: Sahne Önü, Backstage, VIP, Genel Giriş"
+                          maxLength={200}
                           className="h-11 rounded-lg"
                         />
                       </div>

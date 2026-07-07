@@ -71,9 +71,31 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
           <h2 className="text-xl font-bold text-foreground">Galeri</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {post.media.map((item) => (
-              <div key={item.id} className="relative aspect-video overflow-hidden rounded-xl">
-                <Image src={item.url} alt={item.alt ?? ''} fill className="object-cover" />
-              </div>
+              <figure key={item.id} className="overflow-hidden rounded-xl border border-border bg-muted/30">
+                <div className="relative aspect-video overflow-hidden">
+                  {item.type === 'video' ? (
+                    <video
+                      src={item.url}
+                      controls
+                      className="size-full object-cover"
+                      poster={item.thumbnail ?? undefined}
+                    />
+                  ) : item.type === 'embed' ? (
+                    <iframe
+                      src={item.url}
+                      title={item.alt ?? 'Video'}
+                      className="size-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <Image src={item.url} alt={item.alt ?? ''} fill className="object-cover" unoptimized />
+                  )}
+                </div>
+                {item.caption && (
+                  <figcaption className="px-3 py-2 text-xs text-muted-foreground">{item.caption}</figcaption>
+                )}
+              </figure>
             ))}
           </div>
         </section>

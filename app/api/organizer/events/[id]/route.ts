@@ -22,7 +22,7 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 const ticketCategorySchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1).max(100),
+  name: z.string().trim().min(1, 'Kategori adı zorunludur').max(200),
   description: z.string().max(500).optional().default(''),
   price: z.number().min(0).default(0),
   capacity: z.number().int().min(1),

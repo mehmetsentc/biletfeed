@@ -4,7 +4,8 @@ import { guardAdminMutation, guardAdminRead } from '@/lib/auth/guard-admin-api';
 import {
   getFeedAdminStats,
   listAdminFeedPosts,
-  publishFeedPost
+  publishFeedPost,
+  createManualAdminFeedPost
 } from '@/lib/services/feed';
 import {
   listEditorialQueue,
@@ -12,6 +13,32 @@ import {
   runEditorialPipeline
 } from '@/lib/services/feed-editorial';
 import { fetchOgImage } from '@/lib/feed/discovery/og-image';
+import { FeedPostType, FeedPostStatus } from '@prisma/client';
+
+const createSchema = z.object({
+  action: z.literal('create'),
+  title: z.string().min(3).max(300),
+  headline: z.string().max(300).optional(),
+  summary: z.string().min(10).max(500),
+  content: z.string().min(20),
+  contentType: z.nativeEnum(FeedPostType),
+  coverImage: z.string().url(),
+  tags: z.array(z.string()).optional(),
+  isFeatured: z.boolean().optional(),
+  feedCategoryId: z.string().uuid().nullable().optional(),
+  status: z.nativeEnum(FeedPostStatus).optional(),
+  media: z
+    .array(
+      z.object({
+        type: z.enum(['image', 'video', 'embed', 'reel']),
+        url: z.string().url(),
+        thumbnail: z.string().url().optional().nullable(),
+        alt: z.string().max(200).optional().nullable(),
+        caption: z.string().max(500).optional().nullable()
+      })
+    )
+    .optional()
+});
 
 export async function GET(request: NextRequest) {
   const guard = await guardAdminRead('feed.view');
@@ -35,6 +62,16 @@ export async function POST(request: NextRequest) {
 
   const json = await request.json();
   const action = (json as { action?: string }).action;
+
+  if (action === 'create') {
+    const parsed = createSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Geçersiz veri', details: parsed.error.flatten() }, { status: 400 });
+    }
+    const { action: _a, ...payload } = parsed.data;
+    const post = await createManualAdminFeedPost(payload);
+    return NextResponse.json({ success: true, id: post.id, slug: post.slug });
+  }
 
   if (action === 'discover') {
     // Tavily + RSS keşfi başlat (harici + dahili)

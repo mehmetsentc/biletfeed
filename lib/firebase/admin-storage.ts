@@ -75,6 +75,46 @@ export async function uploadOrganizerEventCover(
   return uploadPublicBuffer(getBucketName()!, path, buffer, contentType);
 }
 
+/** Admin panel — etkinlik / feed kapak görseli */
+export async function uploadAdminImage(
+  scope: 'events' | 'feed',
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  if (!isFirebaseStorageUploadConfigured()) {
+    throw new Error('Firebase Storage yapılandırılmamış');
+  }
+  const ext = contentType.includes('png')
+    ? 'png'
+    : contentType.includes('webp')
+      ? 'webp'
+      : 'jpg';
+  const path = `admin/${scope}/${randomUUID()}.${ext}`;
+  return uploadPublicBuffer(getBucketName()!, path, buffer, contentType);
+}
+
+/** Admin feed galeri — görsel veya video */
+export async function uploadAdminFeedMedia(
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  if (!isFirebaseStorageUploadConfigured()) {
+    throw new Error('Firebase Storage yapılandırılmamış');
+  }
+  const isVideo = contentType.startsWith('video/');
+  const ext = isVideo
+    ? contentType.includes('webm')
+      ? 'webm'
+      : 'mp4'
+    : contentType.includes('png')
+      ? 'png'
+      : contentType.includes('webp')
+        ? 'webp'
+        : 'jpg';
+  const path = `feed/media/${randomUUID()}.${ext}`;
+  return uploadPublicBuffer(getBucketName()!, path, buffer, contentType);
+}
+
 async function uploadPublicBuffer(
   bucketName: string,
   path: string,

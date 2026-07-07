@@ -462,3 +462,200 @@ export async function listAdminFeedPosts(status?: FeedPostStatus) {
     take: 100
   });
 }
+
+export type FeedMediaInput = {
+  id?: string;
+  type: 'image' | 'video' | 'embed' | 'reel';
+  url: string;
+  thumbnail?: string | null;
+  alt?: string | null;
+  caption?: string | null;
+};
+
+export type AdminFeedPostEditor = {
+  id: string;
+  slug: string;
+  title: string;
+  headline: string | null;
+  summary: string;
+  content: string;
+  contentType: FeedPostType;
+  status: FeedPostStatus;
+  coverImage: string;
+  tags: string[];
+  isFeatured: boolean;
+  feedCategoryId: string | null;
+  readingTimeMinutes: number;
+  media: Array<{
+    id: string;
+    type: string;
+    url: string;
+    thumbnail: string | null;
+    alt: string | null;
+    caption: string | null;
+    sortOrder: number;
+  }>;
+};
+
+function estimateReadingMinutes(content: string): number {
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
+
+export async function listFeedCategoriesForAdmin() {
+  await ensureFeedCategories();
+  await ensureDbConnection();
+  return prisma.feedCategory.findMany({
+    where: { deletedAt: null, isActive: true },
+    select: { id: true, slug: true, name: true },
+    orderBy: { sortOrder: 'asc' }
+  });
+}
+
+export async function getAdminFeedPostById(id: string): Promise<AdminFeedPostEditor | null> {
+  await ensureDbConnection();
+  const row = await prisma.feedPost.findFirst({
+    where: { id, deletedAt: null },
+    include: { media: { orderBy: { sortOrder: 'asc' } } }
+  });
+  if (!row) return null;
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    headline: row.headline,
+    summary: row.summary,
+    content: row.content,
+    contentType: row.contentType,
+    status: row.status,
+    coverImage: row.coverImage,
+    tags: row.tags,
+    isFeatured: row.isFeatured,
+    feedCategoryId: row.feedCategoryId,
+    readingTimeMinutes: row.readingTimeMinutes,
+    media: row.media.map((m) => ({
+      id: m.id,
+      type: m.type,
+      url: m.url,
+      thumbnail: m.thumbnail,
+      alt: m.alt,
+      caption: m.caption,
+      sortOrder: m.sortOrder
+    }))
+  };
+}
+
+async function syncFeedPostMedia(postId: string, media: FeedMediaInput[]): Promise<void> {
+  await prisma.feedMedia.deleteMany({ where: { postId } });
+  if (media.length === 0) return;
+  await prisma.feedMedia.createMany({
+    data: media.map((item, index) => ({
+      postId,
+      type: item.type,
+      url: item.url,
+      thumbnail: item.thumbnail ?? null,
+      alt: item.alt ?? null,
+      caption: item.caption ?? null,
+      sortOrder: index,
+      featured: index === 0
+    }))
+  });
+}
+
+export async function createManualAdminFeedPost(input: {
+  title: string;
+  headline?: string;
+  summary: string;
+  content: string;
+  contentType: FeedPostType;
+  coverImage: string;
+  tags?: string[];
+  isFeatured?: boolean;
+  feedCategoryId?: string | null;
+  status?: FeedPostStatus;
+  media?: FeedMediaInput[];
+}): Promise<{ id: string; slug: string }> {
+  const readingTimeMinutes = estimateReadingMinutes(input.content);
+  const post = await createFeedPostFromDraft({
+    title: input.title,
+    headline: input.headline,
+    summary: input.summary,
+    content: input.content,
+    contentType: input.contentType,
+    coverImage: input.coverImage,
+    tags: input.tags,
+    feedCategoryId: input.feedCategoryId ?? undefined,
+    status: input.status ?? 'review',
+    readingTimeMinutes
+  });
+
+  if (input.media?.length) {
+    await syncFeedPostMedia(post.id, input.media);
+  }
+
+  if (input.isFeatured) {
+    await prisma.feedPost.update({
+      where: { id: post.id },
+      data: { isFeatured: true }
+    });
+  }
+
+  if (input.status === 'published') {
+    await publishFeedPost(post.id);
+  }
+
+  return post;
+}
+
+export async function updateAdminFeedPost(
+  id: string,
+  input: {
+    title?: string;
+    headline?: string | null;
+    summary?: string;
+    content?: string;
+    contentType?: FeedPostType;
+    coverImage?: string;
+    tags?: string[];
+    isFeatured?: boolean;
+    feedCategoryId?: string | null;
+    status?: FeedPostStatus;
+    media?: FeedMediaInput[];
+  }
+): Promise<{ slug: string }> {
+  await ensureDbConnection();
+  const existing = await prisma.feedPost.findFirst({ where: { id, deletedAt: null } });
+  if (!existing) throw new Error('Haber bulunamadı');
+
+  const content = input.content ?? existing.content;
+  const readingTimeMinutes = estimateReadingMinutes(content);
+
+  const shouldPublish = input.status === 'published' && existing.status !== 'published';
+
+  await prisma.feedPost.update({
+    where: { id },
+    data: {
+      ...(input.title !== undefined ? { title: input.title } : {}),
+      ...(input.headline !== undefined ? { headline: input.headline } : {}),
+      ...(input.summary !== undefined ? { summary: input.summary } : {}),
+      ...(input.content !== undefined ? { content: input.content, excerpt: input.content.slice(0, 280) } : {}),
+      ...(input.contentType !== undefined ? { contentType: input.contentType } : {}),
+      ...(input.coverImage !== undefined ? { coverImage: input.coverImage } : {}),
+      ...(input.tags !== undefined ? { tags: input.tags } : {}),
+      ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
+      ...(input.feedCategoryId !== undefined ? { feedCategoryId: input.feedCategoryId } : {}),
+      ...(input.status !== undefined ? { status: input.status } : {}),
+      readingTimeMinutes,
+      ...(shouldPublish
+        ? { publishedAt: new Date(), editorialStage: 'publish' as const }
+        : {})
+    }
+  });
+
+  if (input.media !== undefined) {
+    await syncFeedPostMedia(id, input.media);
+  }
+
+  const updated = await prisma.feedPost.findUnique({ where: { id }, select: { slug: true } });
+  return { slug: updated!.slug };
+}

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { ImagePlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +22,9 @@ interface EventEditorFormProps {
 
 export function EventEditorForm({ event }: EventEditorFormProps) {
   const router = useRouter();
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: event.title,
@@ -53,6 +56,23 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
     { slug: 'party', label: '🎉 Party' },
     { slug: 'diger', label: '📌 Diğer' },
   ];
+
+  async function uploadCover(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('scope', 'events');
+      const res = await fetch('/api/admin/upload-image', { method: 'POST', body: fd });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Yükleme başarısız');
+      setForm((f) => ({ ...f, coverImage: data.url! }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Görsel yüklenemedi');
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -134,13 +154,40 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
             />
           </div>
           <div>
-            <Label htmlFor="coverImage">Kapak görseli URL</Label>
+            <Label htmlFor="coverImage">Kapak görseli</Label>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadCover(file);
+              }}
+            />
+            <div className="mt-1 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                onClick={() => coverInputRef.current?.click()}
+              >
+                {uploading ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="mr-2 size-4" />
+                )}
+                Yükle
+              </Button>
+            </div>
             <Input
               id="coverImage"
               type="url"
               value={form.coverImage}
               onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
               placeholder="https://..."
+              className="mt-2"
             />
           </div>
         </div>

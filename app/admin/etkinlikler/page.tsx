@@ -41,9 +41,9 @@ export default async function AdminEventsPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Etkinlik Editörü</h1>
+          <h1 className="text-2xl font-bold">Etkinlikleri Düzenle</h1>
           <p className="text-sm text-muted-foreground">
-            {rows.length} onaylı organizatör etkinliği
+            {rows.length} etkinlik · güncelle ve kaydet
             {searching ? ' · arama sonucu (geçmiş dahil)' : ' · yaklaşan'}
           </p>
         </div>

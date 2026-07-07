@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { EditorialQueueItem } from '@/lib/feed/types';
@@ -87,6 +89,18 @@ export function FeedAdminDashboard() {
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Manuel haber oluşturun veya mevcut içerikleri düzenleyin
+        </p>
+        <Button asChild>
+          <Link href="/admin/feed/yeni">
+            <Plus className="mr-2 size-4" />
+            Yeni Haber
+          </Link>
+        </Button>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: 'Yayında', value: stats?.published ?? 0 },
@@ -159,20 +173,33 @@ export function FeedAdminDashboard() {
                   <td className="px-4 py-3">{post.status}</td>
                   <td className="px-4 py-3">{post.viewCount}</td>
                   <td className="px-4 py-3">
-                    {post.status === 'review' && (
-                      <Button
-                        size="sm"
-                        disabled={actionId === post.id}
-                        onClick={() => void publishPost(post.id)}
-                      >
-                        Yayınla
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/admin/feed/${post.id}`}>
+                          <Pencil className="mr-1 size-3.5" />
+                          Düzenle
+                        </Link>
                       </Button>
-                    )}
-                    {post.status === 'published' && (
-                      <a href={`/feed/${post.slug}`} className="text-primary underline" target="_blank" rel="noreferrer">
-                        Görüntüle
-                      </a>
-                    )}
+                      {post.status === 'review' && (
+                        <Button
+                          size="sm"
+                          disabled={actionId === post.id}
+                          onClick={() => void publishPost(post.id)}
+                        >
+                          Yayınla
+                        </Button>
+                      )}
+                      {post.status === 'published' && (
+                        <a
+                          href={`/feed/${post.slug}`}
+                          className="inline-flex h-8 items-center text-sm text-primary underline"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Görüntüle
+                        </a>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
