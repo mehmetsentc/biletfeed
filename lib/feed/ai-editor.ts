@@ -3,6 +3,21 @@ import { aiChat } from '@/lib/ai/client';
 import { FEED_AUTHOR_NAME } from '@/lib/feed/constants';
 import type { FeedPostType } from '@prisma/client';
 
+const VALID_CONTENT_TYPES: FeedPostType[] = [
+  'concert_news', 'festival_news', 'music_news', 'entertainment_news',
+  'artist_news', 'event_announcement', 'behind_the_scenes', 'event_recap',
+  'top_list', 'weekend_guide', 'city_guide', 'venue_guide', 'ticket_alert',
+  'trending_story', 'ai_opinion', 'interview', 'photo_story', 'video_story',
+  'organizer_update'
+];
+
+function sanitizeContentType(raw: unknown): FeedPostType {
+  if (typeof raw === 'string' && VALID_CONTENT_TYPES.includes(raw as FeedPostType)) {
+    return raw as FeedPostType;
+  }
+  return 'entertainment_news';
+}
+
 export type DiscoveredItem = {
   sourceUrl: string;
   sourceTitle: string;
@@ -82,7 +97,7 @@ URL: ${item.sourceUrl}`
     return {
       isRelevant: parsed.isRelevant ?? true,
       isDuplicate: parsed.isDuplicate ?? false,
-      contentType: parsed.contentType ?? 'entertainment_news',
+      contentType: sanitizeContentType(parsed.contentType),
       reason: parsed.reason ?? ''
     };
   } catch {
