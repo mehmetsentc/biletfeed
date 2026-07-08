@@ -175,17 +175,27 @@ export function InvitationsPanel({
         const data = (await res.json()) as {
           error?: string;
           invitation?: InvitationRow;
+          emailStatus?: 'sent' | 'skipped' | 'failed';
+          emailError?: string | null;
         };
         if (!res.ok) throw new Error(data.error || 'Davetiye gönderilemedi');
 
         const invitation = data.invitation!;
         setLastInvite(invitation);
         setInvitations((prev) => [invitation, ...prev]);
-        setSuccess(
-          hadEmail
-            ? `${invitation.guestName} için davetiye oluşturuldu, PDF e-posta ile gönderildi.`
-            : `${invitation.guestName} için PDF davetiye oluşturuldu.`
-        );
+
+        if (hadEmail && data.emailStatus === 'failed') {
+          setSuccess(`${invitation.guestName} için davetiye oluşturuldu.`);
+          setError(
+            `E-posta gönderilemedi: ${data.emailError ?? 'Resend hatası'}. PDF’i buradan indirebilirsiniz.`
+          );
+        } else if (hadEmail && data.emailStatus === 'sent') {
+          setSuccess(
+            `${invitation.guestName} için davetiye oluşturuldu, PDF e-posta ile gönderildi.`
+          );
+        } else {
+          setSuccess(`${invitation.guestName} için PDF davetiye oluşturuldu.`);
+        }
         downloadPdf(invitation);
       } else {
         const guests = Array.from({ length: quantity }, () => ({
@@ -211,6 +221,12 @@ export function InvitationsPanel({
           error?: string;
           created?: InvitationRow[];
           errors?: Array<{ guestName: string; error: string }>;
+          email?: {
+            attempted: number;
+            sent: number;
+            failed: number;
+            errors: string[];
+          } | null;
         };
         if (!res.ok) throw new Error(data.error || 'Davetiyeler gönderilemedi');
 
@@ -221,22 +237,51 @@ export function InvitationsPanel({
 
         setLastInvite(created[0] ?? null);
         setInvitations((prev) => [...created, ...prev]);
-        setSuccess(
-          hadEmail
-            ? `${trimmedName} için ${created.length} davetiye oluşturuldu, PDF'ler ZIP ekiyle e-posta ile gönderildi.`
-            : `${trimmedName} için ${created.length} PDF davetiye oluşturuldu.`
-        );
+
+        const emailFailed = (data.email?.failed ?? 0) > 0;
+        const emailSent = (data.email?.sent ?? 0) > 0;
+
+        const createErrorNote = data.errors?.length
+          ? ` ${data.errors.length} davetiye kontenjan/hata nedeniyle oluşturulamadı.`
+          : '';
+
+        if (hadEmail && emailFailed) {
+          setSuccess(
+            `${trimmedName} için ${created.length} davetiye oluşturuldu.${createErrorNote}`
+          );
+          setError(
+            `E-posta gönderilemedi (${data.email?.failed ?? 0}): ${
+              data.email?.errors?.[0] ?? 'Resend hatası'
+            }. ZIP’i buradan indirebilirsiniz.`
+          );
+        } else if (hadEmail && emailSent) {
+          setSuccess(
+            `${trimmedName} için ${created.length} davetiye oluşturuldu, PDF'ler ZIP ekiyle e-posta ile gönderildi.${createErrorNote}`
+          );
+          if (data.errors?.length) {
+            setError(
+              `${data.errors.length} davetiye oluşturulamadı (örn. kontenjan): ${
+                data.errors[0]?.error ?? 'bilinmeyen hata'
+              }`
+            );
+          }
+        } else {
+          setSuccess(
+            `${trimmedName} için ${created.length} PDF davetiye oluşturuldu.${createErrorNote}`
+          );
+          if (data.errors?.length) {
+            setError(
+              `${data.errors.length} davetiye oluşturulamadı: ${
+                data.errors[0]?.error ?? 'bilinmeyen hata'
+              }`
+            );
+          }
+        }
 
         if (created.length === 1) {
           downloadPdf(created[0]!);
         } else {
           await downloadZipForIds(created.map((row) => row.id));
-        }
-
-        if (data.errors?.length) {
-          setError(
-            `${created.length} davetiye oluşturuldu, ${data.errors.length} hata oluştu.`
-          );
         }
       }
 

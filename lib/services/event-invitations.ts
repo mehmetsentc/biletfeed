@@ -129,7 +129,7 @@ const invitationEmailInclude = {
 export async function sendEventInvitationEmail(
   invitationId: string,
   organizerId: string
-): Promise<void> {
+): Promise<{ status: 'sent' | 'skipped' | 'failed'; error?: string }> {
   await ensureDbConnection();
 
   const row = await prisma.eventInvitation.findFirst({
@@ -137,7 +137,9 @@ export async function sendEventInvitationEmail(
     include: invitationEmailInclude
   });
 
-  if (!row?.guestEmail?.trim()) return;
+  if (!row?.guestEmail?.trim()) {
+    return { status: 'skipped' };
+  }
 
   const eventDate = formatTurkeyDateLong(row.event.startDate);
   const eventTime = formatTurkeyTime(row.event.startDate);
@@ -157,10 +159,11 @@ export async function sendEventInvitationEmail(
   const qrDataUrl = await qrToDataUrl(inviteUrl);
   const pdf = await generateOrganizerInvitationPdf(invitationId, organizerId);
 
-  await queueEmail({
+  const result = await queueEmail({
     to: row.guestEmail.trim(),
     subject: `BiletFeed — ${row.event.title} davetiyeniz`,
     template: 'event_invitation',
+    sender: 'invitation',
     html: buildInvitationEmail({
       guestName: row.guestName,
       eventTitle: row.event.title,
@@ -190,6 +193,15 @@ export async function sendEventInvitationEmail(
     orderId: row.purchasedTicket.orderId,
     attachments: pdf ? [{ filename: pdf.filename, content: pdf.buffer }] : undefined
   });
+
+  if (result.status !== 'sent') {
+    return {
+      status: 'failed',
+      error: result.error ?? 'E-posta gönderilemedi'
+    };
+  }
+
+  return { status: 'sent' };
 }
 
 export async function createEventInvitation(params: {
@@ -202,7 +214,7 @@ export async function createEventInvitation(params: {
   personalMessage?: string;
   /** Toplu gönderimde e-posta toplu işlem sonunda gönderilir */
   skipEmail?: boolean;
-}): Promise<InvitationRow> {
+}): Promise<InvitationRow & { emailStatus?: 'sent' | 'skipped' | 'failed'; emailError?: string }> {
   await ensureDbConnection();
 
   const event = await prisma.event.findFirst({
@@ -224,9 +236,6 @@ export async function createEventInvitation(params: {
   if (!event) throw new Error('Etkinlik bulunamadı');
   const ticketType = event.ticketTypes[0];
   if (!ticketType) throw new Error('Bilet türü bulunamadı');
-  if (ticketType.sold >= ticketType.capacity) {
-    throw new Error('Bu bilet türü için kontenjan kalmadı');
-  }
 
   const guest = await findOrCreateGuestUser(params.guestName, params.guestEmail);
   const inviteToken = createInviteToken();
@@ -235,14 +244,19 @@ export async function createEventInvitation(params: {
   const validationToken = generateValidationToken(ticketId, params.eventId);
 
   const { invitation } = await prisma.$transaction(async (tx) => {
+    // Güncel kapasiteyi transaction içinde kilitle — stale sold kontrolü yok
     const reserved = await tx.ticketType.updateMany({
       where: {
         id: params.ticketTypeId,
+        deletedAt: null,
+        status: 'active',
         sold: { lt: ticketType.capacity }
       },
       data: { sold: { increment: 1 } }
     });
-    if (reserved.count === 0) throw new Error('Yeterli bilet kalmadı');
+    if (reserved.count === 0) {
+      throw new Error('Bu bilet türü için kontenjan kalmadı');
+    }
 
     const order = await tx.order.create({
       data: {
@@ -310,14 +324,22 @@ export async function createEventInvitation(params: {
   });
 
   const result = mapInvitation(invitation);
+  let emailStatus: 'sent' | 'skipped' | 'failed' = 'skipped';
+  let emailError: string | undefined;
 
   if (params.guestEmail && !params.skipEmail) {
-    void sendEventInvitationEmail(invitation.id, params.organizerId).catch((err) => {
+    try {
+      const emailed = await sendEventInvitationEmail(invitation.id, params.organizerId);
+      emailStatus = emailed.status;
+      emailError = emailed.error;
+    } catch (err) {
+      emailStatus = 'failed';
+      emailError = err instanceof Error ? err.message : 'E-posta gönderilemedi';
       console.error('[email] invitation', invitation.id, err);
-    });
+    }
   }
 
-  return result;
+  return { ...result, emailStatus, emailError };
 }
 
 export async function getPublicInvitation(token: string) {

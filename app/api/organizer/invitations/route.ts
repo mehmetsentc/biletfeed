@@ -7,6 +7,9 @@ import {
   listEventInvitations
 } from '@/lib/services/event-invitations';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 const createSchema = z.object({
   eventId: z.string().uuid(),
   ticketTypeId: z.string().uuid(),
@@ -52,7 +55,14 @@ export async function POST(request: NextRequest) {
       guestPhone: parsed.data.guestPhone,
       personalMessage: parsed.data.personalMessage
     });
-    return NextResponse.json({ success: true, invitation });
+
+    const { emailStatus, emailError, ...invite } = invitation;
+    return NextResponse.json({
+      success: true,
+      invitation: invite,
+      emailStatus: emailStatus ?? 'skipped',
+      emailError: emailError ?? null
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Davetiye oluşturulamadı';
     return NextResponse.json({ error: message }, { status: 400 });

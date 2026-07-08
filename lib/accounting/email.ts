@@ -19,7 +19,7 @@ export async function queueEmail(params: {
   invoiceId?: string;
   sender?: EmailSenderKind;
   attachments?: Array<{ filename: string; content: Buffer }>;
-}): Promise<{ id: string; status: string; messageId?: string }> {
+}): Promise<{ id: string; status: string; messageId?: string; error?: string }> {
   const delivery = await prisma.emailDelivery.create({
     data: {
       to: params.to,
@@ -32,22 +32,24 @@ export async function queueEmail(params: {
   });
 
   if (!isEmailConfigured()) {
+    const note = 'RESEND_API_KEY yapılandırılmadı';
     await prisma.emailDelivery.update({
       where: { id: delivery.id },
       data: {
-        status: 'sent',
-        sentAt: new Date(),
-        metadata: { mode: 'log_only', note: 'RESEND_API_KEY yapılandırılmadı' }
+        status: 'failed',
+        errorMessage: note,
+        metadata: { mode: 'log_only', note }
       }
     });
     if (process.env.NODE_ENV !== 'production') {
       console.info('[email:queue]', {
         to: params.to,
         subject: params.subject,
-        template: params.template
+        template: params.template,
+        note
       });
     }
-    return { id: delivery.id, status: 'sent' };
+    return { id: delivery.id, status: 'failed', error: note };
   }
 
   const sender = params.sender ?? getSenderForTemplate(params.template);
@@ -97,7 +99,7 @@ export async function queueEmail(params: {
       entityId: delivery.id,
       after: { error: message, template: params.template }
     });
-    return { id: delivery.id, status: 'failed' };
+    return { id: delivery.id, status: 'failed', error: message };
   }
 }
 

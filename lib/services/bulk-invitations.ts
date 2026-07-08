@@ -26,6 +26,12 @@ export type BulkGuestInput = {
 export type BulkInvitationResult = {
   created: InvitationRow[];
   errors: Array<{ guestName: string; error: string }>;
+  email?: {
+    attempted: number;
+    sent: number;
+    failed: number;
+    errors: string[];
+  };
 };
 
 export async function createBulkEventInvitations(params: {
@@ -35,20 +41,63 @@ export async function createBulkEventInvitations(params: {
   guests: BulkGuestInput[];
   sendEmails?: boolean;
 }): Promise<BulkInvitationResult> {
+  await ensureDbConnection();
+
   const created: InvitationRow[] = [];
   const errors: BulkInvitationResult['errors'] = [];
 
-  for (const guest of params.guests) {
+  const ticketType = await prisma.ticketType.findFirst({
+    where: {
+      id: params.ticketTypeId,
+      eventId: params.eventId,
+      deletedAt: null,
+      event: { organizerId: params.organizerId, deletedAt: null }
+    },
+    select: { capacity: true, sold: true, name: true }
+  });
+
+  if (!ticketType) {
+    return {
+      created: [],
+      errors: params.guests.map((guest) => ({
+        guestName: guest.guestName,
+        error: 'Bilet türü bulunamadı'
+      }))
+    };
+  }
+
+  const remaining = Math.max(0, ticketType.capacity - ticketType.sold);
+  if (remaining === 0) {
+    return {
+      created: [],
+      errors: params.guests.map((guest) => ({
+        guestName: guest.guestName,
+        error: 'Bu bilet türü için kontenjan kalmadı'
+      }))
+    };
+  }
+
+  // Kontenjanı aşan adayları baştan ayır — kısmi başarısızlığı netleştir
+  const guestsToCreate = params.guests.slice(0, remaining);
+  for (const guest of params.guests.slice(remaining)) {
+    errors.push({
+      guestName: guest.guestName,
+      error: `Kontenjan yetersiz (kalan: ${remaining}/${ticketType.capacity})`
+    });
+  }
+
+  for (const guest of guestsToCreate) {
     try {
       const invitation = await createEventInvitation({
         organizerId: params.organizerId,
         eventId: params.eventId,
         ticketTypeId: params.ticketTypeId,
         guestName: guest.guestName,
-        guestEmail: params.sendEmails ? guest.guestEmail : undefined,
+        // E-posta her zaman kaydedilir; gönderim ayrı kontrol edilir
+        guestEmail: guest.guestEmail,
         guestPhone: guest.guestPhone,
         personalMessage: guest.personalMessage,
-        skipEmail: params.sendEmails ?? false
+        skipEmail: true
       });
       created.push(invitation);
     } catch (err) {
@@ -59,16 +108,26 @@ export async function createBulkEventInvitations(params: {
     }
   }
 
+  let email: BulkInvitationResult['email'];
   if (params.sendEmails && created.length > 0) {
-    void sendBulkInvitationEmails({
-      organizerId: params.organizerId,
-      invitationIds: created.map((row) => row.id)
-    }).catch((err) => {
+    try {
+      email = await sendBulkInvitationEmails({
+        organizerId: params.organizerId,
+        invitationIds: created.map((row) => row.id)
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Toplu e-posta gönderilemedi';
       console.error('[email] bulk invitations', err);
-    });
+      email = {
+        attempted: created.filter((r) => r.guestEmail?.trim()).length,
+        sent: 0,
+        failed: created.filter((r) => r.guestEmail?.trim()).length,
+        errors: [message]
+      };
+    }
   }
 
-  return { created, errors };
+  return { created, errors, email };
 }
 
 function groupByEmail(
@@ -91,9 +150,16 @@ function groupByEmail(
 export async function sendBulkInvitationEmails(params: {
   organizerId: string;
   invitationIds: string[];
-}): Promise<void> {
+}): Promise<{
+  attempted: number;
+  sent: number;
+  failed: number;
+  errors: string[];
+}> {
   await ensureDbConnection();
-  if (params.invitationIds.length === 0) return;
+  if (params.invitationIds.length === 0) {
+    return { attempted: 0, sent: 0, failed: 0, errors: [] };
+  }
 
   const rows = await prisma.eventInvitation.findMany({
     where: {
@@ -127,60 +193,89 @@ export async function sendBulkInvitationEmails(params: {
     }))
   );
 
+  let attempted = 0;
+  let sent = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
   for (const [email, ids] of Array.from(emailGroups.entries())) {
-    if (ids.length === 1) {
-      await sendEventInvitationEmail(ids[0]!, params.organizerId);
-      continue;
+    attempted += 1;
+    try {
+      if (ids.length === 1) {
+        const single = await sendEventInvitationEmail(ids[0]!, params.organizerId);
+        if (single.status === 'sent') {
+          sent += 1;
+        } else if (single.status === 'failed') {
+          failed += 1;
+          errors.push(`${email}: ${single.error ?? 'gönderilemedi'}`);
+        }
+        continue;
+      }
+
+      const groupRows = rows.filter((row) => ids.includes(row.id));
+      const first = groupRows[0];
+      if (!first) continue;
+
+      const eventDate = formatTurkeyDateLong(first.event.startDate);
+      const eventTime = formatTurkeyTime(first.event.startDate);
+      const venueName = first.event.venue?.name ?? 'Online';
+      const cityName = first.event.city.name;
+      const recipientName = first.guestName.replace(/\s+#\d+$/, '').trim() || first.guestName;
+      const zipBuffer = await buildInvitationsZip(ids, params.organizerId);
+      const zipFilename = `BiletFeed-Davetiyeler-${sanitizeZipLabel(first.event.title)}.zip`;
+
+      const result = await queueEmail({
+        to: email,
+        subject: `BiletFeed — ${first.event.title} davetiyeleriniz (${ids.length} adet)`,
+        template: 'event_invitation_bulk',
+        sender: 'invitation',
+        html: buildBulkInvitationZipEmail({
+          recipientName,
+          eventTitle: first.event.title,
+          eventDate,
+          eventTime,
+          eventVenue: venueName,
+          eventCity: cityName,
+          coverImage: first.event.coverImage ?? '',
+          organizerName: first.event.organizer.name,
+          ticketCount: ids.length,
+          tickets: groupRows.map((row) => ({
+            guestName: row.guestName,
+            ticketCode: row.purchasedTicket.ticketCode
+          }))
+        }),
+        text: buildBulkInvitationZipPlainText({
+          recipientName,
+          eventTitle: first.event.title,
+          eventDate,
+          eventTime,
+          eventVenue: venueName,
+          eventCity: cityName,
+          ticketCount: ids.length,
+          tickets: groupRows.map((row) => ({
+            guestName: row.guestName,
+            ticketCode: row.purchasedTicket.ticketCode
+          }))
+        }),
+        orderId: first.purchasedTicket.orderId,
+        attachments: [{ filename: zipFilename, content: zipBuffer }]
+      });
+
+      if (result.status === 'sent') {
+        sent += 1;
+      } else {
+        failed += 1;
+        errors.push(`${email}: ${result.error ?? 'gönderilemedi'}`);
+      }
+    } catch (err) {
+      failed += 1;
+      errors.push(
+        `${email}: ${err instanceof Error ? err.message : 'gönderilemedi'}`
+      );
     }
-
-    const groupRows = rows.filter((row) => ids.includes(row.id));
-    const first = groupRows[0];
-    if (!first) continue;
-
-    const eventDate = formatTurkeyDateLong(first.event.startDate);
-    const eventTime = formatTurkeyTime(first.event.startDate);
-    const venueName = first.event.venue?.name ?? 'Online';
-    const cityName = first.event.city.name;
-    const recipientName = first.guestName.replace(/\s+#\d+$/, '').trim() || first.guestName;
-    const zipBuffer = await buildInvitationsZip(ids, params.organizerId);
-    const zipFilename = `BiletFeed-Davetiyeler-${sanitizeZipLabel(first.event.title)}.zip`;
-
-    await queueEmail({
-      to: email,
-      subject: `BiletFeed — ${first.event.title} davetiyeleriniz (${ids.length} adet)`,
-      template: 'event_invitation_bulk',
-      html: buildBulkInvitationZipEmail({
-        recipientName,
-        eventTitle: first.event.title,
-        eventDate,
-        eventTime,
-        eventVenue: venueName,
-        eventCity: cityName,
-        coverImage: first.event.coverImage ?? '',
-        organizerName: first.event.organizer.name,
-        ticketCount: ids.length,
-        tickets: groupRows.map((row) => ({
-          guestName: row.guestName,
-          ticketCode: row.purchasedTicket.ticketCode
-        }))
-      }),
-      text: buildBulkInvitationZipPlainText({
-        recipientName,
-        eventTitle: first.event.title,
-        eventDate,
-        eventTime,
-        eventVenue: venueName,
-        eventCity: cityName,
-        ticketCount: ids.length,
-        tickets: groupRows.map((row) => ({
-          guestName: row.guestName,
-          ticketCode: row.purchasedTicket.ticketCode
-        }))
-      }),
-      orderId: first.purchasedTicket.orderId,
-      attachments: [{ filename: zipFilename, content: zipBuffer }]
-    });
   }
+
+  return { attempted, sent, failed, errors };
 }
 
 function sanitizeZipLabel(value: string): string {

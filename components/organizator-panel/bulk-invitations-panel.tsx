@@ -88,6 +88,7 @@ export function BulkInvitationsPanel({
   const [sendEmails, setSendEmails] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [lastCreated, setLastCreated] = useState<InvitationRow[]>([]);
   const [zipLoading, setZipLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -115,6 +116,7 @@ export function BulkInvitationsPanel({
     if (!eventId || !ticketTypeId || guests.length === 0) return;
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
       const res = await fetch('/api/organizer/invitations/bulk', {
@@ -132,6 +134,12 @@ export function BulkInvitationsPanel({
         error?: string;
         created?: InvitationRow[];
         errors?: Array<{ guestName: string; error: string }>;
+        email?: {
+          attempted: number;
+          sent: number;
+          failed: number;
+          errors: string[];
+        } | null;
       };
       if (!res.ok) throw new Error(data.error || 'Toplu gönderim başarısız');
 
@@ -152,9 +160,31 @@ export function BulkInvitationsPanel({
         await downloadZipForIds(created.map((r) => r.id));
       }
 
-      if (data.errors?.length) {
+      const emailFailed = (data.email?.failed ?? 0) > 0;
+      const emailSent = (data.email?.sent ?? 0) > 0;
+
+      if (sendEmails && emailFailed) {
         setError(
-          `${created.length} davetiye oluşturuldu, ${data.errors.length} hata: ${data.errors
+          `${created.length} davetiye oluşturuldu ancak e-posta gönderilemedi (${data.email?.failed}): ${
+            data.email?.errors?.[0] ?? 'Resend hatası'
+          }`
+        );
+      } else if (sendEmails && emailSent && !emailFailed) {
+        setSuccess(
+          `${created.length} davetiye oluşturuldu, ${data.email?.sent} e-posta gönderildi.`
+        );
+      } else if (created.length > 0) {
+        setSuccess(`${created.length} davetiye oluşturuldu.`);
+      }
+
+      if (data.errors?.length) {
+        const capacityNote = data.errors.some((e) =>
+          e.error.toLowerCase().includes('kontenjan')
+        )
+          ? ' (kontenjan doldu)'
+          : '';
+        setError(
+          `${created.length} davetiye oluşturuldu, ${data.errors.length} hata${capacityNote}: ${data.errors
             .map((e) => e.guestName)
             .slice(0, 5)
             .join(', ')}${data.errors.length > 5 ? '…' : ''}`
@@ -383,6 +413,10 @@ export function BulkInvitationsPanel({
             {guests.length} adet QR kodlu PDF oluşturulacak
             {selectedType ? ` · ${selectedType.name}` : ''}
           </p>
+        )}
+
+        {success && (
+          <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{success}</div>
         )}
 
         {error && (

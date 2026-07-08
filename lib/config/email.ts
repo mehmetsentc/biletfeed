@@ -49,6 +49,7 @@ export const emailConfig = {
 const TEMPLATE_SENDER: Record<string, EmailSenderKind> = {
   ticket_purchase: 'tickets',
   event_invitation: 'invitation',
+  event_invitation_bulk: 'invitation',
   invoice_issued: 'invoice',
   order_refund: 'tickets',
   event_reminder: 'tickets',

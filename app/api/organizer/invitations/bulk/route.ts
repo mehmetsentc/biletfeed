@@ -4,6 +4,9 @@ import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { requireOrganizerSession } from '@/lib/auth/organizer-api';
 import { createBulkEventInvitations } from '@/lib/services/bulk-invitations';
 
+export const runtime = 'nodejs';
+export const maxDuration = 120;
+
 const guestSchema = z.object({
   guestName: z.string().min(2).max(120),
   guestEmail: z.string().email().optional().or(z.literal('')),
@@ -53,6 +56,7 @@ export async function POST(request: NextRequest) {
     createdCount: result.created.length,
     errorCount: result.errors.length,
     created: result.created,
-    errors: result.errors
+    errors: result.errors,
+    email: result.email ?? null
   });
 }
