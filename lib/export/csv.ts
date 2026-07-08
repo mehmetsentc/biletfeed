@@ -133,7 +133,6 @@ export function buildTicketDetailRow(
 
 const ticketExportInclude = {
   ticketType: { select: { name: true } },
-  attendeePhone: true,
   user: { select: { displayName: true, email: true } },
   order: {
     select: {

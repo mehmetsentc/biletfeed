@@ -39,18 +39,36 @@ export function OrganizerCsvDownloadButton({
   async function handleDownload() {
     setLoading(true);
     try {
-      const res = await fetch(href, { credentials: 'include' });
+      const res = await fetch(href, {
+        credentials: 'include',
+        headers: { Accept: 'text/csv, application/json' }
+      });
+      const contentType = res.headers.get('content-type') ?? '';
+
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? 'Rapor indirilemedi');
+        if (contentType.includes('application/json')) {
+          const data = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(data?.error ?? `Rapor indirilemedi (${res.status})`);
+        }
+        throw new Error(`Rapor indirilemedi (${res.status})`);
       }
+
+      // Oturum düşmüşse HTML login sayfası dönebilir
+      if (contentType.includes('text/html')) {
+        throw new Error('Oturum süresi dolmuş olabilir. Sayfayı yenileyip tekrar deneyin.');
+      }
+
       const blob = await res.blob();
+      if (blob.size === 0) {
+        throw new Error('Rapor boş geldi. Lütfen tekrar deneyin.');
+      }
+
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
       link.download = parseDownloadFilename(
         res.headers.get('Content-Disposition'),
-        fallbackFilename
+        fallbackFilename.endsWith('.csv') ? fallbackFilename : `${fallbackFilename}.csv`
       );
       document.body.appendChild(link);
       link.click();
