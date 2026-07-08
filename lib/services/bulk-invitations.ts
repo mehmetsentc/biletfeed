@@ -53,7 +53,16 @@ export async function createBulkEventInvitations(params: {
       deletedAt: null,
       event: { organizerId: params.organizerId, deletedAt: null }
     },
-    select: { capacity: true, sold: true, name: true }
+    select: {
+      capacity: true,
+      sold: true,
+      name: true,
+      _count: {
+        select: {
+          purchasedTickets: { where: { deletedAt: null } }
+        }
+      }
+    }
   });
 
   if (!ticketType) {
@@ -66,7 +75,16 @@ export async function createBulkEventInvitations(params: {
     };
   }
 
-  const remaining = Math.max(0, ticketType.capacity - ticketType.sold);
+  // sold sayacı kaymış olabilir — gerçek satılan bileti esas al
+  const actualSold = ticketType._count.purchasedTickets;
+  if (ticketType.sold !== actualSold) {
+    await prisma.ticketType.update({
+      where: { id: params.ticketTypeId },
+      data: { sold: actualSold }
+    });
+  }
+
+  const remaining = Math.max(0, ticketType.capacity - actualSold);
   if (remaining === 0) {
     return {
       created: [],

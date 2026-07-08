@@ -244,7 +244,15 @@ export async function createEventInvitation(params: {
   const validationToken = generateValidationToken(ticketId, params.eventId);
 
   const { invitation } = await prisma.$transaction(async (tx) => {
-    // Güncel kapasiteyi transaction içinde kilitle — stale sold kontrolü yok
+    // Gerçek sold ile senkronize et, sonra atomik rezervasyon yap
+    const liveCount = await tx.purchasedTicket.count({
+      where: { ticketTypeId: params.ticketTypeId, deletedAt: null }
+    });
+    await tx.ticketType.update({
+      where: { id: params.ticketTypeId },
+      data: { sold: liveCount }
+    });
+
     const reserved = await tx.ticketType.updateMany({
       where: {
         id: params.ticketTypeId,
@@ -426,7 +434,7 @@ export async function listPendingOrdersForEvent(
 
 export async function getEventTicketTypes(eventId: string, organizerId: string) {
   await ensureDbConnection();
-  return prisma.ticketType.findMany({
+  const rows = await prisma.ticketType.findMany({
     where: {
       eventId,
       deletedAt: null,
@@ -438,8 +446,33 @@ export async function getEventTicketTypes(eventId: string, organizerId: string) 
       name: true,
       price: true,
       capacity: true,
-      sold: true
+      sold: true,
+      _count: {
+        select: {
+          purchasedTickets: { where: { deletedAt: null } }
+        }
+      }
     },
     orderBy: { price: 'asc' }
   });
+
+  // UI'da gerçek satılan sayıyı göster; kaymış sayaç varsa düzelt
+  await Promise.all(
+    rows
+      .filter((row) => row.sold !== row._count.purchasedTickets)
+      .map((row) =>
+        prisma.ticketType.update({
+          where: { id: row.id },
+          data: { sold: row._count.purchasedTickets }
+        })
+      )
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    price: row.price,
+    capacity: row.capacity,
+    sold: row._count.purchasedTickets
+  }));
 }
