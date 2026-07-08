@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organizer-csv-download-button';
+import { turkeyCalendarDayDiff } from '@/lib/datetime/istanbul';
 import { cn } from '@/lib/utils';
 
 type CategoryRow = {
@@ -125,8 +126,10 @@ function relativeEventLabel(startIso: string, endIso: string): string {
   const end = new Date(endIso).getTime();
   if (now > end) return `${timeAgo(endIso).replace(' önce', '')} önce gerçekleşti`;
   if (now < start) {
-    const days = Math.ceil((start - now) / 86_400_000);
-    return days === 1 ? 'Yarın' : `${days} gün sonra`;
+    const days = turkeyCalendarDayDiff(startIso);
+    if (days <= 0) return 'Bugün';
+    if (days === 1) return 'Yarın';
+    return `${days} gün sonra`;
   }
   return 'Devam ediyor';
 }

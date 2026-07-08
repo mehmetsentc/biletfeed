@@ -56,3 +56,36 @@ export function formatTurkeyTimeRange(
 export function formatTurkeyDateTimeLong(value: Date | string): string {
   return `${formatTurkeyDateLong(value)} · ${formatTurkeyTime(value)}`;
 }
+
+/** Europe/Istanbul için YYYY-MM-DD takvim günü */
+export function turkeyCalendarDayKey(value: Date | string = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: TURKEY_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(toTurkeyDate(value));
+}
+
+/**
+ * İki an arasındaki Türkiye takvim günü farkı (gece yarısı UTC/saat kayması hatası yok).
+ * 0 = aynı gün, 1 = yarın, negatif = geçmiş.
+ */
+export function turkeyCalendarDayDiff(
+  target: Date | string,
+  from: Date | string = new Date()
+): number {
+  const targetKey = turkeyCalendarDayKey(target);
+  const fromKey = turkeyCalendarDayKey(from);
+  const targetUtc = Date.UTC(
+    Number(targetKey.slice(0, 4)),
+    Number(targetKey.slice(5, 7)) - 1,
+    Number(targetKey.slice(8, 10))
+  );
+  const fromUtc = Date.UTC(
+    Number(fromKey.slice(0, 4)),
+    Number(fromKey.slice(5, 7)) - 1,
+    Number(fromKey.slice(8, 10))
+  );
+  return Math.round((targetUtc - fromUtc) / 86_400_000);
+}

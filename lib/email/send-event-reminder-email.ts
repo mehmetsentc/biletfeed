@@ -3,7 +3,7 @@ import { getSiteUrl } from '@/lib/config/domain';
 import { queueEmail } from '@/lib/accounting/email';
 import { buildGoogleCalendarUrl } from '@/lib/email/calendar';
 import { buildEventReminderEmail } from '@/lib/email/event-reminder-template';
-import { formatTurkeyDateLong, formatTurkeyTimeRange } from '@/lib/datetime/istanbul';
+import { formatTurkeyDateLong, formatTurkeyTimeRange, turkeyCalendarDayDiff } from '@/lib/datetime/istanbul';
 
 function formatEventDateTime(start: Date, end: Date): string {
   return `${formatTurkeyDateLong(start)} · ${formatTurkeyTimeRange(start, end)}`;
@@ -91,8 +91,7 @@ export async function sendEventReminderEmails(
           .filter(Boolean)
           .join(', ');
 
-    const msUntil = event.startDate.getTime() - now;
-    const daysUntil = Math.max(0, Math.ceil(msUntil / (24 * 60 * 60 * 1000)));
+    const daysUntil = Math.max(0, turkeyCalendarDayDiff(event.startDate, new Date(now)));
 
     const calendarUrl = buildGoogleCalendarUrl({
       title: event.title,
