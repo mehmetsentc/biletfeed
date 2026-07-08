@@ -153,7 +153,9 @@ export function BulkInvitationsPanel({
         setCsvText('');
       }
 
-      if (created.length > 0) {
+      // Büyük ZIP'i otomatik indirme — 60 PDF üretim timeout'u Failed to fetch üretiyordu.
+      // Küçük partilerde otomatik indir; büyüğünde kullanıcı "ZIP İndir" kullanır.
+      if (created.length > 0 && created.length <= MAX_DIRECT_INVITATION_PDFS) {
         await downloadZipForIds(created.map((r) => r.id));
       }
 
@@ -162,10 +164,16 @@ export function BulkInvitationsPanel({
 
       if (created.length > 0 && sendEmails && emailQueued) {
         setSuccess(
-          `${created.length} davetiye oluşturuldu. E-posta arka planda gönderiliyor (${data.emailQueued ?? created.length} alıcı).`
+          created.length > MAX_DIRECT_INVITATION_PDFS
+            ? `${created.length} davetiye oluşturuldu. E-posta arka planda gönderiliyor. PDF ZIP için aşağıdaki indirme butonunu kullanın.`
+            : `${created.length} davetiye oluşturuldu. E-posta arka planda gönderiliyor (${data.emailQueued ?? created.length} alıcı).`
         );
       } else if (created.length > 0) {
-        setSuccess(`${created.length} davetiye oluşturuldu.`);
+        setSuccess(
+          created.length > MAX_DIRECT_INVITATION_PDFS
+            ? `${created.length} davetiye oluşturuldu. PDF ZIP için aşağıdaki indirme butonunu kullanın.`
+            : `${created.length} davetiye oluşturuldu.`
+        );
       }
 
       if (data.errors?.length) {
@@ -189,24 +197,36 @@ export function BulkInvitationsPanel({
   }
 
   async function downloadZipForIds(ids: string[]) {
+    if (ids.length === 0) return;
     setZipLoading(true);
     try {
-      const res = await fetch('/api/organizer/invitations/bulk/zip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ invitationIds: ids })
-      });
-      if (!res.ok) throw new Error('ZIP oluşturulamadı');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `BiletFeed-Davetiyeler.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
+      // Çok büyük ZIP isteklerini parçala — serverless timeout'unu önle
+      const CHUNK = 25;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const chunk = ids.slice(i, i + CHUNK);
+        const res = await fetch('/api/organizer/invitations/bulk/zip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ invitationIds: chunk })
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(body?.error || 'ZIP oluşturulamadı');
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download =
+          ids.length > CHUNK
+            ? `BiletFeed-Davetiyeler-${Math.floor(i / CHUNK) + 1}.zip`
+            : 'BiletFeed-Davetiyeler.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'ZIP indirilemedi');
+      setError(invitationFetchErrorMessage(err, 'ZIP indirilemedi'));
     } finally {
       setZipLoading(false);
     }

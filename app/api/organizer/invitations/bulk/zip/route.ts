@@ -9,6 +9,7 @@ const schema = z.object({
 });
 
 export const runtime = 'nodejs';
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   if (!isSameOriginRequest(request)) {

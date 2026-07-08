@@ -262,9 +262,14 @@ export function InvitationsPanel({
 
         if (created.length === 1) {
           downloadPdf(created[0]!);
-        } else {
-          await downloadZipForIds(created.map((row) => row.id));
+        } else if (created.length <= MAX_DIRECT_INVITATION_PDFS) {
+          try {
+            await downloadZipForIds(created.map((row) => row.id));
+          } catch (zipErr) {
+            setError(invitationFetchErrorMessage(zipErr, 'ZIP indirilemedi'));
+          }
         }
+        // Büyük adetlerde otomatik ZIP yok — listedeki ZIP/PDF aksiyonları kullanılır
       }
 
       setGuestName('');
