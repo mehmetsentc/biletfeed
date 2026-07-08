@@ -2,22 +2,27 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Heart, Ticket, User } from 'lucide-react';
+import { Home, Heart, Ticket, User, Newspaper } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   {
     href: '/',
-    label: 'Etkinlikler',
+    label: 'Ana Sayfa',
     icon: Home,
     match: (p: string) =>
       p === '/' ||
-      p.startsWith('/feed') ||
       p.startsWith('/etkinlikler') ||
       p.startsWith('/etkinlik/') ||
       p.startsWith('/kategoriler') ||
       p.startsWith('/sehirler')
+  },
+  {
+    href: '/feed',
+    label: 'Feed',
+    icon: Newspaper,
+    match: (p: string) => p === '/feed' || p.startsWith('/feed/')
   },
   {
     href: '/favorilerim',

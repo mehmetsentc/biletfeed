@@ -170,6 +170,28 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
 
             <div className="px-5">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                Keşfet
+              </p>
+              <div className="space-y-0.5">
+                <Link
+                  href="/feed"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center rounded-lg px-3 py-3 text-sm font-semibold text-primary"
+                >
+                  BiletFeed Feed
+                </Link>
+                <Link
+                  href="/etkinlikler"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
+                >
+                  Tüm Etkinlikler
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-6 px-5">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
                 Kategoriler
               </p>
               <div className="space-y-0.5">
