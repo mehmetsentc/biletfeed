@@ -14,6 +14,7 @@ import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats
 import { OrganizerTicketActions } from '@/components/organizator-panel/organizer-ticket-actions';
 import { OrganizerTicketEventFilter } from '@/components/organizator-panel/organizer-ticket-event-filter';
 import { OrganizerTicketTypeFilters } from '@/components/organizator-panel/organizer-ticket-type-filters';
+import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organizer-csv-download-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -68,6 +69,9 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
   const csvHref = eventId
     ? `/api/organizer/tickets/export?eventId=${encodeURIComponent(eventId)}`
     : '/api/organizer/tickets/export';
+  const csvFilename = activeEvent
+    ? `${activeEvent.title.replace(/[^\w\-ğüşıöçĞÜŞİÖÇ]+/gi, '-').slice(0, 40)}-biletler.csv`
+    : `biletler-${Date.now()}.csv`;
 
   return (
     <div className="space-y-6">
@@ -86,9 +90,14 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
           <Link href="/organizator-panel/tarayici">
             <Button>QR Tarayıcı</Button>
           </Link>
-          <Button variant="outline" asChild>
-            <a href={csvHref}>CSV İndir</a>
-          </Button>
+          <OrganizerCsvDownloadButton
+            href={csvHref}
+            fallbackFilename={csvFilename}
+            label="CSV İndir"
+            variant="outline"
+            size="default"
+            className="justify-center"
+          />
         </div>
       </div>
 

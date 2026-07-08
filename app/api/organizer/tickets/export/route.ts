@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireOrganizerApi } from '@/lib/auth/organizer-route';
 import { exportOrganizerTicketsCsv } from '@/lib/services/ticket-admin';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   const auth = await requireOrganizerApi();
   if (auth.error) return auth.error;
@@ -16,7 +19,8 @@ export async function GET(request: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${filename}"`
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'private, no-store'
     }
   });
 }

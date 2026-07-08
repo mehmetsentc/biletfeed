@@ -33,6 +33,7 @@ import { eventStatusLabel } from '@/lib/organizator/status';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organizer-csv-download-button';
 import { cn } from '@/lib/utils';
 
 type CategoryRow = {
@@ -600,18 +601,18 @@ export function EventDetailDashboard({
 
         <Widget title="Raporlar">
           <div className="flex flex-col gap-2">
-            <Button asChild variant="outline" size="sm" className="justify-start gap-2">
-              <a href={`/api/organizer/events/${event.id}/export`} download>
-                <FileSpreadsheet className="size-3.5" />
-                Rapor indir (CSV)
-              </a>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="justify-start gap-2">
-              <a href={`/api/organizer/tickets/export?eventId=${event.id}`} download>
-                <Download className="size-3.5" />
-                Tüm biletler (CSV)
-              </a>
-            </Button>
+            <OrganizerCsvDownloadButton
+              href={`/api/organizer/events/${event.id}/export`}
+              fallbackFilename={`${event.slug}-rapor.csv`}
+              label="Rapor indir (CSV)"
+              icon={FileSpreadsheet}
+            />
+            <OrganizerCsvDownloadButton
+              href={`/api/organizer/tickets/export?eventId=${encodeURIComponent(event.id)}`}
+              fallbackFilename={`${event.slug}-biletler.csv`}
+              label="Tüm biletler (CSV)"
+              icon={Download}
+            />
           </div>
         </Widget>
 

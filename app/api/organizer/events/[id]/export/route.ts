@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireOrganizerApi } from '@/lib/auth/organizer-route';
 import { exportEventSalesCsv } from '@/lib/services/organizer-event-export';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
@@ -19,7 +22,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="etkinlik-${id.slice(0, 8)}-rapor.csv"`
+      'Content-Disposition': `attachment; filename="etkinlik-${id.slice(0, 8)}-rapor.csv"`,
+      'Cache-Control': 'private, no-store'
     }
   });
 }
