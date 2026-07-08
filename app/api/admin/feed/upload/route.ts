@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       if (buffer.length > MAX_IMAGE_BYTES) {
         return NextResponse.json({ error: 'Görsel 5 MB sınırını aşıyor' }, { status: 400 });
       }
-      const assertImageUpload(buffer, contentType);
+      assertImageUpload(buffer, contentType);
       const webp = await sharp(buffer, { failOn: 'none' })
         .rotate()
         .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
