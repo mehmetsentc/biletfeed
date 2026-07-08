@@ -68,6 +68,20 @@ export function formatEmailFrom(kind: EmailSenderKind = 'default'): string {
   return `${emailConfig.fromName} <${address}>`;
 }
 
+/**
+ * Davetiye gönderen adı — organizatör + BiletFeed (1:1 / kişisel sinyal).
+ * Örn. "Honey Be Party via BiletFeed <davetiye@biletfeed.com>"
+ */
+export function formatInvitationFrom(organizerName?: string | null): string {
+  const address = getSenderAddress('invitation');
+  const org = organizerName?.trim();
+  if (org) {
+    const safe = org.replace(/[<>"]/g, '').slice(0, 60);
+    return `${safe} via BiletFeed <${address}>`;
+  }
+  return `BiletFeed Davetiye <${address}>`;
+}
+
 export function getSenderForTemplate(template: string): EmailSenderKind {
   return TEMPLATE_SENDER[template] ?? 'default';
 }

@@ -159,8 +159,25 @@ Tüm e-postalar `email_deliveries` tablosuna yazılır:
 | Sandbox'ta alıcı reddediliyor | Resend'de alıcı e-postasını verify edin |
 | `email_not_configured` | Key boş veya yanlış environment'ta |
 | Spam klasörü | DKIM/DMARC tamamlandı mı? From adresi domain ile uyumlu mu? |
+| Gmail “Güncellemeler” | Aşağıdaki “Gmail Primary” notlarına bakın — zorunlu Primary yok |
 
 Loglar (production): `[email] Resend send failed` — status ve hata özeti; API key ve tam alıcı adresi loglanmaz.
+
+---
+
+## Gmail Birincil vs Güncellemeler
+
+Gmail, hangi sekmeye düşeceğine **alıcı geçmişi ve içerik sinyallerine** göre karar verir; Primary’yi zorlayan bir HTTP header yok.
+
+Davetiye e-postalarında bilinçli sinyaller:
+
+- `Precedence: auto/bulk` ve marketing `List-*` başlıkları **gönderilmez** (`lib/email/resend.ts`)
+- Konu kişiselleştirilir: `Ahmet, Honey Be Party davetin hazır`
+- From: `Organizatör via BiletFeed <davetiye@biletfeed.com>`
+- Transactional dil; abonelikten çık / kampanya metni yok
+- SPF/DKIM/DMARC domain hizası (`biletfeed.com`) hâlâ şart
+
+Toplu ZIP mailleri (çok ek) doğal olarak “Güncellemeler”e daha yatkındır; yine de aynı header/copy kuralları uygulanır. Alıcı “BiletFeed → Birincil” olarak işaretlerse sonraki mailler iyileşir.
 
 ---
 

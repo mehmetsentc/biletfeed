@@ -49,7 +49,7 @@ export function buildInvitationEmail(params: {
     sectorGate
   } = params;
 
-  const preheader = `${eventTitle} — ${eventDate}, ${eventTime}. QR kodunuz e-postada.`;
+  const preheader = `${guestName}, ${eventTitle} için kişisel davetin hazır — ${eventDate}.`;
 
   const coverBlock = coverImage
     ? `
@@ -84,15 +84,17 @@ export function buildInvitationEmail(params: {
     ${emailAccentBar()}
     <tr>
       <td style="padding:28px 28px 8px;">
-        <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${EMAIL_BRAND.accentDark};">
-          Davetiye
-        </p>
         <h1 style="margin:0 0 10px;font-size:24px;font-weight:800;color:${EMAIL_BRAND.text};line-height:1.25;">
-          Merhaba ${esc(guestName)}
+          Merhaba ${esc(guestName)},
         </h1>
         <p style="margin:0 0 20px;font-size:15px;color:${EMAIL_BRAND.textSecondary};line-height:1.65;">
-          <strong style="color:${EMAIL_BRAND.text};">${esc(eventTitle)}</strong> etkinliğine davet edildiniz.
-          Aşağıdaki dijital davetiyenizi girişte göstermeniz yeterli.
+          ${
+            organizerName
+              ? `<strong style="color:${EMAIL_BRAND.text};">${esc(organizerName)}</strong> seni `
+              : 'Seni '
+          }
+          <strong style="color:${EMAIL_BRAND.text};">${esc(eventTitle)}</strong> etkinliğine davet etti.
+          Girişte bu davetiyeyi göstermen yeterli.
         </p>
 
         ${emailInfoGrid([
@@ -125,7 +127,7 @@ export function buildInvitationEmail(params: {
     </tr>
     ${emailFooter({
       organizerName,
-      note: 'Bu mesaj, etkinlik organizatörü tarafından BiletFeed üzerinden gönderilmiştir.'
+      note: 'Bu e-posta, etkinlik girişi için kişisel davetiyendir.'
     })}`;
 
   return emailShell(content, preheader);
@@ -140,21 +142,24 @@ export function buildInvitationPlainText(params: {
   eventCity: string;
   ticketCode: string;
   inviteUrl: string;
+  organizerName?: string;
 }): string {
   return [
     `Merhaba ${params.guestName},`,
     '',
-    `${params.eventTitle} etkinliğine davet edildiniz.`,
+    params.organizerName
+      ? `${params.organizerName} seni ${params.eventTitle} etkinliğine davet etti.`
+      : `${params.eventTitle} etkinliğine davet edildin.`,
     '',
     `Tarih: ${params.eventDate}`,
     `Saat: ${params.eventTime}`,
     `Mekan: ${params.eventVenue}, ${params.eventCity}`,
     `Bilet kodu: ${params.ticketCode}`,
     '',
-    `Davetiyeniz: ${params.inviteUrl}`,
+    `Davetiyen: ${params.inviteUrl}`,
     '',
-    '— BiletFeed · biletfeed.com',
-    'Bu e-posta etkinlik davetiyeniz için otomatik gönderilmiştir.'
+    'Bu e-posta kişisel davetiyendir — girişte QR kodunu göster.',
+    '— BiletFeed'
   ].join('\n');
 }
 
@@ -184,7 +189,7 @@ export function buildBulkInvitationZipEmail(params: {
     tickets
   } = params;
 
-  const preheader = `${eventTitle} — ${ticketCount} davetiye PDF ZIP ekinde.`;
+  const preheader = `${recipientName}, ${eventTitle} için ${ticketCount} davetin hazır.`;
   const location = [eventVenue, eventCity].filter(Boolean).join(', ');
   const visibleTickets = tickets.slice(0, 20);
   const hiddenCount = tickets.length - visibleTickets.length;
@@ -220,16 +225,18 @@ export function buildBulkInvitationZipEmail(params: {
     ${emailAccentBar()}
     <tr>
       <td style="padding:28px 28px 8px;">
-        <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${EMAIL_BRAND.accentDark};">
-          Toplu davetiye
-        </p>
         <h1 style="margin:0 0 10px;font-size:24px;font-weight:800;color:${EMAIL_BRAND.text};line-height:1.25;">
-          Merhaba ${esc(recipientName)}
+          Merhaba ${esc(recipientName)},
         </h1>
         <p style="margin:0 0 20px;font-size:15px;color:${EMAIL_BRAND.textSecondary};line-height:1.65;">
+          ${
+            organizerName
+              ? `<strong style="color:${EMAIL_BRAND.text};">${esc(organizerName)}</strong> — `
+              : ''
+          }
           <strong style="color:${EMAIL_BRAND.text};">${esc(eventTitle)}</strong> için
-          <strong style="color:${EMAIL_BRAND.text};">${ticketCount} adet</strong> QR kodlu davetiye PDF&apos;i
-          ZIP dosyası olarak ektedir.
+          <strong style="color:${EMAIL_BRAND.text};">${ticketCount}</strong> kişisel davetiye PDF&apos;i
+          ekte ZIP olarak.
         </p>
 
         ${emailInfoGrid([
@@ -267,7 +274,7 @@ export function buildBulkInvitationZipEmail(params: {
     </tr>
     ${emailFooter({
       organizerName,
-      note: 'Bu mesaj, etkinlik organizatörü tarafından BiletFeed üzerinden gönderilmiştir.'
+      note: 'Bu e-posta, etkinlik girişi için kişisel davetiyelerindir.'
     })}`;
 
   return emailShell(content, preheader);
@@ -282,11 +289,14 @@ export function buildBulkInvitationZipPlainText(params: {
   eventCity: string;
   ticketCount: number;
   tickets: Array<{ guestName: string; ticketCode: string }>;
+  organizerName?: string;
 }): string {
   const lines = [
     `Merhaba ${params.recipientName},`,
     '',
-    `${params.eventTitle} etkinliği için ${params.ticketCount} adet davetiye PDF'i ZIP ekinde gönderilmiştir.`,
+    params.organizerName
+      ? `${params.organizerName} — ${params.eventTitle} için ${params.ticketCount} davetin ekte.`
+      : `${params.eventTitle} için ${params.ticketCount} davetin ekte (ZIP).`,
     '',
     `Tarih: ${params.eventDate}`,
     `Saat: ${params.eventTime}`,
@@ -302,7 +312,7 @@ export function buildBulkInvitationZipPlainText(params: {
     lines.push(`… ve ${params.tickets.length - 30} davetiye daha (ZIP ekinde)`);
   }
 
-  lines.push('', '— BiletFeed · biletfeed.com');
+  lines.push('', 'Bu e-posta kişisel davetiyelerindir.', '— BiletFeed');
   return lines.join('\n');
 }
 

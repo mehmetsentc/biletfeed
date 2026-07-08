@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db/prisma';
 import { companyLegal } from '@/lib/config/company';
 import {
+  formatInvitationFrom,
   getSenderForTemplate,
   isEmailConfigured,
   type EmailSenderKind
@@ -18,6 +19,10 @@ export async function queueEmail(params: {
   orderId?: string;
   invoiceId?: string;
   sender?: EmailSenderKind;
+  /** Gösterilen From adı (davetiyede organizatör) */
+  fromDisplayName?: string;
+  category?: 'transactional' | 'bulk';
+  replyTo?: string;
   attachments?: Array<{ filename: string; content: Buffer }>;
 }): Promise<{ id: string; status: string; messageId?: string; error?: string }> {
   const delivery = await prisma.emailDelivery.create({
@@ -53,6 +58,9 @@ export async function queueEmail(params: {
   }
 
   const sender = params.sender ?? getSenderForTemplate(params.template);
+  const isInvitation =
+    params.template === 'event_invitation' ||
+    params.template === 'event_invitation_bulk';
 
   try {
     const result = await sendEmail({
@@ -61,7 +69,11 @@ export async function queueEmail(params: {
       html: params.html,
       text: params.text,
       sender,
-      replyTo: companyLegal.email,
+      from: isInvitation
+        ? formatInvitationFrom(params.fromDisplayName)
+        : undefined,
+      category: params.category ?? (isInvitation ? 'transactional' : 'transactional'),
+      replyTo: params.replyTo ?? companyLegal.email,
       tags: [{ name: 'template', value: params.template }],
       attachments: params.attachments
     });

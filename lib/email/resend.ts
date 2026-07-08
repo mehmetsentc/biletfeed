@@ -25,6 +25,11 @@ export interface SendEmailOptions {
   from?: string;
   /** Gönderen türü — from belirtilmediğinde kullanılır */
   sender?: EmailSenderKind;
+  /**
+   * transactional = bireysel bildirim (davetiye/bilet) — bulk başlık yok
+   * bulk = pazarlama / bülten — opsiyonel X-Entity-Ref-ID
+   */
+  category?: 'transactional' | 'bulk';
   /** Resend etiketleri — raporlama / filtreleme */
   tags?: Array<{ name: string; value: string }>;
   attachments?: Array<{
@@ -108,11 +113,14 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
       : formatEmailFrom(sender));
   const replyTo = opts.replyTo ?? emailConfig.replyTo;
   const text = opts.text ?? htmlToPlainText(opts.html);
+  const category = opts.category ?? (opts.sender === 'invitation' ? 'transactional' : 'transactional');
 
-  const headers: Record<string, string> = {
-    'X-Entity-Ref-ID': `bf-${Date.now()}`,
-    Precedence: 'auto'
-  };
+  // Gmail "Güncellemeler"e iten bulk sinyallerini (Precedence / List-*) gönderme.
+  // Precedence: auto / bulk özellikle Updates klasörüne kaydırır.
+  const headers: Record<string, string> | undefined =
+    category === 'bulk'
+      ? { 'X-Entity-Ref-ID': `bf-${Date.now()}` }
+      : undefined;
 
   try {
     const res = await fetch(RESEND_API_URL, {
@@ -128,7 +136,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
         html: opts.html,
         text,
         reply_to: replyTo,
-        headers,
+        ...(headers ? { headers } : {}),
         ...(opts.tags?.length ? { tags: opts.tags } : {}),
         ...(opts.attachments?.length
           ? {

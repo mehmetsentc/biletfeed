@@ -225,9 +225,11 @@ export async function sendBulkInvitationEmails(params: {
 
       const result = await queueEmail({
         to: email,
-        subject: `BiletFeed — ${first.event.title} davetiyeleriniz (${ids.length} adet)`,
+        subject: `${recipientName}, ${first.event.title} — ${ids.length} davetin hazır`,
         template: 'event_invitation_bulk',
         sender: 'invitation',
+        fromDisplayName: first.event.organizer.name,
+        category: 'transactional',
         html: buildBulkInvitationZipEmail({
           recipientName,
           eventTitle: first.event.title,
@@ -251,6 +253,7 @@ export async function sendBulkInvitationEmails(params: {
           eventVenue: venueName,
           eventCity: cityName,
           ticketCount: ids.length,
+          organizerName: first.event.organizer.name,
           tickets: groupRows.map((row) => ({
             guestName: row.guestName,
             ticketCode: row.purchasedTicket.ticketCode

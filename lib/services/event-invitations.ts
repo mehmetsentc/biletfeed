@@ -161,9 +161,11 @@ export async function sendEventInvitationEmail(
 
   const result = await queueEmail({
     to: row.guestEmail.trim(),
-    subject: `BiletFeed — ${row.event.title} davetiyeniz`,
+    subject: `${row.guestName}, ${row.event.title} davetin hazır`,
     template: 'event_invitation',
     sender: 'invitation',
+    fromDisplayName: row.event.organizer.name,
+    category: 'transactional',
     html: buildInvitationEmail({
       guestName: row.guestName,
       eventTitle: row.event.title,
@@ -188,7 +190,8 @@ export async function sendEventInvitationEmail(
       eventVenue: venueName,
       eventCity: cityName,
       ticketCode: row.purchasedTicket.ticketCode,
-      inviteUrl
+      inviteUrl,
+      organizerName: row.event.organizer.name
     }),
     orderId: row.purchasedTicket.orderId,
     attachments: pdf ? [{ filename: pdf.filename, content: pdf.buffer }] : undefined
