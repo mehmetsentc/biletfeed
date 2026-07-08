@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { invitationFetchErrorMessage } from '@/lib/organizator/invitation-fetch-error';
 
 type TicketTypeOption = {
   id: string;
@@ -134,12 +135,8 @@ export function BulkInvitationsPanel({
         error?: string;
         created?: InvitationRow[];
         errors?: Array<{ guestName: string; error: string }>;
-        email?: {
-          attempted: number;
-          sent: number;
-          failed: number;
-          errors: string[];
-        } | null;
+        emailStatus?: 'queued' | 'skipped';
+        emailQueued?: number;
       };
       if (!res.ok) throw new Error(data.error || 'Toplu gönderim başarısız');
 
@@ -160,18 +157,12 @@ export function BulkInvitationsPanel({
         await downloadZipForIds(created.map((r) => r.id));
       }
 
-      const emailFailed = (data.email?.failed ?? 0) > 0;
-      const emailSent = (data.email?.sent ?? 0) > 0;
+      const emailQueued =
+        data.emailStatus === 'queued' || (data.emailQueued ?? 0) > 0;
 
-      if (sendEmails && emailFailed) {
-        setError(
-          `${created.length} davetiye oluşturuldu ancak e-posta gönderilemedi (${data.email?.failed}): ${
-            data.email?.errors?.[0] ?? 'Resend hatası'
-          }`
-        );
-      } else if (sendEmails && emailSent && !emailFailed) {
+      if (created.length > 0 && sendEmails && emailQueued) {
         setSuccess(
-          `${created.length} davetiye oluşturuldu, ${data.email?.sent} e-posta gönderildi.`
+          `${created.length} davetiye oluşturuldu. E-posta arka planda gönderiliyor (${data.emailQueued ?? created.length} alıcı).`
         );
       } else if (created.length > 0) {
         setSuccess(`${created.length} davetiye oluşturuldu.`);
@@ -191,7 +182,7 @@ export function BulkInvitationsPanel({
         );
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Toplu gönderim başarısız');
+      setError(invitationFetchErrorMessage(err, 'Toplu gönderim başarısız'));
     } finally {
       setLoading(false);
     }

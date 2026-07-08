@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { requireOrganizerSession } from '@/lib/auth/organizer-api';
 import {
   createEventInvitation,
-  listEventInvitations
+  listEventInvitations,
+  sendEventInvitationEmail
 } from '@/lib/services/event-invitations';
 
 export const runtime = 'nodejs';
@@ -45,23 +46,41 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
   }
 
+  const guestEmail = parsed.data.guestEmail || undefined;
+
   try {
     const invitation = await createEventInvitation({
       organizerId: ctx.organizer.id,
       eventId: parsed.data.eventId,
       ticketTypeId: parsed.data.ticketTypeId,
       guestName: parsed.data.guestName,
-      guestEmail: parsed.data.guestEmail || undefined,
+      guestEmail,
       guestPhone: parsed.data.guestPhone,
-      personalMessage: parsed.data.personalMessage
+      personalMessage: parsed.data.personalMessage,
+      skipEmail: true
     });
 
-    const { emailStatus, emailError, ...invite } = invitation;
+    const { emailStatus: _ignored, emailError: _e, ...invite } = invitation;
+
+    let emailStatus: 'queued' | 'skipped' = 'skipped';
+    if (guestEmail?.trim()) {
+      emailStatus = 'queued';
+      const organizerId = ctx.organizer.id;
+      const invitationId = invite.id;
+      after(async () => {
+        try {
+          await sendEventInvitationEmail(invitationId, organizerId);
+        } catch (err) {
+          console.error('[email] invitation after()', invitationId, err);
+        }
+      });
+    }
+
     return NextResponse.json({
       success: true,
       invitation: invite,
-      emailStatus: emailStatus ?? 'skipped',
-      emailError: emailError ?? null
+      emailStatus,
+      emailError: null
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Davetiye oluşturulamadı';

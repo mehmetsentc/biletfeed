@@ -111,7 +111,6 @@ export async function createBulkEventInvitations(params: {
         eventId: params.eventId,
         ticketTypeId: params.ticketTypeId,
         guestName: guest.guestName,
-        // E-posta her zaman kaydedilir; gönderim ayrı kontrol edilir
         guestEmail: guest.guestEmail,
         guestPhone: guest.guestPhone,
         personalMessage: guest.personalMessage,
@@ -126,26 +125,8 @@ export async function createBulkEventInvitations(params: {
     }
   }
 
-  let email: BulkInvitationResult['email'];
-  if (params.sendEmails && created.length > 0) {
-    try {
-      email = await sendBulkInvitationEmails({
-        organizerId: params.organizerId,
-        invitationIds: created.map((row) => row.id)
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Toplu e-posta gönderilemedi';
-      console.error('[email] bulk invitations', err);
-      email = {
-        attempted: created.filter((r) => r.guestEmail?.trim()).length,
-        sent: 0,
-        failed: created.filter((r) => r.guestEmail?.trim()).length,
-        errors: [message]
-      };
-    }
-  }
-
-  return { created, errors, email };
+  // E-posta route'ta after() ile arka planda gönderilir — burada beklenmez
+  return { created, errors };
 }
 
 function groupByEmail(

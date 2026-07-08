@@ -244,15 +244,7 @@ export async function createEventInvitation(params: {
   const validationToken = generateValidationToken(ticketId, params.eventId);
 
   const { invitation } = await prisma.$transaction(async (tx) => {
-    // Gerçek sold ile senkronize et, sonra atomik rezervasyon yap
-    const liveCount = await tx.purchasedTicket.count({
-      where: { ticketTypeId: params.ticketTypeId, deletedAt: null }
-    });
-    await tx.ticketType.update({
-      where: { id: params.ticketTypeId },
-      data: { sold: liveCount }
-    });
-
+    // Atomik rezervasyon — her oluşturmada full count yapmak timeout üretir
     const reserved = await tx.ticketType.updateMany({
       where: {
         id: params.ticketTypeId,

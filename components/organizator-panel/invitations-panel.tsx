@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatTurkeyDateLong } from '@/lib/datetime/istanbul';
+import { invitationFetchErrorMessage } from '@/lib/organizator/invitation-fetch-error';
 
 type OrganizerEvent = {
   id: string;
@@ -175,7 +176,7 @@ export function InvitationsPanel({
         const data = (await res.json()) as {
           error?: string;
           invitation?: InvitationRow;
-          emailStatus?: 'sent' | 'skipped' | 'failed';
+          emailStatus?: 'sent' | 'skipped' | 'failed' | 'queued';
           emailError?: string | null;
         };
         if (!res.ok) throw new Error(data.error || 'Davetiye gönderilemedi');
@@ -189,9 +190,11 @@ export function InvitationsPanel({
           setError(
             `E-posta gönderilemedi: ${data.emailError ?? 'Resend hatası'}. PDF’i buradan indirebilirsiniz.`
           );
-        } else if (hadEmail && data.emailStatus === 'sent') {
+        } else if (hadEmail && (data.emailStatus === 'sent' || data.emailStatus === 'queued')) {
           setSuccess(
-            `${invitation.guestName} için davetiye oluşturuldu, PDF e-posta ile gönderildi.`
+            `${invitation.guestName} için davetiye oluşturuldu. E-posta ${
+              data.emailStatus === 'queued' ? 'arka planda gönderiliyor' : 'gönderildi'
+            }.`
           );
         } else {
           setSuccess(`${invitation.guestName} için PDF davetiye oluşturuldu.`);
@@ -221,12 +224,8 @@ export function InvitationsPanel({
           error?: string;
           created?: InvitationRow[];
           errors?: Array<{ guestName: string; error: string }>;
-          email?: {
-            attempted: number;
-            sent: number;
-            failed: number;
-            errors: string[];
-          } | null;
+          emailStatus?: 'queued' | 'skipped' | 'sent' | 'failed';
+          emailQueued?: number;
         };
         if (!res.ok) throw new Error(data.error || 'Davetiyeler gönderilemedi');
 
@@ -238,44 +237,27 @@ export function InvitationsPanel({
         setLastInvite(created[0] ?? null);
         setInvitations((prev) => [...created, ...prev]);
 
-        const emailFailed = (data.email?.failed ?? 0) > 0;
-        const emailSent = (data.email?.sent ?? 0) > 0;
-
         const createErrorNote = data.errors?.length
           ? ` ${data.errors.length} davetiye kontenjan/hata nedeniyle oluşturulamadı.`
           : '';
+        const emailQueued =
+          data.emailStatus === 'queued' || (data.emailQueued ?? 0) > 0;
 
-        if (hadEmail && emailFailed) {
+        if (hadEmail && emailQueued) {
           setSuccess(
-            `${trimmedName} için ${created.length} davetiye oluşturuldu.${createErrorNote}`
+            `${trimmedName} için ${created.length} davetiye oluşturuldu. E-posta arka planda gönderiliyor.${createErrorNote}`
           );
-          setError(
-            `E-posta gönderilemedi (${data.email?.failed ?? 0}): ${
-              data.email?.errors?.[0] ?? 'Resend hatası'
-            }. ZIP’i buradan indirebilirsiniz.`
-          );
-        } else if (hadEmail && emailSent) {
-          setSuccess(
-            `${trimmedName} için ${created.length} davetiye oluşturuldu, PDF'ler ZIP ekiyle e-posta ile gönderildi.${createErrorNote}`
-          );
-          if (data.errors?.length) {
-            setError(
-              `${data.errors.length} davetiye oluşturulamadı (örn. kontenjan): ${
-                data.errors[0]?.error ?? 'bilinmeyen hata'
-              }`
-            );
-          }
         } else {
           setSuccess(
             `${trimmedName} için ${created.length} PDF davetiye oluşturuldu.${createErrorNote}`
           );
-          if (data.errors?.length) {
-            setError(
-              `${data.errors.length} davetiye oluşturulamadı: ${
-                data.errors[0]?.error ?? 'bilinmeyen hata'
-              }`
-            );
-          }
+        }
+        if (data.errors?.length) {
+          setError(
+            `${data.errors.length} davetiye oluşturulamadı: ${
+              data.errors[0]?.error ?? 'bilinmeyen hata'
+            }`
+          );
         }
 
         if (created.length === 1) {
@@ -292,7 +274,7 @@ export function InvitationsPanel({
       setQuantity(1);
       void loadEventData(eventId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Davetiye gönderilemedi');
+      setError(invitationFetchErrorMessage(err, 'Davetiye gönderilemedi'));
     } finally {
       setSending(false);
     }
