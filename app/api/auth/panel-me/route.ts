@@ -9,7 +9,7 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    const user = await getUserProfileByFirebaseUid(session.uid);
+    const user = await getUserProfileByFirebaseUid(session.uid, session.email);
 
     if (!user) {
       return NextResponse.json({

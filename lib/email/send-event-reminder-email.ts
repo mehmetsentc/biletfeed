@@ -2,6 +2,7 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { getSiteUrl } from '@/lib/config/domain';
 import { queueEmail } from '@/lib/accounting/email';
 import { buildGoogleCalendarUrl } from '@/lib/email/calendar';
+import { isDeliverableEmail } from '@/lib/email/deliverable';
 import { buildEventReminderEmail } from '@/lib/email/event-reminder-template';
 import { formatTurkeyDateLong, formatTurkeyTimeRange, turkeyCalendarDayDiff } from '@/lib/datetime/istanbul';
 
@@ -67,7 +68,7 @@ export async function sendEventReminderEmails(
   let skipped = 0;
 
   for (const order of orders) {
-    if (!order.user.email) {
+    if (!isDeliverableEmail(order.user.email)) {
       skipped += 1;
       continue;
     }

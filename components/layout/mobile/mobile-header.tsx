@@ -2,11 +2,16 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MapPin, Search, Menu, X } from 'lucide-react';
+import { LayoutDashboard, MapPin, Plus, Search, Menu, X } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCity } from '@/components/providers/city-provider';
 import { toCategoryNavLinks, type CategoryNavItem } from '@/lib/categories/nav-links';
+import {
+  panelHref,
+  panelLoginHref,
+  PANEL_EXTERNAL_LINK_PROPS
+} from '@/lib/config/domain';
 import { corporateMobileLinks } from '@/lib/layout/corporate-links';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -167,6 +172,57 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                 </Link>
               </div>
             )}
+
+            <div className="px-5 pb-5">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                Organizatör
+              </p>
+              <div className="space-y-0.5">
+                {user ? (
+                  <>
+                    <Link
+                      href={panelHref('/organizator-panel/etkinlik/yeni')}
+                      {...PANEL_EXTERNAL_LINK_PROPS}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-primary transition-colors hover:bg-[var(--muted)]"
+                    >
+                      <Plus className="size-4 shrink-0" strokeWidth={2} />
+                      Etkinlik Oluştur
+                    </Link>
+                    <Link
+                      href={panelHref('/organizator-panel/baslangic')}
+                      {...PANEL_EXTERNAL_LINK_PROPS}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
+                    >
+                      <LayoutDashboard className="size-4 shrink-0" strokeWidth={1.75} />
+                      Organizatör Panel
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href={panelLoginHref()}
+                      {...PANEL_EXTERNAL_LINK_PROPS}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-primary transition-colors hover:bg-[var(--muted)]"
+                    >
+                      <LayoutDashboard className="size-4 shrink-0" strokeWidth={2} />
+                      Panele Giriş
+                    </Link>
+                    <Link
+                      href={panelLoginHref('/organizator-panel/etkinlik/yeni')}
+                      {...PANEL_EXTERNAL_LINK_PROPS}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
+                    >
+                      <Plus className="size-4 shrink-0" strokeWidth={1.75} />
+                      Etkinlik Oluştur
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
 
             <div className="px-5">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">

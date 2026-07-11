@@ -7,8 +7,12 @@ import {
   type EmailSenderKind
 } from '@/lib/config/email';
 import { buildInvoiceEmail } from '@/lib/email/invoice-template';
+import { isDeliverableEmail } from '@/lib/email/deliverable';
 import { sendEmail } from '@/lib/email/resend';
 import { logAccountingAudit } from '@/lib/accounting/audit';
+
+const NON_DELIVERABLE_NOTE =
+  'Alıcı adresi geçersiz (sistem içi placeholder — e-posta gönderilmedi)';
 
 export async function queueEmail(params: {
   to: string;
@@ -35,6 +39,18 @@ export async function queueEmail(params: {
       invoiceId: params.invoiceId ?? null
     }
   });
+
+  if (!isDeliverableEmail(params.to)) {
+    await prisma.emailDelivery.update({
+      where: { id: delivery.id },
+      data: {
+        status: 'failed',
+        errorMessage: NON_DELIVERABLE_NOTE,
+        metadata: { reason: 'non_deliverable' }
+      }
+    });
+    return { id: delivery.id, status: 'failed', error: NON_DELIVERABLE_NOTE };
+  }
 
   if (!isEmailConfigured()) {
     const note = 'RESEND_API_KEY yapılandırılmadı';

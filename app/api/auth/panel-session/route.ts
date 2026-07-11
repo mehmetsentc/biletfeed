@@ -26,7 +26,7 @@ function buildSessionCookie(
 
 export async function POST(request: NextRequest) {
   try {
-    const limited = rateLimitOrNull(request, 'auth-panel-session', 60, 60_000);
+    const limited = rateLimitOrNull(request, 'auth-panel-session', 200, 60_000);
     if (limited) return limited;
 
     if (!isSameOriginRequest(request)) {

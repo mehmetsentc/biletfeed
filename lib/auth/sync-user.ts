@@ -26,18 +26,17 @@ export async function syncUserToDB(uid: string, email: string): Promise<string> 
         : existing.role;
 
       if (
-        existing.firebaseUid !== uid ||
-        (isBootstrapSuperAdminEmail(normalizedEmail) &&
-          existing.role !== ROLES.SUPER_ADMIN)
+        isBootstrapSuperAdminEmail(normalizedEmail) &&
+        existing.role !== ROLES.SUPER_ADMIN
       ) {
         await prisma.user.update({
           where: { id: existing.id },
-          data: {
-            firebaseUid: uid,
-            ...(isBootstrapSuperAdminEmail(normalizedEmail)
-              ? { role: ROLES.SUPER_ADMIN }
-              : {})
-          }
+          data: { role: ROLES.SUPER_ADMIN }
+        });
+      } else if (!existing.firebaseUid && uid) {
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: { firebaseUid: uid }
         });
       }
       return role;

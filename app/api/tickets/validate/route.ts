@@ -28,7 +28,7 @@ async function resolveScannerAuth() {
 
 /** QR kod URL'si tarandığında GET ile de doğrulama yapılabilir (salt okunur). */
 export async function GET(request: NextRequest) {
-  const limited = rateLimitOrNull(request, 'ticket-validate', 60, 60_000);
+  const limited = rateLimitOrNull(request, 'ticket-validate', 300, 60_000);
   if (limited) return limited;
 
   const auth = await resolveScannerAuth();
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimitOrNull(request, 'ticket-validate', 60, 60_000);
+  const limited = rateLimitOrNull(request, 'ticket-validate', 300, 60_000);
   if (limited) return limited;
 
   if (!isSameOriginRequest(request)) {

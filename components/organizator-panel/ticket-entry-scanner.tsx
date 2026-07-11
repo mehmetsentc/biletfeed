@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getOrCreateScannerId } from '@/lib/tickets/offline-scan-queue';
+import { ScannerGateAccessPanel } from '@/components/organizator-panel/scanner-gate-access-panel';
 
 const QrScanner = dynamic(
   () => import('@/components/tickets/qr-scanner').then((m) => m.QrScanner),
@@ -89,6 +90,8 @@ export function TicketEntryScanner() {
           </p>
         </div>
       </header>
+
+      <ScannerGateAccessPanel />
 
       {scannerAccount && (
         <div className="border-b border-white/10 px-4 py-2 text-xs text-white/60">

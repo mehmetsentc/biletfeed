@@ -4,6 +4,7 @@ import {
   bootstrapRoleForEmail,
   isBootstrapSuperAdminEmail
 } from '@/lib/auth/bootstrap-admins';
+import { resolveDbUserForSession } from '@/lib/auth/session-user-resolve';
 import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
 
 /** Prisma-only kullanıcı sorguları — firebase-admin import zinciri yok */
@@ -26,24 +27,7 @@ export async function resolveUserRoleForSession(
 
   const normalizedEmail = email?.trim().toLowerCase();
 
-  let user = await prisma.user.findFirst({
-    where: { firebaseUid, deletedAt: null },
-    select: { id: true, role: true, email: true, firebaseUid: true }
-  });
-
-  if (!user && normalizedEmail) {
-    user = await prisma.user.findFirst({
-      where: { email: normalizedEmail, deletedAt: null },
-      select: { id: true, role: true, email: true, firebaseUid: true }
-    });
-    if (user && user.firebaseUid !== firebaseUid) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { firebaseUid },
-        select: { id: true, role: true, email: true, firebaseUid: true }
-      });
-    }
-  }
+  const user = await resolveDbUserForSession(firebaseUid, normalizedEmail);
 
   if (user) {
     const bootstrapEmail = normalizedEmail || user.email.toLowerCase();
@@ -66,11 +50,17 @@ export async function resolveUserRoleForSession(
   return null;
 }
 
-export async function getUserProfileByFirebaseUid(firebaseUid: string) {
+export async function getUserProfileByFirebaseUid(
+  firebaseUid: string,
+  email?: string
+) {
   if (!isDatabaseConfigured()) return null;
 
-  const user = await prisma.user.findFirst({
-    where: { firebaseUid, deletedAt: null },
+  const user = await resolveDbUserForSession(firebaseUid, email);
+  if (!user) return null;
+
+  const full = await prisma.user.findFirst({
+    where: { id: user.id, deletedAt: null },
     include: {
       favorites: { select: { eventId: true } },
       followers: { select: { organizerId: true } },
@@ -78,23 +68,23 @@ export async function getUserProfileByFirebaseUid(firebaseUid: string) {
     }
   });
 
-  if (!user) return null;
+  if (!full) return null;
 
-  const role = isBootstrapSuperAdminEmail(user.email)
+  const role = isBootstrapSuperAdminEmail(full.email)
     ? ROLES.SUPER_ADMIN
-    : user.role;
+    : full.role;
 
   return {
-    uid: user.firebaseUid,
-    email: user.email,
-    displayName: user.displayName,
-    photoURL: user.photoURL ?? undefined,
+    uid: full.firebaseUid,
+    email: full.email,
+    displayName: full.displayName,
+    photoURL: full.photoURL ?? undefined,
     role,
-    organizerId: user.ownedOrganizer?.id,
-    favorites: user.favorites.map((f) => f.eventId),
-    following: user.followers.map((f) => f.organizerId),
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+    organizerId: full.ownedOrganizer?.id,
+    favorites: full.favorites.map((f) => f.eventId),
+    following: full.followers.map((f) => f.organizerId),
+    createdAt: full.createdAt,
+    updatedAt: full.updatedAt
   };
 }
 

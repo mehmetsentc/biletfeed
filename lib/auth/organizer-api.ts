@@ -1,5 +1,6 @@
 import type { UserRole } from '@/types';
 import { verifyOrganizerPanelSession, sessionHasRole } from '@/lib/auth/session';
+import { resolveDbUserForSession } from '@/lib/auth/session-user-resolve';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerContactEmail } from '@/lib/services/organizer-panel';
 
@@ -19,81 +20,19 @@ function ownerIdentityFilter(firebaseUid: string, email?: string) {
   };
 }
 
-/** DB kullanıcısı — uid/e-posta uyumsuzluğunda firebaseUid senkronize edilir */
+/** DB kullanıcısı — e-posta öncelikli; firebaseUid üzerine yazmaz (çoklu kapı cihazı). */
 export async function resolveScannerUser(firebaseUid: string, email?: string) {
   await ensureDbConnection();
-  const normalizedEmail = normalizeEmail(email);
+  const user = await resolveDbUserForSession(firebaseUid, email);
+  if (!user) return null;
 
-  // E-posta organizatör sahibine aitse onu önceliklendir (kapı taraması / panel)
-  if (normalizedEmail) {
-    const organizerOwner = await prisma.user.findFirst({
-      where: {
-        email: normalizedEmail,
-        deletedAt: null,
-        ownedOrganizer: { is: { deletedAt: null } }
-      },
-      select: {
-        id: true,
-        firebaseUid: true,
-        email: true,
-        role: true,
-        displayName: true
-      }
-    });
-    if (organizerOwner) {
-      if (organizerOwner.firebaseUid !== firebaseUid) {
-        return prisma.user.update({
-          where: { id: organizerOwner.id },
-          data: { firebaseUid },
-          select: {
-            id: true,
-            firebaseUid: true,
-            email: true,
-            role: true,
-            displayName: true
-          }
-        });
-      }
-      return organizerOwner;
-    }
-  }
-
-  let user = await prisma.user.findFirst({
-    where: { firebaseUid, deletedAt: null },
-    select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
-  });
-
-  // Firebase UID başka bir profile bağlı ama oturum e-postası organizatör hesabına aitse
-  // organizatör hesabını önceliklendir (kapı taramasında sık görülen senaryo)
-  if (user && normalizedEmail && normalizeEmail(user.email) !== normalizedEmail) {
-    const byEmail = await prisma.user.findFirst({
-      where: { email: normalizedEmail, deletedAt: null },
-      select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
-    });
-    if (byEmail) {
-      user = await prisma.user.update({
-        where: { id: byEmail.id },
-        data: { firebaseUid },
-        select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
-      });
-    }
-  }
-
-  if (!user && normalizedEmail) {
-    user = await prisma.user.findFirst({
-      where: { email: normalizedEmail, deletedAt: null },
-      select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
-    });
-    if (user && user.firebaseUid !== firebaseUid) {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { firebaseUid },
-        select: { id: true, firebaseUid: true, email: true, role: true, displayName: true }
-      });
-    }
-  }
-
-  return user;
+  return {
+    id: user.id,
+    firebaseUid: user.firebaseUid,
+    email: user.email,
+    role: user.role,
+    displayName: user.displayName
+  };
 }
 
 export async function getOrganizerForSession(firebaseUid: string, email?: string) {
