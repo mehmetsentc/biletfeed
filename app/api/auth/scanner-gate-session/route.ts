@@ -10,7 +10,11 @@ import { redeemScannerGateCode } from '@/lib/auth/scanner-gate';
 import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
 const bodySchema = z.object({
-  code: z.string().regex(/^\d{6}$/, '6 haneli kapı kodu girin')
+  code: z
+    .string()
+    .trim()
+    .min(6, 'Kapı kodunu girin')
+    .max(1024, 'Kapı kodu çok uzun')
 });
 
 export async function POST(request: NextRequest) {

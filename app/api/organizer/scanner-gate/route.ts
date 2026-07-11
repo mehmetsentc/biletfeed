@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      code: created.code,
+      pin: created.pin,
+      redeemCode: created.redeemCode,
+      code: created.redeemCode,
       expiresAt: created.expiresAt.toISOString(),
       maxActiveCodes: SCANNER_GATE_MAX_ACTIVE_CODES,
       ttlHours: SCANNER_GATE_CODE_TTL_SEC / 3600

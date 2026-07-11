@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,48 +14,67 @@ import {
   CardTitle
 } from '@/components/ui/card';
 
+function normalizeGateInput(value: string): string {
+  return value.trim().replace(/\s+/g, '');
+}
+
 export function ScannerGateLoginForm() {
   const searchParams = useSearchParams();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const normalized = code.replace(/\D/g, '').slice(0, 6);
-    if (normalized.length !== 6) {
-      setError('6 haneli kapı kodunu girin');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/auth/scanner-gate-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ code: normalized })
-      });
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        redirect?: string;
-      };
-
-      if (!res.ok) {
-        setError(data.error ?? 'Kapı kodu geçersiz');
+  const redeemCode = useCallback(
+    async (rawCode: string) => {
+      const normalized = normalizeGateInput(rawCode);
+      if (normalized.length < 6) {
+        setError('Organizatörden aldığınız kapı kodunu yapıştırın');
         return;
       }
 
-      const redirect =
-        searchParams.get('redirect') || data.redirect || '/tarayici';
-      window.location.replace(redirect);
-    } catch {
-      setError('Bağlantı hatası. Tekrar deneyin.');
-    } finally {
-      setLoading(false);
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch('/api/auth/scanner-gate-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ code: normalized })
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          redirect?: string;
+        };
+
+        if (!res.ok) {
+          setError(data.error ?? 'Kapı kodu geçersiz');
+          return;
+        }
+
+        const redirect =
+          searchParams.get('redirect') || data.redirect || '/tarayici';
+        window.location.replace(redirect);
+      } catch {
+        setError('Bağlantı hatası. Tekrar deneyin.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [searchParams]
+  );
+
+  useEffect(() => {
+    const gate = searchParams.get('gate');
+    if (gate) {
+      setCode(gate);
+      void redeemCode(gate);
     }
+  }, [searchParams, redeemCode]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await redeemCode(code);
   }
 
   return (
@@ -66,8 +85,8 @@ export function ScannerGateLoginForm() {
         </div>
         <CardTitle className="text-lg">Kapı ekibi girişi</CardTitle>
         <CardDescription className="text-white/60">
-          Organizatörünüzden aldığınız 6 haneli kod ile tarama ekranına girin.
-          Aynı kodu en fazla 10 kişi kullanabilir.
+          Organizatörün &quot;Kodu kopyala&quot; ile gönderdiği tam kodu yapıştırın.
+          Aynı kodu 10 kişiye kadar paylaşabilirsiniz.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -81,19 +100,17 @@ export function ScannerGateLoginForm() {
             <Label htmlFor="scanner-gate-code">Kapı kodu</Label>
             <Input
               id="scanner-gate-code"
-              inputMode="numeric"
               autoComplete="one-time-code"
-              placeholder="123456"
-              maxLength={6}
+              placeholder="891153.… (tam kodu yapıştırın)"
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="border-white/15 bg-[#0c1017] text-center text-lg tracking-[0.35em] text-white"
+              onChange={(e) => setCode(e.target.value)}
+              className="border-white/15 bg-[#0c1017] text-sm text-white"
             />
           </div>
           <Button
             type="submit"
             className="w-full bg-primary text-black hover:bg-[var(--bf-orange-hover)]"
-            disabled={loading || code.length !== 6}
+            disabled={loading || normalizeGateInput(code).length < 6}
           >
             {loading ? 'Giriş yapılıyor...' : 'Taramaya başla'}
           </Button>

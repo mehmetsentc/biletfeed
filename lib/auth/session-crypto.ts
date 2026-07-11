@@ -31,3 +31,24 @@ export function buildSignedSessionToken(
   const b64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
   return `${b64}.${signSessionPayload(b64)}`;
 }
+
+export function verifySignedSessionToken(
+  token: string
+): Record<string, unknown> | null {
+  const dotIdx = token.lastIndexOf('.');
+  if (dotIdx === -1) return null;
+
+  const b64 = token.slice(0, dotIdx);
+  const sig = token.slice(dotIdx + 1);
+  if (!verifySessionSignature(b64, sig)) return null;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(b64, 'base64url').toString()) as Record<
+      string,
+      unknown
+    >;
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}

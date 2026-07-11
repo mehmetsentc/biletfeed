@@ -1,16 +1,23 @@
 import { randomInt } from 'crypto';
 import type { UserRole } from '@/types';
 import { buildSessionCookie, SESSION_EXPIRES_MS } from '@/lib/auth/session';
+import {
+  buildSignedSessionToken,
+  verifySignedSessionToken
+} from '@/lib/auth/session-crypto';
 import { getRedisClient } from '@/lib/redis';
 
 export const SCANNER_GATE_MAX_ACTIVE_CODES = 10;
 export const SCANNER_GATE_CODE_TTL_SEC = 12 * 60 * 60;
 
 type GateCodePayload = {
+  v: 1;
+  pin: string;
   organizerId: string;
   uid: string;
   email: string;
   role: UserRole;
+  exp: number;
   createdAt: string;
 };
 
@@ -30,8 +37,32 @@ function orgCodesKey(organizerId: string): string {
   return `bf:scanner-gate:org:${organizerId}`;
 }
 
-function generateNumericCode(): string {
+function generateNumericPin(): string {
   return String(randomInt(100_000, 1_000_000));
+}
+
+function buildRedeemCode(payload: GateCodePayload): string {
+  const token = buildSignedSessionToken(payload as unknown as Record<string, unknown>);
+  return `${payload.pin}.${token}`;
+}
+
+function parseSignedRedeemCode(input: string): GateCodePayload | null {
+  const trimmed = input.trim();
+  const match = trimmed.match(/^(\d{6})\.(.+)$/);
+  if (!match) return null;
+
+  const [, pin, token] = match;
+  const parsed = verifySignedSessionToken(token);
+  if (!parsed || parsed.v !== 1) return null;
+
+  const payload = parsed as unknown as GateCodePayload;
+  if (payload.pin !== pin) return null;
+  if (!payload.organizerId || !payload.uid || !payload.email || !payload.role) {
+    return null;
+  }
+  if (typeof payload.exp !== 'number' || Date.now() > payload.exp) return null;
+
+  return payload;
 }
 
 function pruneMemoryOrgCodes(organizerId: string): void {
@@ -47,48 +78,49 @@ function pruneMemoryOrgCodes(organizerId: string): void {
   }
 }
 
-async function storeGateCode(
+async function storeGateCodeLegacy(
   organizerId: string,
-  code: string,
+  pin: string,
   payload: GateCodePayload
 ): Promise<void> {
   const redis = getRedisClient();
   const serialized = JSON.stringify(payload);
 
   if (redis) {
-    await redis.set(codeKey(code), serialized, { ex: SCANNER_GATE_CODE_TTL_SEC });
-    await redis.sadd(orgCodesKey(organizerId), code);
+    await redis.set(codeKey(pin), serialized, { ex: SCANNER_GATE_CODE_TTL_SEC });
+    await redis.sadd(orgCodesKey(organizerId), pin);
     await redis.expire(orgCodesKey(organizerId), SCANNER_GATE_CODE_TTL_SEC);
     return;
   }
 
-  memoryCodes.set(code, {
+  memoryCodes.set(pin, {
     payload,
-    expiresAt: Date.now() + SCANNER_GATE_CODE_TTL_SEC * 1000
+    expiresAt: payload.exp
   });
   const orgSet = memoryOrgCodes.get(organizerId) ?? new Set<string>();
-  orgSet.add(code);
+  orgSet.add(pin);
   memoryOrgCodes.set(organizerId, orgSet);
 }
 
-async function readGateCode(code: string): Promise<GateCodePayload | null> {
-  const normalized = code.trim();
-  if (!/^\d{6}$/.test(normalized)) return null;
+async function readLegacyPin(pin: string): Promise<GateCodePayload | null> {
+  if (!/^\d{6}$/.test(pin)) return null;
 
   const redis = getRedisClient();
   if (redis) {
-    const raw = await redis.get<string>(codeKey(normalized));
+    const raw = await redis.get<string>(codeKey(pin));
     if (!raw) return null;
     try {
-      return JSON.parse(raw) as GateCodePayload;
+      const payload = JSON.parse(raw) as GateCodePayload;
+      if (Date.now() > payload.exp) return null;
+      return payload;
     } catch {
       return null;
     }
   }
 
-  const entry = memoryCodes.get(normalized);
+  const entry = memoryCodes.get(pin);
   if (!entry || entry.expiresAt <= Date.now()) {
-    memoryCodes.delete(normalized);
+    memoryCodes.delete(pin);
     return null;
   }
   return entry.payload;
@@ -118,61 +150,79 @@ export async function createScannerGateCode(params: {
   uid: string;
   email: string;
   role: UserRole;
-}): Promise<{ code: string; expiresAt: Date }> {
-  const active = await countActiveGateCodes(params.organizerId);
-  if (active >= SCANNER_GATE_MAX_ACTIVE_CODES) {
-    throw new Error(
-      `En fazla ${SCANNER_GATE_MAX_ACTIVE_CODES} aktif kapı kodu olabilir. Süresi dolan kodları bekleyin veya yenileyin.`
-    );
+}): Promise<{ pin: string; redeemCode: string; expiresAt: Date }> {
+  const redis = getRedisClient();
+  if (redis) {
+    const active = await countActiveGateCodes(params.organizerId);
+    if (active >= SCANNER_GATE_MAX_ACTIVE_CODES) {
+      throw new Error(
+        `En fazla ${SCANNER_GATE_MAX_ACTIVE_CODES} aktif kapı kodu olabilir. Süresi dolan kodları bekleyin veya yenileyin.`
+      );
+    }
   }
 
-  let code = generateNumericCode();
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const existing = await readGateCode(code);
-    if (!existing) break;
-    code = generateNumericCode();
-  }
+  const exp = Date.now() + SCANNER_GATE_CODE_TTL_SEC * 1000;
+  let pin = generateNumericPin();
 
   const payload: GateCodePayload = {
+    v: 1,
+    pin,
     organizerId: params.organizerId,
     uid: params.uid,
     email: params.email,
     role: params.role,
+    exp,
     createdAt: new Date().toISOString()
   };
 
-  await storeGateCode(params.organizerId, code, payload);
+  let redeemCode = buildRedeemCode(payload);
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (!parseSignedRedeemCode(redeemCode)) break;
+    pin = generateNumericPin();
+    payload.pin = pin;
+    redeemCode = buildRedeemCode(payload);
+  }
+
+  if (redis) {
+    await storeGateCodeLegacy(params.organizerId, pin, payload);
+  }
 
   return {
-    code,
-    expiresAt: new Date(Date.now() + SCANNER_GATE_CODE_TTL_SEC * 1000)
+    pin,
+    redeemCode,
+    expiresAt: new Date(exp)
   };
 }
 
 export async function listScannerGateCodes(organizerId: string): Promise<
-  Array<{ code: string; expiresAt: Date; createdAt: string }>
+  Array<{ pin: string; redeemCode?: string; expiresAt: Date; createdAt: string }>
 > {
   const redis = getRedisClient();
-  const results: Array<{ code: string; expiresAt: Date; createdAt: string }> = [];
+  const results: Array<{
+    pin: string;
+    redeemCode?: string;
+    expiresAt: Date;
+    createdAt: string;
+  }> = [];
 
   if (redis) {
     const codes = await redis.smembers<string[]>(orgCodesKey(organizerId));
     if (!codes?.length) return results;
 
-    for (const code of codes) {
-      const raw = await redis.get<string>(codeKey(code));
+    for (const pin of codes) {
+      const raw = await redis.get<string>(codeKey(pin));
       if (!raw) {
-        await redis.srem(orgCodesKey(organizerId), code);
+        await redis.srem(orgCodesKey(organizerId), pin);
         continue;
       }
       try {
         const payload = JSON.parse(raw) as GateCodePayload;
+        if (Date.now() > payload.exp) continue;
         results.push({
-          code,
+          pin,
+          redeemCode: buildRedeemCode(payload),
           createdAt: payload.createdAt,
-          expiresAt: new Date(
-            new Date(payload.createdAt).getTime() + SCANNER_GATE_CODE_TTL_SEC * 1000
-          )
+          expiresAt: new Date(payload.exp)
         });
       } catch {
         // skip invalid
@@ -183,31 +233,19 @@ export async function listScannerGateCodes(organizerId: string): Promise<
     );
   }
 
-  pruneMemoryOrgCodes(organizerId);
-  const codes = memoryOrgCodes.get(organizerId);
-  if (!codes) return results;
-
-  for (const code of codes) {
-    const entry = memoryCodes.get(code);
-    if (!entry) continue;
-    results.push({
-      code,
-      createdAt: entry.payload.createdAt,
-      expiresAt: new Date(entry.expiresAt)
-    });
-  }
-
-  return results.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  return results;
 }
 
-export async function redeemScannerGateCode(code: string): Promise<{
+export async function redeemScannerGateCode(input: string): Promise<{
   sessionCookie: string;
   email: string;
   organizerId: string;
 } | null> {
-  const payload = await readGateCode(code);
+  const trimmed = input.trim();
+  const signed = parseSignedRedeemCode(trimmed);
+  const payload =
+    signed ??
+    (await readLegacyPin(trimmed.replace(/\D/g, '').slice(0, 6)));
   if (!payload) return null;
 
   const sessionCookie = buildSessionCookie(

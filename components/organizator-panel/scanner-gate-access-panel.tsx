@@ -1,11 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Copy, KeyRound, RefreshCw } from 'lucide-react';
+import { Copy, KeyRound, Link2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { panelLoginHref } from '@/lib/config/domain';
 
 type GateCodeRow = {
-  code: string;
+  pin: string;
+  redeemCode?: string;
   expiresAt: string;
   createdAt: string;
 };
@@ -15,7 +17,7 @@ export function ScannerGateAccessPanel() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
 
   const loadCodes = useCallback(async () => {
     setLoading(true);
@@ -54,6 +56,8 @@ export function ScannerGateAccessPanel() {
         credentials: 'include'
       });
       const data = (await res.json().catch(() => ({}))) as {
+        pin?: string;
+        redeemCode?: string;
         code?: string;
         expiresAt?: string;
         error?: string;
@@ -62,9 +66,16 @@ export function ScannerGateAccessPanel() {
         setError(data.error ?? 'Kod oluşturulamadı');
         return;
       }
-      if (data.code && data.expiresAt) {
+
+      const redeemCode = data.redeemCode ?? data.code;
+      if (data.pin && redeemCode && data.expiresAt) {
         setCodes((prev) => [
-          { code: data.code!, expiresAt: data.expiresAt!, createdAt: new Date().toISOString() },
+          {
+            pin: data.pin!,
+            redeemCode,
+            expiresAt: data.expiresAt!,
+            createdAt: new Date().toISOString()
+          },
           ...prev
         ]);
       } else {
@@ -77,17 +88,20 @@ export function ScannerGateAccessPanel() {
     }
   }
 
-  async function copyCode(code: string) {
+  const activeCode = codes[0];
+  const gateLink = activeCode?.redeemCode
+    ? `${panelLoginHref().replace(/\?.*$/, '')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
+    : null;
+
+  async function copyText(text: string, kind: 'code' | 'link') {
     try {
-      await navigator.clipboard.writeText(code);
-      setCopiedCode(code);
-      window.setTimeout(() => setCopiedCode(null), 2000);
+      await navigator.clipboard.writeText(text);
+      setCopied(kind);
+      window.setTimeout(() => setCopied(null), 2000);
     } catch {
-      setError('Kod kopyalanamadı');
+      setError('Kopyalanamadı');
     }
   }
-
-  const activeCode = codes[0];
 
   return (
     <div className="border-b border-white/10 bg-[#11151c] px-4 py-3">
@@ -98,8 +112,8 @@ export function ScannerGateAccessPanel() {
             Kapı ekibi kodu
           </div>
           <p className="mt-1 text-xs text-white/55">
-            Ekibiniz panele şifre girmeden bu kodla giriş yapar. Aynı kodu 10 kişiye
-            kadar paylaşabilirsiniz (12 saat geçerli).
+            <strong className="text-white/75">Kodu kopyala</strong> ile ekibe WhatsApp&apos;tan
+            gönderin. Görevliler tam kodu yapıştırarak giriş yapar (12 saat geçerli).
           </p>
         </div>
         <Button
@@ -125,23 +139,38 @@ export function ScannerGateAccessPanel() {
       {loading ? (
         <p className="mt-2 text-xs text-white/45">Yükleniyor…</p>
       ) : activeCode ? (
-        <div className="mt-3 flex items-center gap-2">
-          <code className="rounded-lg bg-black/40 px-4 py-2 text-2xl font-bold tracking-[0.3em] text-primary">
-            {activeCode.code}
-          </code>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="text-white/70 hover:bg-white/10 hover:text-white"
-            onClick={() => void copyCode(activeCode.code)}
-            aria-label="Kodu kopyala"
-          >
-            <Copy className="size-4" />
-          </Button>
-          {copiedCode === activeCode.code && (
-            <span className="text-xs text-primary">Kopyalandı</span>
-          )}
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <code className="rounded-lg bg-black/40 px-4 py-2 text-2xl font-bold tracking-[0.3em] text-primary">
+              {activeCode.pin}
+            </code>
+            <span className="text-xs text-white/45">referans</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {activeCode.redeemCode && (
+              <Button
+                type="button"
+                size="sm"
+                className="bg-primary text-black hover:bg-primary/90"
+                onClick={() => void copyText(activeCode.redeemCode!, 'code')}
+              >
+                <Copy className="mr-1.5 size-4" />
+                {copied === 'code' ? 'Kopyalandı' : 'Kodu kopyala'}
+              </Button>
+            )}
+            {gateLink && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                onClick={() => void copyText(gateLink, 'link')}
+              >
+                <Link2 className="mr-1.5 size-4" />
+                {copied === 'link' ? 'Kopyalandı' : 'Giriş linki'}
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <p className="mt-2 text-xs text-white/45">
