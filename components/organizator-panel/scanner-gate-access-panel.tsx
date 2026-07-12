@@ -47,6 +47,16 @@ export function ScannerGateAccessPanel() {
     void loadCodes();
   }, [loadCodes]);
 
+  async function copyText(text: string, kind: 'code' | 'link') {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(kind);
+      window.setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setError('Kopyalanamadı');
+    }
+  }
+
   async function createCode() {
     setCreating(true);
     setError(null);
@@ -78,6 +88,7 @@ export function ScannerGateAccessPanel() {
           },
           ...prev
         ]);
+        await copyText(redeemCode, 'code');
       } else {
         await loadCodes();
       }
@@ -93,16 +104,6 @@ export function ScannerGateAccessPanel() {
     ? `${panelLoginHref().replace(/\?.*$/, '')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
     : null;
 
-  async function copyText(text: string, kind: 'code' | 'link') {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(kind);
-      window.setTimeout(() => setCopied(null), 2000);
-    } catch {
-      setError('Kopyalanamadı');
-    }
-  }
-
   return (
     <div className="border-b border-white/10 bg-[#11151c] px-4 py-3">
       <div className="flex items-start justify-between gap-3">
@@ -112,8 +113,9 @@ export function ScannerGateAccessPanel() {
             Kapı ekibi kodu
           </div>
           <p className="mt-1 text-xs text-white/55">
-            <strong className="text-white/75">Kodu kopyala</strong> ile ekibe WhatsApp&apos;tan
-            gönderin. Görevliler tam kodu yapıştırarak giriş yapar (12 saat geçerli).
+            <strong className="text-white/75">Kodu kopyala</strong> veya{' '}
+            <strong className="text-white/75">Giriş linki</strong> ile ekibe gönderin.
+            Görevliler tam kodu yapıştırmalı veya linke tıklamalıdır (3 gün geçerli).
           </p>
         </div>
         <Button
@@ -140,12 +142,10 @@ export function ScannerGateAccessPanel() {
         <p className="mt-2 text-xs text-white/45">Yükleniyor…</p>
       ) : activeCode ? (
         <div className="mt-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <code className="rounded-lg bg-black/40 px-4 py-2 text-2xl font-bold tracking-[0.3em] text-primary">
-              {activeCode.pin}
-            </code>
-            <span className="text-xs text-white/45">referans</span>
-          </div>
+          <p className="text-xs text-amber-200/90">
+            Kısa referans ({activeCode.pin}) giriş için yeterli değildir — tam kodu veya
+            linki paylaşın.
+          </p>
           <div className="flex flex-wrap gap-2">
             {activeCode.redeemCode && (
               <Button

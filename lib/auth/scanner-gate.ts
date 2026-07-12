@@ -8,9 +8,11 @@ import {
 import { getRedisClient } from '@/lib/redis';
 
 export const SCANNER_GATE_MAX_ACTIVE_CODES = 10;
-export const SCANNER_GATE_CODE_TTL_SEC = 12 * 60 * 60;
+export const SCANNER_GATE_CODE_TTL_SEC = 72 * 60 * 60;
 
-type GateCodePayload = {
+const GATE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+type GateCodePayloadV1 = {
   v: 1;
   pin: string;
   organizerId: string;
@@ -21,6 +23,19 @@ type GateCodePayload = {
   createdAt: string;
 };
 
+type GateCodePayloadV2 = {
+  v: 2;
+  g: string;
+  organizerId: string;
+  uid: string;
+  email: string;
+  role: UserRole;
+  exp: number;
+  createdAt: string;
+};
+
+type GateCodePayload = GateCodePayloadV1 | GateCodePayloadV2;
+
 type MemoryGateEntry = {
   payload: GateCodePayload;
   expiresAt: number;
@@ -28,6 +43,13 @@ type MemoryGateEntry = {
 
 const memoryCodes = new Map<string, MemoryGateEntry>();
 const memoryOrgCodes = new Map<string, Set<string>>();
+
+const VALID_ROLES = new Set<UserRole>([
+  'ROLE_SUPER_ADMIN',
+  'ROLE_ADMIN',
+  'ROLE_ORGANIZER',
+  'ROLE_USER'
+]);
 
 function codeKey(code: string): string {
   return `bf:scanner-gate:code:${code}`;
@@ -37,30 +59,80 @@ function orgCodesKey(organizerId: string): string {
   return `bf:scanner-gate:org:${organizerId}`;
 }
 
-function generateNumericPin(): string {
-  return String(randomInt(100_000, 1_000_000));
+function generateGateId(): string {
+  let code = '';
+  for (let i = 0; i < 8; i += 1) {
+    code += GATE_CODE_ALPHABET[randomInt(GATE_CODE_ALPHABET.length)];
+  }
+  return code;
+}
+
+function payloadGateId(payload: GateCodePayload): string {
+  return payload.v === 2 ? payload.g : payload.pin;
 }
 
 function buildRedeemCode(payload: GateCodePayload): string {
+  const gateId = payloadGateId(payload);
   const token = buildSignedSessionToken(payload as unknown as Record<string, unknown>);
-  return `${payload.pin}.${token}`;
+  return `${gateId}.${token}`;
+}
+
+function isValidRole(role: unknown): role is UserRole {
+  return typeof role === 'string' && VALID_ROLES.has(role as UserRole);
+}
+
+function isPayloadExpired(exp: unknown): boolean {
+  return typeof exp !== 'number' || Date.now() >= exp;
+}
+
+function normalizeGatePayload(parsed: Record<string, unknown>): GateCodePayload | null {
+  if (parsed.v === 2) {
+    const gateId = parsed.g;
+    if (typeof gateId !== 'string' || !/^[A-Z2-9]{8}$/i.test(gateId)) return null;
+    if (
+      !parsed.organizerId ||
+      !parsed.uid ||
+      !parsed.email ||
+      !isValidRole(parsed.role)
+    ) {
+      return null;
+    }
+    if (isPayloadExpired(parsed.exp)) return null;
+    return parsed as unknown as GateCodePayloadV2;
+  }
+
+  if (parsed.v === 1) {
+    const pin = parsed.pin;
+    if (typeof pin !== 'string' || !/^\d{6}$/.test(pin)) return null;
+    if (
+      !parsed.organizerId ||
+      !parsed.uid ||
+      !parsed.email ||
+      !isValidRole(parsed.role)
+    ) {
+      return null;
+    }
+    if (isPayloadExpired(parsed.exp)) return null;
+    return parsed as unknown as GateCodePayloadV1;
+  }
+
+  return null;
 }
 
 function parseSignedRedeemCode(input: string): GateCodePayload | null {
   const trimmed = input.trim();
-  const match = trimmed.match(/^(\d{6})\.(.+)$/);
+  const match = trimmed.match(/^([A-Z2-9]{8}|\d{6})\.(.+)$/i);
   if (!match) return null;
 
-  const [, pin, token] = match;
+  const [, gateId, token] = match;
   const parsed = verifySignedSessionToken(token);
-  if (!parsed || parsed.v !== 1) return null;
+  if (!parsed) return null;
 
-  const payload = parsed as unknown as GateCodePayload;
-  if (payload.pin !== pin) return null;
-  if (!payload.organizerId || !payload.uid || !payload.email || !payload.role) {
-    return null;
-  }
-  if (typeof payload.exp !== 'number' || Date.now() > payload.exp) return null;
+  const payload = normalizeGatePayload(parsed);
+  if (!payload) return null;
+
+  const expectedId = payloadGateId(payload);
+  if (expectedId.toUpperCase() !== gateId.toUpperCase()) return null;
 
   return payload;
 }
@@ -80,26 +152,50 @@ function pruneMemoryOrgCodes(organizerId: string): void {
 
 async function storeGateCodeLegacy(
   organizerId: string,
-  pin: string,
+  gateId: string,
   payload: GateCodePayload
 ): Promise<void> {
   const redis = getRedisClient();
   const serialized = JSON.stringify(payload);
 
   if (redis) {
-    await redis.set(codeKey(pin), serialized, { ex: SCANNER_GATE_CODE_TTL_SEC });
-    await redis.sadd(orgCodesKey(organizerId), pin);
+    await redis.set(codeKey(gateId), serialized, { ex: SCANNER_GATE_CODE_TTL_SEC });
+    await redis.sadd(orgCodesKey(organizerId), gateId);
     await redis.expire(orgCodesKey(organizerId), SCANNER_GATE_CODE_TTL_SEC);
     return;
   }
 
-  memoryCodes.set(pin, {
+  memoryCodes.set(gateId, {
     payload,
     expiresAt: payload.exp
   });
   const orgSet = memoryOrgCodes.get(organizerId) ?? new Set<string>();
-  orgSet.add(pin);
+  orgSet.add(gateId);
   memoryOrgCodes.set(organizerId, orgSet);
+}
+
+async function readLegacyGateId(gateId: string): Promise<GateCodePayload | null> {
+  const normalized = gateId.trim().toUpperCase();
+  if (!/^[A-Z2-9]{8}$/.test(normalized)) return null;
+
+  const redis = getRedisClient();
+  if (redis) {
+    const raw = await redis.get<string>(codeKey(normalized));
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      return normalizeGatePayload(parsed);
+    } catch {
+      return null;
+    }
+  }
+
+  const entry = memoryCodes.get(normalized);
+  if (!entry || entry.expiresAt <= Date.now()) {
+    memoryCodes.delete(normalized);
+    return null;
+  }
+  return entry.payload;
 }
 
 async function readLegacyPin(pin: string): Promise<GateCodePayload | null> {
@@ -110,9 +206,8 @@ async function readLegacyPin(pin: string): Promise<GateCodePayload | null> {
     const raw = await redis.get<string>(codeKey(pin));
     if (!raw) return null;
     try {
-      const payload = JSON.parse(raw) as GateCodePayload;
-      if (Date.now() > payload.exp) return null;
-      return payload;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      return normalizeGatePayload(parsed);
     } catch {
       return null;
     }
@@ -145,6 +240,23 @@ async function countActiveGateCodes(organizerId: string): Promise<number> {
   return memoryOrgCodes.get(organizerId)?.size ?? 0;
 }
 
+export function normalizeScannerGateInput(input: string): string {
+  const trimmed = input.trim();
+  const gateParam = trimmed.match(/[?&]gate=([^&#]+)/i)?.[1];
+  if (gateParam) {
+    return decodeURIComponent(gateParam).trim().replace(/\s+/g, '');
+  }
+  return trimmed.replace(/\s+/g, '');
+}
+
+export function isSixDigitGateInput(input: string): boolean {
+  return /^\d{6}$/.test(normalizeScannerGateInput(input));
+}
+
+export function isShortGateIdInput(input: string): boolean {
+  return /^[A-Z2-9]{8}$/i.test(normalizeScannerGateInput(input));
+}
+
 export async function createScannerGateCode(params: {
   organizerId: string;
   uid: string;
@@ -162,11 +274,11 @@ export async function createScannerGateCode(params: {
   }
 
   const exp = Date.now() + SCANNER_GATE_CODE_TTL_SEC * 1000;
-  let pin = generateNumericPin();
+  let gateId = generateGateId();
 
-  const payload: GateCodePayload = {
-    v: 1,
-    pin,
+  const payload: GateCodePayloadV2 = {
+    v: 2,
+    g: gateId,
     organizerId: params.organizerId,
     uid: params.uid,
     email: params.email,
@@ -177,18 +289,22 @@ export async function createScannerGateCode(params: {
 
   let redeemCode = buildRedeemCode(payload);
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    if (!parseSignedRedeemCode(redeemCode)) break;
-    pin = generateNumericPin();
-    payload.pin = pin;
+    if (parseSignedRedeemCode(redeemCode)) break;
+    gateId = generateGateId();
+    payload.g = gateId;
     redeemCode = buildRedeemCode(payload);
   }
 
+  if (!parseSignedRedeemCode(redeemCode)) {
+    throw new Error('Kapı kodu oluşturulamadı. Tekrar deneyin.');
+  }
+
   if (redis) {
-    await storeGateCodeLegacy(params.organizerId, pin, payload);
+    await storeGateCodeLegacy(params.organizerId, gateId, payload);
   }
 
   return {
-    pin,
+    pin: gateId,
     redeemCode,
     expiresAt: new Date(exp)
   };
@@ -209,17 +325,18 @@ export async function listScannerGateCodes(organizerId: string): Promise<
     const codes = await redis.smembers<string[]>(orgCodesKey(organizerId));
     if (!codes?.length) return results;
 
-    for (const pin of codes) {
-      const raw = await redis.get<string>(codeKey(pin));
+    for (const gateId of codes) {
+      const raw = await redis.get<string>(codeKey(gateId));
       if (!raw) {
-        await redis.srem(orgCodesKey(organizerId), pin);
+        await redis.srem(orgCodesKey(organizerId), gateId);
         continue;
       }
       try {
-        const payload = JSON.parse(raw) as GateCodePayload;
-        if (Date.now() > payload.exp) continue;
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        const payload = normalizeGatePayload(parsed);
+        if (!payload) continue;
         results.push({
-          pin,
+          pin: payloadGateId(payload),
           redeemCode: buildRedeemCode(payload),
           createdAt: payload.createdAt,
           expiresAt: new Date(payload.exp)
@@ -241,10 +358,11 @@ export async function redeemScannerGateCode(input: string): Promise<{
   email: string;
   organizerId: string;
 } | null> {
-  const trimmed = input.trim();
+  const trimmed = normalizeScannerGateInput(input);
   const signed = parseSignedRedeemCode(trimmed);
   const payload =
     signed ??
+    (await readLegacyGateId(trimmed)) ??
     (await readLegacyPin(trimmed.replace(/\D/g, '').slice(0, 6)));
   if (!payload) return null;
 

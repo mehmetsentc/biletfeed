@@ -6,7 +6,12 @@ import {
   getSessionCookieOptions
 } from '@/lib/auth/session-cookie';
 import { SESSION_EXPIRES_MS } from '@/lib/auth/session';
-import { redeemScannerGateCode } from '@/lib/auth/scanner-gate';
+import {
+  isSixDigitGateInput,
+  isShortGateIdInput,
+  normalizeScannerGateInput,
+  redeemScannerGateCode
+} from '@/lib/auth/scanner-gate';
 import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
 const bodySchema = z.object({
@@ -40,8 +45,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const redeemed = await redeemScannerGateCode(parsed.data.code);
+  const normalized = normalizeScannerGateInput(parsed.data.code);
+
+  if (isSixDigitGateInput(normalized)) {
+    return NextResponse.json(
+      {
+        error:
+          "Sadece numarayı değil, 'Kodu kopyala' ile gelen tam kodu yapıştırın"
+      },
+      { status: 400 }
+    );
+  }
+
+  const redeemed = await redeemScannerGateCode(normalized);
   if (!redeemed) {
+    if (isShortGateIdInput(normalized)) {
+      return NextResponse.json(
+        {
+          error:
+            "Kısa kod yeterli değil. Organizatörden 'Kodu kopyala' ile gelen tam kodu veya giriş linkini kullanın"
+        },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: 'Kapı kodu geçersiz veya süresi dolmuş' },
       { status: 401 }

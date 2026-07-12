@@ -14,8 +14,16 @@ import {
   CardTitle
 } from '@/components/ui/card';
 
+const SIX_DIGIT_ERROR =
+  "Sadece numarayı değil, 'Kodu kopyala' ile gelen tam kodu yapıştırın";
+
 function normalizeGateInput(value: string): string {
-  return value.trim().replace(/\s+/g, '');
+  const trimmed = value.trim();
+  const gateParam = trimmed.match(/[?&]gate=([^&#]+)/i)?.[1];
+  if (gateParam) {
+    return decodeURIComponent(gateParam).trim().replace(/\s+/g, '');
+  }
+  return trimmed.replace(/\s+/g, '');
 }
 
 export function ScannerGateLoginForm() {
@@ -29,6 +37,11 @@ export function ScannerGateLoginForm() {
       const normalized = normalizeGateInput(rawCode);
       if (normalized.length < 6) {
         setError('Organizatörden aldığınız kapı kodunu yapıştırın');
+        return;
+      }
+
+      if (/^\d{6}$/.test(normalized)) {
+        setError(SIX_DIGIT_ERROR);
         return;
       }
 
@@ -85,8 +98,8 @@ export function ScannerGateLoginForm() {
         </div>
         <CardTitle className="text-lg">Kapı ekibi girişi</CardTitle>
         <CardDescription className="text-white/60">
-          Organizatörün &quot;Kodu kopyala&quot; ile gönderdiği tam kodu yapıştırın.
-          Aynı kodu 10 kişiye kadar paylaşabilirsiniz.
+          Organizatörün &quot;Kodu kopyala&quot; veya &quot;Giriş linki&quot; ile
+          gönderdiği kodu yapıştırın. Aynı kodu 10 kişiye kadar paylaşabilirsiniz.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -101,7 +114,7 @@ export function ScannerGateLoginForm() {
             <Input
               id="scanner-gate-code"
               autoComplete="one-time-code"
-              placeholder="891153.… (tam kodu yapıştırın)"
+              placeholder="Tam kodu yapıştırın (AB12CD34.…)"
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className="border-white/15 bg-[#0c1017] text-sm text-white"
