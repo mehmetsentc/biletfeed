@@ -221,23 +221,74 @@ async function readLegacyPin(pin: string): Promise<GateCodePayload | null> {
   return entry.payload;
 }
 
-async function countActiveGateCodes(organizerId: string): Promise<number> {
+type ValidGateEntry = { gateId: string; payload: GateCodePayload };
+
+async function loadValidGateEntries(organizerId: string): Promise<ValidGateEntry[]> {
   const redis = getRedisClient();
   if (redis) {
     const codes = await redis.smembers<string[]>(orgCodesKey(organizerId));
-    if (!codes?.length) return 0;
+    if (!codes?.length) return [];
 
-    let active = 0;
-    for (const code of codes) {
-      const exists = await redis.exists(codeKey(code));
-      if (exists) active += 1;
-      else await redis.srem(orgCodesKey(organizerId), code);
+    const valid: ValidGateEntry[] = [];
+    for (const gateId of codes) {
+      const raw = await redis.get<string>(codeKey(gateId));
+      if (!raw) {
+        await redis.srem(orgCodesKey(organizerId), gateId);
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        const payload = normalizeGatePayload(parsed);
+        if (!payload) {
+          await redis.del(codeKey(gateId));
+          await redis.srem(orgCodesKey(organizerId), gateId);
+          continue;
+        }
+        valid.push({ gateId, payload });
+      } catch {
+        await redis.del(codeKey(gateId));
+        await redis.srem(orgCodesKey(organizerId), gateId);
+      }
     }
-    return active;
+    return valid;
   }
 
   pruneMemoryOrgCodes(organizerId);
-  return memoryOrgCodes.get(organizerId)?.size ?? 0;
+  const codes = memoryOrgCodes.get(organizerId);
+  if (!codes) return [];
+
+  const valid: ValidGateEntry[] = [];
+  for (const gateId of codes) {
+    const entry = memoryCodes.get(gateId);
+    if (!entry || entry.expiresAt <= Date.now()) {
+      codes.delete(gateId);
+      memoryCodes.delete(gateId);
+      continue;
+    }
+    valid.push({ gateId, payload: entry.payload });
+  }
+  return valid;
+}
+
+async function countActiveGateCodes(organizerId: string): Promise<number> {
+  const valid = await loadValidGateEntries(organizerId);
+  return valid.length;
+}
+
+/** Remove expired or orphaned entries from the org gate-code set (Redis or memory). */
+export async function pruneStaleScannerGateCodes(
+  organizerId: string
+): Promise<{ removed: number; remaining: number }> {
+  const redis = getRedisClient();
+  if (redis) {
+    const before = (await redis.smembers<string[]>(orgCodesKey(organizerId)))?.length ?? 0;
+    const valid = await loadValidGateEntries(organizerId);
+    return { removed: before - valid.length, remaining: valid.length };
+  }
+
+  const before = memoryOrgCodes.get(organizerId)?.size ?? 0;
+  const valid = await loadValidGateEntries(organizerId);
+  return { removed: before - valid.length, remaining: valid.length };
 }
 
 export function normalizeScannerGateInput(input: string): string {
@@ -263,16 +314,6 @@ export async function createScannerGateCode(params: {
   email: string;
   role: UserRole;
 }): Promise<{ pin: string; redeemCode: string; expiresAt: Date }> {
-  const redis = getRedisClient();
-  if (redis) {
-    const active = await countActiveGateCodes(params.organizerId);
-    if (active >= SCANNER_GATE_MAX_ACTIVE_CODES) {
-      throw new Error(
-        `En fazla ${SCANNER_GATE_MAX_ACTIVE_CODES} aktif kapı kodu olabilir. Süresi dolan kodları bekleyin veya yenileyin.`
-      );
-    }
-  }
-
   const exp = Date.now() + SCANNER_GATE_CODE_TTL_SEC * 1000;
   let gateId = generateGateId();
 
@@ -299,8 +340,13 @@ export async function createScannerGateCode(params: {
     throw new Error('Kapı kodu oluşturulamadı. Tekrar deneyin.');
   }
 
+  const redis = getRedisClient();
   if (redis) {
-    await storeGateCodeLegacy(params.organizerId, gateId, payload);
+    await pruneStaleScannerGateCodes(params.organizerId);
+    const active = await countActiveGateCodes(params.organizerId);
+    if (active < SCANNER_GATE_MAX_ACTIVE_CODES) {
+      await storeGateCodeLegacy(params.organizerId, gateId, payload);
+    }
   }
 
   return {
@@ -313,44 +359,15 @@ export async function createScannerGateCode(params: {
 export async function listScannerGateCodes(organizerId: string): Promise<
   Array<{ pin: string; redeemCode?: string; expiresAt: Date; createdAt: string }>
 > {
-  const redis = getRedisClient();
-  const results: Array<{
-    pin: string;
-    redeemCode?: string;
-    expiresAt: Date;
-    createdAt: string;
-  }> = [];
-
-  if (redis) {
-    const codes = await redis.smembers<string[]>(orgCodesKey(organizerId));
-    if (!codes?.length) return results;
-
-    for (const gateId of codes) {
-      const raw = await redis.get<string>(codeKey(gateId));
-      if (!raw) {
-        await redis.srem(orgCodesKey(organizerId), gateId);
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(raw) as Record<string, unknown>;
-        const payload = normalizeGatePayload(parsed);
-        if (!payload) continue;
-        results.push({
-          pin: payloadGateId(payload),
-          redeemCode: buildRedeemCode(payload),
-          createdAt: payload.createdAt,
-          expiresAt: new Date(payload.exp)
-        });
-      } catch {
-        // skip invalid
-      }
-    }
-    return results.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }
-
-  return results;
+  const valid = await loadValidGateEntries(organizerId);
+  return valid
+    .map(({ payload }) => ({
+      pin: payloadGateId(payload),
+      redeemCode: buildRedeemCode(payload),
+      createdAt: payload.createdAt,
+      expiresAt: new Date(payload.exp)
+    }))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function redeemScannerGateCode(input: string): Promise<{

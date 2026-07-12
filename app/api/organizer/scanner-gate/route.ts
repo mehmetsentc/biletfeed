@@ -3,6 +3,7 @@ import { requireOrganizerSession } from '@/lib/auth/organizer-api';
 import {
   createScannerGateCode,
   listScannerGateCodes,
+  pruneStaleScannerGateCodes,
   SCANNER_GATE_CODE_TTL_SEC,
   SCANNER_GATE_MAX_ACTIVE_CODES
 } from '@/lib/auth/scanner-gate';
@@ -54,4 +55,25 @@ export async function POST(request: NextRequest) {
       err instanceof Error ? err.message : 'Kapı kodu oluşturulamadı';
     return NextResponse.json({ error: message }, { status: 400 });
   }
+}
+
+export async function DELETE(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
+  }
+
+  const ctx = await requireOrganizerSession();
+  if (!ctx) {
+    return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
+  }
+
+  const result = await pruneStaleScannerGateCodes(ctx.organizer.id);
+  const codes = await listScannerGateCodes(ctx.organizer.id);
+
+  return NextResponse.json({
+    ...result,
+    codes,
+    maxActiveCodes: SCANNER_GATE_MAX_ACTIVE_CODES,
+    ttlHours: SCANNER_GATE_CODE_TTL_SEC / 3600
+  });
 }

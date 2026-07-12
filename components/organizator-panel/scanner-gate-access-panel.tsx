@@ -16,6 +16,7 @@ export function ScannerGateAccessPanel() {
   const [codes, setCodes] = useState<GateCodeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [pruning, setPruning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
 
@@ -99,6 +100,31 @@ export function ScannerGateAccessPanel() {
     }
   }
 
+  async function pruneStaleCodes() {
+    setPruning(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/organizer/scanner-gate', {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        codes?: GateCodeRow[];
+        removed?: number;
+        error?: string;
+      };
+      if (!res.ok) {
+        setError(data.error ?? 'Eski kodlar temizlenemedi');
+        return;
+      }
+      setCodes(data.codes ?? []);
+    } catch {
+      setError('Bağlantı hatası');
+    } finally {
+      setPruning(false);
+    }
+  }
+
   const activeCode = codes[0];
   const gateLink = activeCode?.redeemCode
     ? `${panelLoginHref().replace(/\?.*$/, '')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
@@ -124,7 +150,7 @@ export function ScannerGateAccessPanel() {
           variant="outline"
           className="shrink-0 border-white/20 bg-transparent text-white hover:bg-white/10"
           onClick={() => void createCode()}
-          disabled={creating}
+          disabled={creating || pruning}
         >
           {creating ? (
             <RefreshCw className="size-4 animate-spin" />
@@ -136,7 +162,23 @@ export function ScannerGateAccessPanel() {
         </Button>
       </div>
 
-      {error && <p className="mt-2 text-xs text-red-300">{error}</p>}
+      {error && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <p className="text-xs text-red-300">{error}</p>
+          {error.includes('aktif kapı kodu') && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 border-white/20 bg-transparent px-2 text-xs text-white hover:bg-white/10"
+              onClick={() => void pruneStaleCodes()}
+              disabled={pruning}
+            >
+              {pruning ? 'Temizleniyor…' : 'Eski kodları temizle'}
+            </Button>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <p className="mt-2 text-xs text-white/45">Yükleniyor…</p>
