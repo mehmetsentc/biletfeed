@@ -347,6 +347,12 @@ export async function createScannerGateCode(params: {
     if (active < SCANNER_GATE_MAX_ACTIVE_CODES) {
       await storeGateCodeLegacy(params.organizerId, gateId, payload);
     }
+  } else {
+    pruneMemoryOrgCodes(params.organizerId);
+    const active = memoryOrgCodes.get(params.organizerId)?.size ?? 0;
+    if (active < SCANNER_GATE_MAX_ACTIVE_CODES) {
+      await storeGateCodeLegacy(params.organizerId, gateId, payload);
+    }
   }
 
   return {

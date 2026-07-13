@@ -151,12 +151,9 @@ export function QrScanner({
   const [cameraActive, setCameraActive] = useState(false);
   const [manualCode, setManualCode] = useState('');
 
-  const stopCamera = useCallback(() => setCameraActive(false), []);
-
   const { validate, result, loading, error, clearResult } = useTicketScanValidation({
     eventId,
-    scannerId,
-    onValidated: stopCamera
+    scannerId
   });
 
   useEffect(() => {
@@ -164,6 +161,15 @@ export function QrScanner({
       setCameraActive(true);
     }
   }, [autoStart, defaultManual]);
+
+  useEffect(() => {
+    if (!isEntry || !result) return;
+    const timer = window.setTimeout(() => {
+      clearResult();
+      setManualCode('');
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [isEntry, result, clearResult]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -228,7 +234,7 @@ export function QrScanner({
     <div className={cn('mx-auto w-full max-w-lg space-y-4', isEntry && 'max-w-none')}>
       {isEntry && result && entryStyle && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a] px-6 text-center transition-colors duration-300"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]/92 px-6 text-center backdrop-blur-sm transition-colors duration-300"
           role="alert"
           aria-live="assertive"
         >

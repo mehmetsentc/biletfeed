@@ -26,15 +26,16 @@ export function OrganizatorShell({
   const isScanner =
     pathname === '/organizator-panel/tarayici' || pathname === '/tarayici';
 
-  if (isWizard || isScanner) {
+  if (isScanner) {
+    // Server layout already verified panel session — client AuthGuard causes
+    // Firebase/sessionReady flicker and redirects for gate-only (kapı kodu) logins.
+    return <div className="min-h-screen bg-[#0a0a0a]">{children}</div>;
+  }
+
+  if (isWizard) {
     return (
       <AuthGuard requiredRole="ROLE_ORGANIZER">
-        <div
-          className={cn(
-            'min-h-screen',
-            isScanner ? 'bg-[#0a0a0a]' : 'organizer-surface bg-organizer-shell p-4 md:p-6 lg:p-8'
-          )}
-        >
+        <div className="organizer-surface min-h-screen bg-organizer-shell p-4 md:p-6 lg:p-8">
           {children}
         </div>
       </AuthGuard>

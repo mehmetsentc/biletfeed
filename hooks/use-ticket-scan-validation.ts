@@ -29,10 +29,28 @@ export type ScanResult = {
   };
 };
 
-function playScanSound(status: string) {
-  if (typeof window === 'undefined') return;
+let sharedAudioCtx: AudioContext | null = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
   try {
-    const ctx = new AudioContext();
+    if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+      sharedAudioCtx = new AudioContext();
+    }
+    if (sharedAudioCtx.state === 'suspended') {
+      void sharedAudioCtx.resume();
+    }
+    return sharedAudioCtx;
+  } catch {
+    return null;
+  }
+}
+
+function playScanSound(status: string) {
+  const ctx = getSharedAudioContext();
+  if (!ctx) return;
+
+  try {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -53,10 +71,49 @@ function playScanSound(status: string) {
       osc.start();
       osc.stop(ctx.currentTime + 0.35);
     }
-    window.setTimeout(() => void ctx.close(), 500);
   } catch {
     /* ses desteklenmiyorsa sessiz devam */
   }
+}
+
+async function refreshPanelSession(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/auth/panel-me', {
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+type ValidatePayload = {
+  qrRaw?: string;
+  ticketCode?: string;
+  validationToken?: string;
+  ticketId?: string;
+};
+
+async function postValidate(
+  payload: ValidatePayload,
+  eventId?: string,
+  scannerId?: string
+): Promise<{ res: Response; data: ScanResult & { error?: string } }> {
+  const res = await fetch('/api/tickets/validate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      ...payload,
+      markUsed: true,
+      eventId,
+      scannerId
+    })
+  });
+  const data = (await res.json()) as ScanResult & { error?: string };
+  return { res, data };
 }
 
 export function useTicketScanValidation(options: {
@@ -80,7 +137,7 @@ export function useTicketScanValidation(options: {
   }, []);
 
   const validate = useCallback(
-    async (payload: { qrRaw?: string; ticketCode?: string }) => {
+    async (payload: ValidatePayload) => {
       if (scanLockRef.current) return;
       scanLockRef.current = true;
       setLoading(true);
@@ -88,22 +145,36 @@ export function useTicketScanValidation(options: {
       setError(null);
 
       try {
-        const res = await fetch('/api/tickets/validate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            ...payload,
-            markUsed: true,
-            eventId,
-            scannerId
-          })
-        });
-        const data = (await res.json()) as ScanResult & { error?: string };
+        let { res, data } = await postValidate(payload, eventId, scannerId);
+
+        if (res.status === 401) {
+          const refreshed = await refreshPanelSession();
+          if (refreshed) {
+            ({ res, data } = await postValidate(payload, eventId, scannerId));
+          }
+        }
+
+        if (res.status === 401) {
+          setError(
+            'Oturum süresi doldu. Kapı kodu veya organizatör girişi ile tekrar deneyin.'
+          );
+          return;
+        }
+
+        if (res.status === 429) {
+          setError(
+            data.message ||
+              data.error ||
+              'Çok hızlı tarama. Birkaç saniye bekleyip tekrar deneyin.'
+          );
+          return;
+        }
+
         if (!res.ok) {
           setError(data.message || data.error || 'Doğrulama başarısız');
           return;
         }
+
         setResult(data);
         playFeedback(data.status);
         onValidated?.();
@@ -123,7 +194,7 @@ export function useTicketScanValidation(options: {
         setLoading(false);
         window.setTimeout(() => {
           scanLockRef.current = false;
-        }, 1200);
+        }, 800);
       }
     },
     [eventId, onValidated, playFeedback, scannerId]

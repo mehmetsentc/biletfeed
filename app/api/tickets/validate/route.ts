@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { resolveScannerContext } from '@/lib/auth/organizer-api';
 import { validateTicketInput } from '@/lib/services/ticket-validation';
-import { rateLimitOrNull } from '@/lib/security/rate-limit';
+import { rateLimitOrNull, checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 const postSchema = z.object({
   ticketCode: z.string().optional(),
@@ -26,15 +26,52 @@ async function resolveScannerAuth() {
   };
 }
 
+/** Organizer-scoped limit for venue scanning; IP fallback before auth resolves. */
+function ticketValidateRateLimit(
+  request: NextRequest,
+  organizerId?: string,
+  uid?: string
+): ReturnType<typeof rateLimitOrNull> {
+  const ip = getClientIp(request);
+  const scopeKey = organizerId
+    ? `ticket-validate:org:${organizerId}`
+    : uid
+      ? `ticket-validate:uid:${uid}`
+      : `ticket-validate:ip:${ip}`;
+
+  const scoped = checkRateLimit(scopeKey, organizerId ? 1800 : 300, 60_000);
+  if (!scoped.ok) {
+    return NextResponse.json(
+      { error: 'Çok fazla istek. Lütfen kısa süre sonra tekrar deneyin.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(scoped.retryAfterSec) }
+      }
+    );
+  }
+
+  if (!organizerId) {
+    return rateLimitOrNull(request, 'ticket-validate', 300, 60_000);
+  }
+
+  return null;
+}
+
 /** QR kod URL'si tarandığında GET ile de doğrulama yapılabilir (salt okunur). */
 export async function GET(request: NextRequest) {
-  const limited = rateLimitOrNull(request, 'ticket-validate', 300, 60_000);
-  if (limited) return limited;
-
   const auth = await resolveScannerAuth();
   if (!auth) {
+    const limited = ticketValidateRateLimit(request);
+    if (limited) return limited;
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
   }
+
+  const limited = ticketValidateRateLimit(
+    request,
+    auth.scannerOrganizerId,
+    auth.session.uid
+  );
+  if (limited) return limited;
 
   const { searchParams } = request.nextUrl;
   const result = await validateTicketInput({
@@ -53,17 +90,23 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const limited = rateLimitOrNull(request, 'ticket-validate', 300, 60_000);
-  if (limited) return limited;
-
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
   const auth = await resolveScannerAuth();
   if (!auth) {
+    const limited = ticketValidateRateLimit(request);
+    if (limited) return limited;
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
   }
+
+  const limited = ticketValidateRateLimit(
+    request,
+    auth.scannerOrganizerId,
+    auth.session.uid
+  );
+  if (limited) return limited;
 
   const json = await request.json();
   const parsed = postSchema.safeParse(json);

@@ -61,6 +61,16 @@ function QrCameraReaderInner({
 }: QrCameraReaderProps) {
   const scannerRef = useRef<{ stop: () => Promise<void> } | null>(null);
   const scanLockRef = useRef(false);
+  const onScanRef = useRef(onScan);
+  const onFailedRef = useRef(onFailed);
+
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
+
+  useEffect(() => {
+    onFailedRef.current = onFailed;
+  }, [onFailed]);
 
   useEffect(() => {
     if (!active || typeof window === 'undefined') return;
@@ -86,16 +96,16 @@ function QrCameraReaderInner({
           (text) => {
             if (!cancelled && !scanLockRef.current) {
               scanLockRef.current = true;
-              onScan(text);
+              onScanRef.current(text);
               window.setTimeout(() => {
                 scanLockRef.current = false;
-              }, 1200);
+              }, 800);
             }
           },
           () => {}
         );
       } catch {
-        if (!cancelled) onFailed();
+        if (!cancelled) onFailedRef.current();
       }
     }
 
@@ -109,7 +119,7 @@ function QrCameraReaderInner({
         void activeScanner.stop().catch(() => {});
       }
     };
-  }, [active, onFailed, onScan]);
+  }, [active]);
 
   if (!active) return null;
 
