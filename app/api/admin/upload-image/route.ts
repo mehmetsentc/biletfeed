@@ -6,7 +6,7 @@ import { assertImageUpload } from '@/lib/security/image-upload';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
-const scopeSchema = z.enum(['events', 'feed']);
+const scopeSchema = z.enum(['events', 'feed', 'banners']);
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +16,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Geçersiz scope' }, { status: 400 });
     }
 
-    const permission = scopeParsed.data === 'feed' ? 'feed.manage' : 'events.manage';
+    const permission =
+      scopeParsed.data === 'feed'
+        ? 'feed.manage'
+        : scopeParsed.data === 'banners'
+          ? 'banners.manage'
+          : 'events.manage';
     const guard = await guardAdminMutation(request, permission);
     if ('error' in guard) return guard.error;
 

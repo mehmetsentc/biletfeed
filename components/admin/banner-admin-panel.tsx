@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AdminImageSourceField } from '@/components/admin/admin-image-source-field';
 import type { HomeBannerRecord } from '@/lib/services/home-banners';
 
 type BannerForm = {
@@ -204,8 +205,8 @@ export function BannerAdminPanel() {
     <div className="space-y-4">
       <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
         Her banner için <strong>mobil</strong>, <strong>tablet</strong> ve{' '}
-        <strong>web</strong> görseli ayrı yükleyin. Önerilen oranlar: mobil 16:9,
-        tablet 21:9, web 3:1.
+        <strong>web</strong> görseli ayrı ekleyin — cihazdan yükleyebilir veya
+        herhangi bir görsel linkini yapıştırabilirsiniz.
       </div>
 
       {error && (
@@ -273,37 +274,31 @@ export function BannerAdminPanel() {
                 onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
               />
             </div>
-            <div>
-              <Label className="text-xs">Mobil görsel URL *</Label>
-              <Input
-                className="mt-1"
-                placeholder="https://…"
+            <div className="md:col-span-2">
+              <AdminImageSourceField
+                label="Mobil görsel *"
+                hint="Önerilen oran 16:9"
                 value={form.imageMobile}
-                onChange={(e) =>
-                  setForm({ ...form, imageMobile: e.target.value })
-                }
+                onChange={(url) => setForm({ ...form, imageMobile: url })}
+                uploadScope="banners"
               />
             </div>
-            <div>
-              <Label className="text-xs">Tablet görsel URL *</Label>
-              <Input
-                className="mt-1"
-                placeholder="https://…"
+            <div className="md:col-span-2">
+              <AdminImageSourceField
+                label="Tablet görsel *"
+                hint="Önerilen oran 21:9"
                 value={form.imageTablet}
-                onChange={(e) =>
-                  setForm({ ...form, imageTablet: e.target.value })
-                }
+                onChange={(url) => setForm({ ...form, imageTablet: url })}
+                uploadScope="banners"
               />
             </div>
-            <div>
-              <Label className="text-xs">Web görsel URL *</Label>
-              <Input
-                className="mt-1"
-                placeholder="https://…"
+            <div className="md:col-span-2">
+              <AdminImageSourceField
+                label="Web görsel *"
+                hint="Önerilen oran 3:1"
                 value={form.imageDesktop}
-                onChange={(e) =>
-                  setForm({ ...form, imageDesktop: e.target.value })
-                }
+                onChange={(url) => setForm({ ...form, imageDesktop: url })}
+                uploadScope="banners"
               />
             </div>
             <div>

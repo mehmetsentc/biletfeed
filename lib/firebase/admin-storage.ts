@@ -77,7 +77,7 @@ export async function uploadOrganizerEventCover(
 
 /** Admin panel — etkinlik / feed kapak görseli */
 export async function uploadAdminImage(
-  scope: 'events' | 'feed',
+  scope: 'events' | 'feed' | 'banners',
   buffer: Buffer,
   contentType: string
 ): Promise<string> {
