@@ -8,6 +8,7 @@ import { resolveScannerUser } from '../lib/auth/organizer-api';
 import { validateTicketInput } from '../lib/services/ticket-validation';
 import { buildTicketQrPayload, verifyValidationToken } from '../lib/tickets/sign';
 import { createOrganizerEvent } from '../lib/services/organizer-events';
+import { approveInternalEvent } from '../lib/services/event-approvals';
 import { createEventInvitation } from '../lib/services/event-invitations';
 
 const ORGANIZER_EMAIL = 'mehmetsentc@gmail.com';
@@ -61,11 +62,12 @@ async function main() {
     isFree: false,
     price: 100,
     capacity: 50,
-    status: 'published',
+    status: 'pending',
     ticketCategories: [
       { name: 'Genel Giriş', description: 'Test bileti', price: 100, capacity: 50 }
     ]
   });
+  await approveInternalEvent(event.id);
   log('Test etkinliği oluşturuldu', true, `${event.title} [${event.id.slice(0, 8)}]`);
 
   const ticketType = event.ticketTypes[0];
