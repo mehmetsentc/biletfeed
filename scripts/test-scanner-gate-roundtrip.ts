@@ -28,7 +28,7 @@ async function main() {
   const full = await redeemScannerGateCode(created.redeemCode);
   assert('tam kod ile giriş', full?.email === 'gate-staff@biletfeed.local');
 
-  const gateParam = `https://panel.biletfeed.com/giris?gate=${encodeURIComponent(created.redeemCode)}`;
+  const gateParam = `https://giris.biletfeed.com/?gate=${encodeURIComponent(created.redeemCode)}`;
   const fromUrl = await redeemScannerGateCode(gateParam);
   assert('URL ?gate= ile giriş', fromUrl?.organizerId === 'org-test-123');
 

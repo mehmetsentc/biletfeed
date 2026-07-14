@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server';
 import {
+  ADMIN_SUBDOMAIN,
+  GIRIS_SUBDOMAIN,
   ORGANIZER_PANEL_SUBDOMAINS,
   SUPPORT_SUBDOMAIN,
   canonicalHost,
@@ -11,6 +13,13 @@ function collectExpectedOrigins(host: string): Set<string> {
   const hostname = host.split(':')[0];
   const rootHost = resolveProductionRootHost() ?? canonicalHost.split(':')[0].replace(/^www\./, '');
 
+  const platformSubs = [
+    ...ORGANIZER_PANEL_SUBDOMAINS,
+    SUPPORT_SUBDOMAIN,
+    GIRIS_SUBDOMAIN,
+    ADMIN_SUBDOMAIN
+  ];
+
   for (const proto of ['https', 'http']) {
     expected.add(`${proto}://${host}`);
     if (hostname.startsWith('www.')) {
@@ -19,18 +28,12 @@ function collectExpectedOrigins(host: string): Set<string> {
       expected.add(`${proto}://www.${hostname}`);
     }
 
-    for (const sub of ORGANIZER_PANEL_SUBDOMAINS) {
+    for (const sub of platformSubs) {
       if (rootHost !== 'localhost') {
         expected.add(`${proto}://${sub}.${rootHost}`);
       } else {
         expected.add(`${proto}://${sub}.localhost`);
       }
-    }
-
-    if (rootHost !== 'localhost') {
-      expected.add(`${proto}://${SUPPORT_SUBDOMAIN}.${rootHost}`);
-    } else {
-      expected.add(`${proto}://${SUPPORT_SUBDOMAIN}.localhost`);
     }
   }
 

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminAccessByFirebaseUid } from '@/lib/services/admin-access';
 import { AdminShell } from '@/app/admin/admin-shell';
+import { siteHref } from '@/lib/config/domain';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export default async function AdminLayout({
   const access = await getAdminAccessByFirebaseUid(session.uid, session.email);
 
   if (!access || (!access.isSuperAdmin && access.permissions.length === 0)) {
-    redirect('/?error=unauthorized');
+    redirect(`${siteHref('/')}?error=unauthorized`);
   }
 
   return (

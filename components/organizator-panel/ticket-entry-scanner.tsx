@@ -7,6 +7,7 @@ import { ArrowLeft, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getOrCreateScannerId } from '@/lib/tickets/offline-scan-queue';
 import { ScannerGateAccessPanel } from '@/components/organizator-panel/scanner-gate-access-panel';
+import { isOnGirisHost, panelHref } from '@/lib/config/domain';
 
 const QrScanner = dynamic(
   () => import('@/components/tickets/qr-scanner').then((m) => m.QrScanner),
@@ -36,9 +37,14 @@ export function TicketEntryScanner() {
     email: string;
     organizerName: string;
   } | null>(null);
+  const [isGateTerminal, setIsGateTerminal] = useState(false);
 
   useEffect(() => {
     setScannerId(getOrCreateScannerId());
+    setIsGateTerminal(
+      isOnGirisHost(window.location.hostname) ||
+        window.location.pathname.startsWith('/giris-terminal')
+    );
     const timer = window.setTimeout(() => setCameraReady(true), 150);
     return () => window.clearTimeout(timer);
   }, []);
@@ -70,16 +76,18 @@ export function TicketEntryScanner() {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[#0a0a0a] text-white">
       <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="shrink-0 text-white hover:bg-white/10 hover:text-white"
-          asChild
-        >
-          <Link href="/baslangic" aria-label="Panele dön">
-            <ArrowLeft className="size-5" />
-          </Link>
-        </Button>
+        {!isGateTerminal && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-white hover:bg-white/10 hover:text-white"
+            asChild
+          >
+            <Link href={panelHref('/baslangic')} aria-label="Panele dön">
+              <ArrowLeft className="size-5" />
+            </Link>
+          </Button>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <ScanLine className="size-5 shrink-0 text-primary" strokeWidth={2} />
@@ -91,7 +99,7 @@ export function TicketEntryScanner() {
         </div>
       </header>
 
-      <ScannerGateAccessPanel />
+      {!isGateTerminal && <ScannerGateAccessPanel />}
 
       {scannerAccount && (
         <div className="border-b border-white/10 px-4 py-2 text-xs text-white/60">

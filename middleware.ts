@@ -1,19 +1,24 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   canonicalHost,
+  getAdminUrl,
   getPanelUrl,
   getSupportUrl,
   isAccountSitePath,
+  isAdminSubdomain,
+  isGirisSubdomain,
   isLegalSitePath,
   isOrganizerPanelSubdomain,
   isProductionHost,
+  isReservedPlatformSubdomain,
   isSupportSubdomain,
   isDestekAppPath,
   protocol,
+  normalizeAdminPath,
   normalizeSupportPath,
   resolveProductionRootHost,
   rootDomain,
-  siteHref,
+  siteHref
 } from '@/lib/config/domain';
 import { isEventJoyEnabled } from '@/lib/config/features';
 import {
@@ -21,7 +26,6 @@ import {
   mapLegacyDashboardToDevPanelPath
 } from '@/lib/routing/legacy-dashboard';
 
-const PROTECTED_PREFIXES = ['/admin'];
 const SESSION_COOKIE_NAME = 'session';
 const PANEL_SESSION_COOKIE_NAME = 'panel_session';
 
@@ -30,6 +34,8 @@ const PANEL_PUBLIC_PATHS = new Set([
   '/organizator-panel/giris',
   '/sifremi-unuttum'
 ]);
+
+const GIRIS_PUBLIC_PATHS = new Set(['/', '/giris', '/giris-terminal']);
 
 function isPanelPublicPath(pathname: string): boolean {
   if (PANEL_PUBLIC_PATHS.has(pathname)) return true;
@@ -87,6 +93,9 @@ function redirectOrganizerPanelToSubdomain(
   const subdomain = extractSubdomain(request);
   if (subdomain) return null;
 
+  // Ana siteden gelen /organizator-panel/* panel'e
+  // (tarayıcı yolu panelde kalır — kapı ekibi giris.biletfeed.com kullanır)
+
   const cleanPath =
     pathname.replace(/^\/organizator-panel/, '') || '/baslangic';
   return NextResponse.redirect(getPanelUrl(cleanPath), 308);
@@ -128,6 +137,19 @@ function redirectSupportToSubdomain(
 
   const cleanPath = normalizeSupportPath(pathname);
   return NextResponse.redirect(getSupportUrl(cleanPath), 308);
+}
+
+function redirectAdminToSubdomain(
+  request: NextRequest,
+  pathname: string
+): NextResponse | null {
+  if (!isProductionHost()) return null;
+  if (pathname !== '/admin' && !pathname.startsWith('/admin/')) return null;
+
+  const subdomain = extractSubdomain(request);
+  if (subdomain) return null;
+
+  return NextResponse.redirect(getAdminUrl(normalizeAdminPath(pathname)), 308);
 }
 
 function redirectToCanonical(request: NextRequest): NextResponse | null {
@@ -195,9 +217,7 @@ function handleOrganizerPanelSubdomain(
   }
 
   if (pathname === '/') {
-    return NextResponse.redirect(
-      new URL('/baslangic', request.url)
-    );
+    return NextResponse.redirect(new URL('/baslangic', request.url));
   }
 
   // panel.biletfeed.com/giris → organizatör giriş sayfası
@@ -218,7 +238,6 @@ function handleOrganizerPanelSubdomain(
     }
   }
 
-  // panel.biletfeed.com/profil → biletfeed.com/profil (hesap sayfaları ana sitede)
   if (isAccountSitePath(pathname)) {
     const target = siteHref(pathname);
     if (target.startsWith('http')) {
@@ -226,7 +245,6 @@ function handleOrganizerPanelSubdomain(
     }
   }
 
-  // panel.biletfeed.com/organizator-sozlesmesi → doğrudan yasal sayfa (404 rewrite yok)
   if (isLegalSitePath(pathname)) {
     return NextResponse.next();
   }
@@ -239,11 +257,96 @@ function handleOrganizerPanelSubdomain(
     return NextResponse.next();
   }
 
-  // panel.biletfeed.com/tarayici → /organizator-panel/tarayici
   const panelPath = pathname.startsWith('/')
     ? `/organizator-panel${pathname}`
     : `/organizator-panel/${pathname}`;
   return NextResponse.rewrite(new URL(panelPath, request.url));
+}
+
+/** Kapı terminali — sadece login + tarayıcı */
+function handleGirisSubdomain(
+  request: NextRequest,
+  pathname: string
+): NextResponse {
+  if (isStaticAssetPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) {
+    return NextResponse.next();
+  }
+
+  // Kapı kodu giriş sayfası
+  if (
+    GIRIS_PUBLIC_PATHS.has(pathname) ||
+    pathname === '/giris-terminal' ||
+    pathname.startsWith('/giris-terminal/')
+  ) {
+    const rewriteUrl = new URL('/giris-terminal', request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      rewriteUrl.searchParams.set(key, value);
+    });
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
+  // QR tarayıcı — panel layout'undan bağımsız
+  if (pathname === '/tarayici' || pathname.startsWith('/tarayici/')) {
+    const panelSession = request.cookies.get(PANEL_SESSION_COOKIE_NAME);
+    if (!panelSession?.value) {
+      const loginUrl = new URL('/', request.url);
+      loginUrl.searchParams.set('redirect', '/tarayici');
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.rewrite(
+      new URL('/giris-terminal/tarayici', request.url)
+    );
+  }
+
+  // Diğer yollar kapı terminalinde yok
+  return NextResponse.redirect(new URL('/', request.url));
+}
+
+function handleAdminSubdomain(
+  request: NextRequest,
+  pathname: string
+): NextResponse {
+  if (isStaticAssetPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) {
+    return NextResponse.next();
+  }
+
+  const session = request.cookies.get(SESSION_COOKIE_NAME);
+  if (!session?.value) {
+    const loginTarget = siteHref('/giris');
+    const loginUrl = loginTarget.startsWith('http')
+      ? new URL(loginTarget)
+      : new URL('/giris', request.url);
+    const returnTo =
+      pathname === '/' || pathname === '/admin'
+        ? getAdminUrl('/')
+        : getAdminUrl(normalizeAdminPath(pathname));
+    loginUrl.searchParams.set('redirect', returnTo);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (
+    pathname === '/admin' ||
+    pathname.startsWith('/admin/')
+  ) {
+    return NextResponse.next();
+  }
+
+  if (pathname === '/') {
+    return NextResponse.rewrite(new URL('/admin', request.url));
+  }
+
+  const adminPath = pathname.startsWith('/')
+    ? `/admin${pathname}`
+    : `/admin/${pathname}`;
+  return NextResponse.rewrite(new URL(adminPath, request.url));
 }
 
 export async function middleware(request: NextRequest) {
@@ -261,6 +364,9 @@ export async function middleware(request: NextRequest) {
 
   const supportRedirect = redirectSupportToSubdomain(request, pathname);
   if (supportRedirect) return supportRedirect;
+
+  const adminRedirect = redirectAdminToSubdomain(request, pathname);
+  if (adminRedirect) return adminRedirect;
 
   const canonicalRedirect = redirectToCanonical(request);
   if (canonicalRedirect) return canonicalRedirect;
@@ -283,11 +389,19 @@ export async function middleware(request: NextRequest) {
     return handleSupportSubdomain(request, pathname);
   }
 
+  if (isGirisSubdomain(subdomain)) {
+    return handleGirisSubdomain(request, pathname);
+  }
+
+  if (isAdminSubdomain(subdomain)) {
+    return handleAdminSubdomain(request, pathname);
+  }
+
   if (isOrganizerPanelSubdomain(subdomain)) {
     return handleOrganizerPanelSubdomain(request, pathname);
   }
 
-  if (subdomain) {
+  if (subdomain && !isReservedPlatformSubdomain(subdomain)) {
     if (
       pathname.startsWith('/admin') ||
       pathname.startsWith('/dashboard') ||
@@ -318,7 +432,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
     const session = request.cookies.get(SESSION_COOKIE_NAME);
     if (!session) {
       const loginUrl = new URL('/giris', request.url);

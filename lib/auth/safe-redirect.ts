@@ -14,7 +14,9 @@ export function isTrustedBiletFeedHost(hostname: string): boolean {
       normalized === 'localhost' ||
       normalized.startsWith('panel.localhost') ||
       normalized.startsWith('organizer.localhost') ||
-      normalized.startsWith('destek.localhost')
+      normalized.startsWith('destek.localhost') ||
+      normalized.startsWith('giris.localhost') ||
+      normalized.startsWith('admin.localhost')
     );
   }
 
@@ -22,7 +24,9 @@ export function isTrustedBiletFeedHost(hostname: string): boolean {
   return (
     normalized === `destek.${root}` ||
     normalized === `panel.${root}` ||
-    normalized === `organizer.${root}`
+    normalized === `organizer.${root}` ||
+    normalized === `giris.${root}` ||
+    normalized === `admin.${root}`
   );
 }
 

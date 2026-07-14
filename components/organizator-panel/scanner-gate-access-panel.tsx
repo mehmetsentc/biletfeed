@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Copy, KeyRound, Link2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { panelLoginHref } from '@/lib/config/domain';
+import { getGirisUrl } from '@/lib/config/domain';
 
 type GateCodeRow = {
   pin: string;
@@ -127,7 +127,7 @@ export function ScannerGateAccessPanel() {
 
   const activeCode = codes[0];
   const gateLink = activeCode?.redeemCode
-    ? `${panelLoginHref().replace(/\?.*$/, '')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
+    ? `${getGirisUrl('/')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
     : null;
 
   return (
@@ -141,7 +141,8 @@ export function ScannerGateAccessPanel() {
           <p className="mt-1 text-xs text-white/55">
             <strong className="text-white/75">Kodu kopyala</strong> veya{' '}
             <strong className="text-white/75">Giriş linki</strong> ile ekibe gönderin.
-            Görevliler tam kodu yapıştırmalı veya linke tıklamalıdır (3 gün geçerli).
+            Görevliler <span className="text-primary">giris.biletfeed.com</span>{' '}
+            üzerinden giriş yapar (3 gün geçerli).
           </p>
         </div>
         <Button

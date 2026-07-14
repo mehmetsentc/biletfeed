@@ -2,7 +2,9 @@ import {
   getSiteUrl,
   canonicalHost,
   getPanelUrl,
-  getSupportUrl
+  getSupportUrl,
+  getGirisUrl,
+  getAdminUrl
 } from '@/lib/config/domain';
 import { brandTheme } from '@/lib/config/brand-theme';
 
@@ -33,7 +35,9 @@ export const siteConfig = {
     facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL,
     youtube: process.env.NEXT_PUBLIC_YOUTUBE_URL,
     organizerPanel: process.env.NEXT_PUBLIC_PANEL_URL || getPanelUrl(),
-    supportCenter: process.env.NEXT_PUBLIC_SUPPORT_URL || getSupportUrl()
+    supportCenter: process.env.NEXT_PUBLIC_SUPPORT_URL || getSupportUrl(),
+    gateTerminal: process.env.NEXT_PUBLIC_GIRIS_URL || getGirisUrl(),
+    adminPanel: process.env.NEXT_PUBLIC_ADMIN_URL || getAdminUrl()
   }
 } as const;
 

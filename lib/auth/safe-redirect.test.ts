@@ -46,12 +46,16 @@ describe('isTrustedBiletFeedHost', () => {
   it('accepts localhost subdomains in development', () => {
     expect(isTrustedBiletFeedHost('destek.localhost')).toBe(true);
     expect(isTrustedBiletFeedHost('panel.localhost')).toBe(true);
+    expect(isTrustedBiletFeedHost('giris.localhost')).toBe(true);
+    expect(isTrustedBiletFeedHost('admin.localhost')).toBe(true);
   });
 
-  it('accepts production root and destek subdomain', () => {
+  it('accepts production root and platform subdomains', () => {
     process.env.NEXT_PUBLIC_ROOT_DOMAIN = 'biletfeed.com';
     expect(isTrustedBiletFeedHost('biletfeed.com')).toBe(true);
     expect(isTrustedBiletFeedHost('destek.biletfeed.com')).toBe(true);
+    expect(isTrustedBiletFeedHost('giris.biletfeed.com')).toBe(true);
+    expect(isTrustedBiletFeedHost('admin.biletfeed.com')).toBe(true);
     expect(isTrustedBiletFeedHost('evil.com')).toBe(false);
   });
 });

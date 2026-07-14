@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { OrganizerAuthShell } from '@/components/auth/organizer-auth-shell';
 import { PanelLoginForm } from '@/components/auth/panel-login-form';
 import { PanelAlreadySignedIn } from '@/components/auth/panel-already-signed-in';
 import { PanelAuthRedirect } from '@/components/auth/panel-auth-redirect';
-import { ScannerGateLoginForm } from '@/components/auth/scanner-gate-login-form';
+import { girisHref } from '@/lib/config/domain';
 
 export const metadata: Metadata = {
   title: 'Organizatör Girişi | BiletFeed Panel',
@@ -19,7 +20,15 @@ export default function OrganizerPanelLoginPage() {
         <div className="flex w-full max-w-md flex-col items-center gap-4">
           <PanelAlreadySignedIn />
           <PanelLoginForm />
-          <ScannerGateLoginForm />
+          <p className="text-center text-xs text-white/45">
+            Kapı ekibi misiniz?{' '}
+            <Link
+              href={girisHref('/')}
+              className="text-primary underline-offset-2 hover:underline"
+            >
+              Kapı terminaline git
+            </Link>
+          </p>
         </div>
       </Suspense>
     </OrganizerAuthShell>

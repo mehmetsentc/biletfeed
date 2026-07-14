@@ -203,7 +203,7 @@ async function main() {
     console.log('Tüm testler başarılı. Canlıda şu bileti tarayın:');
     console.log(`  Kod: ${freshInvite.ticketCode}`);
     console.log(`  Etkinlik: ${event.title}`);
-    console.log(`  Panel: https://panel.biletfeed.com/tarayici`);
+    console.log(`  Panel: https://giris.biletfeed.com/tarayici`);
     console.log(`  Filtre: "${event.title}" veya "Tüm etkinlikler"`);
   } else {
     console.log('BAŞARISIZ — yukarıdaki ✗ satırlarına bakın');

@@ -15,6 +15,25 @@ export const PANEL_SUBDOMAIN = 'panel';
 /** Genel destek merkezi — destek.biletfeed.com */
 export const SUPPORT_SUBDOMAIN = 'destek';
 
+/** Kapı / bilet tarama terminali — giris.biletfeed.com */
+export const GIRIS_SUBDOMAIN = 'giris';
+
+/** Admin paneli — admin.biletfeed.com */
+export const ADMIN_SUBDOMAIN = 'admin';
+
+/** Platform alt alanları — organizatör vanity host rewrite'ına düşmesin */
+export const RESERVED_PLATFORM_SUBDOMAINS = [
+  PANEL_SUBDOMAIN,
+  'organizer',
+  SUPPORT_SUBDOMAIN,
+  GIRIS_SUBDOMAIN,
+  ADMIN_SUBDOMAIN,
+  'www',
+  'api',
+  'mail',
+  'cdn'
+] as const;
+
 export const ORGANIZER_PANEL_SUBDOMAINS = [PANEL_SUBDOMAIN, 'organizer'] as const;
 
 export type OrganizerPanelSubdomain = (typeof ORGANIZER_PANEL_SUBDOMAINS)[number];
@@ -30,6 +49,33 @@ export function isOrganizerPanelSubdomain(
 
 export function isSupportSubdomain(subdomain: string | null): boolean {
   return subdomain === SUPPORT_SUBDOMAIN;
+}
+
+export function isGirisSubdomain(subdomain: string | null): boolean {
+  return subdomain === GIRIS_SUBDOMAIN;
+}
+
+export function isAdminSubdomain(subdomain: string | null): boolean {
+  return subdomain === ADMIN_SUBDOMAIN;
+}
+
+export function isReservedPlatformSubdomain(subdomain: string | null): boolean {
+  return (
+    subdomain !== null &&
+    (RESERVED_PLATFORM_SUBDOMAINS as readonly string[]).includes(subdomain)
+  );
+}
+
+function buildSubdomainHost(subdomain: string): string {
+  const rootHost = resolveProductionRootHost();
+  const devHost = canonicalHost.split(':')[0];
+  const port = canonicalHost.includes(':')
+    ? `:${canonicalHost.split(':')[1]}`
+    : '';
+  const host = rootHost ?? devHost;
+  return host === 'localhost'
+    ? `${subdomain}.localhost${port}`
+    : `${subdomain}.${host}`;
 }
 
 /** Production kök domain — env'den çözülür (biletfeed.com) */
@@ -79,14 +125,7 @@ export function isProductionHost(): boolean {
 
 /** Üretim panel URL'si — https://panel.biletfeed.com/... */
 export function getPanelUrl(path = ''): string {
-  const rootHost = resolveProductionRootHost();
-  const devHost = canonicalHost.split(':')[0];
-  const port = canonicalHost.includes(':')
-    ? `:${canonicalHost.split(':')[1]}`
-    : '';
-  const host = rootHost ?? devHost;
-  const panelHost =
-    host === 'localhost' ? `panel.localhost${port}` : `${PANEL_SUBDOMAIN}.${host}`;
+  const panelHost = buildSubdomainHost(PANEL_SUBDOMAIN);
 
   if (!path || path === '/') {
     return `${protocol}://${panelHost}/baslangic`;
@@ -118,16 +157,7 @@ export function normalizeSupportPath(path: string): string {
 
 /** Üretim destek merkezi URL'si — https://destek.biletfeed.com/... */
 export function getSupportUrl(path = ''): string {
-  const rootHost = resolveProductionRootHost();
-  const devHost = canonicalHost.split(':')[0];
-  const port = canonicalHost.includes(':')
-    ? `:${canonicalHost.split(':')[1]}`
-    : '';
-  const host = rootHost ?? devHost;
-  const supportHost =
-    host === 'localhost'
-      ? `${SUPPORT_SUBDOMAIN}.localhost${port}`
-      : `${SUPPORT_SUBDOMAIN}.${host}`;
+  const supportHost = buildSubdomainHost(SUPPORT_SUBDOMAIN);
 
   if (!path || path === '/') {
     return `${protocol}://${supportHost}/`;
@@ -136,6 +166,66 @@ export function getSupportUrl(path = ''): string {
   const normalized = normalizeSupportPath(path);
 
   return `${protocol}://${supportHost}${normalized}`;
+}
+
+/** Kapı tarama terminali — https://giris.biletfeed.com/... */
+export function getGirisUrl(path = ''): string {
+  const girisHost = buildSubdomainHost(GIRIS_SUBDOMAIN);
+  if (!path || path === '/') {
+    return `${protocol}://${girisHost}/`;
+  }
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${protocol}://${girisHost}${normalized}`;
+}
+
+/** `/admin` önekini kaldırır — admin.biletfeed.com temiz path için */
+export function normalizeAdminPath(path: string): string {
+  const withSlash = path.startsWith('/') ? path : `/${path}`;
+  if (withSlash === '/admin') return '/';
+  if (withSlash.startsWith('/admin/')) {
+    return withSlash.replace(/^\/admin/, '') || '/';
+  }
+  return withSlash;
+}
+
+/** Üretim admin URL'si — https://admin.biletfeed.com/... */
+export function getAdminUrl(path = ''): string {
+  const adminHost = buildSubdomainHost(ADMIN_SUBDOMAIN);
+  if (!path || path === '/') {
+    return `${protocol}://${adminHost}/`;
+  }
+  const normalized = normalizeAdminPath(path);
+  return `${protocol}://${adminHost}${normalized === '/' ? '/' : normalized}`;
+}
+
+/** Kapı girişi / tarayıcı linki — production'da giris alt alanı */
+export function girisHref(path = '/'): string {
+  const normalized =
+    !path || path === '/'
+      ? '/'
+      : path.startsWith('/')
+        ? path
+        : `/${path}`;
+  if (!isProductionHost()) {
+    if (normalized === '/' || normalized === '/giris') {
+      return '/giris-terminal';
+    }
+    if (normalized === '/tarayici' || normalized.startsWith('/tarayici/')) {
+      return `/giris-terminal${normalized === '/tarayici' ? '/tarayici' : normalized}`;
+    }
+    return normalized.startsWith('/giris-terminal')
+      ? normalized
+      : `/giris-terminal${normalized}`;
+  }
+  return getGirisUrl(normalized);
+}
+
+/** Admin linki — production'da admin alt alanı, dev'de /admin */
+export function adminHref(path = '/'): string {
+  const stripped = normalizeAdminPath(path);
+  const devPath = stripped === '/' ? '/admin' : `/admin${stripped}`;
+  if (!isProductionHost()) return devPath;
+  return getAdminUrl(stripped);
 }
 
 /** Destek merkezi linki — production'da destek alt alanı, dev'de /destek yolu */
@@ -212,6 +302,24 @@ export function isOnOrganizerPanelHost(hostname: string): boolean {
     hostname.startsWith('panel.localhost') ||
     hostname.startsWith('organizer.localhost')
   );
+}
+
+/** İstemci: kapı tarama (giris) alt alanında mı? */
+export function isOnGirisHost(hostname: string): boolean {
+  const root = resolveProductionRootHost();
+  if (root) {
+    return hostname === `${GIRIS_SUBDOMAIN}.${root}`;
+  }
+  return hostname.startsWith('giris.localhost');
+}
+
+/** İstemci: admin alt alanında mı? */
+export function isOnAdminHost(hostname: string): boolean {
+  const root = resolveProductionRootHost();
+  if (root) {
+    return hostname === `${ADMIN_SUBDOMAIN}.${root}`;
+  }
+  return hostname.startsWith('admin.localhost');
 }
 
 /** Ana site linki — panel/destek alt alanından kök domain'e (biletfeed.com) */
