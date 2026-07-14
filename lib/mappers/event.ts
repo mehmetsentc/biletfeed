@@ -1,6 +1,7 @@
 import type { MockEvent } from '@/lib/data/mock-events';
 import { resolveCategoryImage } from '@/lib/data/category-images';
 import { getExternalPlatformLabel } from '@/lib/events/ticket-url';
+import { parsePerformersFromSeo } from '@/lib/organizator/event-metadata';
 
 function resolveCoverImage(coverImage: string, categorySlug: string): string {
   const trimmed = coverImage?.trim() ?? '';
@@ -59,6 +60,7 @@ export type EventWithRelations = {
   status?: string;
   rules?: string;
   stats?: unknown;
+  seo?: unknown;
 };
 
 export function toMockEvent(event: EventWithRelations): MockEvent {
@@ -104,7 +106,11 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     externalPlatform: event.externalPlatform ?? undefined,
     externalUrl: event.externalUrl ?? undefined,
     status: event.status as MockEvent['status'],
-    rules: event.rules?.trim() || undefined
+    rules: event.rules?.trim() || undefined,
+    performers: (() => {
+      const list = parsePerformersFromSeo(event.seo);
+      return list.length > 0 ? list : undefined;
+    })()
   };
 }
 

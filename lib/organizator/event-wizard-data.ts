@@ -1,6 +1,7 @@
 import type { Event, TicketType, Category, City, Venue } from '@prisma/client';
 
 import type { EventAnnouncementInput, EventRuleSetData } from '@/lib/event-rules/types';
+import { parsePerformersFromSeo } from '@/lib/organizator/event-metadata';
 
 type EventWithRelations = Event & {
   category: Category;
@@ -35,6 +36,10 @@ export interface EventWizardInitialData {
     capacity: string;
     sold: number;
     showLowStockBadge: boolean;
+  }>;
+  performers: Array<{
+    name: string;
+    type: 'person' | 'group';
   }>;
   eventRules: string;
   ruleSet: EventRuleSetData & { announcements: EventAnnouncementInput[] };
@@ -126,6 +131,7 @@ export function mapEventToWizardInitialData(
         showLowStockBadge: ticket.showLowStockBadge
       };
     }),
+    performers: parsePerformersFromSeo(event.seo),
     eventRules: event.rules?.trim() ?? '',
     ruleSet: {
       selectedRules: ruleSetData?.ruleSet?.selectedRules ?? [],

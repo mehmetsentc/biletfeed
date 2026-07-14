@@ -21,6 +21,7 @@ import {
   buildEventSchema
 } from '@/lib/seo/schemas';
 import { EventRulesSection } from '@/components/events/event-rules-section';
+import { EventPerformersSection } from '@/components/events/event-performers-section';
 import { EventSeriesSessions } from '@/components/events/event-series-sessions';
 import { getEventSeriesSessionsBySlug } from '@/lib/services/event-series';
 import { siteConfig } from '@/lib/config/site';
@@ -129,6 +130,10 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                     <p className="whitespace-pre-line">{event.description}</p>
                   </div>
                 </section>
+              )}
+
+              {event.performers && event.performers.length > 0 && (
+                <EventPerformersSection performers={event.performers} />
               )}
 
               {!isOnline && (

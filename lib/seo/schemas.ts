@@ -108,6 +108,14 @@ export function buildEventSchema(
           }
         },
     organizer: organizerSchema,
+    ...(event.performers?.length
+      ? {
+          performer: event.performers.map((p) => ({
+            '@type': p.type === 'group' ? ('MusicGroup' as const) : ('Person' as const),
+            name: p.name
+          }))
+        }
+      : {}),
     offers: {
       '@type': 'Offer',
       url: eventUrl,

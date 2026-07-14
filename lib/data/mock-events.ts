@@ -48,6 +48,8 @@ export interface MockEvent {
   status?: EventStatus;
   /** Organizatörün belirlediği etkinlik kuralları */
   rules?: string;
+  /** Sanatçı / katılımcı listesi (seo.performers) */
+  performers?: Array<{ name: string; type: 'person' | 'group' }>;
 }
 
 /** @deprecated Yalnızca geriye dönük import uyumluluğu — boş dizi */

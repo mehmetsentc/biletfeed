@@ -263,7 +263,14 @@ export function CreateOrganizerEventWizard({
   );
   const [onlineUrl, setOnlineUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [performers, setPerformers] = useState<PerformerRow[]>([]);
+  const [performers, setPerformers] = useState<PerformerRow[]>(
+    () =>
+      initialData?.performers.map((p, index) => ({
+        id: `perf-${index}-${p.name.toLowerCase().replace(/\s+/g, '-')}`,
+        name: p.name,
+        type: p.type
+      })) ?? []
+  );
   const [attendeeQuestions, setAttendeeQuestions] = useState<AttendeeQuestionRow[]>([]);
   const [preventQuestionCopy, setPreventQuestionCopy] = useState(false);
   const [accessPassword, setAccessPassword] = useState('');
