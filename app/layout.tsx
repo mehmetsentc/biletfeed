@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { AppSpeedInsights } from '@/components/analytics/speed-insights';
+import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { Providers } from '@/components/providers';
 import { ThemeInitScript } from '@/components/theme/theme-init-script';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
@@ -63,6 +64,7 @@ export default function RootLayout({
         />
         <Providers>{children}</Providers>
         <AppSpeedInsights />
+        <GoogleAnalytics />
       </body>
     </html>
   );
