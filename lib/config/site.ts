@@ -34,6 +34,7 @@ export const siteConfig = {
     instagram: process.env.NEXT_PUBLIC_INSTAGRAM_URL,
     facebook: process.env.NEXT_PUBLIC_FACEBOOK_URL,
     youtube: process.env.NEXT_PUBLIC_YOUTUBE_URL,
+    tiktok: process.env.NEXT_PUBLIC_TIKTOK_URL,
     organizerPanel: process.env.NEXT_PUBLIC_PANEL_URL || getPanelUrl(),
     supportCenter: process.env.NEXT_PUBLIC_SUPPORT_URL || getSupportUrl(),
     gateTerminal: process.env.NEXT_PUBLIC_GIRIS_URL || getGirisUrl(),

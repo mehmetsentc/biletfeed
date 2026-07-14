@@ -13,8 +13,19 @@ import { isSupportedCitySlug } from '@/lib/location/cities';
 
 export const metadata = createPageMetadata({
   title: 'Etkinlikler',
-  description: 'Tüm etkinlikleri keşfedin ve filtreleyin',
-  path: '/etkinlikler'
+  description:
+    'İstanbul, Ankara, İzmir ve tüm Türkiye genelindeki konser, festival, tiyatro, stand-up ve spor etkinliklerini keşfedin. Bilet Feed ile etkinlik biletinizi hemen alın.',
+  path: '/etkinlikler',
+  keywords: [
+    'etkinlikler',
+    'konser',
+    'festival',
+    'tiyatro',
+    'stand-up',
+    'spor etkinliği',
+    'etkinlik bilet',
+    'türkiye etkinlik'
+  ]
 });
 
 /** Scraper sonrası liste güncellensin */
