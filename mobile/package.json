@@ -4,7 +4,6 @@
   "private": true,
   "description": "BiletFeed Capacitor mobil kabuk — App Store ve Google Play",
   "scripts": {
-    "install": "npm install",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
