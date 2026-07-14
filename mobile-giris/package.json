@@ -1,0 +1,29 @@
+{
+  "name": "biletfeed-giris-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BiletFeed Giriş — QR bilet tarayıcı, iOS ve Android native kabuk",
+  "scripts": {
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:android": "npx cap open android",
+    "assets:generate": "npx @capacitor/assets generate --assetPath assets --iconBackgroundColor '#f97316' --iconBackgroundColorDark '#f97316' --splashBackgroundColor '#0a0a0a' --splashBackgroundColorDark '#0a0a0a'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/camera": "^6.0.2",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0",
+    "@capacitor/splash-screen": "^6.0.3",
+    "@capacitor/status-bar": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.0",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
