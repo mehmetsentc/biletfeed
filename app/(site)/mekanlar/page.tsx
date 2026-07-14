@@ -8,7 +8,10 @@ import { createPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata = createPageMetadata({
   title: 'Mekanlar',
-  path: '/mekanlar'
+  description:
+    'Türkiye genelindeki etkinlik mekanlarını keşfedin. Konser salonları, tiyatrolar, açık hava sahneleri ve festival alanlarındaki etkinlikleri Bilet Feed ile takip edin.',
+  path: '/mekanlar',
+  keywords: ['etkinlik mekanı', 'konser salonu', 'tiyatro', 'festival alanı', 'bilet feed mekan']
 });
 
 export default async function VenuesPage() {

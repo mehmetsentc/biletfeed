@@ -5,7 +5,10 @@ import { createPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata = createPageMetadata({
   title: 'Kategoriler',
-  path: '/kategoriler'
+  description:
+    'Konser, tiyatro, festival, stand-up, spor ve çocuk etkinlikleri dahil tüm kategorileri keşfedin. İlgi alanınıza göre Bilet Feed\'de etkinlik filtreleyin.',
+  path: '/kategoriler',
+  keywords: ['etkinlik kategorileri', 'konser', 'tiyatro', 'festival', 'stand-up', 'spor etkinliği']
 });
 
 export default async function CategoriesPage() {

@@ -39,6 +39,7 @@ export default async function FeedArticlePage({ params }: Props) {
     description: post.summary,
     image: [post.coverImage],
     datePublished: post.publishedAt,
+    dateModified: (post as { updatedAt?: string }).updatedAt ?? post.publishedAt,
     author: { '@type': 'Organization', name: post.authorName },
     publisher: {
       '@type': 'Organization',

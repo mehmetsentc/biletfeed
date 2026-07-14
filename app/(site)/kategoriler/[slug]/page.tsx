@@ -14,9 +14,12 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const categories = await getCategories();
   const cat = categories.find((c) => c.slug === slug);
+  const name = cat?.name || 'Kategori';
   return createPageMetadata({
-    title: cat?.name || 'Kategori',
-    path: `/kategoriler/${slug}`
+    title: name,
+    description: `Türkiye genelindeki ${name.toLowerCase()} etkinliklerini keşfedin ve bilet alın. Bilet Feed ile en güncel ${name.toLowerCase()} etkinliklerini takip edin.`,
+    path: `/kategoriler/${slug}`,
+    keywords: [name.toLowerCase(), `${name.toLowerCase()} bilet`, `${name.toLowerCase()} etkinlik`, 'bilet al']
   });
 }
 

@@ -8,7 +8,10 @@ import { createPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata = createPageMetadata({
   title: 'Organizatörler',
-  path: '/organizatorler'
+  description:
+    "Bilet Feed'deki etkinlik organizatörlerini keşfedin. Konser, festival ve tiyatro düzenleyen organizatörleri takip ederek etkinliklerinden haberdar olun.",
+  path: '/organizatorler',
+  keywords: ['etkinlik organizatör', 'konser organizatör', 'festival organizatör', 'bilet feed organizatör']
 });
 
 export default async function OrganizersPage() {

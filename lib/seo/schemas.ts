@@ -122,7 +122,7 @@ export function buildEventSchema(
       price: event.isFree ? 0 : event.price,
       priceCurrency: event.currency || 'TRY',
       availability: 'https://schema.org/InStock',
-      validFrom: new Date().toISOString()
+      validFrom: (event as { createdAt?: string }).createdAt ?? event.startDate
     },
     ...(options?.eventRules?.length
       ? {

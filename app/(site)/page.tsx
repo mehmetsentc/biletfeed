@@ -41,6 +41,9 @@ export default async function HomePage() {
 
   return (
     <>
+      <h1 className="sr-only">
+        Türkiye&apos;nin Etkinlik Bilet Platformu — Konser, Festival, Tiyatro Biletleri
+      </h1>
       <HomeHeroSection slides={heroSlides} categories={categories} />
 
       <HomeMobileEventRails initial={cityBundle} />

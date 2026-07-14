@@ -40,7 +40,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = `${city.name} Etkinlikleri`;
   const seo = getCitySeoContent(city.slug);
-  const description = seo.intro.slice(0, 160);
+  // Cümle ortasında kesmemek için tam intro kullan (Google 160+ karakteri de kabul eder)
+  const description = seo.intro;
   const url = `${siteConfig.url}/${cityEtkinlik}`;
 
   return {
@@ -57,7 +58,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'website',
       images: [
         {
-          url: `${siteConfig.url}/og-default.png`,
+          url: `${siteConfig.url}/og-default.jpg`,
           width: 1200,
           height: 630,
           alt: title
@@ -165,6 +166,7 @@ export default async function CityEventsPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventListJsonLd) }}
       />
+      <h1 className="sr-only">{city.name} Etkinlikleri — Konser, Festival ve Daha Fazlası</h1>
       <Suspense fallback={<CityPageLoading cityName={city.name} />}>
         <EventsPageClient
           events={events}

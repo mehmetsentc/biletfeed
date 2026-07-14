@@ -29,7 +29,8 @@ function buildAlternates(path: string): Metadata['alternates'] {
   return {
     canonical: url,
     languages: {
-      'tr-TR': url
+      'tr-TR': url,
+      'x-default': url
     }
   };
 }

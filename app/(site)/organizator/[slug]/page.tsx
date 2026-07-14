@@ -19,9 +19,14 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const org = await getOrganizerBySlug(slug);
+  const name = org?.name || 'Organizatör';
   return createPageMetadata({
-    title: org?.name || 'Organizatör',
-    path: `/organizator/${slug}`
+    title: name,
+    description: org?.description
+      ? org.description.slice(0, 155)
+      : `${name} tarafından düzenlenen etkinlikleri keşfedin. Bilet Feed üzerinden bilet alın ve ${name} etkinliklerini takip edin.`,
+    path: `/organizator/${slug}`,
+    keywords: [name, `${name} etkinlik`, `${name} bilet`, 'etkinlik organizatör']
   });
 }
 
