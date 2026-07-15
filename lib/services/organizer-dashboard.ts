@@ -54,9 +54,87 @@ export async function getOrganizerEvents(organizerId: string) {
   });
 }
 
+export async function getOrganizerEventOptions(organizerId: string) {
+  await ensureDbConnection();
+  const events = await prisma.event.findMany({
+    where: { organizerId, deletedAt: null },
+    select: { id: true, title: true, startDate: true },
+    orderBy: { startDate: 'desc' },
+    take: 100
+  });
+  return events;
+}
+
+export async function getOrganizerEventSummary(
+  organizerId: string,
+  eventId?: string
+) {
+  await ensureDbConnection();
+  const eventFilter = eventId ? { eventId } : { event: { organizerId } };
+
+  const [
+    paidTickets,
+    invitationTickets,
+    checkedIn,
+    paidNotEntered,
+    invitedNotEntered
+  ] = await Promise.all([
+    // Satın alınan biletler (davetiye hariç)
+    prisma.purchasedTicket.count({
+      where: {
+        ...eventFilter,
+        deletedAt: null,
+        status: { in: ['VALID', 'USED'] },
+        order: { paymentProvider: { not: 'invitation' } }
+      }
+    }),
+    // Davetiye biletleri
+    prisma.purchasedTicket.count({
+      where: {
+        ...eventFilter,
+        deletedAt: null,
+        status: { in: ['VALID', 'USED'] },
+        order: { paymentProvider: 'invitation' }
+      }
+    }),
+    // Giriş yapılanlar (tüm biletler)
+    prisma.purchasedTicket.count({
+      where: {
+        ...eventFilter,
+        deletedAt: null,
+        status: { in: ['VALID', 'USED'] },
+        entryCount: { gt: 0 }
+      }
+    }),
+    // Satın alınıp giriş yapılmayanlar
+    prisma.purchasedTicket.count({
+      where: {
+        ...eventFilter,
+        deletedAt: null,
+        status: { in: ['VALID', 'USED'] },
+        entryCount: 0,
+        order: { paymentProvider: { not: 'invitation' } }
+      }
+    }),
+    // Davetiye gönderilip giriş yapılmayanlar
+    prisma.purchasedTicket.count({
+      where: {
+        ...eventFilter,
+        deletedAt: null,
+        status: { in: ['VALID', 'USED'] },
+        entryCount: 0,
+        order: { paymentProvider: 'invitation' }
+      }
+    })
+  ]);
+
+  return { paidTickets, invitationTickets, checkedIn, paidNotEntered, invitedNotEntered };
+}
+
 export async function getOrganizerOrders(
   organizerId: string,
-  category: SalesCategoryFilter = 'all'
+  category: SalesCategoryFilter = 'all',
+  eventId?: string
 ) {
   await ensureDbConnection();
   const orders = await prisma.order.findMany({
@@ -64,7 +142,8 @@ export async function getOrganizerOrders(
       organizerId,
       deletedAt: null,
       paymentProvider: { not: 'invitation' },
-      ...(category === 'all' ? {} : { status: 'paid' as const })
+      ...(category === 'all' ? {} : { status: 'paid' as const }),
+      ...(eventId ? { eventId } : {})
     },
     include: {
       event: { select: { title: true, slug: true } },
@@ -74,7 +153,7 @@ export async function getOrganizerOrders(
       }
     },
     orderBy: { createdAt: 'desc' },
-    take: 100
+    take: 200
   });
 
   if (category === 'all') return orders;
