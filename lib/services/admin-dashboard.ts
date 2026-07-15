@@ -118,21 +118,67 @@ export async function getAdminUsers(limit = 100) {
   });
 }
 
-export async function getAdminOrders(limit = 100) {
+export type OrderKategori = 'ucretli' | 'ucretsiz' | 'davetiye';
+
+export async function getAdminOrders(opts?: {
+  eventId?: string;
+  kategori?: OrderKategori;
+  limit?: number;
+}) {
   await ensureDbConnection();
+  const limit = opts?.limit ?? 200;
+
+  const whereBase: Record<string, unknown> = { deletedAt: null };
+  if (opts?.eventId) whereBase.eventId = opts.eventId;
+
+  // Kategori filtresi
+  if (opts?.kategori === 'ucretli') whereBase.total = { gt: 0 };
+  else if (opts?.kategori === 'ucretsiz') {
+    whereBase.total = 0;
+    whereBase.purchasedTickets = { none: { invitation: { isNot: null } } };
+  } else if (opts?.kategori === 'davetiye') {
+    whereBase.purchasedTickets = { some: { invitation: { isNot: null } } };
+  }
+
   try {
     return await prisma.order.findMany({
-      where: { deletedAt: null },
+      where: whereBase,
       include: {
-        event: { select: { title: true } },
+        event: { select: { id: true, title: true } },
         user: { select: { displayName: true, email: true } },
-        organizer: { select: { name: true } }
+        organizer: { select: { name: true } },
+        items: {
+          include: {
+            ticketType: { select: { name: true, price: true, type: true } }
+          }
+        },
+        purchasedTickets: {
+          select: { invitation: { select: { id: true } } }
+        }
       },
       orderBy: { createdAt: 'desc' },
       take: limit
     });
   } catch (error) {
     console.error('[admin] getAdminOrders failed:', error);
+    return [];
+  }
+}
+
+export async function getAdminOrderEventList() {
+  await ensureDbConnection();
+  try {
+    const events = await prisma.event.findMany({
+      where: {
+        deletedAt: null,
+        orders: { some: { deletedAt: null } }
+      },
+      select: { id: true, title: true },
+      orderBy: { startDate: 'desc' },
+      take: 200
+    });
+    return events;
+  } catch {
     return [];
   }
 }

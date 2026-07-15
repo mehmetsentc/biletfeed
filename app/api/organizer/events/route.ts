@@ -16,6 +16,7 @@ import {
 } from '@/lib/api/zod-validation';
 import { createOrganizerEvent, createOrganizerEventSeries } from '@/lib/services/organizer-events';
 import { listOrganizerEventsDetailed } from '@/lib/services/organizer-events';
+import { setEventArtists } from '@/lib/services/artist';
 
 const ticketCategorySchema = z.object({
   name: z.string().trim().min(1, 'Kategori adı zorunludur').max(200),
@@ -27,7 +28,9 @@ const ticketCategorySchema = z.object({
 
 const performerSchema = z.object({
   name: z.string().min(1).max(200),
-  type: z.enum(['person', 'group'])
+  type: z.enum(['person', 'group']),
+  artistId: z.string().uuid().optional(),
+  role: z.string().max(100).optional()
 });
 
 const attendeeQuestionSchema = z.object({
@@ -164,6 +167,10 @@ export async function POST(request: NextRequest) {
       organizerTermsAccepted: parsed.data.organizerTermsAccepted
     };
 
+    const artistLinks = (parsed.data.performers ?? [])
+      .filter((p) => p.artistId)
+      .map((p, i) => ({ artistId: p.artistId!, role: p.role ?? '', sortOrder: i }));
+
     if (parsed.data.sessions && parsed.data.sessions.length >= 2) {
       const events = await createOrganizerEventSeries({
         ...baseInput,
@@ -173,6 +180,11 @@ export async function POST(request: NextRequest) {
         }))
       });
 
+      // Link artists to each session event
+      if (artistLinks.length > 0) {
+        await Promise.all(events.map((ev) => setEventArtists(ev.id, artistLinks)));
+      }
+
       return NextResponse.json({ success: true, events, event: events[0] });
     }
 
@@ -181,6 +193,10 @@ export async function POST(request: NextRequest) {
       startDate: new Date(parsed.data.startDate),
       endDate: new Date(parsed.data.endDate)
     });
+
+    if (artistLinks.length > 0) {
+      await setEventArtists(event.id, artistLinks);
+    }
 
     return NextResponse.json({ success: true, event });
   } catch (err) {

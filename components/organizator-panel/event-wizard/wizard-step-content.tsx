@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowDown, ArrowUp, FileText, Plus, Trash2, Users } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowDown, ArrowUp, FileText, ImageIcon, Loader2, Plus, Search, Trash2, Users } from 'lucide-react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,13 +20,346 @@ interface WizardStepContentProps {
   onPerformersChange: (performers: PerformerRow[]) => void;
 }
 
-function newPerformer(): PerformerRow {
-  return {
-    id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
-    name: '',
-    type: 'person'
-  };
+// ─── Artist search result shape (from GET /api/artists?q=...) ────────────────
+
+interface ArtistResult {
+  id: string;
+  name: string;
+  image: string | null;
+  type: string;
+  followerCount: number;
 }
+
+// ─── Artist picker input ──────────────────────────────────────────────────────
+
+function ArtistPickerInput({
+  onAdd
+}: {
+  onAdd: (row: PerformerRow) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<ArtistResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [draftType, setDraftType] = useState<'person' | 'group'>('person');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Debounced search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim() || query.length < 2) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/artists?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setResults(data.artists ?? []);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  function selectArtist(artist: ArtistResult) {
+    onAdd({
+      id: `perf-${artist.id}`,
+      artistId: artist.id,
+      name: artist.name,
+      type: artist.type === 'group' ? 'group' : 'person',
+      image: artist.image ?? undefined,
+      role: ''
+    });
+    setQuery('');
+    setResults([]);
+    setOpen(false);
+  }
+
+  async function createAndAdd() {
+    if (!query.trim()) return;
+    try {
+      const res = await fetch('/api/artists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: query.trim(), type: draftType })
+      });
+      if (!res.ok) throw new Error('Oluşturulamadı');
+      const { artist } = await res.json();
+      onAdd({
+        id: `perf-${artist.id}`,
+        artistId: artist.id,
+        name: artist.name,
+        type: artist.type === 'group' ? 'group' : 'person',
+        image: artist.image ?? undefined,
+        role: ''
+      });
+      setQuery('');
+      setResults([]);
+      setOpen(false);
+    } catch {
+      // Fallback: add without artistId
+      onAdd({
+        id: `perf-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        name: query.trim(),
+        type: draftType,
+        role: ''
+      });
+      setQuery('');
+      setOpen(false);
+    }
+  }
+
+  return (
+    <div ref={boxRef} className="relative">
+      <div className="grid gap-3 sm:grid-cols-[160px_1fr_auto]">
+        <WizardSelect
+          value={draftType}
+          onChange={(e) => setDraftType(e.target.value as 'person' | 'group')}
+        >
+          <option value="person">Kişi (Şahıs)</option>
+          <option value="group">Grup / Organizasyon</option>
+        </WizardSelect>
+
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="İsim ara veya yeni ekle..."
+            className="h-11 rounded-lg pl-9"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (results.length > 0) selectArtist(results[0]);
+                else createAndAdd();
+              }
+              if (e.key === 'Escape') setOpen(false);
+            }}
+            onFocus={() => results.length > 0 && setOpen(true)}
+          />
+          {loading && (
+            <Loader2 className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-muted-foreground" />
+          )}
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11"
+          onClick={() => {
+            if (results.length > 0) selectArtist(results[0]);
+            else createAndAdd();
+          }}
+        >
+          <Plus className="size-4" />
+        </Button>
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute left-0 right-0 z-50 mt-1 overflow-hidden rounded-xl border border-border bg-popover shadow-lg sm:left-[172px]">
+          {results.map((artist) => (
+            <button
+              key={artist.id}
+              type="button"
+              onClick={() => selectArtist(artist)}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors"
+            >
+              {artist.image ? (
+                <Image
+                  src={artist.image}
+                  alt={artist.name}
+                  width={32}
+                  height={32}
+                  className="size-8 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <div className="size-8 rounded-full bg-muted shrink-0 flex items-center justify-center text-xs font-bold text-muted-foreground">
+                  {artist.name[0]?.toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{artist.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {artist.type === 'group' ? 'Grup' : 'Kişi'} · {artist.followerCount} takipçi
+                </p>
+              </div>
+            </button>
+          ))}
+          {results.length === 0 && query.trim().length >= 2 && !loading && (
+            <button
+              type="button"
+              onClick={createAndAdd}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors"
+            >
+              <div className="size-8 rounded-full bg-primary/10 shrink-0 flex items-center justify-center">
+                <Plus className="size-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">"{query.trim()}" — Yeni sanatçı ekle</p>
+                <p className="text-xs text-muted-foreground">Sisteme yeni kayıt oluşturulacak</p>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Individual performer row ─────────────────────────────────────────────────
+
+function PerformerItem({
+  performer,
+  index,
+  total,
+  onMove,
+  onRemove,
+  onUpdate
+}: {
+  performer: PerformerRow;
+  index: number;
+  total: number;
+  onMove: (id: string, dir: 'up' | 'down') => void;
+  onRemove: (id: string) => void;
+  onUpdate: (id: string, patch: Partial<PerformerRow>) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleImageUpload(file: File) {
+    if (!performer.artistId) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`/api/artists/${performer.artistId}/image`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) throw new Error('Yükleme başarısız');
+      const { url } = await res.json();
+      onUpdate(performer.id, { image: url });
+    } catch {
+      alert('Görsel yüklenemedi.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <li className="flex items-start gap-3 rounded-lg bg-background px-3 py-3 ring-1 ring-border">
+      {/* Avatar / upload */}
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          title={performer.artistId ? 'Görsel yükle' : undefined}
+          disabled={!performer.artistId || uploading}
+          onClick={() => fileRef.current?.click()}
+          className={`size-10 rounded-full overflow-hidden bg-muted flex items-center justify-center ${performer.artistId ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+        >
+          {performer.image ? (
+            <Image
+              src={performer.image}
+              alt={performer.name}
+              width={40}
+              height={40}
+              className="size-10 object-cover"
+            />
+          ) : uploading ? (
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          ) : (
+            <ImageIcon className="size-4 text-muted-foreground" />
+          )}
+        </button>
+        {performer.artistId && (
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImageUpload(f);
+            }}
+          />
+        )}
+      </div>
+
+      {/* Name + role */}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <p className="text-sm font-medium leading-tight">{performer.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {performer.type === 'group' ? 'Grup' : 'Kişi'}
+          {performer.artistId && (
+            <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-primary text-[10px] font-medium">
+              Kayıtlı
+            </span>
+          )}
+        </p>
+        <Input
+          value={performer.role ?? ''}
+          onChange={(e) => onUpdate(performer.id, { role: e.target.value })}
+          placeholder="Rol (örn: Başrolde, DJ, Konuşmacı...)"
+          className="h-8 text-xs rounded-md"
+        />
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col items-center gap-1 shrink-0">
+        <button
+          type="button"
+          disabled={index === 0}
+          onClick={() => onMove(performer.id, 'up')}
+          className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+          aria-label="Yukarı taşı"
+        >
+          <ArrowUp className="size-4" />
+        </button>
+        <button
+          type="button"
+          disabled={index === total - 1}
+          onClick={() => onMove(performer.id, 'down')}
+          className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+          aria-label="Aşağı taşı"
+        >
+          <ArrowDown className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onRemove(performer.id)}
+          className="rounded p-1 text-destructive hover:bg-destructive/10"
+          aria-label="Sil"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
+    </li>
+  );
+}
+
+// ─── Main step component ──────────────────────────────────────────────────────
 
 export function WizardStepContent({
   description,
@@ -33,17 +367,14 @@ export function WizardStepContent({
   performers,
   onPerformersChange
 }: WizardStepContentProps) {
-  const [draftName, setDraftName] = useState('');
-  const [draftType, setDraftType] = useState<'person' | 'group'>('person');
-
-  function addPerformer() {
-    if (!draftName.trim()) return;
-    onPerformersChange([
-      ...performers,
-      { id: newPerformer().id, name: draftName.trim(), type: draftType }
-    ]);
-    setDraftName('');
-  }
+  const addPerformer = useCallback(
+    (row: PerformerRow) => {
+      // Prevent duplicates by artistId
+      if (row.artistId && performers.some((p) => p.artistId === row.artistId)) return;
+      onPerformersChange([...performers, row]);
+    },
+    [performers, onPerformersChange]
+  );
 
   function removePerformer(id: string) {
     onPerformersChange(performers.filter((p) => p.id !== id));
@@ -59,80 +390,31 @@ export function WizardStepContent({
     onPerformersChange(copy);
   }
 
+  function updatePerformer(id: string, patch: Partial<PerformerRow>) {
+    onPerformersChange(performers.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }
+
   return (
     <div className="space-y-6">
       <WizardFormSection
         title="Katılımcılar / Sanatçılar"
-        description="Festival, konser veya spor etkinliklerinde katılımcıları ekleyin. Sıralamayı yukarı/aşağı oklarla değiştirebilirsiniz."
+        description="Sanatçı veya katılımcı arayın; bulunamazsa otomatik profil oluşturulur. Görsel için satırdaki avatara tıklayın."
         icon={Users}
       >
-        <div className="grid gap-3 sm:grid-cols-[160px_1fr_auto]">
-          <WizardSelect
-            value={draftType}
-            onChange={(e) => setDraftType(e.target.value as 'person' | 'group')}
-          >
-            <option value="person">Kişi (Şahıs)</option>
-            <option value="group">Grup / Organizasyon</option>
-          </WizardSelect>
-          <Input
-            value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
-            placeholder="İsim girin"
-            className="h-11 rounded-lg"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                addPerformer();
-              }
-            }}
-          />
-          <Button type="button" variant="outline" onClick={addPerformer} className="h-11">
-            <Plus className="size-4" />
-          </Button>
-        </div>
+        <ArtistPickerInput onAdd={addPerformer} />
 
         {performers.length > 0 && (
-          <ul className="mt-4 space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+          <ul className="mt-4 space-y-2">
             {performers.map((performer, index) => (
-              <li
+              <PerformerItem
                 key={performer.id}
-                className="flex items-center justify-between gap-2 rounded-lg bg-background px-3 py-2 ring-1 ring-border"
-              >
-                <div>
-                  <p className="text-sm font-medium text-foreground">{performer.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {performer.type === 'person' ? 'Kişi' : 'Grup'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    disabled={index === 0}
-                    onClick={() => movePerformer(performer.id, 'up')}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
-                    aria-label="Yukarı taşı"
-                  >
-                    <ArrowUp className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={index === performers.length - 1}
-                    onClick={() => movePerformer(performer.id, 'down')}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
-                    aria-label="Aşağı taşı"
-                  >
-                    <ArrowDown className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removePerformer(performer.id)}
-                    className="rounded p-1 text-destructive hover:bg-destructive/10"
-                    aria-label="Sil"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-              </li>
+                performer={performer}
+                index={index}
+                total={performers.length}
+                onMove={movePerformer}
+                onRemove={removePerformer}
+                onUpdate={updatePerformer}
+              />
             ))}
           </ul>
         )}

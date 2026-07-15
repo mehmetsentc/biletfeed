@@ -270,6 +270,7 @@ model User {
   feedComments     FeedComment[]
   feedViews        FeedView[]
   feedMemories     FeedMemory[]
+  artistFollows    ArtistFollow[]
 
   @@index([role])
   @@index([deletedAt])
@@ -466,6 +467,7 @@ model Event {
   homeBanners      HomeBanner[]
   ruleSet          EventRuleSet?
   announcements    EventAnnouncement[]
+  artists          EventArtist[]
 
   @@index([status])
   @@index([organizerId])
@@ -1446,4 +1448,57 @@ model EventAnnouncement {
 
   @@index([eventId, sortOrder])
   @@map("event_announcements")
+}
+
+// ─── Artist Profile System ────────────────────────────────────────────────────
+
+model Artist {
+  id            String    @id @default(uuid()) @db.Uuid
+  slug          String    @unique
+  name          String
+  bio           String    @default("")
+  image         String?
+  type          String    @default("person") // "person" | "group"
+  socialLinks   Json      @default("{}") @map("social_links")
+  verified      Boolean   @default(false)
+  followerCount Int       @default(0) @map("follower_count")
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  followers ArtistFollow[]
+  events    EventArtist[]
+
+  @@index([slug])
+  @@index([deletedAt])
+  @@map("artists")
+}
+
+model ArtistFollow {
+  userId    String   @map("user_id") @db.Uuid
+  artistId  String   @map("artist_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@id([userId, artistId])
+  @@index([userId])
+  @@index([artistId])
+  @@map("artist_follows")
+}
+
+model EventArtist {
+  eventId   String @map("event_id") @db.Uuid
+  artistId  String @map("artist_id") @db.Uuid
+  role      String @default("")
+  sortOrder Int    @default(0) @map("sort_order")
+
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, artistId])
+  @@index([eventId])
+  @@index([artistId])
+  @@map("event_artists")
 }

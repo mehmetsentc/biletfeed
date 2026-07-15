@@ -93,6 +93,23 @@ export async function uploadAdminImage(
   return uploadPublicBuffer(getBucketName()!, path, buffer, contentType);
 }
 
+export async function uploadArtistImage(
+  artistId: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  if (!isFirebaseStorageUploadConfigured()) {
+    throw new Error('Firebase Storage yapılandırılmamış');
+  }
+  const ext = contentType.includes('png')
+    ? 'png'
+    : contentType.includes('webp')
+      ? 'webp'
+      : 'jpg';
+  const path = `artists/${artistId}/profile.${ext}`;
+  return uploadPublicBuffer(getBucketName()!, path, buffer, contentType);
+}
+
 /** Admin feed galeri — görsel veya video */
 export async function uploadAdminFeedMedia(
   buffer: Buffer,

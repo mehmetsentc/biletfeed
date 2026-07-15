@@ -28,6 +28,12 @@ export default async function OrganizatorEditEventPage({ params }: PageProps) {
       ticketTypes: {
         where: { deletedAt: null },
         orderBy: { price: 'asc' }
+      },
+      artists: {
+        include: {
+          artist: { select: { id: true, name: true, type: true, image: true } }
+        },
+        orderBy: { sortOrder: 'asc' }
       }
     }
   });

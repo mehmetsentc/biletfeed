@@ -1,4 +1,4 @@
-import type { Event, TicketType, Category, City, Venue } from '@prisma/client';
+import type { Event, TicketType, Category, City, Venue, Artist } from '@prisma/client';
 
 import type { EventAnnouncementInput, EventRuleSetData } from '@/lib/event-rules/types';
 import { parsePerformersFromSeo } from '@/lib/organizator/event-metadata';
@@ -8,6 +8,12 @@ type EventWithRelations = Event & {
   city: City;
   venue: Venue | null;
   ticketTypes: TicketType[];
+  artists?: Array<{
+    artistId: string;
+    role: string;
+    sortOrder: number;
+    artist: Pick<Artist, 'id' | 'name' | 'type' | 'image'>;
+  }>;
 };
 
 export interface EventWizardInitialData {
@@ -37,9 +43,13 @@ export interface EventWizardInitialData {
     sold: number;
     showLowStockBadge: boolean;
   }>;
+  tags: string[];
   performers: Array<{
     name: string;
     type: 'person' | 'group';
+    artistId?: string;
+    image?: string;
+    role?: string;
   }>;
   eventRules: string;
   ruleSet: EventRuleSetData & { announcements: EventAnnouncementInput[] };
@@ -47,10 +57,22 @@ export interface EventWizardInitialData {
 
 function toLocalDateParts(value: Date | string): { date: string; time: string } {
   const d = new Date(value);
-  const pad = (n: number) => String(n).padStart(2, '0');
+  // DB stores UTC; convert to Turkey local time (Europe/Istanbul = UTC+3/+4)
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  const hour = get('hour') === '24' ? '00' : get('hour'); // midnight edge case
   return {
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    time: `${hour}:${get('minute')}`
   };
 }
 
@@ -131,7 +153,22 @@ export function mapEventToWizardInitialData(
         showLowStockBadge: ticket.showLowStockBadge
       };
     }),
-    performers: parsePerformersFromSeo(event.seo),
+    tags: event.tags ?? [],
+    performers: (() => {
+      // Prefer EventArtist relations (from new system); fall back to seo JSON
+      if (event.artists && event.artists.length > 0) {
+        return [...event.artists]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((ea) => ({
+            name: ea.artist.name,
+            type: (ea.artist.type === 'group' ? 'group' : 'person') as 'person' | 'group',
+            artistId: ea.artist.id,
+            image: ea.artist.image ?? undefined,
+            role: ea.role
+          }));
+      }
+      return parsePerformersFromSeo(event.seo).map((p) => ({ ...p }));
+    })(),
     eventRules: event.rules?.trim() ?? '',
     ruleSet: {
       selectedRules: ruleSetData?.ruleSet?.selectedRules ?? [],
