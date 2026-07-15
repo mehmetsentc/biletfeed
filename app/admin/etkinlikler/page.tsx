@@ -10,6 +10,7 @@ import { isUpcomingEvent } from '@/lib/events/upcoming';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EventFilters } from '@/components/admin/event-filters';
+import { CancelEventButton } from '@/components/admin/cancel-event-button';
 
 export default async function AdminEventsPage({
   searchParams
@@ -113,14 +114,23 @@ export default async function AdminEventsPage({
                   <td className="p-3 text-sm">{event.city}</td>
                   <td className="p-3 text-xs text-muted-foreground">{event.organizer}</td>
                   <td className="p-3">
-                    <Badge variant={upcoming ? 'success' : 'secondary'} className="text-xs">
-                      {upcoming ? 'Yayında' : 'Geçmiş'}
-                    </Badge>
+                    {event.status === 'cancelled' ? (
+                      <Badge variant="destructive" className="text-xs">İptal</Badge>
+                    ) : upcoming ? (
+                      <Badge variant="success" className="text-xs">Yayında</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">Geçmiş</Badge>
+                    )}
                   </td>
                   <td className="p-3">
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={`/admin/etkinlikler/${event.id}`}>Düzenle</Link>
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/admin/etkinlikler/${event.id}`}>Düzenle</Link>
+                      </Button>
+                      {event.status !== 'cancelled' && (
+                        <CancelEventButton eventId={event.id} eventTitle={event.title} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

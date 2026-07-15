@@ -24,7 +24,7 @@ export async function listAdminEditorEvents(filters: AdminEventEditorFilters = {
   const where: Prisma.EventWhereInput = {
     deletedAt: null,
     listingType: 'internal',
-    status: 'published',
+    status: { in: ['published', 'cancelled'] },
     ...(filters.upcomingOnly !== false ? upcomingStartFilter(now) : {}),
     ...(filters.kategori ? { category: { slug: filters.kategori } } : {}),
     ...(filters.sehir ? { city: { slug: filters.sehir } } : {}),
