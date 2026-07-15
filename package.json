@@ -9,6 +9,7 @@
     "dev:fast": "npm run dev:kill && DEV_SKIP_CACHE_WIPE=1 sh scripts/dev-start.sh",
     "start:local": "npm run build && npm run start",
     "build": "prisma generate && next build",
+    "vercel-build": "tsx scripts/migrate-deploy.ts && prisma generate && next build",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "prisma generate",
