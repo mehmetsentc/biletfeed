@@ -1,3 +1,5 @@
+import { getGirisUrl, getPanelUrl } from '@/lib/config/domain';
+
 export type HelpArticleSection = {
   heading?: string;
   paragraphs: string[];
@@ -20,6 +22,9 @@ export type HelpCategory = {
   description: string;
   icon: 'faq' | 'ticket' | 'event' | 'payment' | 'account' | 'cancel';
 };
+
+const panelUrl = getPanelUrl('/baslangic');
+const girisUrl = getGirisUrl('/');
 
 export const organizerHelpCategories: HelpCategory[] = [
   {
@@ -67,17 +72,18 @@ export const organizerHelpArticles: HelpArticle[] = [
     categorySlug: 'sss',
     summary: 'panel.biletfeed.com üzerinden giriş ve oturum paylaşımı',
     popular: true,
-    updatedAt: '2026-07-01',
+    updatedAt: '2026-07-16',
     sections: [
       {
         paragraphs: [
-          'Organizatör paneline panel.biletfeed.com adresinden erişebilirsiniz. Ana sitede (biletfeed.com) oturum açtıysanız aynı hesap panelde de geçerlidir.',
+          `Organizatör paneline ${panelUrl} adresinden erişebilirsiniz. Ana sitede (biletfeed.com) oturum açtıysanız aynı hesap panelde de geçerlidir.`,
           'Giriş yaptıktan sonra sol menüden etkinliklerinizi, satışlarınızı ve bilet tarama ekranını yönetebilirsiniz.'
         ],
         bullets: [
           'Tarayıcıda biletfeed.com → Giriş Yap',
-          'Ardından panel.biletfeed.com/baslangic adresine gidin',
-          'Organizasyon profiliniz yoksa kurulum sihirbazı açılır'
+          `Ardından ${panelUrl} adresine gidin`,
+          'Organizasyon profiliniz yoksa kurulum sihirbazı açılır',
+          `Kapı ekibi için ayrı adres: ${girisUrl}`
         ]
       }
     ]
@@ -86,20 +92,21 @@ export const organizerHelpArticles: HelpArticle[] = [
     slug: 'qr-tarama',
     title: 'QR kod ile bilet tarama nasıl yapılır?',
     categorySlug: 'bilet',
-    summary: 'Kapı girişinde QR okuma ve misafir bilgilerini görüntüleme',
+    summary: 'Kapı terminali (giris.biletfeed.com) ve panelden QR okuma',
     popular: true,
-    updatedAt: '2026-07-01',
+    updatedAt: '2026-07-16',
     sections: [
       {
         paragraphs: [
-          'Panel → Bilet Tara menüsünden kamera ile QR okutabilir veya kodu manuel girebilirsiniz.',
-          'Başarılı taramada misafir adı, bilet türü, etkinlik adı ve giriş durumu ekranda görünür. Her tarama giriş kaydına eklenir.'
+          `Kapı görevlileri ${girisUrl} adresinden kapı kodu ile giriş yapar — paneli kullanmaları gerekmez.`,
+          'Organizatör olarak Panel → Bilet Tara ekranından “Kod oluştur” / “Giriş linki” ile ekibe kod paylaşın. Kendiniz de aynı ekrandan kamera ile tarama yapabilirsiniz.',
+          'Başarılı taramada misafir adı, bilet türü, etkinlik adı ve giriş durumu ekranda görünür.'
         ],
         bullets: [
-          'Etkinlik seçin → Taramayı Başlat',
+          'Panel → Bilet Tara → Kapı kodu oluştur → ekibe link gönder',
+          `Kapı ekibi: ${girisUrl} → kodu yapıştır veya linke tıkla`,
           'QR kodu kameraya gösterin',
-          'Yeşil onay: giriş yapıldı · Kırmızı: geçersiz veya kullanılmış bilet',
-          'Davetiye biletlerinde "Davetiye" etiketi görünür'
+          'Yeşil onay: giriş yapıldı · Kırmızı: geçersiz veya kullanılmış bilet'
         ]
       }
     ]

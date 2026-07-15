@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Plus, ScanLine } from 'lucide-react';
+import { ExternalLink, Plus, ScanLine } from 'lucide-react';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerSalesStats } from '@/lib/services/organizer-sales-stats';
@@ -9,6 +9,7 @@ import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats
 import { SalesStatsGrid } from '@/components/organizator-panel/sales-stats-grid';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getGirisUrl } from '@/lib/config/domain';
 
 export default async function OrganizatorHomePage() {
   const session = await requireOrganizer();
@@ -19,6 +20,7 @@ export default async function OrganizatorHomePage() {
     getOrganizerSalesStats(organizer.id),
     getOrganizerCheckInStats(organizer.id)
   ]);
+  const gateTerminalUrl = getGirisUrl('/');
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -48,6 +50,25 @@ export default async function OrganizatorHomePage() {
           </Button>
         </div>
       </div>
+
+      <Card className="border border-primary/20 bg-primary/5 shadow-sm">
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Kapı ekibi terminali</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Görevliler panele girmeden{' '}
+              <span className="font-medium text-foreground">giris.biletfeed.com</span>{' '}
+              üzerinden tarar. Kod/link: Bilet Tara ekranından üretin.
+            </p>
+          </div>
+          <Button asChild variant="outline" className="shrink-0 gap-2 font-medium">
+            <a href={gateTerminalUrl} target="_blank" rel="noopener noreferrer">
+              Kapı terminalini aç
+              <ExternalLink className="size-4" />
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
 
       <SalesStatsGrid initial={salesStats} />
 

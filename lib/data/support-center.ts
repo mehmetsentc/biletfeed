@@ -1,5 +1,5 @@
 import { companyLegal } from '@/lib/config/company';
-import { getPanelUrl, getSupportUrl } from '@/lib/config/domain';
+import { getGirisUrl, getPanelUrl, getSupportUrl } from '@/lib/config/domain';
 import { siteConfig } from '@/lib/config/site';
 
 export type SupportArticleSection = {
@@ -34,6 +34,7 @@ export type SupportCategory = {
 };
 
 const panelUrl = getPanelUrl('/baslangic');
+const girisUrl = getGirisUrl('/');
 const siteUrl = siteConfig.url.replace(/\/$/, '');
 
 export const supportCategories: SupportCategory[] = [
@@ -107,16 +108,17 @@ export const supportArticles: SupportArticle[] = [
   },
   {
     slug: 'biletfeed-ve-panel-farki',
-    title: 'Ana site ile organizatör paneli arasındaki fark nedir?',
+    title: 'Ana site, panel ve kapı terminali arasındaki fark nedir?',
     categorySlug: 'sss',
-    summary: 'biletfeed.com ve panel.biletfeed.com kullanım alanları',
+    summary: 'biletfeed.com, panel.biletfeed.com ve giris.biletfeed.com',
     popular: true,
-    updatedAt: '2026-07-01',
+    updatedAt: '2026-07-16',
     sections: [
       {
         paragraphs: [
           `${siteUrl} katılımcılar içindir: etkinlik keşfetme, bilet satın alma, biletlerinizi görüntüleme ve davetiye kabul etme işlemlerini buradan yaparsınız.`,
-          `Organizatör paneli (${panelUrl}) ise etkinlik oluşturma, bilet türü tanımlama, satış takibi, QR tarama ve davetiye gönderme gibi profesyonel araçları sunar. Aynı hesapla her iki tarafta da oturum açabilirsiniz.`
+          `Organizatör paneli (${panelUrl}) etkinlik oluşturma, satış takibi, davetiye ve kapı kodu üretimi içindir.`,
+          `Kapı terminali (${girisUrl}) yalnızca kapı ekibinin bilet taraması içindir — panel erişimi gerekmez; organizatörün paylaştığı kapı kodu veya giriş linki yeterlidir.`
         ]
       }
     ]

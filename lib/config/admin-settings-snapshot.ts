@@ -69,7 +69,7 @@ export function getAdminSettingsSnapshot(): AdminSettingsSnapshot {
           label: 'Subdomain Desteği',
           key: 'NEXT_PUBLIC_ENABLE_SUBDOMAINS',
           value: boolLabel(siteConfig.features.subdomains),
-          hint: 'panel.biletfeed.com organizatör paneli'
+          hint: 'panel / giris / admin / destek alt alanları'
         },
         {
           label: 'EventJoy',
@@ -81,7 +81,19 @@ export function getAdminSettingsSnapshot(): AdminSettingsSnapshot {
           label: 'Panel URL',
           key: 'NEXT_PUBLIC_PANEL_URL',
           value: siteConfig.links.organizerPanel,
-          hint: 'Organizatör paneli adresi'
+          hint: 'Organizatör paneli (panel.biletfeed.com)'
+        },
+        {
+          label: 'Kapı Terminali URL',
+          key: 'NEXT_PUBLIC_GIRIS_URL',
+          value: siteConfig.links.gateTerminal,
+          hint: 'Kapı ekibi girişi (giris.biletfeed.com)'
+        },
+        {
+          label: 'Admin URL',
+          key: 'NEXT_PUBLIC_ADMIN_URL',
+          value: siteConfig.links.adminPanel,
+          hint: 'Admin paneli (admin.biletfeed.com)'
         },
         {
           label: 'Site URL',
