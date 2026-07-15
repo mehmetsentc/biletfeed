@@ -247,22 +247,53 @@ function PerformerItem({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  // Tracks a just-created artistId before state propagates
+  const pendingArtistIdRef = useRef<string | null>(null);
 
   async function handleImageUpload(file: File) {
-    if (!performer.artistId) return;
+    const artistId = performer.artistId ?? pendingArtistIdRef.current;
+    if (!artistId) return;
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(`/api/artists/${performer.artistId}/image`, {
+      const res = await fetch(`/api/artists/${artistId}/image`, {
         method: 'POST',
         body: formData
       });
       if (!res.ok) throw new Error('Yükleme başarısız');
       const { url } = await res.json();
-      onUpdate(performer.id, { image: url });
+      onUpdate(performer.id, { image: url, artistId });
+      pendingArtistIdRef.current = null;
     } catch {
       alert('Görsel yüklenemedi.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleAvatarClick() {
+    if (uploading) return;
+    // Already linked to an artist — open file picker directly
+    if (performer.artistId) {
+      fileRef.current?.click();
+      return;
+    }
+    // No artist record yet — create one first, then open file picker
+    setUploading(true);
+    try {
+      const res = await fetch('/api/artists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: performer.name, type: performer.type })
+      });
+      if (!res.ok) throw new Error();
+      const { artist } = await res.json();
+      onUpdate(performer.id, { artistId: artist.id });
+      pendingArtistIdRef.current = artist.id;
+      fileRef.current?.click();
+    } catch {
+      alert('Sanatçı kaydı oluşturulamadı.');
     } finally {
       setUploading(false);
     }
@@ -274,10 +305,10 @@ function PerformerItem({
       <div className="relative shrink-0">
         <button
           type="button"
-          title={performer.artistId ? 'Görsel yükle' : undefined}
-          disabled={!performer.artistId || uploading}
-          onClick={() => fileRef.current?.click()}
-          className={`size-10 rounded-full overflow-hidden bg-muted flex items-center justify-center ${performer.artistId ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+          title="Görsel yükle"
+          disabled={uploading}
+          onClick={handleAvatarClick}
+          className="size-10 rounded-full overflow-hidden bg-muted flex items-center justify-center cursor-pointer hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {performer.image ? (
             <Image
@@ -293,18 +324,17 @@ function PerformerItem({
             <ImageIcon className="size-4 text-muted-foreground" />
           )}
         </button>
-        {performer.artistId && (
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleImageUpload(f);
-            }}
-          />
-        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleImageUpload(f);
+            e.target.value = '';
+          }}
+        />
       </div>
 
       {/* Name + role */}
