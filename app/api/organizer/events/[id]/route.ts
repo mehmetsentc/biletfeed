@@ -261,3 +261,57 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
+
+/**
+ * DELETE /api/organizer/events/[id]
+ * Organizatör kendi eski etkinliğini panelden gizler (soft delete).
+ * Veriler sistemde korunur — yalnızca organizatör paneli görünümünden kalkar.
+ * Kural: etkinlik gelecekte değilse (endDate geçmiş) VEYA taslak/iptal ise silinebilir.
+ * Aktif bilet satışı olan gelecek etkinlikler silinemez.
+ */
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
+  }
+
+  const resolved = await resolveOrganizerSession();
+  if (!resolved.ok) {
+    return organizerSessionError(resolved.reason);
+  }
+
+  const { organizer } = resolved.ctx;
+  const { id } = await params;
+  await ensureDbConnection();
+
+  const event = await prisma.event.findFirst({
+    where: { id, organizerId: organizer.id, deletedAt: null },
+    select: {
+      id: true,
+      status: true,
+      endDate: true,
+      _count: { select: { purchasedTickets: true } }
+    }
+  });
+
+  if (!event) {
+    return NextResponse.json({ error: 'Etkinlik bulunamadı' }, { status: 404 });
+  }
+
+  const now = new Date();
+  const isPast = event.endDate < now;
+  const isDraftOrCancelled = event.status === 'draft' || event.status === 'cancelled';
+
+  if (!isPast && !isDraftOrCancelled) {
+    return NextResponse.json(
+      { error: 'Gelecek tarihli ve aktif etkinlikler silinemez. Önce iptal edin.' },
+      { status: 400 }
+    );
+  }
+
+  await prisma.event.update({
+    where: { id },
+    data: { deletedAt: now }
+  });
+
+  return NextResponse.json({ ok: true });
+}

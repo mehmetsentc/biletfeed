@@ -10,8 +10,20 @@ import {
   MapPin,
   Plus,
   Search,
-  Ticket
+  Ticket,
+  Trash2
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 import {
   formatEventDate,
   formatEventTime
@@ -138,6 +150,31 @@ export function EventManagementTable({
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 8;
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDelete(eventId: string) {
+    setDeletingId(eventId);
+    try {
+      const res = await fetch(`/api/organizer/events/${eventId}`, {
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
+      if (!res.ok) {
+        const d = (await res.json().catch(() => ({}))) as { error?: string };
+        alert(d.error ?? 'Silme başarısız');
+        return;
+      }
+      router.refresh();
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  function canDelete(event: OrganizatorEventRow): boolean {
+    const isPast = new Date(event.endDate) < new Date();
+    const isDraftOrCancelled = event.status === 'draft' || event.status === 'cancelled';
+    return isPast || isDraftOrCancelled;
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -249,6 +286,7 @@ export function EventManagementTable({
                 <th className="px-5 py-3.5">Tarih</th>
                 <th className="px-5 py-3.5">Bilet</th>
                 <th className="px-5 py-3.5">Durum</th>
+                <th className="px-5 py-3.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -297,6 +335,40 @@ export function EventManagementTable({
                   <td className="px-5 py-4">
                     <StatusBadge status={event.status} endDate={event.endDate} />
                   </td>
+                  <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                    {canDelete(event) && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                            disabled={deletingId === event.id}
+                            title="Etkinliği panelden sil"
+                          >
+                            <Trash2 className="size-3.5" />
+                            Sil
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Etkinliği panelden kaldır?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              <strong>{event.title}</strong> etkinliği organizatör panelinizden kaldırılacak.
+                              Sistem kayıtları ve satış verileri korunmaya devam eder; bu işlem yalnızca sizin görünümünüzü etkiler.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => void handleDelete(event.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {deletingId === event.id ? 'Siliniyor…' : 'Evet, Kaldır'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -332,7 +404,39 @@ export function EventManagementTable({
                     {event.displayId} · {event.category.name}
                   </p>
                 </div>
-                <StatusBadge status={event.status} endDate={event.endDate} />
+                <div className="flex flex-col items-end gap-2" onClick={(e) => e.stopPropagation()}>
+                  <StatusBadge status={event.status} endDate={event.endDate} />
+                  {canDelete(event) && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
+                          disabled={deletingId === event.id}
+                        >
+                          <Trash2 className="size-3" />
+                          Sil
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Etkinliği panelden kaldır?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            <strong>{event.title}</strong> etkinliği organizatör panelinizden kaldırılacak. Sistem kayıtları ve satış verileri korunur.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => void handleDelete(event.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deletingId === event.id ? 'Siliniyor…' : 'Evet, Kaldır'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-2 text-sm text-muted-foreground">

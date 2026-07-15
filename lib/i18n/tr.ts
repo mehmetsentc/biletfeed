@@ -670,4 +670,18 @@ export const tr = {
   }
 } as const;
 
-export type TranslationKeys = typeof tr;
+/**
+ * TR `as const` yapısını korur; string literal değerleri `string` yapar ki
+ * EN/DE/RU sözlükleri tip kontrolünden geçsin.
+ */
+type WidenStrings<T> = T extends (...args: infer A) => infer R
+  ? (...args: A) => WidenStrings<R>
+  : T extends string
+    ? string
+    : T extends readonly (infer U)[]
+      ? WidenStrings<U>[]
+      : T extends object
+        ? { [K in keyof T]: WidenStrings<T[K]> }
+        : T;
+
+export type TranslationKeys = WidenStrings<typeof tr>;
