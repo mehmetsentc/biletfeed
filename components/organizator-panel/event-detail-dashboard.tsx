@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
   Archive,
+  ArrowRightLeft,
   CalendarDays,
   Copy,
   Download,
@@ -12,6 +13,7 @@ import {
   Eye,
   FileSpreadsheet,
   Link2,
+  Loader2,
   PauseCircle,
   Pencil,
   PlayCircle,
@@ -246,6 +248,13 @@ export function EventDetailDashboard({
   const [status, setStatus] = useState(event.status);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Transfer state
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferEmail, setTransferEmail] = useState('');
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferSuccess, setTransferSuccess] = useState<string | null>(null);
+  const transferInputRef = useRef<HTMLInputElement>(null);
   const [lowStockFlags, setLowStockFlags] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(categories.map((c) => [c.id, c.showLowStockBadge]))
   );
@@ -290,6 +299,36 @@ export function EventDetailDashboard({
       return;
     }
     setStatus(next);
+  }
+
+  async function handleTransfer() {
+    if (!transferEmail.trim()) return;
+    if (!confirm(`"${transferEmail}" e-posta adresine sahip organizatöre devretmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) return;
+    setTransferLoading(true);
+    setTransferError(null);
+    setTransferSuccess(null);
+    try {
+      const res = await fetch(`/api/organizer/events/${event.id}/transfer`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetEmail: transferEmail.trim() })
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setTransferError(body.error || 'Transfer başarısız');
+        return;
+      }
+      setTransferSuccess(
+        `Etkinlik "${body.targetOrganizer.name}" organizatörüne devredildi. (${body.transferred} etkinlik)`
+      );
+      setTransferEmail('');
+      setTransferOpen(false);
+    } catch {
+      setTransferError('Bir hata oluştu.');
+    } finally {
+      setTransferLoading(false);
+    }
   }
 
   const alertMessage = useMemo(() => {
@@ -538,6 +577,70 @@ export function EventDetailDashboard({
                 Etkinlik admin onayı bekliyor.
               </p>
             )}
+            {/* Transfer */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="justify-start gap-2"
+              onClick={() => {
+                setTransferOpen((o) => !o);
+                setTransferError(null);
+                setTimeout(() => transferInputRef.current?.focus(), 50);
+              }}
+            >
+              <ArrowRightLeft className="size-3.5" />
+              Etkinliği devret
+            </Button>
+            {transferOpen && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                <p className="text-xs text-muted-foreground leading-snug">
+                  Hedef organizatörün hesap e-posta adresini girin. Etkinlik ve tüm seans etkinlikleri devredilir.
+                </p>
+                <input
+                  ref={transferInputRef}
+                  type="email"
+                  value={transferEmail}
+                  onChange={(e) => setTransferEmail(e.target.value)}
+                  placeholder="organizator@email.com"
+                  className="w-full h-8 rounded-md border border-border bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleTransfer();
+                    if (e.key === 'Escape') setTransferOpen(false);
+                  }}
+                />
+                {transferError && (
+                  <p className="text-xs text-destructive">{transferError}</p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 text-xs gap-1.5"
+                    disabled={transferLoading || !transferEmail.trim()}
+                    onClick={() => void handleTransfer()}
+                  >
+                    {transferLoading ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <ArrowRightLeft className="size-3" />
+                    )}
+                    Devret
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setTransferOpen(false)}
+                  >
+                    İptal
+                  </Button>
+                </div>
+              </div>
+            )}
+            {transferSuccess && (
+              <p className="text-xs text-green-600 font-medium">{transferSuccess}</p>
+            )}
+
             {status !== 'cancelled' && !isPast && (
               <Button
                 variant="outline"

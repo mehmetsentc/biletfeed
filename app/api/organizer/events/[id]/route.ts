@@ -19,6 +19,7 @@ import {
   zodErrorMessage
 } from '@/lib/api/zod-validation';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { setEventArtists } from '@/lib/services/artist';
 
 const ticketCategorySchema = z.object({
   id: z.string().uuid().optional(),
@@ -31,12 +32,20 @@ const ticketCategorySchema = z.object({
 
 const performerSchema = z.object({
   name: z.string().min(1).max(200),
-  type: z.enum(['person', 'group'])
+  type: z.enum(['person', 'group']),
+  artistId: z.string().uuid().optional(),
+  role: z.string().max(100).optional()
 });
 
 const attendeeQuestionSchema = z.object({
   question: z.string().min(1).max(300),
   required: z.boolean().default(true)
+});
+
+const sessionSchema = z.object({
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  eventId: z.string().uuid().optional()
 });
 
 const patchSchema = z.object({
@@ -49,6 +58,7 @@ const patchSchema = z.object({
   venueAddress: z.string().max(300).optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
+  sessions: z.array(sessionSchema).min(2).max(50).optional(),
   isFree: z.boolean().optional(),
   price: z.number().min(0).optional(),
   capacity: z.number().int().min(1).max(1000000).optional(),
@@ -102,7 +112,13 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       city: true,
       venue: true,
       category: true,
-      ticketTypes: true
+      ticketTypes: true,
+      artists: {
+        include: {
+          artist: { select: { id: true, name: true, type: true, image: true } }
+        },
+        orderBy: { sortOrder: 'asc' }
+      }
     }
   });
 
@@ -167,8 +183,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         ...(data.citySlug && { citySlug: data.citySlug }),
         ...(data.venueName !== undefined && { venueName: data.venueName }),
         ...(data.venueAddress !== undefined && { venueAddress: data.venueAddress }),
-        ...(data.startDate && { startDate: new Date(data.startDate) }),
-        ...(data.endDate && { endDate: new Date(data.endDate) }),
+        // For recurring edits sessions[0] carries the main event dates
+        ...(data.sessions?.length
+          ? {
+              startDate: new Date(data.sessions[0].startDate),
+              endDate: new Date(data.sessions[0].endDate)
+            }
+          : {
+              ...(data.startDate && { startDate: new Date(data.startDate) }),
+              ...(data.endDate && { endDate: new Date(data.endDate) })
+            }),
         ...(data.isFree !== undefined && { isFree: data.isFree }),
         ...(data.price !== undefined && { price: data.price }),
         ...(data.capacity !== undefined && { capacity: data.capacity }),
@@ -194,6 +218,29 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           organizerTermsAccepted: data.organizerTermsAccepted
         })
       });
+      // Sync EventArtist relations
+      if (data.performers !== undefined) {
+        const artistLinks = data.performers
+          .filter((p) => p.artistId)
+          .map((p, i) => ({ artistId: p.artistId!, role: p.role ?? '', sortOrder: i }));
+        await setEventArtists(id, artistLinks);
+      }
+
+      // Sync recurring session dates (sessions[0] is the main event, already updated above)
+      if (data.sessions && data.sessions.length >= 2) {
+        for (const session of data.sessions) {
+          if (!session.eventId || session.eventId === id) continue; // main event handled above
+          // Verify the session event belongs to this organizer
+          await prisma.event.updateMany({
+            where: { id: session.eventId, organizerId: organizer.id, deletedAt: null },
+            data: {
+              startDate: new Date(session.startDate),
+              endDate: new Date(session.endDate)
+            }
+          });
+        }
+      }
+
       return NextResponse.json({ success: true, event });
     }
 

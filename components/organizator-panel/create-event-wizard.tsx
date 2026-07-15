@@ -182,7 +182,7 @@ function sessionToIso(session: SessionRow, useEnd = false): string | null {
 function sessionToDateRange(
   session: SessionRow,
   isFestival: boolean
-): { startDate: string; endDate: string } | null {
+): { startDate: string; endDate: string; eventId?: string } | null {
   const startDate = sessionToIso(session);
   if (!startDate) return null;
 
@@ -194,7 +194,7 @@ function sessionToDateRange(
     endDate = sessionToIso(session, true) ?? startDate;
   }
 
-  return { startDate, endDate };
+  return { startDate, endDate, ...(session.eventId ? { eventId: session.eventId } : {}) };
 }
 
 function isValidSessionRow(session: SessionRow): boolean {
@@ -262,13 +262,16 @@ export function CreateOrganizerEventWizard({
     }
   );
   const [onlineUrl, setOnlineUrl] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [performers, setPerformers] = useState<PerformerRow[]>(
     () =>
       initialData?.performers.map((p, index) => ({
-        id: `perf-${index}-${p.name.toLowerCase().replace(/\s+/g, '-')}`,
+        id: p.artistId ? `perf-${p.artistId}` : `perf-${index}-${p.name.toLowerCase().replace(/\s+/g, '-')}`,
         name: p.name,
-        type: p.type
+        type: p.type,
+        artistId: p.artistId,
+        image: p.image,
+        role: p.role ?? ''
       })) ?? []
   );
   const [attendeeQuestions, setAttendeeQuestions] = useState<AttendeeQuestionRow[]>([]);
@@ -620,7 +623,12 @@ export function CreateOrganizerEventWizard({
         tags,
         performers: performers
           .filter((p) => p.name.trim())
-          .map((p) => ({ name: p.name.trim(), type: p.type })),
+          .map((p) => ({
+            name: p.name.trim(),
+            type: p.type,
+            ...(p.artistId ? { artistId: p.artistId } : {}),
+            ...(p.role !== undefined ? { role: p.role } : {})
+          })),
         attendeeQuestions: attendeeQuestions.map((q) => ({
           question: q.question,
           required: q.required
@@ -638,7 +646,7 @@ export function CreateOrganizerEventWizard({
         })),
         ...(targetStatus ? { status: targetStatus } : {}),
         ...(targetStatus === 'pending' ? { organizerTermsAccepted: true } : {}),
-        ...(!isEdit && eventTypeMode === 'recurring' && sessionDates.length >= 2
+        ...(eventTypeMode === 'recurring' && sessionDates.length >= 2
           ? { sessions: sessionDates }
           : {})
       };
