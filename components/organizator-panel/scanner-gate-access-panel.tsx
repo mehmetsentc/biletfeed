@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { Copy, KeyRound, Link2, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Copy, KeyRound, Link2, QrCode, RefreshCw, X } from 'lucide-react';
+import QRCode from 'qrcode';
 import { Button } from '@/components/ui/button';
 import { getGirisUrl } from '@/lib/config/domain';
 
@@ -19,6 +20,8 @@ export function ScannerGateAccessPanel() {
   const [pruning, setPruning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
+  const [showQr, setShowQr] = useState(false);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const loadCodes = useCallback(async () => {
     setLoading(true);
@@ -47,6 +50,21 @@ export function ScannerGateAccessPanel() {
   useEffect(() => {
     void loadCodes();
   }, [loadCodes]);
+
+  const activeCode = codes[0];
+  const gateLink = activeCode?.redeemCode
+    ? `${getGirisUrl('/')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
+    : null;
+
+  // QR kod canvas'a çiz
+  useEffect(() => {
+    if (!showQr || !gateLink || !qrCanvasRef.current) return;
+    void QRCode.toCanvas(qrCanvasRef.current, gateLink, {
+      width: 200,
+      margin: 2,
+      color: { dark: '#ffffff', light: '#11151c' }
+    });
+  }, [showQr, gateLink]);
 
   async function copyText(text: string, kind: 'code' | 'link') {
     try {
@@ -125,22 +143,17 @@ export function ScannerGateAccessPanel() {
     }
   }
 
-  const activeCode = codes[0];
-  const gateLink = activeCode?.redeemCode
-    ? `${getGirisUrl('/')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
-    : null;
-
   return (
     <div className="border-b border-white/10 bg-[#11151c] px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
             <KeyRound className="size-4 shrink-0 text-primary" />
-            Kapı ekibi kodu
+            Kapı ekibi erişimi
           </div>
           <p className="mt-1 text-xs text-white/55">
-            <strong className="text-white/75">Kodu kopyala</strong> veya{' '}
-            <strong className="text-white/75">Giriş linki</strong> ile ekibe gönderin.
+            <strong className="text-white/75">QR kod</strong> ile telefondan tarat veya{' '}
+            <strong className="text-white/75">Giriş linki</strong> gönderin.
             Görevliler <span className="text-primary">giris.biletfeed.com</span>{' '}
             üzerinden giriş yapar (3 gün geçerli).
           </p>
@@ -185,22 +198,17 @@ export function ScannerGateAccessPanel() {
         <p className="mt-2 text-xs text-white/45">Yükleniyor…</p>
       ) : activeCode ? (
         <div className="mt-3 space-y-2">
-          <p className="text-xs text-amber-200/90">
-            Kısa referans ({activeCode.pin}) giriş için yeterli değildir — tam kodu veya
-            linki paylaşın.
-          </p>
+          {/* Aksiyon butonları */}
           <div className="flex flex-wrap gap-2">
-            {activeCode.redeemCode && (
-              <Button
-                type="button"
-                size="sm"
-                className="bg-primary text-black hover:bg-primary/90"
-                onClick={() => void copyText(activeCode.redeemCode!, 'code')}
-              >
-                <Copy className="mr-1.5 size-4" />
-                {copied === 'code' ? 'Kopyalandı' : 'Kodu kopyala'}
-              </Button>
-            )}
+            <Button
+              type="button"
+              size="sm"
+              className="bg-primary text-black hover:bg-primary/90"
+              onClick={() => setShowQr((v) => !v)}
+            >
+              <QrCode className="mr-1.5 size-4" />
+              {showQr ? 'QR kodu kapat' : 'QR kod göster'}
+            </Button>
             {gateLink && (
               <Button
                 type="button"
@@ -213,7 +221,40 @@ export function ScannerGateAccessPanel() {
                 {copied === 'link' ? 'Kopyalandı' : 'Giriş linki'}
               </Button>
             )}
+            {activeCode.redeemCode && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                onClick={() => void copyText(activeCode.redeemCode!, 'code')}
+              >
+                <Copy className="mr-1.5 size-4" />
+                {copied === 'code' ? 'Kopyalandı' : 'Kodu kopyala'}
+              </Button>
+            )}
           </div>
+
+          {/* QR kod paneli */}
+          {showQr && gateLink && (
+            <div className="relative mt-2 flex flex-col items-center gap-2 rounded-lg border border-white/10 bg-[#0c1017] p-4">
+              <button
+                type="button"
+                onClick={() => setShowQr(false)}
+                className="absolute right-2 top-2 text-white/40 hover:text-white/70"
+                aria-label="Kapat"
+              >
+                <X className="size-4" />
+              </button>
+              <canvas ref={qrCanvasRef} className="rounded" />
+              <p className="text-center text-xs text-white/50">
+                giris.biletfeed.com adresine yönlendirir
+              </p>
+              <p className="text-center text-xs text-amber-300/80">
+                📱 Kapı görevlisi bu QR&apos;ı telefonundan okutarak giriş yapar
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <p className="mt-2 text-xs text-white/45">

@@ -7,6 +7,7 @@ import {
   Archive,
   ArrowRightLeft,
   CalendarDays,
+  CheckCircle2,
   Copy,
   Download,
   ExternalLink,
@@ -250,11 +251,18 @@ export function EventDetailDashboard({
   const [actionError, setActionError] = useState<string | null>(null);
   // Transfer state
   const [transferOpen, setTransferOpen] = useState(false);
-  const [transferEmail, setTransferEmail] = useState('');
+  const [transferQuery, setTransferQuery] = useState('');
+  const [transferSelected, setTransferSelected] = useState<{ email: string; name: string } | null>(null);
+  const [transferSuggestions, setTransferSuggestions] = useState<
+    Array<{ id: string; name: string; email: string; logo: string | null }>
+  >([]);
+  const [transferSearchLoading, setTransferSearchLoading] = useState(false);
+  const [transferDropdownOpen, setTransferDropdownOpen] = useState(false);
   const [transferLoading, setTransferLoading] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
   const [transferSuccess, setTransferSuccess] = useState<string | null>(null);
   const transferInputRef = useRef<HTMLInputElement>(null);
+  const transferSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lowStockFlags, setLowStockFlags] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(categories.map((c) => [c.id, c.showLowStockBadge]))
   );
@@ -301,9 +309,33 @@ export function EventDetailDashboard({
     setStatus(next);
   }
 
+  function searchOrganizers(q: string) {
+    setTransferQuery(q);
+    setTransferSelected(null);
+    if (transferSearchTimer.current) clearTimeout(transferSearchTimer.current);
+    if (q.length < 2) {
+      setTransferSuggestions([]);
+      setTransferDropdownOpen(false);
+      return;
+    }
+    transferSearchTimer.current = setTimeout(() => {
+      setTransferSearchLoading(true);
+      fetch(`/api/organizer/search-organizers?q=${encodeURIComponent(q)}`, {
+        credentials: 'same-origin'
+      })
+        .then((r) => r.json())
+        .then((data: { results?: typeof transferSuggestions }) => {
+          setTransferSuggestions(data.results ?? []);
+          setTransferDropdownOpen(true);
+        })
+        .catch(() => setTransferSuggestions([]))
+        .finally(() => setTransferSearchLoading(false));
+    }, 280);
+  }
+
   async function handleTransfer() {
-    if (!transferEmail.trim()) return;
-    if (!confirm(`"${transferEmail}" e-posta adresine sahip organizatöre devretmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) return;
+    if (!transferSelected) return;
+    if (!confirm(`"${transferSelected.name}" organizatörüne devretmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`)) return;
     setTransferLoading(true);
     setTransferError(null);
     setTransferSuccess(null);
@@ -312,7 +344,7 @@ export function EventDetailDashboard({
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetEmail: transferEmail.trim() })
+        body: JSON.stringify({ targetEmail: transferSelected.email })
       });
       const body = await res.json();
       if (!res.ok) {
@@ -322,7 +354,8 @@ export function EventDetailDashboard({
       setTransferSuccess(
         `Etkinlik "${body.targetOrganizer.name}" organizatörüne devredildi. (${body.transferred} etkinlik)`
       );
-      setTransferEmail('');
+      setTransferQuery('');
+      setTransferSelected(null);
       setTransferOpen(false);
     } catch {
       setTransferError('Bir hata oluştu.');
@@ -585,6 +618,9 @@ export function EventDetailDashboard({
               onClick={() => {
                 setTransferOpen((o) => !o);
                 setTransferError(null);
+                setTransferQuery('');
+                setTransferSelected(null);
+                setTransferSuggestions([]);
                 setTimeout(() => transferInputRef.current?.focus(), 50);
               }}
             >
@@ -594,20 +630,83 @@ export function EventDetailDashboard({
             {transferOpen && (
               <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                 <p className="text-xs text-muted-foreground leading-snug">
-                  Hedef organizatörün hesap e-posta adresini girin. Etkinlik ve tüm seans etkinlikleri devredilir.
+                  Organizatör adı veya e-posta ile arayın. Etkinlik ve tüm seans etkinlikleri devredilir.
                 </p>
-                <input
-                  ref={transferInputRef}
-                  type="email"
-                  value={transferEmail}
-                  onChange={(e) => setTransferEmail(e.target.value)}
-                  placeholder="organizator@email.com"
-                  className="w-full h-8 rounded-md border border-border bg-background px-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') void handleTransfer();
-                    if (e.key === 'Escape') setTransferOpen(false);
-                  }}
-                />
+                {/* Arama alanı + dropdown */}
+                <div className="relative">
+                  <input
+                    ref={transferInputRef}
+                    type="text"
+                    autoComplete="off"
+                    value={transferQuery}
+                    onChange={(e) => searchOrganizers(e.target.value)}
+                    placeholder="Organizatör adı veya e-posta..."
+                    className="w-full h-8 rounded-md border border-border bg-background px-2.5 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setTransferDropdownOpen(false);
+                        setTransferOpen(false);
+                      }
+                    }}
+                    onBlur={() => {
+                      // Dropdown'dan seçim yapılabilmesi için kısa gecikme
+                      setTimeout(() => setTransferDropdownOpen(false), 150);
+                    }}
+                  />
+                  {transferSearchLoading && (
+                    <Loader2 className="absolute right-2.5 top-2 size-4 animate-spin text-muted-foreground" />
+                  )}
+                  {/* Sonuç listesi */}
+                  {transferDropdownOpen && transferSuggestions.length > 0 && (
+                    <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg overflow-hidden">
+                      {transferSuggestions.map((org) => (
+                        <button
+                          key={org.id}
+                          type="button"
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-muted/60 transition-colors text-sm"
+                          onMouseDown={(e) => e.preventDefault()} // blur'u engelle
+                          onClick={() => {
+                            setTransferSelected({ email: org.email, name: org.name });
+                            setTransferQuery(org.name);
+                            setTransferDropdownOpen(false);
+                          }}
+                        >
+                          {org.logo ? (
+                            <img
+                              src={org.logo}
+                              alt=""
+                              className="size-7 rounded-full object-cover shrink-0"
+                            />
+                          ) : (
+                            <div className="size-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0 text-primary font-semibold text-xs">
+                              {org.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{org.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{org.email}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {transferDropdownOpen &&
+                    !transferSearchLoading &&
+                    transferSuggestions.length === 0 &&
+                    transferQuery.length >= 2 && (
+                      <div className="absolute z-50 mt-1 w-full rounded-md border border-border bg-popover shadow-lg px-3 py-2 text-xs text-muted-foreground">
+                        Eşleşen onaylı organizatör bulunamadı
+                      </div>
+                    )}
+                </div>
+                {/* Seçili organizatör etiketi */}
+                {transferSelected && (
+                  <div className="flex items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-2.5 py-1.5 text-xs">
+                    <CheckCircle2 className="size-3.5 text-primary shrink-0" />
+                    <span className="font-medium">{transferSelected.name}</span>
+                    <span className="text-muted-foreground truncate">({transferSelected.email})</span>
+                  </div>
+                )}
                 {transferError && (
                   <p className="text-xs text-destructive">{transferError}</p>
                 )}
@@ -616,7 +715,7 @@ export function EventDetailDashboard({
                     size="sm"
                     variant="destructive"
                     className="h-7 text-xs gap-1.5"
-                    disabled={transferLoading || !transferEmail.trim()}
+                    disabled={transferLoading || !transferSelected}
                     onClick={() => void handleTransfer()}
                   >
                     {transferLoading ? (
@@ -630,7 +729,11 @@ export function EventDetailDashboard({
                     size="sm"
                     variant="ghost"
                     className="h-7 text-xs"
-                    onClick={() => setTransferOpen(false)}
+                    onClick={() => {
+                      setTransferOpen(false);
+                      setTransferQuery('');
+                      setTransferSelected(null);
+                    }}
                   >
                     İptal
                   </Button>

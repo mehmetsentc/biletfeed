@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { KeyRound } from 'lucide-react';
+import { useTranslations } from '@/components/providers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,7 @@ function normalizeGateInput(value: string): string {
 }
 
 export function ScannerGateLoginForm() {
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -61,7 +63,7 @@ export function ScannerGateLoginForm() {
         };
 
         if (!res.ok) {
-          setError(data.error ?? 'Kapı kodu geçersiz');
+          setError(data.error ?? t.gate.errorInvalid);
           return;
         }
 
@@ -74,7 +76,7 @@ export function ScannerGateLoginForm() {
         setLoading(false);
       }
     },
-    [searchParams]
+    [searchParams, t.gate.errorInvalid]
   );
 
   useEffect(() => {
@@ -96,25 +98,30 @@ export function ScannerGateLoginForm() {
         <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
           <KeyRound className="size-5" strokeWidth={2} />
         </div>
-        <CardTitle className="text-lg">Kapı ekibi girişi</CardTitle>
+        <CardTitle className="text-lg">{t.gate.title}</CardTitle>
         <CardDescription className="text-white/60">
-          Organizatörün &quot;Kodu kopyala&quot; veya &quot;Giriş linki&quot; ile
-          gönderdiği kodu yapıştırın. Aynı kodu 10 kişiye kadar paylaşabilirsiniz.
+          {t.gate.subtitle}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {error && (
           <div className="mb-3 rounded-md bg-destructive/20 p-3 text-sm text-red-300">
-            {error}
+            <p>{error}</p>
+            {(error.includes('Kısa kod') || error.includes('tam kodu')) && (
+              <p className="mt-1.5 text-xs text-white/60">
+                💡 Organizatör panelinden <strong className="text-white/80">QR kod</strong>{' '}
+                veya <strong className="text-white/80">Giriş linki</strong> alın
+              </p>
+            )}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="scanner-gate-code">Kapı kodu</Label>
+            <Label htmlFor="scanner-gate-code">{t.gate.codeLabel}</Label>
             <Input
               id="scanner-gate-code"
               autoComplete="one-time-code"
-              placeholder="Tam kodu yapıştırın (AB12CD34.…)"
+              placeholder={t.gate.codePlaceholder}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className="border-white/15 bg-[#0c1017] text-sm text-white"
@@ -125,7 +132,7 @@ export function ScannerGateLoginForm() {
             className="w-full bg-primary text-black hover:bg-[var(--bf-orange-hover)]"
             disabled={loading || normalizeGateInput(code).length < 6}
           >
-            {loading ? 'Giriş yapılıyor...' : 'Taramaya başla'}
+            {loading ? t.gate.submitting : t.gate.submit}
           </Button>
         </form>
       </CardContent>

@@ -7,6 +7,13 @@ import { execSync } from 'child_process';
 
 config({ path: '.env.local' });
 
+// GitHub Actions ve diğer CI ortamlarında migration atla
+// (DATABASE_URL mevcut değil, gerçek DB bağlantısı kurulamaz)
+if (process.env.CI === 'true' || process.env.SKIP_MIGRATE === 'true') {
+  console.log('[migrate] CI ortamı — migration atlandı');
+  process.exit(0);
+}
+
 const poolUrl = process.env.DATABASE_URL;
 if (!poolUrl) {
   console.error('DATABASE_URL tanımlı değil (.env.local)');
