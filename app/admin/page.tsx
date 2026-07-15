@@ -1,14 +1,13 @@
-import { getTranslations } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminEventsSalesTable } from '@/components/admin/admin-events-sales-table';
+import { getServerTranslations } from '@/lib/i18n/server';
 import {
   getAdminEventsSalesOverview,
   getAdminStats
 } from '@/lib/services/admin-dashboard';
 
-const t = getTranslations();
-
 export default async function AdminPage() {
+  const { t } = await getServerTranslations();
   const [stats, eventSales] = await Promise.all([
     getAdminStats(),
     getAdminEventsSalesOverview()

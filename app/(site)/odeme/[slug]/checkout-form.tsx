@@ -33,6 +33,7 @@ import {
   validateCheckoutBilling,
   type CheckoutBillingFormState
 } from '@/lib/validation/checkout-billing';
+import { useTranslations } from '@/components/providers';
 import { normalizeTrPhone } from '@/lib/validation/tr-phone';
 
 type TicketTypeRow = {
@@ -55,6 +56,7 @@ export function CheckoutForm({
   ticketTypes: TicketTypeRow[];
   rulesDisplay?: EventRulesDisplayData | null;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [tierPhase, setTierPhase] = useState<'pick' | 'qty'>(
@@ -99,7 +101,7 @@ export function CheckoutForm({
     : 10;
 
   function priceLabel(price: number): string {
-    return price <= 0 ? 'Ücretsiz' : `${price.toLocaleString('tr-TR')} ₺`;
+    return price <= 0 ? t.common.free : `${price.toLocaleString('tr-TR')} ₺`;
   }
 
   function selectTier(id: string) {
@@ -137,13 +139,13 @@ export function CheckoutForm({
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Geçersiz kupon');
+      if (!res.ok) throw new Error(data.error || t.purchase.invalidCoupon);
       setCouponDiscount(data.discount);
       setCouponApplied(true);
     } catch (e) {
       setCouponApplied(false);
       setCouponDiscount(0);
-      setCouponError(e instanceof Error ? e.message : 'Kupon uygulanamadı');
+      setCouponError(e instanceof Error ? e.message : t.purchase.couponApplyFailed);
     }
   }
 
@@ -160,7 +162,7 @@ export function CheckoutForm({
     if (!attendee.success) {
       setAttendeeErrors(attendee.errors);
       setStep(2);
-      setError('Lütfen katılımcı bilgilerini eksiksiz doldurun.');
+      setError(t.purchase.fillParticipants);
       setLoading(false);
       return;
     }
@@ -170,7 +172,7 @@ export function CheckoutForm({
       if (!billingResult.success) {
         setBillingErrors(billingResult.errors);
         setStep(3);
-        setError('Lütfen fatura bilgilerini kontrol edin.');
+        setError(t.purchase.checkBilling);
         setLoading(false);
         return;
       }
@@ -194,7 +196,7 @@ export function CheckoutForm({
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || 'Sipariş oluşturulamadı');
+          throw new Error(data.error || t.purchase.orderCreateFailed);
         }
 
         if (data.status === 'paid') {
@@ -207,9 +209,9 @@ export function CheckoutForm({
           return;
         }
 
-        throw new Error('Ödeme sayfası alınamadı');
+        throw new Error(t.purchase.paymentPageFailed);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'İşlem başarısız');
+        setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
       } finally {
         setLoading(false);
       }
@@ -233,7 +235,7 @@ export function CheckoutForm({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Sipariş oluşturulamadı');
+        throw new Error(data.error || t.purchase.orderCreateFailed);
       }
 
       if (data.status === 'paid') {
@@ -246,9 +248,9 @@ export function CheckoutForm({
         return;
       }
 
-      throw new Error('Ödeme sayfası alınamadı');
+      throw new Error(t.purchase.paymentPageFailed);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'İşlem başarısız');
+      setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
     } finally {
       setLoading(false);
     }
@@ -273,10 +275,10 @@ export function CheckoutForm({
             {step === 1 && tierPhase === 'pick' && (
               <section className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
                 <div className="border-b border-border px-6 py-5">
-                  <BfSubStepLabel label="Adım 1" />
-                  <h2 className="mt-1 text-lg font-bold">Bilet türünü seçin</h2>
+                  <BfSubStepLabel label={t.purchase.stepOf(1, 3)} />
+                  <h2 className="mt-1 text-lg font-bold">{t.purchase.selectTicketType}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Size uygun bilet kategorisini seçerek devam edin.
+                    {t.purchase.selectTicketTypeHint}
                   </p>
                 </div>
                 <ul className="divide-y divide-border">
@@ -294,12 +296,12 @@ export function CheckoutForm({
                             <p className="font-semibold text-foreground">{type.name}</p>
                             {type.showLowStockBadge && left > 0 && (
                               <p className="mt-0.5 text-xs font-medium text-primary">
-                                Son {left} bilet
+                                {t.events.lastTickets(left)}
                               </p>
                             )}
                             {left === 0 && (
                               <p className="mt-0.5 text-xs font-medium text-destructive">
-                                Tükendi
+                                {t.events.soldOut}
                               </p>
                             )}
                           </div>
@@ -326,16 +328,16 @@ export function CheckoutForm({
                       onClick={() => setTierPhase('pick')}
                       className="mb-2 text-xs font-medium text-primary hover:underline"
                     >
-                      ← Bilet türünü değiştir
+                      {t.purchase.changeTicketType}
                     </button>
                   )}
-                  <BfSubStepLabel label="Adım 1" />
-                  <h2 className="mt-1 text-lg font-bold">{selectedType?.name ?? 'Genel Giriş'}</h2>
+                  <BfSubStepLabel label={t.purchase.stepOf(1, 3)} />
+                  <h2 className="mt-1 text-lg font-bold">{selectedType?.name ?? t.purchase.generalAdmission}</h2>
                 </div>
 
                 <div className="px-6 py-8">
                   <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Adet seçin
+                    {t.purchase.quantitySelect}
                   </p>
                   <div className="mx-auto mt-4 flex max-w-xs items-center justify-center gap-4">
                     <Button
@@ -365,19 +367,19 @@ export function CheckoutForm({
 
                   <div className="mx-auto mt-8 max-w-sm rounded-xl bg-muted px-5 py-4">
                     <BfPriceRow
-                      label="Bilet fiyatı"
+                      label={t.purchase.ticketPrice}
                       value={
                         subtotal === 0
-                          ? 'Ücretsiz'
+                          ? t.common.free
                           : `${subtotal.toLocaleString('tr-TR')} ₺`
                       }
                     />
                     <Separator />
                     <BfPriceRow
-                      label="Toplam"
+                      label={t.purchase.total}
                       value={
                         subtotal === 0
-                          ? 'Ücretsiz'
+                          ? t.common.free
                           : `${subtotal.toLocaleString('tr-TR')} ₺`
                       }
                       highlight
@@ -402,7 +404,7 @@ export function CheckoutForm({
                     disabled={requiresRulesAcceptance && !rulesAccepted}
                     onClick={() => setStep(2)}
                   >
-                    Devam Et
+                    {t.purchase.continue}
                   </Button>
                 </div>
               </section>
@@ -412,20 +414,20 @@ export function CheckoutForm({
             {step === 2 && (
               <section className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm">
                 <div className="border-b border-border px-6 py-5">
-                  <BfSubStepLabel label="Adım 2" />
+                  <BfSubStepLabel label={t.purchase.stepOf(2, 3)} />
                   <h2 className="mt-1 flex items-center gap-2 text-lg font-bold">
                     <User className="size-5 text-primary" />
-                    Katılımcı bilgileri
+                    {t.purchase.participantInfo}
                   </h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Bilet bu bilgilerle oluşturulur; girişte kimlik kontrolü yapılabilir.
+                    {t.purchase.participantHint}
                   </p>
                 </div>
 
                 <div className="space-y-4 px-6 py-6">
                   <div className="space-y-2">
                     <Label htmlFor="attendeeName">
-                      Ad Soyad <span className="text-destructive">*</span>
+                      {t.auth.displayName} <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="attendeeName"
@@ -436,7 +438,7 @@ export function CheckoutForm({
                           setAttendeeErrors((p) => ({ ...p, attendeeName: '' }));
                         }
                       }}
-                      placeholder="Bilet sahibi adı"
+                      placeholder={t.purchase.ticketHolderPlaceholder}
                       autoComplete="name"
                       aria-invalid={Boolean(attendeeErrors.attendeeName)}
                       className="h-11 rounded-xl"
@@ -448,7 +450,7 @@ export function CheckoutForm({
 
                   <div className="space-y-2">
                     <Label htmlFor="attendeePhone">
-                      Telefon <span className="text-destructive">*</span>
+                      {t.purchase.phone} <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="attendeePhone"
@@ -473,7 +475,7 @@ export function CheckoutForm({
 
                   <div className="space-y-2">
                     <Label htmlFor="attendeeEmail">
-                      E-posta <span className="text-destructive">*</span>
+                      {t.auth.email} <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="attendeeEmail"
@@ -497,7 +499,7 @@ export function CheckoutForm({
                   <div className="rounded-xl border border-dashed border-border bg-muted/80 p-4">
                     <p className="flex items-center gap-2 text-sm font-semibold">
                       <Tag className="size-4 text-primary" />
-                      İndirim kodu (isteğe bağlı)
+                      {t.purchase.couponOptional}
                     </p>
                     <div className="mt-3 flex gap-2">
                       <Input
@@ -507,7 +509,7 @@ export function CheckoutForm({
                           setCouponApplied(false);
                           setCouponDiscount(0);
                         }}
-                        placeholder="KUPONKODU"
+                        placeholder={t.purchase.couponPlaceholder}
                         className="h-10 rounded-lg uppercase"
                       />
                       <Button
@@ -516,7 +518,7 @@ export function CheckoutForm({
                         className="shrink-0 rounded-lg"
                         onClick={() => void applyCoupon()}
                       >
-                        Uygula
+                        {t.purchase.apply}
                       </Button>
                     </div>
                     {couponError && (
@@ -524,7 +526,7 @@ export function CheckoutForm({
                     )}
                     {couponApplied && (
                       <p className="mt-2 text-sm font-medium text-[var(--bf-success)]">
-                        Kupon uygulandı — {couponDiscount.toLocaleString('tr-TR')} ₺ indirim
+                        {t.purchase.couponApplied(`${couponDiscount.toLocaleString('tr-TR')} ₺`)}
                       </p>
                     )}
                   </div>
@@ -535,7 +537,7 @@ export function CheckoutForm({
                       className="rounded-xl"
                       onClick={() => setStep(1)}
                     >
-                      Geri
+                      {t.common.back}
                     </Button>
                     <Button
                       className="h-12 flex-1 rounded-xl text-base font-bold"
@@ -543,7 +545,7 @@ export function CheckoutForm({
                         if (validateParticipantStep()) setStep(3);
                       }}
                     >
-                      Ödemeye Geç
+                      {t.purchase.checkout}
                     </Button>
                   </div>
                 </div>
@@ -557,10 +559,10 @@ export function CheckoutForm({
                 className="overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm"
               >
                 <div className="border-b border-border px-6 py-5">
-                  <BfSubStepLabel label="Adım 3" />
+                  <BfSubStepLabel label={t.purchase.stepOf(3, 3)} />
                   <h2 className="mt-1 flex items-center gap-2 text-lg font-bold">
                     <ShieldCheck className="size-5 text-primary" />
-                    {isPaid ? 'Güvenli ödeme' : 'Sipariş onayı'}
+                    {isPaid ? t.purchase.securePayment : t.purchase.orderConfirm}
                   </h2>
                 </div>
 
@@ -568,21 +570,21 @@ export function CheckoutForm({
                   <div className="rounded-xl bg-muted p-4 text-sm">
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Etkinlik</span>
+                        <span className="text-muted-foreground">{t.purchase.eventLabel}</span>
                         <span className="font-medium">{event.title}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Tarih</span>
+                        <span className="text-muted-foreground">{t.events.date}</span>
                         <span>{formatEventDate(event.startDate)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Katılımcı</span>
+                        <span className="text-muted-foreground">{t.tickets.participant}</span>
                         <span>{attendeeName}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Bilet</span>
+                        <span className="text-muted-foreground">{t.tickets.ticketType}</span>
                         <span>
-                          {selectedType?.name ?? 'Genel'} × {quantity}
+                          {selectedType?.name ?? t.purchase.generalShort} × {quantity}
                         </span>
                       </div>
                     </div>
@@ -604,23 +606,23 @@ export function CheckoutForm({
                   {isPaid ? (
                     <div className="space-y-3 rounded-xl border border-primary/20 bg-accent/50 p-4 text-sm">
                       <p>
-                        Kart bilgileriniz BiletFeed sunucularında{' '}
-                        <strong>saklanmaz</strong>. Ödeme banka sanal POS altyapısı ile
-                        tamamlanır.
+                        {t.purchase.paymentNotStoredPrefix}{' '}
+                        <strong>{t.purchase.notStoredEmphasis}</strong>.{' '}
+                        {t.purchase.paymentNotStoredSuffix}
                       </p>
                       <PaymentCardLogos />
                       <p className="flex items-center gap-2 text-muted-foreground">
                         <Lock className="size-3.5 shrink-0 text-primary" />
-                        SSL · 3D Secure
+                        {t.purchase.paymentSsl}
                       </p>
                       <p className="flex items-center gap-2 text-muted-foreground">
                         <ExternalLink className="size-3.5 shrink-0" />
-                        Devam ettiğinizde ödeme sayfasına yönlendirilirsiniz
+                        {t.purchase.paymentRedirect}
                       </p>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Ücretsiz etkinlik — onayladığınızda QR biletiniz anında oluşturulur.
+                      {t.purchase.freeEventConfirm}
                     </p>
                   )}
 
@@ -631,7 +633,7 @@ export function CheckoutForm({
                       className="rounded-xl"
                       onClick={() => setStep(2)}
                     >
-                      Geri
+                      {t.common.back}
                     </Button>
                     <Button
                       type="submit"
@@ -639,10 +641,10 @@ export function CheckoutForm({
                       className="h-12 flex-1 rounded-xl text-base font-bold"
                     >
                       {loading
-                        ? 'Yönlendiriliyor…'
+                        ? t.purchase.redirecting
                         : isPaid
-                          ? `Siparişi Tamamla · ${total.toLocaleString('tr-TR')} ₺`
-                          : 'Ücretsiz Bileti Al'}
+                          ? t.purchase.completeOrderAmount(`${total.toLocaleString('tr-TR')} ₺`)
+                          : t.purchase.getFreeTicket}
                     </Button>
                   </div>
                 </div>
@@ -653,7 +655,7 @@ export function CheckoutForm({
           <div className="lg:col-span-2">
             <BfOrderSummary
               event={event}
-              ticketTypeName={selectedType?.name ?? 'Genel Giriş'}
+              ticketTypeName={selectedType?.name ?? t.purchase.generalAdmission}
               quantity={quantity}
               unitPrice={unitPrice}
               discount={couponDiscount}

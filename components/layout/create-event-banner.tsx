@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { ArrowRight, CalendarPlus } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTranslations } from '@/components/providers';
 import { panelHref } from '@/lib/config/domain';
 
 /** Ana sayfa CTA — giriş yapmış tüm kullanıcılara. */
 export function CreateEventBanner() {
   const { user } = useAuth();
+  const t = useTranslations();
 
   if (!user) {
     return null;
@@ -34,17 +36,16 @@ export function CreateEventBanner() {
       <div className="container relative mx-auto flex flex-col items-center gap-8 px-4 md:flex-row md:justify-between">
         <div className="max-w-xl text-center md:text-left">
           <h2 className="text-2xl font-bold text-primary md:text-3xl">
-            Bilet Feed ile etkinlik oluşturun
+            {t.home.createEventTitle}
           </h2>
           <p className="mt-3 text-sm text-white/80 md:text-base">
-            Bir gösteriniz, etkinliğiniz veya harika bir deneyiminiz mi var?
-            Bizimle ortak olun ve Bilet Feed&apos;de listelenin.
+            {t.home.createEventSubtitle}
           </p>
         </div>
         <Link href={panelHref('/organizator-panel/etkinlik/yeni')}>
           <span className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90">
             <CalendarPlus className="size-5" />
-            Etkinlik Oluştur
+            {t.chrome.createEvent}
             <ArrowRight className="size-4" />
           </span>
         </Link>

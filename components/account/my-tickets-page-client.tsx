@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, MapPin, QrCode, Search } from 'lucide-react';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
+import { useTranslations } from '@/components/providers';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { formatEventDate } from '@/lib/data/mock-events';
@@ -13,42 +14,15 @@ import { cn } from '@/lib/utils';
 
 type TicketTab = 'active' | 'past' | 'refunds' | 'invitations' | 'transferred';
 
-const tabs: { id: TicketTab; label: string }[] = [
-  { id: 'active', label: 'Aktif' },
-  { id: 'past', label: 'Geçmiş' },
-  { id: 'invitations', label: 'Davetiyeler' },
-  { id: 'transferred', label: 'Devirler' },
-  { id: 'refunds', label: 'İadeler' }
-];
-
-const emptyCopy: Record<TicketTab, { title: string; description: string }> = {
-  active: {
-    title: 'Henüz bilet bulunamadı',
-    description: 'Etkinliklere göz atıp bilet satın alabilirsiniz.'
-  },
-  past: {
-    title: 'Geçmiş etkinlik bileti yok',
-    description: 'Katıldığınız etkinlikler burada listelenir.'
-  },
-  refunds: {
-    title: 'İade talebi bulunamadı',
-    description: 'İade sürecindeki biletleriniz burada görünür.'
-  },
-  invitations: {
-    title: 'Davetiye bulunamadı',
-    description: 'Organizatörlerden aldığınız davetiyeler burada listelenir.'
-  },
-  transferred: {
-    title: 'Devir kaydı yok',
-    description: 'Devrettiğiniz veya size devredilen biletler burada görünür.'
-  }
-};
-
-function statusLabel(ticket: MockPurchasedTicket, isPast: boolean): string {
-  if (ticket.status === 'REFUNDED') return 'İade Edildi';
-  if (ticket.status === 'CANCELLED') return 'İptal';
-  if (ticket.status === 'USED') return 'Kullanıldı';
-  if (ticket.status === 'VALID') return isPast ? 'Süresi Doldu' : 'Geçerli';
+function statusLabel(
+  ticket: MockPurchasedTicket,
+  isPast: boolean,
+  t: ReturnType<typeof useTranslations>
+): string {
+  if (ticket.status === 'REFUNDED') return t.tickets.status.REFUNDED;
+  if (ticket.status === 'CANCELLED') return t.tickets.cancelledShort;
+  if (ticket.status === 'USED') return t.tickets.status.USED;
+  if (ticket.status === 'VALID') return isPast ? t.tickets.expired : t.tickets.status.VALID;
   return ticket.status;
 }
 
@@ -105,7 +79,13 @@ function filterTickets(
   );
 }
 
-function TicketCard({ ticket }: { ticket: MockPurchasedTicket }) {
+function TicketCard({
+  ticket,
+  t
+}: {
+  ticket: MockPurchasedTicket;
+  t: ReturnType<typeof useTranslations>;
+}) {
   const isPast =
     ticket.status === 'USED' ||
     ticket.status === 'CANCELLED' ||
@@ -132,7 +112,7 @@ function TicketCard({ ticket }: { ticket: MockPurchasedTicket }) {
           <div className="flex shrink-0 flex-col items-end gap-1">
             {ticket.isInvitation && (
               <Badge variant="outline" className="text-[10px]">
-                Davetiye
+                {t.tickets.invitationBadge}
               </Badge>
             )}
             <Badge
@@ -140,7 +120,7 @@ function TicketCard({ ticket }: { ticket: MockPurchasedTicket }) {
                 ticket.status === 'VALID' && !isPast ? 'success' : 'secondary'
               }
             >
-              {statusLabel(ticket, isPast)}
+              {statusLabel(ticket, isPast, t)}
             </Badge>
           </div>
         </div>
@@ -171,6 +151,36 @@ export function MyTicketsPageClient({
   tickets: MockPurchasedTicket[];
   transferredTicketIds?: string[];
 }) {
+  const t = useTranslations();
+  const tabs: { id: TicketTab; label: string }[] = [
+    { id: 'active', label: t.tickets.active },
+    { id: 'past', label: t.tickets.past },
+    { id: 'invitations', label: t.tickets.invitations },
+    { id: 'transferred', label: t.tickets.transfers },
+    { id: 'refunds', label: t.tickets.refunds }
+  ];
+  const emptyCopy: Record<TicketTab, { title: string; description: string }> = {
+    active: {
+      title: t.tickets.noTicketsFound,
+      description: t.tickets.emptyActiveDescription
+    },
+    past: {
+      title: t.tickets.emptyPastTitle,
+      description: t.tickets.emptyPastDescription
+    },
+    refunds: {
+      title: t.tickets.emptyRefundsTitle,
+      description: t.tickets.emptyRefundsDescription
+    },
+    invitations: {
+      title: t.tickets.emptyInvitationsTitle,
+      description: t.tickets.emptyInvitationsDescription
+    },
+    transferred: {
+      title: t.tickets.emptyTransfersTitle,
+      description: t.tickets.transfersHint
+    }
+  };
   const [tab, setTab] = useState<TicketTab>('active');
   const [search, setSearch] = useState('');
   const transferSet = useMemo(
@@ -189,7 +199,7 @@ export function MyTicketsPageClient({
 
       <section className="mt-2 overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex flex-col gap-4 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:justify-between md:px-6">
-          <h1 className="text-xl font-bold tracking-tight">Biletlerim</h1>
+          <h1 className="text-xl font-bold tracking-tight">{t.tickets.title}</h1>
           <div className="flex flex-wrap gap-1 sm:gap-2">
             {tabs.map((item) => (
               <button
@@ -215,7 +225,7 @@ export function MyTicketsPageClient({
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Etkinlik veya bilet kodu ara..."
+              placeholder={t.tickets.searchPlaceholder}
               className="pl-9"
             />
           </div>
@@ -235,14 +245,14 @@ export function MyTicketsPageClient({
                   href="/etkinlikler"
                   className="mt-5 inline-flex text-sm font-semibold text-primary hover:underline"
                 >
-                  Etkinliklere Göz At
+                  {t.account.browseEvents}
                 </Link>
               )}
             </div>
           ) : (
             <div className="mx-auto max-w-3xl space-y-4">
               {filteredTickets.map((ticket) => (
-                <TicketCard key={ticket.id} ticket={ticket} />
+                <TicketCard key={ticket.id} ticket={ticket} t={t} />
               ))}
             </div>
           )}

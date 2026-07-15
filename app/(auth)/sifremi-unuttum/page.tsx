@@ -1,20 +1,25 @@
 import type { Metadata } from 'next';
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
 import { AuthShell } from '@/components/auth/auth-shell';
-import { getTranslations } from '@/lib/i18n';
+import { getServerTranslations } from '@/lib/i18n/server';
 
-const t = getTranslations();
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerTranslations();
+  return {
+    title: t.auth.forgotPasswordTitle,
+    description: t.auth.forgotPasswordSubtitle
+  };
+}
 
-export const metadata: Metadata = {
-  title: t.auth.forgotPasswordTitle,
-  description: t.auth.forgotPasswordSubtitle
-};
+export default async function ForgotPasswordPage() {
+  const { t } = await getServerTranslations();
 
-export default function ForgotPasswordPage() {
   return (
     <AuthShell
-      title="Hesabınıza tekrar erişin"
-      subtitle="E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz."
+      title={t.auth.forgotShellTitle}
+      subtitle={t.auth.forgotShellSubtitle}
+      bullets={[t.auth.shellBullet1, t.auth.shellBullet2, t.auth.shellBullet3]}
+      backHomeLabel={t.auth.shellBackHome}
     >
       <ForgotPasswordForm />
     </AuthShell>

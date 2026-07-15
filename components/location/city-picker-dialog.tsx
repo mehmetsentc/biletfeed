@@ -8,6 +8,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
 import { sortCitiesForPicker } from '@/lib/location/cities';
 import { detectCityFromGeolocation } from '@/lib/location/detect-city';
@@ -40,6 +41,7 @@ export function CityPickerDialog({
   required = false,
   onOpenChange
 }: CityPickerDialogProps) {
+  const t = useTranslations();
   const [query, setQuery] = useState('');
   const [detecting, setDetecting] = useState(false);
   const [detectMessage, setDetectMessage] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export function CityPickerDialog({
 
     let cancelled = false;
     setDetecting(true);
-    setDetectMessage('Konumunuz tespit ediliyor…');
+    setDetectMessage(t.location.detecting);
 
     detectCityFromGeolocation()
       .then((detected) => {
@@ -92,7 +94,7 @@ export function CityPickerDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, required, onSelect]);
+  }, [open, required, onSelect, t.location.detecting]);
 
   function handleOpenChange(next: boolean) {
     if (required && !next) return;
@@ -123,13 +125,13 @@ export function CityPickerDialog({
               type="button"
               onClick={() => onOpenChange?.(false)}
               className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Kapat"
+              aria-label={t.common.close}
             >
               <X className="size-4" />
             </button>
           )}
           <DialogTitle className="text-lg font-bold sm:text-xl">
-            Şehrinizi seçin
+            {t.location.selectCity}
           </DialogTitle>
         </div>
 
@@ -140,7 +142,7 @@ export function CityPickerDialog({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Şehir Ara"
+              placeholder={t.location.searchCity}
               className="h-11 rounded-xl border-border bg-muted/40 pl-10 text-base focus-visible:border-primary focus-visible:ring-primary/25"
               autoComplete="off"
             />
@@ -160,7 +162,7 @@ export function CityPickerDialog({
               ) : (
                 <Navigation className="mt-0.5 size-4 shrink-0 text-primary" />
               )}
-              <span>{detecting ? 'Konumunuz tespit ediliyor…' : detectMessage}</span>
+              <span>{detecting ? t.location.detecting : detectMessage}</span>
             </div>
           )}
         </div>
@@ -168,7 +170,7 @@ export function CityPickerDialog({
         <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-2 pb-4 sm:px-3">
           {filteredCities.length === 0 ? (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">
-              Etkinlik bulunan şehir eşleşmedi.
+              {t.location.noMatch}
             </p>
           ) : (
             <ul className="divide-y divide-border/80">
@@ -188,7 +190,7 @@ export function CityPickerDialog({
                     >
                       <span className="min-w-0">
                         <span className="font-bold text-foreground">{city.name}</span>
-                        <span className="text-muted-foreground">, Türkiye</span>
+                        <span className="text-muted-foreground">{t.location.turkeySuffix}</span>
                       </span>
                       {city.count != null && city.count > 0 ? (
                         <span className="shrink-0 text-xs font-medium text-primary">

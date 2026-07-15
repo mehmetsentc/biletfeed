@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Ticket } from 'lucide-react';
 import type { HeroBannerSlide } from '@/lib/banners/hero-slide-types';
+import { useTranslations } from '@/components/providers';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 import { cn } from '@/lib/utils';
 
@@ -27,10 +28,12 @@ function slideImage(slide: HeroBannerSlide, variant: 'mobile' | 'tablet' | 'desk
 
 function BannerSlide({
   slide,
-  priority
+  priority,
+  buyTicketLabel
 }: {
   slide: HeroBannerSlide;
   priority?: boolean;
+  buyTicketLabel: string;
 }) {
   const content = (
     <>
@@ -114,7 +117,7 @@ function BannerSlide({
           ) : null}
           <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 sm:mt-5">
             <Ticket className="size-4" aria-hidden />
-            Bilet Al
+            {buyTicketLabel}
           </span>
         </div>
       </div>
@@ -125,25 +128,25 @@ function BannerSlide({
     <Link
       href={slide.linkUrl}
       className="group relative block w-full overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-      aria-label={`${slide.title} — bilet al`}
+      aria-label={`${slide.title} — ${buyTicketLabel}`}
     >
       {content}
     </Link>
   );
 }
 
-const FALLBACK: HeroBannerSlide = {
-  id: 'fallback',
-  title: 'Canlı etkinlikleri keşfet',
-  highlight: 'Konser · Festival · Tiyatro',
-  promoLine: 'Türkiye genelinde binlerce etkinlik',
-  coverImage:
-    'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1920&q=80',
-  linkUrl: '/etkinlikler'
-};
-
 export function HomeBannerSlider({ slides }: HomeBannerSliderProps) {
-  const items = slides.length > 0 ? slides.slice(0, 5) : [FALLBACK];
+  const t = useTranslations();
+  const fallback: HeroBannerSlide = {
+    id: 'fallback',
+    title: t.home.bannerDiscover,
+    highlight: t.home.bannerFeatured,
+    promoLine: t.home.bannerSubtitle,
+    coverImage:
+      'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1920&q=80',
+    linkUrl: '/etkinlikler'
+  };
+  const items = slides.length > 0 ? slides.slice(0, 5) : [fallback];
   const [index, setIndex] = useState(0);
   const count = items.length;
 
@@ -166,8 +169,12 @@ export function HomeBannerSlider({ slides }: HomeBannerSliderProps) {
   const current = items[index];
 
   return (
-    <div className="relative w-full bg-black" aria-label="Öne çıkan etkinlikler">
-      <BannerSlide slide={current} priority={index === 0} />
+    <div className="relative w-full bg-black" aria-label={t.home.bannerFeatured}>
+      <BannerSlide
+        slide={current}
+        priority={index === 0}
+        buyTicketLabel={t.chrome.getTickets}
+      />
 
       {count > 1 && (
         <>

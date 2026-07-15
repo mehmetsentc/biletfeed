@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LayoutDashboard, MapPin, Plus, Search, Menu, X } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTranslations } from '@/components/providers';
 import { useCity } from '@/components/providers/city-provider';
 import { toCategoryNavLinks, type CategoryNavItem } from '@/lib/categories/nav-links';
 import {
@@ -21,6 +22,7 @@ interface MobileHeaderProps {
 }
 
 export function MobileHeader({ categories }: MobileHeaderProps) {
+  const t = useTranslations();
   const router = useRouter();
   const { user } = useAuth();
   const { citySlug, cities, openCityPicker } = useCity();
@@ -28,7 +30,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
   const [query, setQuery] = useState('');
 
   const currentCity = cities.find((c) => c.slug === citySlug);
-  const cityName = currentCity?.name ?? 'Şehir seç';
+  const cityName = currentCity?.name ?? t.location.selectCity;
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -52,7 +54,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
             type="button"
             onClick={() => setMenuOpen(true)}
             className="absolute left-3 flex size-11 items-center justify-center text-primary"
-            aria-label="Menü"
+            aria-label={t.common.menu}
           >
             <Menu className="size-6" strokeWidth={2.5} />
           </button>
@@ -66,7 +68,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
               input?.focus();
             }}
             className="absolute right-3 flex size-9 items-center justify-center text-[var(--header-fg)]"
-            aria-label="Ara"
+            aria-label={t.common.search}
           >
             <Search className="size-5" />
           </button>
@@ -78,7 +80,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
             type="button"
             onClick={openCityPicker}
             className="flex shrink-0 items-center gap-1 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"
-            aria-label="Şehir seç"
+            aria-label={t.filters.changeCity}
           >
             <MapPin className="size-3.5 shrink-0" />
             <span className="max-w-[80px] truncate">{cityName}</span>
@@ -95,7 +97,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Etkinlik, mekan, sanatçı ara…"
+                placeholder={t.home.heroSearchPlaceholder}
                 className={cn(
                   'h-9 w-full rounded-full border border-[var(--header-border)] pl-9 pr-3 text-sm outline-none',
                   'bg-[var(--muted)] text-[var(--foreground)] placeholder:text-[var(--header-fg-muted)]',
@@ -138,14 +140,14 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                   onClick={() => setMenuOpen(false)}
                   className="flex flex-1 items-center justify-center rounded-lg border border-[var(--border)] py-2.5 text-sm font-semibold"
                 >
-                  Giriş Yap
+                  {t.nav.login}
                 </Link>
                 <Link
                   href="/kayit"
                   onClick={() => setMenuOpen(false)}
                   className="flex flex-1 items-center justify-center rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                 >
-                  Üye Ol
+                  {t.nav.register}
                 </Link>
               </div>
             )}
@@ -166,7 +168,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-semibold">{user.displayName ?? 'Profil'}</p>
+                    <p className="text-sm font-semibold">{user.displayName ?? t.account.profile}</p>
                     <p className="text-xs text-[var(--muted-foreground)]">{user.email}</p>
                   </div>
                 </Link>
@@ -175,7 +177,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
 
             <div className="px-5 pb-5">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
-                Organizatör
+                {t.nav.organizer}
               </p>
               <div className="space-y-0.5">
                 {user ? (
@@ -187,7 +189,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                       className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-primary transition-colors hover:bg-[var(--muted)]"
                     >
                       <Plus className="size-4 shrink-0" strokeWidth={2} />
-                      Etkinlik Oluştur
+                      {t.account.createEvent}
                     </Link>
                     <Link
                       href={panelHref('/organizator-panel/baslangic')}
@@ -196,7 +198,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                       className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
                     >
                       <LayoutDashboard className="size-4 shrink-0" strokeWidth={1.75} />
-                      Organizatör Panel
+                      {t.account.organizerPanel}
                     </Link>
                   </>
                 ) : (
@@ -208,7 +210,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                       className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-primary transition-colors hover:bg-[var(--muted)]"
                     >
                       <LayoutDashboard className="size-4 shrink-0" strokeWidth={2} />
-                      Panele Giriş
+                      {t.chrome.panelLogin}
                     </Link>
                     <Link
                       href={panelLoginHref('/organizator-panel/etkinlik/yeni')}
@@ -217,7 +219,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                       className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
                     >
                       <Plus className="size-4 shrink-0" strokeWidth={1.75} />
-                      Etkinlik Oluştur
+                      {t.account.createEvent}
                     </Link>
                   </>
                 )}
@@ -226,7 +228,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
 
             <div className="px-5">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
-                Keşfet
+                {t.nav.discover}
               </p>
               <div className="space-y-0.5">
                 <Link
@@ -234,21 +236,21 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center rounded-lg px-3 py-3 text-sm font-semibold text-primary"
                 >
-                  BiletFeed Feed
+                  {t.chrome.feed}
                 </Link>
                 <Link
                   href="/etkinlikler"
                   onClick={() => setMenuOpen(false)}
                   className="flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
                 >
-                  Tüm Etkinlikler
+                  {t.nav.allEvents}
                 </Link>
               </div>
             </div>
 
             <div className="mt-6 px-5">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
-                Kategoriler
+                {t.nav.categories}
               </p>
               <div className="space-y-0.5">
                 {menuLinks.map((link) => (
@@ -266,7 +268,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                   onClick={() => setMenuOpen(false)}
                   className="mt-1 flex items-center rounded-lg px-3 py-3 text-sm font-semibold text-primary"
                 >
-                  Tüm Kategoriler →
+                  {t.common.viewAll}
                 </Link>
               </div>
             </div>

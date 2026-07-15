@@ -4,19 +4,12 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { EventifyCard } from '@/components/events/eventify-card';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
 import type { MockEvent } from '@/lib/data/mock-events';
 import { isUpcomingEvent } from '@/lib/events/upcoming';
 
-const filters = [
-  { id: 'all', label: 'Tümü' },
-  { id: 'today', label: 'Bugün' },
-  { id: 'tomorrow', label: 'Yarın' },
-  { id: 'weekend', label: 'Bu Hafta Sonu' },
-  { id: 'free', label: 'Ücretsiz' }
-] as const;
-
-type FilterId = (typeof filters)[number]['id'];
+type FilterId = 'all' | 'today' | 'tomorrow' | 'weekend' | 'free';
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -78,6 +71,18 @@ export function PopularEventsSection({
   cityName = 'İstanbul',
   citySlug = 'istanbul'
 }: PopularEventsSectionProps) {
+  const t = useTranslations();
+  const filters = useMemo(
+    () =>
+      [
+        { id: 'all' as const, label: t.common.all },
+        { id: 'today' as const, label: t.common.today },
+        { id: 'tomorrow' as const, label: t.common.tomorrow },
+        { id: 'weekend' as const, label: t.home.popularThisWeek },
+        { id: 'free' as const, label: t.common.free }
+      ],
+    [t]
+  );
   const [active, setActive] = useState<FilterId>('all');
   const filtered = useMemo(() => filterEvents(events, active), [events, active]);
   const display = filtered.slice(0, 6);
@@ -86,7 +91,7 @@ export function PopularEventsSection({
     <section className="bg-background py-14 md:py-20">
       <div className="container mx-auto px-4">
         <h2 className="text-2xl font-extrabold tracking-tight md:text-3xl">
-          {cityName}&apos;da Popüler Etkinlikler
+          {t.home.popularInCity(cityName)}
         </h2>
 
         <div className="mt-7 flex flex-wrap gap-2.5">
@@ -115,7 +120,7 @@ export function PopularEventsSection({
           </div>
         ) : (
           <p className="mt-8 text-center text-muted-foreground">
-            Bu filtreye uygun etkinlik bulunamadı.
+            {t.events.noEvents}
           </p>
         )}
 
@@ -126,7 +131,7 @@ export function PopularEventsSection({
               size="lg"
               className="min-w-[200px] rounded-md border-foreground/20 px-12 font-semibold"
             >
-              Daha Fazla
+              {t.common.more}
             </Button>
           </Link>
         </div>

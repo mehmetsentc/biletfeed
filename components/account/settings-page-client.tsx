@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { ThemeSelector } from '@/components/theme/theme-selector';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
+import { useTranslations } from '@/components/providers';
 import { ChangePasswordDialog } from '@/components/account/change-password-dialog';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -114,6 +115,7 @@ function SecurityActionRow({
 }
 
 export function SettingsPageClient() {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading, signOut } = useAuth();
@@ -149,13 +151,9 @@ export function SettingsPageClient() {
   }
 
   function handleDeleteAccount() {
-    const confirmed = window.confirm(
-      'Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.'
-    );
+    const confirmed = window.confirm(t.account.deleteAccountConfirmFull);
     if (!confirmed) return;
-    alert(
-      'Hesap silme talebiniz alındı. Destek ekibimiz kısa süre içinde sizinle iletişime geçecektir.'
-    );
+    alert(t.account.deleteAccountReceived);
   }
 
   if (loading) {
@@ -176,16 +174,14 @@ export function SettingsPageClient() {
       <AccountProfileTabs />
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Ayarlar</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Bilgilerinizi düzenleyebilirsiniz.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.account.settings}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t.account.settingsSubtitle}</p>
       </div>
 
       <div className="mb-6">
-        <SettingsCard title="Görünüm" icon={Palette}>
+        <SettingsCard title={t.account.appearance} icon={Palette}>
           <p className="px-4 pt-4 text-sm text-muted-foreground">
-            Site temasını seçin. Otomatik mod sistem ayarınızı kullanır.
+            {t.account.themeDescription}
           </p>
           <div className="px-4 pb-4">
             <ThemeSelector />
@@ -194,35 +190,35 @@ export function SettingsPageClient() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <SettingsCard title="Bildirim Tercihleri" icon={Bell}>
+        <SettingsCard title={t.account.notificationPreferences} icon={Bell}>
           <NotificationRow
             icon={Mail}
-            title="E-posta Bildirimleri"
-            description="Etkinlik hatırlatıcıları ve kampanyalar."
+            title={t.account.emailNotifications}
+            description={t.account.emailNotificationsHint}
             checked={prefs.email}
             onCheckedChange={(checked) => updatePref('email', checked)}
           />
           <NotificationRow
             icon={MessageSquare}
-            title="SMS Bildirimleri"
-            description="Bilet bilgileri ve önemli duyurular."
+            title={t.account.smsNotifications}
+            description={t.account.smsNotificationsHint}
             checked={prefs.sms}
             onCheckedChange={(checked) => updatePref('sms', checked)}
           />
           <NotificationRow
             icon={Newspaper}
-            title="E-Bülten Aboneliği"
-            description="Kampanyalar ve özel teklifler."
+            title={t.account.newsletterSubscription}
+            description={t.account.newsletterSubscriptionHint}
             checked={prefs.newsletter}
             onCheckedChange={(checked) => updatePref('newsletter', checked)}
           />
         </SettingsCard>
 
-        <SettingsCard title="Güvenlik" icon={Shield}>
+        <SettingsCard title={t.account.security} icon={Shield}>
           <SecurityActionRow
             icon={KeyRound}
-            title="Şifre Değiştir"
-            description="Şifrenizi değiştirmek için buraya tıklayın."
+            title={t.account.changePassword}
+            description={t.account.changePasswordHint}
             onClick={() => setPasswordOpen(true)}
           />
 
@@ -237,10 +233,8 @@ export function SettingsPageClient() {
                 strokeWidth={1.75}
               />
               <div>
-                <p className="font-medium">Çıkış Yap</p>
-                <p className="text-sm text-muted-foreground">
-                  Hesabınızdan çıkış yapmak için tıklayın.
-                </p>
+                <p className="font-medium">{t.account.signOut}</p>
+                <p className="text-sm text-muted-foreground">{t.account.signOutHint}</p>
               </div>
             </div>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
@@ -254,10 +248,8 @@ export function SettingsPageClient() {
             <div className="flex min-w-0 items-start gap-3">
               <Trash2 className="mt-0.5 size-5 shrink-0" strokeWidth={1.75} />
               <div>
-                <p className="font-medium">Hesabı Sil</p>
-                <p className="text-sm text-destructive/80">
-                  Hesabınızı silmek için buraya tıklayın.
-                </p>
+                <p className="font-medium">{t.account.deleteAccount}</p>
+                <p className="text-sm text-destructive/80">{t.account.deleteAccountHint}</p>
               </div>
             </div>
             <ChevronRight className="size-4 shrink-0" />

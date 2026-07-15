@@ -1,8 +1,7 @@
 'use client';
 
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
-
-const STEPS = ['Bilet Seç', 'Bilgiler', 'Ödeme'] as const;
 
 type BfCheckoutStepsProps = {
   current: 1 | 2 | 3;
@@ -10,9 +9,12 @@ type BfCheckoutStepsProps = {
 };
 
 export function BfCheckoutSteps({ current, className }: BfCheckoutStepsProps) {
+  const t = useTranslations();
+  const steps = [t.purchase.stepTicket, t.purchase.stepInfo, t.purchase.stepPay] as const;
+
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      {STEPS.map((label, i) => {
+      {steps.map((label, i) => {
         const step = (i + 1) as 1 | 2 | 3;
         const active = step === current;
         const done = step < current;
@@ -41,7 +43,7 @@ export function BfCheckoutSteps({ current, className }: BfCheckoutStepsProps) {
                 {label}
               </span>
             </div>
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div
                 className={cn(
                   'mb-5 h-0.5 flex-1 rounded-full sm:mb-6',

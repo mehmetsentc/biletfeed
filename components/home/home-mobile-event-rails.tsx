@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useCity } from '@/components/providers/city-provider';
+import { useTranslations } from '@/components/providers';
 import { HomeEventScrollRail } from '@/components/home/home-event-scroll-rail';
 import type { HomeCityEventsBundle } from '@/lib/services/home-city-events';
 import { useEffect, useRef, useState } from 'react';
@@ -12,6 +13,7 @@ type HomeMobileEventRailsProps = {
 };
 
 export function HomeMobileEventRails({ initial }: HomeMobileEventRailsProps) {
+  const t = useTranslations();
   const { citySlug, cityName } = useCity();
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(false);
@@ -53,12 +55,12 @@ export function HomeMobileEventRails({ initial }: HomeMobileEventRailsProps) {
       {loading && (
         <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin text-primary" />
-          {displayName} etkinlikleri yükleniyor…
+          {t.common.loading}
         </div>
       )}
 
       <HomeEventScrollRail
-        title={`${displayName} Popüler Etkinlikleri`}
+        title={t.home.popularInCity(displayName)}
         events={data.popularEvents}
         href={`/etkinlikler?sehir=${displaySlug}`}
       />
@@ -73,7 +75,7 @@ export function HomeMobileEventRails({ initial }: HomeMobileEventRailsProps) {
       ))}
 
       <HomeEventScrollRail
-        title="Çok Satanlar"
+        title={t.home.bestsellers}
         events={data.bestSellers}
         href={`/etkinlikler?sehir=${displaySlug}`}
       />
@@ -83,7 +85,7 @@ export function HomeMobileEventRails({ initial }: HomeMobileEventRailsProps) {
           href={`/etkinlikler?sehir=${displaySlug}`}
           className="flex h-11 w-full items-center justify-center rounded-xl border border-border bg-card text-sm font-semibold text-foreground shadow-[var(--shadow-xs)]"
         >
-          {displayName} — tüm etkinlikleri gör
+          {t.nav.allEvents}
         </Link>
       </div>
     </div>

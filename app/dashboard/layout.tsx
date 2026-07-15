@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import {
   LayoutDashboard,
   Calendar,
@@ -17,25 +18,9 @@ import {
 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { ProfileDropdown } from '@/components/layout/profile-dropdown';
-import { getTranslations } from '@/lib/i18n';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
 import { siteConfig } from '@/lib/config/site';
-
-const t = getTranslations();
-
-const sidebarLinks = [
-  { href: '/dashboard/etkinlik/yeni', label: 'Etkinlik Oluştur', icon: Calendar },
-  { href: '/dashboard', label: t.dashboard.title, icon: LayoutDashboard },
-  { href: '/dashboard/etkinlikler', label: t.dashboard.events, icon: Calendar },
-  { href: '/dashboard/biletler', label: t.dashboard.tickets, icon: Ticket },
-  { href: '/dashboard/siparisler', label: t.dashboard.orders, icon: ShoppingCart },
-  { href: '/dashboard/analitik', label: t.dashboard.analytics, icon: BarChart3 },
-  { href: '/dashboard/katilimcilar', label: t.dashboard.attendees, icon: Users },
-  { href: '/dashboard/tarayici', label: t.dashboard.scanner, icon: QrCode },
-  { href: '/dashboard/kuponlar', label: t.dashboard.coupons, icon: Tag },
-  { href: '/dashboard/ai-asistan', label: t.dashboard.aiAssistant, icon: Sparkles },
-  { href: '/dashboard/ayarlar', label: t.dashboard.settings, icon: Settings }
-];
 
 export default function DashboardLayout({
   children
@@ -43,7 +28,25 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const t = useTranslations();
   const isWizard = pathname === '/dashboard/etkinlik/yeni';
+
+  const sidebarLinks = useMemo(
+    () => [
+      { href: '/dashboard/etkinlik/yeni', label: t.dashboard.newEvent, icon: Calendar },
+      { href: '/dashboard', label: t.dashboard.title, icon: LayoutDashboard },
+      { href: '/dashboard/etkinlikler', label: t.dashboard.events, icon: Calendar },
+      { href: '/dashboard/biletler', label: t.dashboard.tickets, icon: Ticket },
+      { href: '/dashboard/siparisler', label: t.dashboard.orders, icon: ShoppingCart },
+      { href: '/dashboard/analitik', label: t.dashboard.analytics, icon: BarChart3 },
+      { href: '/dashboard/katilimcilar', label: t.dashboard.attendees, icon: Users },
+      { href: '/dashboard/tarayici', label: t.dashboard.scanner, icon: QrCode },
+      { href: '/dashboard/kuponlar', label: t.dashboard.coupons, icon: Tag },
+      { href: '/dashboard/ai-asistan', label: t.dashboard.aiAssistant, icon: Sparkles },
+      { href: '/dashboard/ayarlar', label: t.dashboard.settings, icon: Settings }
+    ],
+    [t]
+  );
 
   return (
     <AuthGuard requiredRole="ROLE_ORGANIZER">

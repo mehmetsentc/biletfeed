@@ -6,6 +6,7 @@ import { Logo } from '@/components/brand/logo';
 import { PanelProfileMenu } from '@/components/organizator-panel/panel-profile-menu';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTranslations } from '@/components/providers';
 import { resolveProfileDisplayName } from '@/lib/account/display-name';
 import { siteHref } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ export function OrganizatorHeader({
   /** Mobil menü açıkken header logosunu gizle (sidebar logosu görünsün) */
   mobileOpen?: boolean;
 }) {
+  const t = useTranslations();
   const { user } = useAuth();
   const personalName = resolveProfileDisplayName({
     displayName: user?.displayName || serverDisplayName,
@@ -40,7 +42,7 @@ export function OrganizatorHeader({
           size="icon"
           className="shrink-0 text-white hover:bg-white/10 lg:hidden"
           onClick={onMenuClick}
-          aria-label="Menü"
+          aria-label={t.common.menu}
         >
           <Menu className="size-5" />
         </Button>

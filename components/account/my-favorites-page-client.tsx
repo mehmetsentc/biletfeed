@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { SafeImage } from '@/components/shared/safe-image';
 import { MapPin, Mic2, Users } from 'lucide-react';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
+import { useTranslations } from '@/components/providers';
 import { EventifyCard } from '@/components/events/eventify-card';
 import type { MockEvent } from '@/lib/data/mock-events';
 import type { MockOrganizer } from '@/lib/data/mock-organizers';
@@ -13,36 +14,36 @@ import { cn } from '@/lib/utils';
 
 type FavoriteTab = 'events' | 'artists' | 'venues';
 
-const tabs: { id: FavoriteTab; label: string }[] = [
-  { id: 'events', label: 'Etkinlikler' },
-  { id: 'artists', label: 'Sanatçılar' },
-  { id: 'venues', label: 'Mekanlar' }
-];
+function buildEmptyCopy(t: ReturnType<typeof useTranslations>) {
+  return {
+    events: {
+      title: t.account.noFavorites,
+      description: t.account.favoritesDescription,
+      cta: { href: '/etkinlikler', label: t.account.browseEvents }
+    },
+    artists: {
+      title: t.account.noFavoriteArtists,
+      description: t.account.noFavoriteArtistsDescription,
+      cta: { href: '/organizatorler', label: t.account.exploreArtists }
+    },
+    venues: {
+      title: t.account.noFavoriteVenues,
+      description: t.account.noFavoriteVenuesDescription,
+      cta: { href: '/mekanlar', label: t.account.browseVenues }
+    }
+  } satisfies Record<
+    FavoriteTab,
+    { title: string; description: string; cta?: { href: string; label: string } }
+  >;
+}
 
-const emptyCopy: Record<
-  FavoriteTab,
-  { title: string; description: string; cta?: { href: string; label: string } }
-> = {
-  events: {
-    title: 'Henüz favori etkinlik bulunamadı',
-    description:
-      'Etkinliklere göz atıp beğendiklerini favorilerine ekleyebilirsin.',
-    cta: { href: '/etkinlikler', label: 'Etkinliklere Göz At' }
-  },
-  artists: {
-    title: 'Henüz favori sanatçı bulunamadı',
-    description:
-      'Beğendiğin sanatçıları takip ederek burada görebilirsin.',
-    cta: { href: '/organizatorler', label: 'Sanatçıları Keşfet' }
-  },
-  venues: {
-    title: 'Henüz favori mekan bulunamadı',
-    description: 'Beğendiğin mekanları favorilerine ekleyebilirsin.',
-    cta: { href: '/mekanlar', label: 'Mekanlara Göz At' }
-  }
-};
-
-function OrganizerCard({ organizer }: { organizer: MockOrganizer }) {
+function OrganizerCard({
+  organizer,
+  t
+}: {
+  organizer: MockOrganizer;
+  t: ReturnType<typeof useTranslations>;
+}) {
   return (
     <Link
       href={`/organizator/${organizer.slug}`}
@@ -74,7 +75,7 @@ function OrganizerCard({ organizer }: { organizer: MockOrganizer }) {
         </p>
         <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
           <Users className="size-3" />
-          {organizer.followerCount.toLocaleString('tr-TR')} takipçi
+          {t.account.followers(organizer.followerCount.toLocaleString('tr-TR'))}
         </p>
       </div>
     </Link>
@@ -126,8 +127,14 @@ export function MyFavoritesPageClient({
   artists: MockOrganizer[];
   venues: FavoriteVenue[];
 }) {
+  const t = useTranslations();
+  const tabs: { id: FavoriteTab; label: string }[] = [
+    { id: 'events', label: t.nav.events },
+    { id: 'artists', label: t.account.artists },
+    { id: 'venues', label: t.nav.venues }
+  ];
   const [tab, setTab] = useState<FavoriteTab>('events');
-  const empty = emptyCopy[tab];
+  const empty = buildEmptyCopy(t)[tab];
 
   const hasItems =
     tab === 'events'
@@ -142,7 +149,7 @@ export function MyFavoritesPageClient({
 
       <section className="mt-2 overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex flex-col gap-4 border-b border-border px-5 py-5 sm:flex-row sm:items-center sm:justify-between md:px-6">
-          <h1 className="text-xl font-bold tracking-tight">Favorilerim</h1>
+          <h1 className="text-xl font-bold tracking-tight">{t.account.favorites}</h1>
           <div className="inline-flex w-fit rounded-full bg-muted/80 p-1">
             {tabs.map((item) => (
               <button
@@ -189,7 +196,7 @@ export function MyFavoritesPageClient({
           ) : tab === 'artists' ? (
             <div className="mx-auto max-w-3xl space-y-4">
               {artists.map((organizer) => (
-                <OrganizerCard key={organizer.id} organizer={organizer} />
+                <OrganizerCard key={organizer.id} organizer={organizer} t={t} />
               ))}
             </div>
           ) : (

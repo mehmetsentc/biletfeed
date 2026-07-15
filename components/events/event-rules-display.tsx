@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from '@/components/providers';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,7 @@ function SectionCard({
   }>;
   compact?: boolean;
 }) {
+  const t = useTranslations();
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? items : items.slice(0, PREVIEW_COUNT);
   const hasMore = items.length > PREVIEW_COUNT;
@@ -88,7 +90,7 @@ function SectionCard({
           className="mt-2 gap-1 text-primary"
           onClick={() => setExpanded((v) => !v)}
         >
-          {expanded ? 'Daha az göster' : 'Tümünü Göster'}
+          {expanded ? t.events.showLess : t.events.showAll}
           <ChevronDown
             className={cn('size-4 transition-transform', expanded && 'rotate-180')}
           />

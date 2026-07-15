@@ -2,11 +2,10 @@ import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerOrders } from '@/lib/services/organizer-dashboard';
 import { Badge } from '@/components/ui/badge';
-import { getTranslations } from '@/lib/i18n';
-
-const t = getTranslations();
+import { getServerTranslations } from '@/lib/i18n/server';
 
 export default async function DashboardOrdersPage() {
+  const { t } = await getServerTranslations();
   const session = await requireOrganizer();
   const organizer = await getOrganizerForSession(session.uid);
   if (!organizer) {

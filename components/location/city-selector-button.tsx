@@ -1,6 +1,7 @@
 'use client';
 
 import { MapPin } from 'lucide-react';
+import { useTranslations } from '@/components/providers';
 import { useCityOptional } from '@/components/providers/city-provider';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +10,7 @@ interface CitySelectorButtonProps {
 }
 
 export function CitySelectorButton({ className }: CitySelectorButtonProps) {
+  const t = useTranslations();
   const city = useCityOptional();
   if (!city) return null;
 
@@ -20,7 +22,7 @@ export function CitySelectorButton({ className }: CitySelectorButtonProps) {
         'inline-flex items-center gap-1.5 rounded-full border border-[var(--header-border)] px-2.5 py-1 text-xs font-semibold text-[var(--header-fg)] transition-colors hover:border-primary/50 hover:bg-[var(--header-hover)]',
         className
       )}
-      aria-label="Şehir değiştir"
+      aria-label={t.filters.changeCity}
     >
       <MapPin className="size-3.5 text-primary" />
       {city.cityName}

@@ -1,24 +1,18 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
-import {
-  SUPPORT_SUBJECTS,
-  type SupportCategory
-} from '@/lib/services/user-support';
+import { useTranslations } from '@/components/providers';
+import { type SupportCategory } from '@/lib/services/user-support';
 import { cn } from '@/lib/utils';
-
-const subjectOptions = Object.entries(SUPPORT_SUBJECTS).map(([value, meta]) => ({
-  value: value as SupportCategory,
-  ...meta
-}));
 
 const MAX_LENGTH = 1000;
 
 export function SupportPageClient() {
+  const t = useTranslations();
   const { isConfigured } = useAuth();
   const [category, setCategory] = useState<SupportCategory>('other');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,7 +22,26 @@ export function SupportPageClient() {
   const [success, setSuccess] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const selected = SUPPORT_SUBJECTS[category];
+  const subjectOptions = useMemo(
+    () =>
+      [
+        {
+          value: 'refund' as const,
+          label: t.account.supportSubjectRefund,
+          description: t.account.supportSubjectRefundDesc
+        },
+        {
+          value: 'other' as const,
+          label: t.account.supportSubjectOther,
+          description: t.account.supportSubjectOtherDesc
+        }
+      ] as const,
+    [t]
+  );
+
+  const selected =
+    subjectOptions.find((option) => option.value === category) ??
+    subjectOptions[1];
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -45,7 +58,7 @@ export function SupportPageClient() {
     setError('');
 
     if (body.trim().length < 10) {
-      setError('Mesajınız en az 10 karakter olmalıdır.');
+      setError(t.account.supportMessageMinLength);
       return;
     }
 
@@ -60,7 +73,7 @@ export function SupportPageClient() {
         });
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data.error || 'Destek talebi gönderilemedi');
+          throw new Error(data.error || t.account.supportSendFailed);
         }
       }
 
@@ -69,7 +82,7 @@ export function SupportPageClient() {
       setCategory('other');
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Destek talebi gönderilemedi'
+        err instanceof Error ? err.message : t.account.supportSendFailed
       );
     } finally {
       setSubmitting(false);
@@ -82,15 +95,17 @@ export function SupportPageClient() {
 
       <section className="mt-2 overflow-hidden rounded-2xl border border-border bg-card">
         <div className="border-b border-border px-5 py-5 md:px-6">
-          <h1 className="text-xl font-bold tracking-tight">Destek</h1>
+          <h1 className="text-xl font-bold tracking-tight">{t.account.support}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Destek taleplerinizi gönderebilirsiniz.
+            {t.account.supportSubtitle}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 px-5 py-6 md:px-6 md:py-8">
           <div ref={menuRef} className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Konu</label>
+            <label className="text-sm font-medium text-foreground">
+              {t.account.supportSubject}
+            </label>
             <div className="relative">
               <button
                 type="button"
@@ -144,11 +159,11 @@ export function SupportPageClient() {
               value={body}
               onChange={(e) => setBody(e.target.value.slice(0, MAX_LENGTH))}
               rows={8}
-              placeholder="Mesajınızı yazın..."
+              placeholder={t.account.supportPlaceholder}
               className="w-full resize-none rounded-xl border-0 bg-muted/70 px-4 py-3 text-sm ring-1 ring-border/60 outline-none placeholder:text-muted-foreground focus:bg-background focus:ring-2 focus:ring-primary/40"
             />
             <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
-              <span>Detaylı açıklama, daha hızlı çözüm sağlar</span>
+              <span>{t.account.supportDetailHint}</span>
               <span>
                 {body.length}/{MAX_LENGTH}
               </span>
@@ -163,7 +178,7 @@ export function SupportPageClient() {
 
           {success && (
             <p className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary">
-              Destek talebiniz alındı. En kısa sürede size dönüş yapacağız.
+              {t.account.supportSuccess}
             </p>
           )}
 
@@ -173,7 +188,7 @@ export function SupportPageClient() {
             className="h-12 w-full rounded-full text-base font-semibold"
           >
             <Check className="size-4" />
-            {submitting ? 'Gönderiliyor…' : 'Destek Talebi Gönder'}
+            {submitting ? t.account.sending : t.account.sendSupport}
           </Button>
         </form>
       </section>

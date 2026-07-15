@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useTranslations } from '@/components/providers';
 import { categories as mockCategories } from '@/lib/data/mock-events';
 import { cn } from '@/lib/utils';
 import { toggleFilterItem } from '@/components/events/events-filter-utils';
@@ -12,28 +13,6 @@ import type {
   PriceFilter
 } from '@/components/events/events-filter-types';
 import { defaultEventsFilters } from '@/components/events/events-filter-types';
-
-const priceOptions: { id: PriceFilter; label: string }[] = [
-  { id: 'free', label: 'Ücretsiz' },
-  { id: 'paid', label: 'Ücretli' }
-];
-
-const dateOptions: { id: DateFilter; label: string }[] = [
-  { id: 'today', label: 'Bugün' },
-  { id: 'tomorrow', label: 'Yarın' },
-  { id: 'week', label: 'Bu Hafta' },
-  { id: 'weekend', label: 'Bu Hafta Sonu' },
-  { id: 'pick', label: 'Tarih Seç' }
-];
-
-const formatOptions: { id: FormatFilter; label: string }[] = [
-  { id: 'concert', label: 'Konser' },
-  { id: 'festival', label: 'Festival' },
-  { id: 'theatre', label: 'Tiyatro' },
-  { id: 'sports', label: 'Spor' },
-  { id: 'workshop', label: 'Atölye' },
-  { id: 'online', label: 'Online' }
-];
 
 type FilterTheme = 'default' | 'dark';
 type FilterLayout = 'list' | 'pills' | 'grid' | 'sheet';
@@ -237,6 +216,7 @@ export function EventsFilterContent({
   showTitle = false,
   categories = mockCategories
 }: EventsFilterContentProps) {
+  const t = useTranslations();
   const [showAllCategories, setShowAllCategories] = useState(false);
   const styles = useThemeClasses(theme);
   const isSheet = layout === 'sheet';
@@ -244,6 +224,37 @@ export function EventsFilterContent({
   const visibleCategories = showAllCategories
     ? categories
     : categories.slice(0, isSheet ? 12 : layout === 'list' ? 5 : 8);
+
+  const priceOptions = useMemo(
+    (): { id: PriceFilter; label: string }[] => [
+      { id: 'free', label: t.filters.free },
+      { id: 'paid', label: t.filters.paid }
+    ],
+    [t]
+  );
+
+  const dateOptions = useMemo(
+    (): { id: DateFilter; label: string }[] => [
+      { id: 'today', label: t.filters.today },
+      { id: 'tomorrow', label: t.filters.tomorrow },
+      { id: 'week', label: t.filters.thisWeek },
+      { id: 'weekend', label: t.filters.thisWeekend },
+      { id: 'pick', label: t.filters.pickDate }
+    ],
+    [t]
+  );
+
+  const formatOptions = useMemo(
+    (): { id: FormatFilter; label: string }[] => [
+      { id: 'concert', label: t.filters.concert },
+      { id: 'festival', label: t.categories.festival },
+      { id: 'theatre', label: t.categories.tiyatro },
+      { id: 'sports', label: t.categories.spor },
+      { id: 'workshop', label: t.filters.workshop },
+      { id: 'online', label: t.categories.online }
+    ],
+    [t]
+  );
 
   const renderPrice = (compact = false) =>
     priceOptions.map((opt) =>
@@ -383,7 +394,7 @@ export function EventsFilterContent({
           onClick={() => setShowAllCategories(!showAllCategories)}
           className="shrink-0 text-sm font-medium text-primary hover:underline"
         >
-          {showAllCategories ? 'Daha az' : 'Daha fazla'}
+          {showAllCategories ? t.filters.less : t.common.more}
         </button>
       )}
     </>
@@ -431,12 +442,12 @@ export function EventsFilterContent({
       <div>
         {showTitle && (
           <h2 className={cn('mb-3 text-lg font-bold', styles.title)}>
-            Filtreler
+            {t.filters.title}
           </h2>
         )}
 
         <SheetSection
-          title="Kategori"
+          title={t.filters.category}
           defaultOpen
           activeCount={filters.categories.length}
           theme={theme}
@@ -445,7 +456,7 @@ export function EventsFilterContent({
         </SheetSection>
 
         <SheetSection
-          title="Fiyat"
+          title={t.filters.price}
           defaultOpen={false}
           activeCount={filters.price.length}
           theme={theme}
@@ -454,7 +465,7 @@ export function EventsFilterContent({
         </SheetSection>
 
         <SheetSection
-          title="Tarih"
+          title={t.filters.dateLabel}
           defaultOpen={false}
           activeCount={
             filters.date.length + (filters.customDate ? 1 : 0)
@@ -465,7 +476,7 @@ export function EventsFilterContent({
         </SheetSection>
 
         <SheetSection
-          title="Etkinlik Türü"
+          title={t.filters.eventType}
           defaultOpen={false}
           activeCount={filters.formats.length}
           theme={theme}
@@ -479,31 +490,31 @@ export function EventsFilterContent({
   const sections =
     layout === 'grid' ? (
       <div className="grid gap-6 md:grid-cols-2">
-        <FilterSection title="Kategori" layout={pillLayout} theme={theme}>
+        <FilterSection title={t.filters.category} layout={pillLayout} theme={theme}>
           {renderCategories()}
         </FilterSection>
-        <FilterSection title="Fiyat" layout={pillLayout} theme={theme}>
+        <FilterSection title={t.filters.price} layout={pillLayout} theme={theme}>
           {renderPrice()}
         </FilterSection>
-        <FilterSection title="Tarih" layout={pillLayout} theme={theme}>
+        <FilterSection title={t.filters.dateLabel} layout={pillLayout} theme={theme}>
           {renderDate()}
         </FilterSection>
-        <FilterSection title="Etkinlik Türü" layout={pillLayout} theme={theme}>
+        <FilterSection title={t.filters.eventType} layout={pillLayout} theme={theme}>
           {renderFormats()}
         </FilterSection>
       </div>
     ) : (
       <>
-        <FilterSection title="Kategori" layout={pillLayout} theme={theme}>
+        <FilterSection title={t.filters.category} layout={pillLayout} theme={theme}>
           {renderCategories()}
         </FilterSection>
-        <FilterSection title="Fiyat" layout={pillLayout} theme={theme}>
+        <FilterSection title={t.filters.price} layout={pillLayout} theme={theme}>
           {renderPrice()}
         </FilterSection>
-        <FilterSection title="Tarih" layout={pillLayout} theme={theme}>
+        <FilterSection title={t.filters.dateLabel} layout={pillLayout} theme={theme}>
           {renderDate()}
         </FilterSection>
-        <FilterSection title="Etkinlik Türü" layout={pillLayout} theme={theme}>
+        <FilterSection title={t.filters.eventType} layout={pillLayout} theme={theme}>
           {renderFormats()}
         </FilterSection>
       </>
@@ -513,7 +524,7 @@ export function EventsFilterContent({
     <div>
       {showTitle && (
         <h2 className={cn('mb-3 text-lg font-bold', styles.title)}>
-          Filtreler
+          {t.filters.title}
         </h2>
       )}
       {sections}

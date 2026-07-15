@@ -23,38 +23,21 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { getTranslations } from '@/lib/i18n';
 import { Logo } from '@/components/brand/logo';
 import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import {
   canAccessAdminNavPath,
   type AdminPermission
 } from '@/lib/auth/admin-permissions';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
 
-const t = getTranslations();
-
-const adminLinks = [
-  { href: '/admin', label: t.admin.title, icon: LayoutDashboard },
-  { href: '/admin/kullanicilar', label: t.admin.users, icon: Users },
-  { href: '/admin/organizatorler', label: t.admin.organizers, icon: Users },
-  { href: '/admin/etkinlikler', label: t.admin.events, icon: Calendar },
-  { href: '/admin/etkinlik-onay', label: 'Etkinlik Onay', icon: Clock },
-  { href: '/admin/feed', label: 'Feed', icon: Rss },
-  { href: '/admin/kategoriler', label: t.admin.categories, icon: LayoutGrid },
-  { href: '/admin/sehirler', label: t.admin.cities, icon: MapPin },
-  { href: '/admin/mekanlar', label: t.admin.venues, icon: Building2 },
-  { href: '/admin/siparisler', label: t.admin.orders, icon: ShoppingCart },
-  { href: '/admin/biletler', label: 'Biletler', icon: Ticket },
-  { href: '/admin/islemler', label: t.admin.transactions, icon: CreditCard },
-  { href: '/admin/analitik', label: t.admin.analytics, icon: BarChart3 },
-  { href: '/admin/bannerlar', label: t.admin.banners, icon: Image },
-  { href: '/admin/muhasebe', label: 'Muhasebe', icon: FileText },
-  { href: '/admin/ayarlar', label: t.admin.settings, icon: Settings },
-  { href: '/admin/yoneticiler', label: 'Admin Yönetimi', icon: Shield, superAdminOnly: true }
-] as const;
-
-type AdminLink = (typeof adminLinks)[number];
+type AdminLink = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  superAdminOnly?: boolean;
+};
 
 function AdminNavLinks({
   links,
@@ -106,10 +89,41 @@ export function AdminShell({
 }: AdminShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const t = useTranslations();
 
-  const access = { isSuperAdmin, permissions, userId: '', role: 'ROLE_ADMIN' as const };
+  const adminLinks: AdminLink[] = [
+    { href: '/admin', label: t.admin.title, icon: LayoutDashboard },
+    { href: '/admin/kullanicilar', label: t.admin.users, icon: Users },
+    { href: '/admin/organizatorler', label: t.admin.organizers, icon: Users },
+    { href: '/admin/etkinlikler', label: t.admin.events, icon: Calendar },
+    { href: '/admin/etkinlik-onay', label: t.admin.eventApproval, icon: Clock },
+    { href: '/admin/feed', label: t.admin.feed, icon: Rss },
+    { href: '/admin/kategoriler', label: t.admin.categories, icon: LayoutGrid },
+    { href: '/admin/sehirler', label: t.admin.cities, icon: MapPin },
+    { href: '/admin/mekanlar', label: t.admin.venues, icon: Building2 },
+    { href: '/admin/siparisler', label: t.admin.orders, icon: ShoppingCart },
+    { href: '/admin/biletler', label: t.tickets.title, icon: Ticket },
+    { href: '/admin/islemler', label: t.admin.transactions, icon: CreditCard },
+    { href: '/admin/analitik', label: t.admin.analytics, icon: BarChart3 },
+    { href: '/admin/bannerlar', label: t.admin.banners, icon: Image },
+    { href: '/admin/muhasebe', label: t.admin.accounting, icon: FileText },
+    { href: '/admin/ayarlar', label: t.admin.settings, icon: Settings },
+    {
+      href: '/admin/yoneticiler',
+      label: t.admin.adminManagement,
+      icon: Shield,
+      superAdminOnly: true
+    }
+  ];
+
+  const access = {
+    isSuperAdmin,
+    permissions,
+    userId: '',
+    role: 'ROLE_ADMIN' as const
+  };
   const visibleLinks = adminLinks.filter((link) => {
-    if ('superAdminOnly' in link && link.superAdminOnly) {
+    if (link.superAdminOnly) {
       return isSuperAdmin;
     }
     return canAccessAdminNavPath(access, link.href);
@@ -151,7 +165,7 @@ export function AdminShell({
             type="button"
             onClick={() => setMobileOpen(false)}
             className="flex size-11 items-center justify-center rounded-lg hover:bg-[var(--admin-sidebar-hover)]"
-            aria-label="Menüyü kapat"
+            aria-label={t.common.close}
           >
             <X className="size-5" />
           </button>
@@ -168,7 +182,7 @@ export function AdminShell({
           type="button"
           className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={() => setMobileOpen(false)}
-          aria-label="Menüyü kapat"
+          aria-label={t.common.close}
         />
       )}
 
@@ -178,7 +192,7 @@ export function AdminShell({
             type="button"
             onClick={() => setMobileOpen(true)}
             className="flex size-11 items-center justify-center rounded-lg text-foreground hover:bg-muted lg:hidden"
-            aria-label="Menüyü aç"
+            aria-label={t.common.menu}
           >
             <Menu className="size-5" />
           </button>

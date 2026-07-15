@@ -113,6 +113,7 @@ export async function getCheckoutTicketTypes(eventSlug: string) {
         select: {
           id: true,
           name: true,
+          description: true,
           type: true,
           price: true,
           currency: true,

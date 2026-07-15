@@ -17,15 +17,14 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { registerSchema, type RegisterInput } from '@/lib/validations/auth';
-import { getTranslations } from '@/lib/i18n';
+import { useTranslations } from '@/components/providers';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 import { readStoredGoogleAuthError } from '@/components/auth/google-auth-init';
 import { readStoredAppleAuthError } from '@/components/auth/apple-auth-init';
 import { AppleSignInButton } from '@/components/auth/apple-sign-in-button';
 
-const t = getTranslations();
-
 export function RegisterForm() {
+  const t = useTranslations();
   const { signUp, signInWithGoogle, signInWithApple, isConfigured, sessionError } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);

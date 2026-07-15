@@ -16,6 +16,7 @@ import {
 } from '@/components/events/events-filter-sidebar';
 import { countActiveFilters } from '@/components/events/events-filter-utils';
 import { useCity } from '@/components/providers/city-provider';
+import { useTranslations } from '@/components/providers';
 import { SUPPORTED_CITIES, getCityName } from '@/lib/location/cities';
 import type { MockEvent } from '@/lib/data/mock-events';
 import { filterPublicEventTags } from '@/lib/events/public-tags';
@@ -40,13 +41,13 @@ interface EventsPageClientProps {
   fixedCitySlug?: string;
 }
 
-const sortLabels: Record<EventSortOption, string> = {
-  relevance: 'İlgililik',
-  'date-asc': 'Tarih (yakın)',
-  'date-desc': 'Tarih (uzak)',
-  'price-asc': 'Fiyat (düşük)',
-  'price-desc': 'Fiyat (yüksek)'
-};
+const sortKeys: EventSortOption[] = [
+  'relevance',
+  'date-asc',
+  'date-desc',
+  'price-asc',
+  'price-desc'
+];
 
 function SortSelect({
   value,
@@ -57,14 +58,23 @@ function SortSelect({
   onChange: (value: EventSortOption) => void;
   className?: string;
 }) {
+  const t = useTranslations();
+  const sortLabels: Record<EventSortOption, string> = {
+    relevance: t.filters.relevance,
+    'date-asc': t.filters.dateNear,
+    'date-desc': t.filters.dateFar,
+    'price-asc': t.filters.priceLow,
+    'price-desc': t.filters.priceHigh
+  };
+
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as EventSortOption)}
       className={className}
-      aria-label="Sıralama"
+      aria-label={t.common.sort}
     >
-      {(Object.keys(sortLabels) as EventSortOption[]).map((key) => (
+      {sortKeys.map((key) => (
         <option key={key} value={key}>
           {sortLabels[key]}
         </option>
@@ -279,24 +289,28 @@ function filterEvents(
 
 function EmptyState({
   cityName,
-  onShowAll
+  onShowAll,
+  turkeyLabel,
+  t
 }: {
   cityName: string;
   onShowAll?: () => void;
+  turkeyLabel: string;
+  t: ReturnType<typeof useTranslations>;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card py-16 text-center shadow-sm">
-      <p className="font-medium text-foreground">Etkinlik bulunamadı</p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Filtreleri veya arama terimini değiştirmeyi deneyin
-      </p>
+      <p className="font-medium text-foreground">{t.events.notFound}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{t.events.adjustFilters}</p>
       {onShowAll && (
         <button
           type="button"
           onClick={onShowAll}
           className="mt-4 text-sm font-medium text-primary hover:underline"
         >
-          {cityName === 'Türkiye' ? 'Aramayı temizle' : `${cityName} yerine tüm şehirlerde ara`}
+          {cityName === turkeyLabel
+            ? t.events.clearSearch
+            : t.events.searchAllCities(cityName)}
         </button>
       )}
     </div>
@@ -308,6 +322,7 @@ export default function EventsPageClient({
   categories,
   fixedCitySlug
 }: EventsPageClientProps) {
+  const t = useTranslations();
   const { citySlug: preferredCitySlug } = useCity();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
@@ -413,6 +428,8 @@ export default function EventsPageClient({
         {filteredEvents.length === 0 ? (
           <EmptyState
             cityName={cityLabel}
+            turkeyLabel={t.events.turkey}
+            t={t}
             onShowAll={
               !showAllCities && effectiveCity
                 ? () => {

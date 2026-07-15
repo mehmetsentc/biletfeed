@@ -3,20 +3,25 @@ import { Suspense } from 'react';
 import { LoginForm } from '@/components/auth/login-form';
 import { AlreadySignedInPanel } from '@/components/auth/already-signed-in-panel';
 import { AuthShell } from '@/components/auth/auth-shell';
-import { getTranslations } from '@/lib/i18n';
+import { getServerTranslations } from '@/lib/i18n/server';
 
-const t = getTranslations();
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerTranslations();
+  return {
+    title: t.auth.loginTitle,
+    description: t.auth.loginSubtitle
+  };
+}
 
-export const metadata: Metadata = {
-  title: t.auth.loginTitle,
-  description: t.auth.loginSubtitle
-};
+export default async function LoginPage() {
+  const { t } = await getServerTranslations();
 
-export default function LoginPage() {
   return (
     <AuthShell
-      title="Harika etkinlikleri kaçırmayın"
-      subtitle="Yerel ve global etkinlikleri keşfedin, biletinizi güvenle alın."
+      title={t.auth.loginShellTitle}
+      subtitle={t.auth.loginShellSubtitle}
+      bullets={[t.auth.shellBullet1, t.auth.shellBullet2, t.auth.shellBullet3]}
+      backHomeLabel={t.auth.shellBackHome}
     >
       <Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-muted" />}>
         <div className="flex w-full max-w-md flex-col items-center">

@@ -1,4 +1,5 @@
 import { Clock, Eye } from 'lucide-react';
+import { getServerTranslations } from '@/lib/i18n/server';
 import { cn } from '@/lib/utils';
 
 interface EventPreviewBannerProps {
@@ -6,7 +7,11 @@ interface EventPreviewBannerProps {
   className?: string;
 }
 
-export function EventPreviewBanner({ kind, className }: EventPreviewBannerProps) {
+export async function EventPreviewBanner({
+  kind,
+  className
+}: EventPreviewBannerProps) {
+  const { t } = await getServerTranslations();
   const isDraft = kind === 'draft';
 
   return (
@@ -26,12 +31,10 @@ export function EventPreviewBanner({ kind, className }: EventPreviewBannerProps)
       )}
       <div>
         <p className="font-semibold">
-          {isDraft ? 'Taslak önizleme' : 'Onay bekliyor — henüz herkese açık değil'}
+          {isDraft ? t.events.draftPreview : t.events.pendingPreview}
         </p>
         <p className="mt-0.5 opacity-90">
-          {isDraft
-            ? 'Bu sayfa yalnızca size görünür. Etkinliği onaya gönderdikten sonra admin incelemesine alınır.'
-            : 'Etkinliğiniz BiletFeed ekibi tarafından inceleniyor. Onaylandığında otomatik olarak yayına alınacaktır.'}
+          {isDraft ? t.events.draftPreviewBody : t.events.pendingPreviewBody}
         </p>
       </div>
     </div>

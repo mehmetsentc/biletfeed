@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 import { Logo } from '@/components/brand/logo';
 import { ScannerGateLoginForm } from '@/components/auth/scanner-gate-login-form';
 import { siteHref } from '@/lib/config/domain';
-import { getServerTranslations } from '@/lib/i18n';
+import { getServerTranslations } from '@/lib/i18n/server';
 import { siteConfig } from '@/lib/config/site';
 
 export async function generateMetadata(): Promise<Metadata> {

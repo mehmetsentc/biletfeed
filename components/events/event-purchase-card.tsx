@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ExternalLink, ShieldCheck, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from '@/components/providers';
 import { brandTheme } from '@/lib/config/brand-theme';
 import {
   getEventTicketUrl,
@@ -24,19 +25,20 @@ export function EventPurchaseCard({
   className,
   variant = 'standalone'
 }: EventPurchaseCardProps) {
+  const t = useTranslations();
   const theme = getEventPlatformTheme(event);
   const external = isExternalListing(event);
   const ticketUrl = getEventTicketUrl(event);
   const accent = external ? theme.accent : brandTheme.orange;
-  const ctaLabel = external ? theme.ctaLabel : 'Bilet Al';
+  const ctaLabel = external ? theme.ctaLabel : t.events.buyTicket;
 
   const priceText =
     event.isFree || event.price === 0
-      ? 'Ücretsiz'
+      ? t.events.free
       : `${event.price.toLocaleString('tr-TR')} ₺`;
 
   const priceHint =
-    event.isFree || event.price === 0 ? 'Giriş ücretsiz' : 'başlayan fiyatlarla';
+    event.isFree || event.price === 0 ? t.events.freeEntry : t.chrome.fromPrice;
 
   return (
     <aside

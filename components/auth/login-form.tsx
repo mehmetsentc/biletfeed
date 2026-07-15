@@ -16,15 +16,14 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { loginSchema, type LoginInput } from '@/lib/validations/auth';
-import { getTranslations } from '@/lib/i18n';
+import { useTranslations } from '@/components/providers';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 import { readStoredGoogleAuthError } from '@/components/auth/google-auth-init';
 import { readStoredAppleAuthError } from '@/components/auth/apple-auth-init';
 import { AppleSignInButton } from '@/components/auth/apple-sign-in-button';
 
-const t = getTranslations();
-
 export function LoginForm() {
+  const t = useTranslations();
   const { signIn, signInWithGoogle, signInWithApple, isConfigured, firebaseUser, loading: authLoading, sessionError } =
     useAuth();
   const [error, setError] = useState<string | null>(null);

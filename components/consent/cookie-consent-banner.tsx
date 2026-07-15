@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Cookie } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslations } from '@/components/providers';
 
 export function CookieConsentBanner({
   onAccept,
@@ -13,6 +14,8 @@ export function CookieConsentBanner({
   onReject: () => void;
   onOpenPreferences: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <div
       className="fixed inset-x-0 bottom-0 z-[100] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:p-4"
@@ -30,37 +33,36 @@ export function CookieConsentBanner({
               id="cookie-consent-title"
               className="text-sm font-semibold text-foreground md:text-base"
             >
-              Sana özel bir deneyim için çalışıyoruz
+              {t.consent.title}
             </p>
             <p
               id="cookie-consent-desc"
               className="mt-1.5 text-xs leading-relaxed text-muted-foreground md:text-sm"
             >
-              Deneyiminizi iyileştirmek için çerezler kullanıyoruz. Gerekli çerezler
-              hizmet sunumu için, diğerleri ise yalnızca izninizle kullanılır.{' '}
+              {t.consent.bodyBefore}{' '}
               <button
                 type="button"
                 onClick={onReject}
                 className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
               >
-                Reddet
+                {t.common.reject}
               </button>{' '}
-              seçeneğiyle yalnızca zorunlu çerezlerle devam edebilirsiniz. Detaylara{' '}
+              {t.consent.rejectContinue}{' '}
               <Link
                 href="/cerezler"
                 className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
               >
-                Çerez Politikası
+                {t.consent.cookiePolicy}
               </Link>{' '}
-              ve{' '}
+              {t.consent.and}{' '}
               <button
                 type="button"
                 onClick={onOpenPreferences}
                 className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
               >
-                Tercihler
+                {t.common.preferences}
               </button>
-              &apos;den ulaşabilirsiniz.
+              {t.consent.fromPreferences}
             </p>
           </div>
         </div>
@@ -70,7 +72,7 @@ export function CookieConsentBanner({
           onClick={onAccept}
           className="h-11 shrink-0 px-8 text-sm font-semibold md:min-w-[140px]"
         >
-          Kabul Et
+          {t.consent.accept}
         </Button>
       </div>
     </div>

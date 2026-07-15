@@ -11,6 +11,7 @@ import {
   User
 } from 'lucide-react';
 import { isEventJoyEnabled } from '@/lib/config/features';
+import type { TranslationKeys } from '@/lib/i18n';
 
 export type AccountMenuItem = {
   href: string;
@@ -27,86 +28,90 @@ export type AccountMenuGroup = {
   items: AccountMenuItem[];
 };
 
-export const accountMenuGroups: AccountMenuGroup[] = [
-  {
-    items: [
-      {
-        href: '/profil',
-        label: 'Profilim',
-        icon: User,
-        isActive: (p) => p === '/profil' || p === '/profil/duzenle'
-      },
-      {
-        href: '/profil/bilgilerim',
-        label: 'Bilgilerim',
-        icon: Contact,
-        isActive: (p) => p === '/profil/bilgilerim'
-      },
-      {
-        href: '/profil/ayarlar',
-        label: 'Ayarlar',
-        icon: Settings,
-        isActive: (p) =>
-          p === '/profil/ayarlar' ||
-          p === '/profil/email' ||
-          p === '/profil/sifre' ||
-          p === '/profil/ilgi-alanlari'
-      },
-      {
-        href: '/bildirimler',
-        label: 'Bildirimler',
-        icon: Bell,
-        isActive: (p) => p === '/bildirimler'
-      }
-    ]
-  },
-  ...(isEventJoyEnabled
-    ? [
+export function getAccountMenuGroups(t: TranslationKeys): AccountMenuGroup[] {
+  return [
+    {
+      items: [
         {
-          items: [
-            {
-              href: '/eventjoy/panel',
-              label: 'Event Joy Panel',
-              icon: Calendar,
-              userOnly: true,
-              hideOnPathPrefixes: ['/profil/bilgilerim', '/organizator-panel'],
-              isActive: (p: string) => p.startsWith('/eventjoy')
-            }
-          ]
-        } satisfies AccountMenuGroup
+          href: '/profil',
+          label: t.account.profile,
+          icon: User,
+          isActive: (p) => p === '/profil' || p === '/profil/duzenle'
+        },
+        {
+          href: '/profil/bilgilerim',
+          label: t.account.personalInfo,
+          icon: Contact,
+          isActive: (p) => p === '/profil/bilgilerim'
+        },
+        {
+          href: '/profil/ayarlar',
+          label: t.account.settings,
+          icon: Settings,
+          isActive: (p) =>
+            p === '/profil/ayarlar' ||
+            p === '/profil/email' ||
+            p === '/profil/sifre' ||
+            p === '/profil/ilgi-alanlari'
+        },
+        {
+          href: '/bildirimler',
+          label: t.account.notifications,
+          icon: Bell,
+          isActive: (p) => p === '/bildirimler'
+        }
       ]
-    : []),
-  {
-    items: [
-      {
-        href: '/biletlerim',
-        label: 'Biletlerim',
-        icon: Ticket,
-        isActive: (p) => p.startsWith('/biletlerim')
-      },
-      {
-        href: '/favorilerim',
-        label: 'Favorilerim',
-        icon: Heart,
-        isActive: (p) => p === '/favorilerim'
-      },
-      {
-        href: '/degerlendirmelerim',
-        label: 'Değerlendirmelerim',
-        icon: Star,
-        isActive: (p) => p === '/degerlendirmelerim'
-      }
-    ]
-  }
-];
+    },
+    ...(isEventJoyEnabled
+      ? [
+          {
+            items: [
+              {
+                href: '/eventjoy/panel',
+                label: 'Event Joy Panel',
+                icon: Calendar,
+                userOnly: true,
+                hideOnPathPrefixes: ['/profil/bilgilerim', '/organizator-panel'],
+                isActive: (p: string) => p.startsWith('/eventjoy')
+              }
+            ]
+          } satisfies AccountMenuGroup
+        ]
+      : []),
+    {
+      items: [
+        {
+          href: '/biletlerim',
+          label: t.account.myTickets,
+          icon: Ticket,
+          isActive: (p) => p.startsWith('/biletlerim')
+        },
+        {
+          href: '/favorilerim',
+          label: t.account.favorites,
+          icon: Heart,
+          isActive: (p) => p === '/favorilerim'
+        },
+        {
+          href: '/degerlendirmelerim',
+          label: t.account.reviews,
+          icon: Star,
+          isActive: (p) => p === '/degerlendirmelerim'
+        }
+      ]
+    }
+  ];
+}
 
-export const accountYardimMenuItem: AccountMenuItem = {
-  href: '/profil/destek',
-  label: 'Yardım',
-  icon: LifeBuoy,
-  isActive: (p) =>
-    p === '/profil/destek' || p === '/yardim' || p === '/iletisim' || p === '/sss'
-};
+export function getAccountYardimMenuItem(t: TranslationKeys): AccountMenuItem {
+  return {
+    href: '/profil/destek',
+    label: t.account.help,
+    icon: LifeBuoy,
+    isActive: (p) =>
+      p === '/profil/destek' || p === '/yardim' || p === '/iletisim' || p === '/sss'
+  };
+}
 
 export function isAccountAreaActive(pathname: string): boolean {
   return (

@@ -10,13 +10,16 @@ import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { mainNavLinks } from '@/lib/layout/navigation';
+import { getMainNavLinks } from '@/lib/layout/navigation';
+import { useTranslations } from '@/components/providers';
 
 export function Header() {
   const pathname = usePathname();
   const { user, loading } = useAuth();
+  const t = useTranslations();
   const isHome = pathname === '/';
   const [scrolled, setScrolled] = useState(false);
+  const navLinks = getMainNavLinks(t);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -45,7 +48,7 @@ export function Header() {
 
         <nav className="hidden items-center gap-7 md:flex">
           <CitySelectorButton className="hidden md:inline-flex" />
-          {mainNavLinks.map((link) => {
+          {navLinks.map((link) => {
             const active =
               pathname === link.href ||
               (link.href !== '/' && pathname.startsWith(link.href));
@@ -79,7 +82,7 @@ export function Header() {
                       size="sm"
                       className="font-semibold text-[var(--header-fg)] transition-colors duration-200 hover:bg-[var(--header-hover)] hover:text-[var(--header-fg)]"
                     >
-                      Giriş Yap
+                      {t.nav.login}
                     </Button>
                   </Link>
                   <Link href="/kayit">
@@ -87,7 +90,7 @@ export function Header() {
                       size="sm"
                       className="btn-gradient-primary rounded-[var(--radius-button)] px-5 font-bold text-primary-foreground shadow-[var(--shadow-sm)] transition-[transform,box-shadow] duration-200 hover:shadow-[var(--shadow-md)]"
                     >
-                      Kayıt Ol
+                      {t.nav.register}
                     </Button>
                   </Link>
                 </>

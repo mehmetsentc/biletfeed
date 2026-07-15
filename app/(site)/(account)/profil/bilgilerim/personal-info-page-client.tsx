@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Calendar,
   ChevronDown,
@@ -20,6 +20,7 @@ import {
 } from '@/components/account/profile-field';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTranslations } from '@/components/providers';
 import {
   EMPTY_PROFILE_EXTRAS,
   loadProfileExtras,
@@ -29,15 +30,8 @@ import {
 import { SUPPORTED_CITIES } from '@/lib/location/cities';
 import { cn } from '@/lib/utils';
 
-const GENDER_OPTIONS = [
-  { value: '', label: 'Seçiniz' },
-  { value: 'female', label: 'Kadın' },
-  { value: 'male', label: 'Erkek' },
-  { value: 'other', label: 'Diğer' },
-  { value: 'prefer_not', label: 'Belirtmek istemiyorum' }
-] as const;
-
 export function PersonalInfoPageClient() {
+  const t = useTranslations();
   const { user, loading } = useAuth();
   const [fullName, setFullName] = useState('');
   const [profile, setProfile] = useState<UserProfileExtras>(EMPTY_PROFILE_EXTRAS);
@@ -47,6 +41,18 @@ export function PersonalInfoPageClient() {
   const [saved, setSaved] = useState(false);
   const [phoneSaved, setPhoneSaved] = useState(false);
   const [error, setError] = useState('');
+
+  const genderOptions = useMemo(
+    () =>
+      [
+        { value: '', label: t.account.genderSelect },
+        { value: 'female', label: t.account.female },
+        { value: 'male', label: t.account.male },
+        { value: 'other', label: t.account.genderOther },
+        { value: 'prefer_not', label: t.account.genderPreferNot }
+      ] as const,
+    [t]
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -63,22 +69,22 @@ export function PersonalInfoPageClient() {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || 'Profil güncellenemedi');
+      throw new Error(data.error || t.account.profileUpdateFailed);
     }
   }
 
   async function handleSave() {
     if (!user) return;
     if (!fullName.trim()) {
-      setError('Ad soyad alanı zorunludur.');
+      setError(t.account.fullNameRequired);
       return;
     }
     if (!profile.birthDate) {
-      setError('Doğum tarihi zorunludur.');
+      setError(t.account.birthDateRequired);
       return;
     }
     if (!profile.city) {
-      setError('Şehir seçimi zorunludur.');
+      setError(t.account.cityRequired);
       return;
     }
 
@@ -90,7 +96,7 @@ export function PersonalInfoPageClient() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Kayıt başarısız');
+      setError(err instanceof Error ? err.message : t.account.saveFailed);
     } finally {
       setSaving(false);
     }
@@ -99,7 +105,7 @@ export function PersonalInfoPageClient() {
   async function handlePhoneUpdate() {
     if (!user) return;
     if (!profile.phone.trim()) {
-      setError('Telefon numarası girin.');
+      setError(t.account.phoneRequired);
       return;
     }
 
@@ -150,24 +156,24 @@ export function PersonalInfoPageClient() {
       <AccountProfileTabs />
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Bilgilerim</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t.account.personalInfo}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Profil bilgilerinizi güncelleyebilirsiniz.
+          {t.account.personalInfoSubtitle}
         </p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <ProfileField label="Adınız Soyadınız" required icon={User}>
+        <ProfileField label={t.account.fullName} required icon={User}>
           <input
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Adınız ve soyadınız"
+            placeholder={t.account.fullNamePlaceholder}
             className={profileInputClass}
           />
         </ProfileField>
 
-        <ProfileField label="E-posta Adresiniz" required icon={Mail}>
+        <ProfileField label={t.account.emailAddress} required icon={Mail}>
           <input
             type="email"
             value={user?.email || ''}
@@ -176,7 +182,7 @@ export function PersonalInfoPageClient() {
           />
         </ProfileField>
 
-        <ProfileField label="Telefon Numaranız" icon={Phone}>
+        <ProfileField label={t.account.phoneNumber} icon={Phone}>
           <div className="flex h-12 overflow-hidden rounded-xl bg-muted/70 ring-1 ring-border/60 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/40">
             <div className="flex shrink-0 items-center gap-2 border-r border-border/60 bg-muted/90 px-3 text-sm text-muted-foreground">
               <span aria-hidden>🇹🇷</span>
@@ -197,12 +203,12 @@ export function PersonalInfoPageClient() {
               onClick={handlePhoneUpdate}
               className="m-1.5 shrink-0 rounded-lg px-4 font-semibold"
             >
-              {phoneSaved ? 'Güncellendi' : 'Güncelle'}
+              {phoneSaved ? t.account.updated : t.account.update}
             </Button>
           </div>
         </ProfileField>
 
-        <ProfileField label="Doğum Tarihiniz" required icon={Calendar}>
+        <ProfileField label={t.account.birthDate} required icon={Calendar}>
           <input
             type="date"
             value={profile.birthDate}
@@ -211,13 +217,13 @@ export function PersonalInfoPageClient() {
           />
         </ProfileField>
 
-        <ProfileField label="Şehir" required icon={MapPin}>
+        <ProfileField label={t.account.city} required icon={MapPin}>
           <select
             value={profile.city}
             onChange={(e) => updateProfile('city', e.target.value)}
             className={profileSelectClass}
           >
-            <option value="">Şehir seçin</option>
+            <option value="">{t.account.selectCity}</option>
             {SUPPORTED_CITIES.map((city) => (
               <option key={city.slug} value={city.slug}>
                 {city.name}
@@ -226,13 +232,13 @@ export function PersonalInfoPageClient() {
           </select>
         </ProfileField>
 
-        <ProfileField label="Cinsiyet" icon={Users}>
+        <ProfileField label={t.account.gender} icon={Users}>
           <select
             value={profile.gender}
             onChange={(e) => updateProfile('gender', e.target.value)}
             className={profileSelectClass}
           >
-            {GENDER_OPTIONS.map((option) => (
+            {genderOptions.map((option) => (
               <option key={option.value || 'empty'} value={option.value}>
                 {option.label}
               </option>
@@ -241,7 +247,7 @@ export function PersonalInfoPageClient() {
         </ProfileField>
 
         <ProfileField
-          label="T.C. Kimlik Numarası"
+          label={t.account.tckn}
           icon={FileText}
           className="sm:col-span-2 lg:col-span-1"
         >
@@ -253,7 +259,7 @@ export function PersonalInfoPageClient() {
             onChange={(e) =>
               updateProfile('nationalId', e.target.value.replace(/\D/g, ''))
             }
-            placeholder="T.C. kimlik numaranız"
+            placeholder={t.account.tcknPlaceholder}
             className={profileInputClass}
           />
         </ProfileField>
@@ -270,9 +276,9 @@ export function PersonalInfoPageClient() {
               <FileText className="size-5" strokeWidth={1.75} />
             </div>
             <div>
-              <h2 className="font-semibold">Fatura Bilgileri</h2>
+              <h2 className="font-semibold">{t.purchase.billingTitle}</h2>
               <p className="text-sm text-muted-foreground">
-                Fatura bilgilerinizi güncelleyin.
+                {t.account.billingSectionSubtitle}
               </p>
             </div>
           </div>
@@ -285,18 +291,22 @@ export function PersonalInfoPageClient() {
 
         {billingOpen && (
           <div className="grid gap-5 border-t border-amber-200/60 px-5 py-5 sm:grid-cols-2 dark:border-amber-900/40">
-            <ProfileField label="Vergi Dairesi" required icon={FileText}>
+            <ProfileField
+              label={t.purchase.billingTaxOffice}
+              required
+              icon={FileText}
+            >
               <input
                 type="text"
                 value={profile.billing.taxOffice}
                 onChange={(e) => updateBilling('taxOffice', e.target.value)}
-                placeholder="Vergi dairesi"
+                placeholder={t.account.profileTaxOfficePlaceholder}
                 className={cn(profileInputClass, 'bg-background/80')}
               />
             </ProfileField>
 
             <ProfileField
-              label="Vergi Numarası / TCKN"
+              label={t.account.taxNumberOrTckn}
               required
               icon={FileText}
             >
@@ -304,13 +314,13 @@ export function PersonalInfoPageClient() {
                 type="text"
                 value={profile.billing.taxNumber}
                 onChange={(e) => updateBilling('taxNumber', e.target.value)}
-                placeholder="Vergi numarası veya TCKN"
+                placeholder={t.account.taxNumberPlaceholder}
                 className={cn(profileInputClass, 'bg-background/80')}
               />
             </ProfileField>
 
             <ProfileField
-              label="Firma Adı"
+              label={t.account.companyName}
               required
               icon={FileText}
               className="sm:col-span-2"
@@ -319,13 +329,13 @@ export function PersonalInfoPageClient() {
                 type="text"
                 value={profile.billing.companyName}
                 onChange={(e) => updateBilling('companyName', e.target.value)}
-                placeholder="Firma veya şahıs adı"
+                placeholder={t.account.companyNamePlaceholder}
                 className={cn(profileInputClass, 'bg-background/80')}
               />
             </ProfileField>
 
             <ProfileField
-              label="Fatura Adresi"
+              label={t.purchase.billingAddress}
               required
               icon={FileText}
               multiline
@@ -334,7 +344,7 @@ export function PersonalInfoPageClient() {
               <textarea
                 value={profile.billing.billingAddress}
                 onChange={(e) => updateBilling('billingAddress', e.target.value)}
-                placeholder="Fatura adresiniz"
+                placeholder={t.account.profileBillingAddressPlaceholder}
                 rows={3}
                 className={cn(
                   profileInputClass,
@@ -360,7 +370,11 @@ export function PersonalInfoPageClient() {
           onClick={handleSave}
           className="min-w-[160px] rounded-xl px-8 font-semibold"
         >
-          {saved ? 'Kaydedildi' : saving ? 'Kaydediliyor…' : 'Kaydet'}
+          {saved
+            ? t.account.savedShort
+            : saving
+              ? t.account.saving
+              : t.common.save}
         </Button>
       </div>
     </div>

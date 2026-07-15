@@ -43,6 +43,27 @@ export function shouldShowNewsletterBanner(pathname: string): boolean {
   return pathname === '/';
 }
 
+export function getMainNavLinks(t: {
+  chrome: {
+    home: string;
+    feed: string;
+    events: string;
+    categories: string;
+    about: string;
+    contact: string;
+  };
+}) {
+  return [
+    { href: '/', label: t.chrome.home },
+    { href: '/feed', label: t.chrome.feed },
+    { href: '/etkinlikler', label: t.chrome.events },
+    { href: '/kategoriler', label: t.chrome.categories },
+    { href: '/hakkimizda', label: t.chrome.about },
+    { href: '/iletisim', label: t.chrome.contact }
+  ] as const;
+}
+
+/** @deprecated Use getMainNavLinks(t) — kept for non-i18n callers during migration */
 export const mainNavLinks = [
   { href: '/', label: 'Ana Sayfa' },
   { href: '/feed', label: 'Feed' },

@@ -5,14 +5,16 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Plus } from 'lucide-react';
 import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
 import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function AccountSidebar() {
+  const t = useTranslations();
   const { user, signOut } = useAuth();
 
-  const displayName = user?.displayName || 'Misafir Kullanıcı';
+  const displayName = user?.displayName || t.account.guestUser;
   const email = user?.email || '';
   const initials = displayName
     .split(' ')
@@ -37,7 +39,7 @@ export function AccountSidebar() {
         <div className="min-w-0">
           <p className="truncate font-semibold">{displayName}</p>
           <p className="truncate text-sm text-muted-foreground">
-            {email || 'E-posta ekleyin'}
+            {email || t.account.addEmail}
           </p>
         </div>
       </div>
@@ -55,7 +57,7 @@ export function AccountSidebar() {
                 className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
               >
                 <Plus className="size-4 shrink-0" strokeWidth={1.75} />
-                Etkinlik Oluştur
+                {t.account.createEvent}
               </Link>
               <Link
                 href={panelHref('/organizator-panel/baslangic')}
@@ -66,7 +68,7 @@ export function AccountSidebar() {
                 )}
               >
                 <LayoutDashboard className="size-4 shrink-0" strokeWidth={1.75} />
-                Organizatör Panel
+                {t.account.organizerPanel}
               </Link>
             </>
           }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ExternalLink, Ticket } from 'lucide-react';
+import { useTranslations } from '@/components/providers';
 import { Button } from '@/components/ui/button';
 import {
   getEventTicketUrl,
@@ -22,6 +23,7 @@ export function EventMobileTicketBar({
   event,
   purchasable = true
 }: EventMobileTicketBarProps) {
+  const t = useTranslations();
   const pathname = usePathname();
   const hideBottomNav = shouldHideBottomNav(pathname);
   const external = isExternalListing(event);
@@ -30,7 +32,7 @@ export function EventMobileTicketBar({
 
   const priceText =
     event.isFree || event.price === 0
-      ? 'Ücretsiz'
+      ? t.events.free
       : `${event.price.toLocaleString('tr-TR')} ₺`;
 
   return (
@@ -45,7 +47,7 @@ export function EventMobileTicketBar({
       <div className="mx-auto flex max-w-lg items-center gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-muted-foreground">
-            Başlangıç fiyatı
+            {t.events.startingPrice}
           </p>
           <p className="truncate text-lg font-bold">{priceText}</p>
         </div>
@@ -74,7 +76,7 @@ export function EventMobileTicketBar({
             disabled
             className="h-12 shrink-0 rounded-xl px-5 text-sm font-bold"
           >
-            Satış kapalı
+            {t.events.salesClosed}
           </Button>
         )}
       </div>

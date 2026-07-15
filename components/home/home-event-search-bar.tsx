@@ -11,6 +11,7 @@ import {
   Tag
 } from 'lucide-react';
 import { useCity } from '@/components/providers/city-provider';
+import { useTranslations } from '@/components/providers';
 import { SUPPORTED_CITIES } from '@/lib/location/cities';
 import { cn } from '@/lib/utils';
 
@@ -20,20 +21,6 @@ type CategoryOption = {
 };
 
 type DatePreset = 'any' | 'today' | 'tomorrow' | 'weekend';
-
-const DATE_LABELS: Record<DatePreset, string> = {
-  any: 'Herhangi Zaman',
-  today: 'Bugün',
-  tomorrow: 'Yarın',
-  weekend: 'Bu Hafta Sonu'
-};
-
-const DATE_LABELS_SHORT: Record<DatePreset, string> = {
-  any: 'Tüm tarihler',
-  today: 'Bugün',
-  tomorrow: 'Yarın',
-  weekend: 'Hafta sonu'
-};
 
 function formatDateInput(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -87,8 +74,20 @@ export function HomeEventSearchBar({
   categories,
   className
 }: HomeEventSearchBarProps) {
+  const t = useTranslations();
   const router = useRouter();
   const { citySlug, cityName, setCity } = useCity();
+
+  const dateLabels = useMemo(
+    () =>
+      ({
+        any: t.filters.allDates,
+        today: t.common.today,
+        tomorrow: t.common.tomorrow,
+        weekend: t.home.popularThisWeek
+      }) satisfies Record<DatePreset, string>,
+    [t]
+  );
 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
@@ -100,12 +99,15 @@ export function HomeEventSearchBar({
     setCity(nextSlug, { refreshOnly: true });
   }
 
-  const displayCityName = useMemo(() => cityName || 'Herhangi Yer', [cityName]);
+  const displayCityName = useMemo(
+    () => cityName || t.filters.allCities,
+    [cityName, t.filters.allCities]
+  );
 
   const categoryLabel = useMemo(() => {
-    if (!category) return 'Kategori';
-    return categories.find((c) => c.slug === category)?.name ?? 'Kategori';
-  }, [category, categories]);
+    if (!category) return t.nav.categories;
+    return categories.find((c) => c.slug === category)?.name ?? t.nav.categories;
+  }, [category, categories, t.nav.categories]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -147,7 +149,7 @@ export function HomeEventSearchBar({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Etkinlik, mekân, sanatçı…"
+              placeholder={t.home.heroSearchPlaceholder}
               className="h-10 w-full rounded-xl border border-border/60 bg-muted/30 pl-9 pr-3 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
               autoComplete="off"
             />
@@ -156,7 +158,7 @@ export function HomeEventSearchBar({
             type="submit"
             className="btn-gradient-primary h-10 shrink-0 rounded-xl px-4 text-sm font-bold text-primary-foreground shadow-sm"
           >
-            Ara
+            {t.common.search}
           </button>
         </div>
 
@@ -170,9 +172,9 @@ export function HomeEventSearchBar({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className={fieldClassMobile}
-              aria-label="Kategori seç"
+              aria-label={t.filters.selectCategory}
             >
-              <option value="">Kategori</option>
+              <option value="">{t.nav.categories}</option>
               {categories.map((cat) => (
                 <option key={cat.slug} value={cat.slug}>
                   {cat.name}
@@ -191,9 +193,9 @@ export function HomeEventSearchBar({
               value={citySlug}
               onChange={(e) => handleCityChange(e.target.value)}
               className={fieldClassMobile}
-              aria-label="Şehir seç"
+              aria-label={t.filters.selectCity}
             >
-              <option value="">Konum</option>
+              <option value="">{t.nav.cities}</option>
               {SUPPORTED_CITIES.map((city) => (
                 <option key={city.slug} value={city.slug}>
                   {city.name}
@@ -212,11 +214,11 @@ export function HomeEventSearchBar({
               value={datePreset}
               onChange={(e) => setDatePreset(e.target.value as DatePreset)}
               className={fieldClassMobile}
-              aria-label="Tarih seç"
+              aria-label={t.filters.pickDate}
             >
-              {(Object.keys(DATE_LABELS_SHORT) as DatePreset[]).map((key) => (
+              {(Object.keys(dateLabels) as DatePreset[]).map((key) => (
                 <option key={key} value={key}>
-                  {DATE_LABELS_SHORT[key]}
+                  {dateLabels[key]}
                 </option>
               ))}
             </select>
@@ -238,27 +240,27 @@ export function HomeEventSearchBar({
               className="sr-only"
             />
             <Globe className="size-3.5 shrink-0" aria-hidden />
-            Online
+            {t.categories.online}
           </label>
         </div>
 
         <p className="truncate px-0.5 text-center text-[11px] text-muted-foreground">
-          {displayCityName !== 'Herhangi Yer' ? (
+          {displayCityName !== t.filters.allCities ? (
             <span className="font-semibold text-foreground">{displayCityName}</span>
           ) : (
-            'Tüm şehirler'
+            t.filters.allCities
           )}
           {' · '}
           {categoryLabel}
           {' · '}
-          {DATE_LABELS_SHORT[datePreset]}
+          {dateLabels[datePreset]}
         </p>
       </div>
 
       {/* —— Masaüstü: mevcut yatay şerit —— */}
       <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto_auto] lg:divide-x lg:divide-y-0 lg:divide-border/70">
         <div className="relative px-3 py-3">
-          <FieldLabel>Arama</FieldLabel>
+          <FieldLabel>{t.common.search}</FieldLabel>
           <Search
             className="pointer-events-none absolute left-3 top-[calc(50%+6px)] size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
@@ -267,14 +269,14 @@ export function HomeEventSearchBar({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Etkinlik, mekân, sanatçı…"
+            placeholder={t.home.heroSearchPlaceholder}
             className={fieldClassDesktop}
             autoComplete="off"
           />
         </div>
 
         <div className="relative px-3 py-3">
-          <FieldLabel>Kategori</FieldLabel>
+          <FieldLabel>{t.nav.categories}</FieldLabel>
           <Tag
             className="pointer-events-none absolute left-3 top-[calc(50%+6px)] size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
@@ -283,9 +285,9 @@ export function HomeEventSearchBar({
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className={fieldClassDesktop}
-            aria-label="Kategori seç"
+            aria-label={t.filters.selectCategory}
           >
-            <option value="">Herhangi Kategori</option>
+            <option value="">{t.common.all}</option>
             {categories.map((cat) => (
               <option key={cat.slug} value={cat.slug}>
                 {cat.name}
@@ -296,7 +298,7 @@ export function HomeEventSearchBar({
         </div>
 
         <div className="relative px-3 py-3">
-          <FieldLabel>Konum</FieldLabel>
+          <FieldLabel>{t.nav.cities}</FieldLabel>
           <MapPin
             className="pointer-events-none absolute left-3 top-[calc(50%+6px)] size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
@@ -305,9 +307,9 @@ export function HomeEventSearchBar({
             value={citySlug}
             onChange={(e) => handleCityChange(e.target.value)}
             className={fieldClassDesktop}
-            aria-label="Şehir seç"
+            aria-label={t.filters.selectCity}
           >
-            <option value="">Herhangi Yer</option>
+            <option value="">{t.filters.allCities}</option>
             {SUPPORTED_CITIES.map((city) => (
               <option key={city.slug} value={city.slug}>
                 {city.name}
@@ -318,7 +320,7 @@ export function HomeEventSearchBar({
         </div>
 
         <div className="relative px-3 py-3">
-          <FieldLabel>Tarih</FieldLabel>
+          <FieldLabel>{t.events.date}</FieldLabel>
           <CalendarDays
             className="pointer-events-none absolute left-3 top-[calc(50%+6px)] size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
@@ -327,11 +329,11 @@ export function HomeEventSearchBar({
             value={datePreset}
             onChange={(e) => setDatePreset(e.target.value as DatePreset)}
             className={fieldClassDesktop}
-            aria-label="Tarih seç"
+            aria-label={t.filters.pickDate}
           >
-            {(Object.keys(DATE_LABELS) as DatePreset[]).map((key) => (
+            {(Object.keys(dateLabels) as DatePreset[]).map((key) => (
               <option key={key} value={key}>
-                {DATE_LABELS[key]}
+                {dateLabels[key]}
               </option>
             ))}
           </select>
@@ -347,7 +349,7 @@ export function HomeEventSearchBar({
           />
           <span className="flex flex-col items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
             <Globe className="size-4 shrink-0 text-primary" aria-hidden />
-            Online
+            {t.categories.online}
           </span>
         </label>
 
@@ -356,19 +358,20 @@ export function HomeEventSearchBar({
             type="submit"
             className="btn-gradient-primary flex min-w-[5.5rem] items-center justify-center px-8 py-3 text-sm font-bold uppercase tracking-wide text-primary-foreground shadow-[var(--shadow-sm)] transition hover:-translate-y-px hover:shadow-[var(--shadow-md)]"
           >
-            Ara
+            {t.common.search}
           </button>
         </div>
       </div>
 
       <p className="hidden border-t border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground lg:block">
-        {displayCityName !== 'Herhangi Yer' ? (
+        {displayCityName !== t.filters.allCities ? (
           <>
-            Seçili şehir: <span className="font-semibold text-foreground">{displayCityName}</span>
+            {t.filters.selectCity}:{' '}
+            <span className="font-semibold text-foreground">{displayCityName}</span>
             {' · '}
           </>
         ) : null}
-        Konser, festival, tiyatro ve daha fazlasını keşfedin
+        {t.home.heroSubtitle}
       </p>
     </form>
   );

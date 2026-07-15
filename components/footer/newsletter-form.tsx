@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslations } from '@/components/providers';
 import { useCity } from '@/components/providers/city-provider';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +15,7 @@ interface NewsletterFormProps {
 const SUCCESS_HIDE_MS = 4500;
 
 export function NewsletterForm({ variant = 'default', onSubscribed }: NewsletterFormProps) {
+  const t = useTranslations();
   const { citySlug, cityName } = useCity();
   const [submitted, setSubmitted] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -48,7 +50,7 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
       };
 
       if (!res.ok) {
-        setError(data.error ?? 'Abonelik kaydedilemedi. Lütfen tekrar deneyin.');
+        setError(data.error ?? t.newsletter.error);
         return;
       }
 
@@ -56,12 +58,12 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
         data.message ??
           (data.cityName ?? cityName
             ? `${data.cityName ?? cityName} etkinlikleri dahil bültenimize abone oldunuz`
-            : 'Bültenimize abone oldunuz')
+            : t.home.newsletterTitle)
       );
       setSubmitted(true);
       window.setTimeout(() => onSubscribed?.(), SUCCESS_HIDE_MS);
     } catch {
-      setError('Bağlantı hatası. Lütfen tekrar deneyin.');
+      setError(t.common.error);
     } finally {
       setLoading(false);
     }
@@ -79,7 +81,7 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
         role="status"
         aria-live="polite"
       >
-        {successMessage}. Onay e-postası gelen kutunuza iletildi.
+        {successMessage}. {t.newsletter.success}
       </p>
     );
   }
@@ -96,7 +98,7 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
             name="email"
             required
             disabled={loading}
-            placeholder="E-posta adresinizi girin"
+            placeholder={t.newsletter.emailPlaceholder}
             className="h-12 flex-1 rounded-none border-0 bg-white text-foreground shadow-none focus-visible:ring-0"
           />
           <Button
@@ -104,7 +106,7 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
             disabled={loading}
             className="h-12 shrink-0 rounded-none bg-[#1a1d23] px-6 font-semibold text-white hover:bg-[#1a1d23]/90"
           >
-            {loading ? 'Kaydediliyor…' : 'Abone Ol'}
+            {loading ? t.common.processing : t.newsletter.subscribe}
           </Button>
         </form>
         {error && (
@@ -124,7 +126,7 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
           name="email"
           required
           disabled={loading}
-          placeholder="E-posta adresiniz"
+          placeholder={t.home.newsletterPlaceholder}
           className="border-primary-foreground/20 bg-background/10 text-primary-foreground placeholder:text-primary-foreground/60"
         />
         <Button
@@ -133,7 +135,7 @@ export function NewsletterForm({ variant = 'default', onSubscribed }: Newsletter
           variant="secondary"
           className="shrink-0 bg-background text-foreground hover:bg-background/90"
         >
-          {loading ? '…' : 'Abone Ol'}
+          {loading ? t.common.processing : t.newsletter.subscribe}
         </Button>
       </form>
       {error && (

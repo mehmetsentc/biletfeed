@@ -1,9 +1,8 @@
 import { DashboardPlaceholderPage } from '@/components/dashboard/placeholder-page';
-import { getTranslations } from '@/lib/i18n';
+import { getServerTranslations } from '@/lib/i18n/server';
 
-const t = getTranslations();
-
-export default function DashboardSettingsPage() {
+export default async function DashboardSettingsPage() {
+  const { t } = await getServerTranslations();
   return (
     <DashboardPlaceholderPage
       title={t.dashboard.settings}

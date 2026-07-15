@@ -3,6 +3,7 @@
 export type CheckoutTicketType = {
   id: string;
   name: string;
+  description: string;
   type: string;
   price: number;
   currency: string;

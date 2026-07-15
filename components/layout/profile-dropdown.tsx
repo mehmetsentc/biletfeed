@@ -11,6 +11,7 @@ import {
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTranslations } from '@/components/providers';
 import { isAccountAreaActive } from '@/lib/account/navigation';
 import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -18,6 +19,7 @@ import { resolveProfileDisplayName } from '@/lib/account/display-name';
 import { cn } from '@/lib/utils';
 
 export function ProfileDropdown() {
+  const t = useTranslations();
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
@@ -115,7 +117,7 @@ export function ProfileDropdown() {
                   className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
                 >
                   <Plus className="size-4 shrink-0" strokeWidth={1.75} />
-                  Etkinlik Oluştur
+                  {t.account.createEvent}
                 </Link>
                 <Link
                   href={panelHref('/organizator-panel/baslangic')}
@@ -127,7 +129,7 @@ export function ProfileDropdown() {
                     className="size-4 shrink-0"
                     strokeWidth={1.75}
                   />
-                  Organizatör Panel
+                  {t.account.organizerPanel}
                 </Link>
               </>
             }

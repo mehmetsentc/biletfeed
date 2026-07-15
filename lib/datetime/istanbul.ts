@@ -47,14 +47,51 @@ export function formatTurkeyTimeRange(
 ): string {
   const startTime = formatTurkeyTime(start);
   const endTime = formatTurkeyTime(end);
-  const diffH =
-    (toTurkeyDate(end).getTime() - toTurkeyDate(start).getTime()) / (60 * 60 * 1000);
-  if (diffH <= 0 || diffH > 8) return startTime;
-  return `${startTime} – ${endTime}`;
+  const diffMs = toTurkeyDate(end).getTime() - toTurkeyDate(start).getTime();
+  const diffH = diffMs / (60 * 60 * 1000);
+  // No range if no gap or suspiciously long (> 36 h)
+  if (diffH <= 0 || diffH > 36) return startTime;
+
+  const startDay = turkeyCalendarDayKey(start);
+  const endDay = turkeyCalendarDayKey(end);
+  const suffix = startDay !== endDay ? ' (+1)' : '';
+  return `${startTime} – ${endTime}${suffix}`;
 }
 
 export function formatTurkeyDateTimeLong(value: Date | string): string {
   return `${formatTurkeyDateLong(value)} · ${formatTurkeyTime(value)}`;
+}
+
+/**
+ * Etkinlik detay sayfası için saat aralığı gösterimi.
+ * Aynı gün: "20:00 – 23:00"
+ * Ertesi gün: "20:00 – 02:00 (23 Temmuz)"
+ */
+export function formatEventTimeDisplay(
+  start: Date | string,
+  end: Date | string | undefined | null
+): string {
+  const startTime = formatTurkeyTime(start);
+  if (!end) return startTime;
+
+  const endDate = toTurkeyDate(end);
+  const diffMs = endDate.getTime() - toTurkeyDate(start).getTime();
+  const diffH = diffMs / (60 * 60 * 1000);
+  if (diffH <= 0 || diffH > 36) return startTime;
+
+  const endTime = formatTurkeyTime(end);
+  const startDay = turkeyCalendarDayKey(start);
+  const endDay = turkeyCalendarDayKey(end);
+
+  if (startDay !== endDay) {
+    const endDateLabel = endDate.toLocaleDateString(TURKEY_LOCALE, {
+      timeZone: TURKEY_TIMEZONE,
+      day: 'numeric',
+      month: 'long'
+    });
+    return `${startTime} – ${endTime} (${endDateLabel})`;
+  }
+  return `${startTime} – ${endTime}`;
 }
 
 /** Europe/Istanbul için YYYY-MM-DD takvim günü */

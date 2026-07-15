@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 import {
   Calendar,
   ChevronDown,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/brand/logo';
+import { useTranslations } from '@/components/providers';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,22 +35,6 @@ type NavItem = {
   external?: boolean;
 };
 
-const navItems: NavItem[] = [
-  { href: '/organizator-panel/baslangic', label: 'Genel Bakış', icon: Home },
-  { href: '/organizator-panel/etkinlikler', label: 'Etkinlikler', icon: Calendar },
-  { href: '/organizator-panel/tarayici', label: 'Bilet Tara', icon: ScanLine },
-  { href: '/organizator-panel/siparisler', label: 'Satışlar', icon: ShoppingBag },
-  { href: '/organizator-panel/biletler', label: 'Biletler', icon: Ticket },
-  { href: '/organizator-panel/davetiyeler', label: 'Davetiyeler', icon: Send },
-  { href: '/organizator-panel/kuponlar', label: 'Kuponlar', icon: Tag },
-  { href: '/organizator-panel/organizasyon', label: 'Organizasyon', icon: Star },
-  { href: '/organizator-panel/mekanlar', label: 'Mekanlar', icon: MapPin },
-  { href: '/organizator-panel/moderasyon', label: 'Moderasyon', icon: Sparkles },
-  { href: '/organizator-panel/iletisim', label: 'İletişim', icon: MessageCircle },
-  { href: '/organizator-panel/yardim', label: 'Yardım', icon: HelpCircle },
-  { href: '/organizator-panel/ayarlar', label: 'Ayarlar', icon: Settings },
-];
-
 export function OrganizatorSidebar({
   organizationName,
   className,
@@ -57,6 +43,25 @@ export function OrganizatorSidebar({
   className?: string;
 }) {
   const pathname = usePathname();
+  const t = useTranslations();
+  const navItems = useMemo(
+    (): NavItem[] => [
+      { href: '/organizator-panel/baslangic', label: t.organizerNav.overview, icon: Home },
+      { href: '/organizator-panel/etkinlikler', label: t.organizerNav.events, icon: Calendar },
+      { href: '/organizator-panel/tarayici', label: t.organizerNav.scanner, icon: ScanLine },
+      { href: '/organizator-panel/siparisler', label: t.organizerNav.sales, icon: ShoppingBag },
+      { href: '/organizator-panel/biletler', label: t.organizerNav.tickets, icon: Ticket },
+      { href: '/organizator-panel/davetiyeler', label: t.organizerNav.invitations, icon: Send },
+      { href: '/organizator-panel/kuponlar', label: t.organizerNav.coupons, icon: Tag },
+      { href: '/organizator-panel/organizasyon', label: t.organizerNav.organization, icon: Star },
+      { href: '/organizator-panel/mekanlar', label: t.organizerNav.venues, icon: MapPin },
+      { href: '/organizator-panel/moderasyon', label: t.organizerNav.moderation, icon: Sparkles },
+      { href: '/organizator-panel/iletisim', label: t.organizerNav.contact, icon: MessageCircle },
+      { href: '/organizator-panel/yardim', label: t.organizerNav.help, icon: HelpCircle },
+      { href: '/organizator-panel/ayarlar', label: t.organizerNav.settings, icon: Settings },
+    ],
+    [t]
+  );
 
   return (
     <aside
@@ -72,7 +77,7 @@ export function OrganizatorSidebar({
           className="mb-4 max-w-[160px]"
         />
         <p className="text-[10px] font-semibold uppercase tracking-widest text-organizer-chrome-muted">
-          Organizasyon
+          {t.organizerNav.organization}
         </p>
         <button
           type="button"
@@ -87,7 +92,7 @@ export function OrganizatorSidebar({
         >
           <Link href="/organizator-panel/etkinlik/yeni">
             <Plus className="size-4" strokeWidth={2} />
-            Yeni Etkinlik
+            {t.organizerNav.newEvent}
           </Link>
         </Button>
       </div>

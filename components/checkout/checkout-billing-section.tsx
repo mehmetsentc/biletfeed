@@ -1,6 +1,7 @@
 'use client';
 
 import { FileText } from 'lucide-react';
+import { useTranslations } from '@/components/providers';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +26,8 @@ export function CheckoutBillingSection({
   suggestedName,
   className
 }: CheckoutBillingSectionProps) {
+  const t = useTranslations();
+
   function patch(partial: Partial<CheckoutBillingFormState>) {
     onChange({ ...value, ...partial });
   }
@@ -42,12 +45,9 @@ export function CheckoutBillingSection({
     >
       <h2 className="flex items-center gap-2 text-lg font-bold">
         <FileText className="size-5 text-primary" />
-        Fatura bilgileri
+        {t.purchase.billingTitle}
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Ödeme sonrası e-Arşiv veya e-Fatura otomatik düzenlenir ve e-postanıza
-        gönderilir.
-      </p>
+      <p className="mt-1 text-sm text-muted-foreground">{t.purchase.billingNote}</p>
 
       <div className="mt-5 flex items-start gap-3 rounded-xl border border-border bg-muted/50 p-4">
         <Checkbox
@@ -60,18 +60,18 @@ export function CheckoutBillingSection({
         />
         <div className="space-y-1">
           <Label htmlFor="billing-corporate" className="cursor-pointer font-medium">
-            Kurumsal fatura
+            {t.purchase.billingCorporate}
           </Label>
-          <p className="text-xs text-muted-foreground">
-            Şirket unvanı ve VKN ile e-Fatura kesilir.
-          </p>
+          <p className="text-xs text-muted-foreground">{t.purchase.billingCorporateHint}</p>
         </div>
       </div>
 
       <div className="mt-5 space-y-4">
         <BillingField
           id="billing-companyName"
-          label={value.isCorporate ? 'Ticari unvan' : 'Fatura üzerindeki ad soyad'}
+          label={
+            value.isCorporate ? t.purchase.billingTradeName : t.purchase.billingName
+          }
           required={value.isCorporate}
           value={value.companyName}
           onChange={(v) => {
@@ -80,15 +80,15 @@ export function CheckoutBillingSection({
           }}
           placeholder={
             value.isCorporate
-              ? 'Örn. ABC Organizasyon Ltd. Şti.'
-              : suggestedName || 'Ad Soyad'
+              ? t.purchase.billingTradeNamePlaceholder
+              : suggestedName || t.auth.displayName
           }
           error={errors.companyName}
         />
 
         <BillingField
           id="billing-taxNumber"
-          label={value.isCorporate ? 'Vergi numarası (VKN)' : 'T.C. kimlik no (isteğe bağlı)'}
+          label={value.isCorporate ? t.purchase.billingTaxId : t.purchase.billingTckn}
           required={value.isCorporate}
           value={value.taxNumber}
           onChange={(v) => {
@@ -98,7 +98,11 @@ export function CheckoutBillingSection({
             patch({ taxNumber: next });
             clear('taxNumber');
           }}
-          placeholder={value.isCorporate ? '10 haneli VKN' : '11 haneli TCKN'}
+          placeholder={
+            value.isCorporate
+              ? t.purchase.billingVknPlaceholder
+              : t.purchase.billingTcknPlaceholder
+          }
           inputMode="numeric"
           maxLength={value.isCorporate ? 10 : 11}
           error={errors.taxNumber}
@@ -108,20 +112,20 @@ export function CheckoutBillingSection({
           <>
             <BillingField
               id="billing-taxOffice"
-              label="Vergi dairesi"
+              label={t.purchase.billingTaxOffice}
               required
               value={value.taxOffice}
               onChange={(v) => {
                 patch({ taxOffice: v });
                 clear('taxOffice');
               }}
-              placeholder="Örn. Kadıköy"
+              placeholder={t.purchase.billingTaxOfficePlaceholder}
               error={errors.taxOffice}
             />
 
             <div className="space-y-2">
               <Label htmlFor="billing-address">
-                Fatura adresi <span className="text-destructive">*</span>
+                {t.purchase.billingAddress} <span className="text-destructive">*</span>
               </Label>
               <textarea
                 id="billing-address"
@@ -131,7 +135,7 @@ export function CheckoutBillingSection({
                   patch({ billingAddress: e.target.value });
                   clear('billingAddress');
                 }}
-                placeholder="Mahalle, cadde, ilçe, il"
+                placeholder={t.purchase.billingAddressPlaceholder}
                 aria-invalid={Boolean(errors.billingAddress)}
               />
               {errors.billingAddress && (
@@ -143,7 +147,9 @@ export function CheckoutBillingSection({
 
         {!value.isCorporate && (
           <div className="space-y-2">
-            <Label htmlFor="billing-address-individual">Fatura adresi (isteğe bağlı)</Label>
+            <Label htmlFor="billing-address-individual">
+              {t.purchase.billingAddressOptional}
+            </Label>
             <textarea
               id="billing-address-individual"
               className="flex min-h-[72px] w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -152,7 +158,7 @@ export function CheckoutBillingSection({
                 patch({ billingAddress: e.target.value });
                 clear('billingAddress');
               }}
-              placeholder="İsteğe bağlı"
+              placeholder={t.purchase.billingOptionalPlaceholder}
             />
           </div>
         )}

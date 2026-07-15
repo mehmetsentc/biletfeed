@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo, type ReactNode } from 'react';
-import { Globe, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { AccountThemeToggle } from '@/components/account/account-theme-toggle';
 import {
-  accountMenuGroups,
-  accountYardimMenuItem
+  getAccountMenuGroups,
+  getAccountYardimMenuItem
 } from '@/lib/account/navigation';
+import { useTranslations } from '@/components/providers';
 import {
   accountSiteHref,
   isOnOrganizerPanelHost
@@ -32,7 +33,10 @@ export function AccountMenuList({
   variant = 'dropdown',
   organizerLinks
 }: AccountMenuListProps) {
+  const t = useTranslations();
   const pathname = usePathname();
+  const accountMenuGroups = getAccountMenuGroups(t);
+  const accountYardimMenuItem = getAccountYardimMenuItem(t);
   const isSidebar = variant === 'sidebar';
   const onPanelHost = useMemo(
     () =>
@@ -102,15 +106,6 @@ export function AccountMenuList({
         )}
       />
       <AccountThemeToggle variant={variant} />
-      <div
-        className={cn(
-          'flex items-center gap-3 text-sm font-medium text-muted-foreground',
-          isSidebar ? 'rounded-xl px-3 py-2.5' : 'px-4 py-2.5'
-        )}
-      >
-        <Globe className="size-4 shrink-0" strokeWidth={1.75} />
-        Türkçe
-      </div>
 
       {organizerLinks}
 
@@ -147,7 +142,7 @@ export function AccountMenuList({
           )}
         >
           <LogOut className="size-4 shrink-0" strokeWidth={1.75} />
-          Çıkış Yap
+          {t.nav.logout}
         </button>
       )}
     </>

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Heart, Star } from 'lucide-react';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
 
 interface FavoriteButtonProps {
@@ -21,6 +22,7 @@ export function FavoriteButton({
   initialActive = false,
   variant = 'overlay'
 }: FavoriteButtonProps) {
+  const t = useTranslations();
   const Icon = icon === 'star' ? Star : Heart;
   const [active, setActive] = useState(initialActive);
   const [loading, setLoading] = useState(false);
@@ -86,7 +88,7 @@ export function FavoriteButton({
       )}
       onClick={handleClick}
       disabled={loading}
-      aria-label={active ? 'Favorilerden kaldır' : 'Favorilere ekle'}
+      aria-label={active ? t.events.removeFavorite : t.events.addFavorite}
     >
       <Icon
         className={cn(

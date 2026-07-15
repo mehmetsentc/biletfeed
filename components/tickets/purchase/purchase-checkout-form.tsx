@@ -26,6 +26,7 @@ import {
   type CheckoutBillingFormState,
   type CheckoutBillingInput
 } from '@/lib/validation/checkout-billing';
+import { useTranslations } from '@/components/providers';
 import { normalizeTrPhone } from '@/lib/validation/tr-phone';
 
 interface PurchaseCheckoutFormProps {
@@ -41,6 +42,7 @@ export function PurchaseCheckoutForm({
   quantity,
   rulesDisplay
 }: PurchaseCheckoutFormProps) {
+  const t = useTranslations();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,13 +92,13 @@ export function PurchaseCheckoutForm({
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Geçersiz kupon');
+      if (!res.ok) throw new Error(data.error || t.purchase.invalidCoupon);
       setCouponDiscount(data.discount);
       setCouponApplied(true);
     } catch (e) {
       setCouponApplied(false);
       setCouponDiscount(0);
-      setCouponError(e instanceof Error ? e.message : 'Kupon uygulanamadı');
+      setCouponError(e instanceof Error ? e.message : t.purchase.couponApplyFailed);
     }
   }
 
@@ -112,13 +114,13 @@ export function PurchaseCheckoutForm({
     });
     if (!attendee.success) {
       setAttendeeErrors(attendee.errors);
-      setError('Lütfen katılımcı bilgilerini eksiksiz doldurun.');
+      setError(t.purchase.fillParticipants);
       setLoading(false);
       return;
     }
 
     if (requiresRulesAcceptance && !rulesAccepted) {
-      setError('Devam etmek için etkinlik kurallarını kabul etmelisiniz.');
+      setError(t.purchase.acceptRules);
       setLoading(false);
       return;
     }
@@ -128,7 +130,7 @@ export function PurchaseCheckoutForm({
       const billingResult = validateCheckoutBilling(billing);
       if (!billingResult.success) {
         setBillingErrors(billingResult.errors);
-        setError('Lütfen fatura bilgilerini kontrol edin.');
+        setError(t.purchase.checkBilling);
         setLoading(false);
         return;
       }
@@ -154,7 +156,7 @@ export function PurchaseCheckoutForm({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Sipariş oluşturulamadı');
+        throw new Error(data.error || t.purchase.orderCreateFailed);
       }
 
       if (data.status === 'paid') {
@@ -169,9 +171,9 @@ export function PurchaseCheckoutForm({
         return;
       }
 
-      throw new Error('Ödeme sayfası alınamadı');
+      throw new Error(t.purchase.paymentPageFailed);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'İşlem başarısız');
+      setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
     } finally {
       setLoading(false);
     }
@@ -189,15 +191,15 @@ export function PurchaseCheckoutForm({
         )}
 
         <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
-          <h1 className="text-lg font-bold">Katılımcı Bilgileri</h1>
+          <h1 className="text-lg font-bold">{t.purchase.participantInfo}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Bilet sahibi bilgileri giriş kapısında gösterilir.
+            {t.purchase.participantGateHint}
           </p>
 
           <div className="mt-5 space-y-4">
             <Field
               id="attendeeName"
-              label="Ad Soyad"
+              label={t.auth.displayName}
               value={attendeeName}
               onChange={(v) => {
                 setAttendeeName(v);
@@ -205,14 +207,14 @@ export function PurchaseCheckoutForm({
                   setAttendeeErrors((prev) => ({ ...prev, attendeeName: '' }));
                 }
               }}
-              placeholder="Bilet sahibi adı"
+              placeholder={t.purchase.ticketHolderPlaceholder}
               autoComplete="name"
               error={attendeeErrors.attendeeName}
               required
             />
             <Field
               id="attendeePhone"
-              label="Telefon"
+              label={t.purchase.phone}
               value={attendeePhone}
               onChange={(v) => {
                 setAttendeePhone(normalizeTrPhone(v));
@@ -230,7 +232,7 @@ export function PurchaseCheckoutForm({
             />
             <Field
               id="attendeeEmail"
-              label="E-posta"
+              label={t.auth.email}
               value={attendeeEmail}
               onChange={(v) => {
                 setAttendeeEmail(v);
@@ -248,7 +250,7 @@ export function PurchaseCheckoutForm({
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
-          <h2 className="font-semibold">Kupon Kodu</h2>
+          <h2 className="font-semibold">{t.purchase.couponTitle}</h2>
           <div className="mt-3 flex gap-2">
             <Input
               value={couponCode}
@@ -257,10 +259,10 @@ export function PurchaseCheckoutForm({
                 setCouponApplied(false);
                 setCouponDiscount(0);
               }}
-              placeholder="Varsa kupon kodunuz"
+              placeholder={t.purchase.couponPlaceholderOptional}
             />
             <Button type="button" variant="outline" onClick={() => void applyCoupon()}>
-              Uygula
+              {t.purchase.apply}
             </Button>
           </div>
           {couponError && (
@@ -268,7 +270,7 @@ export function PurchaseCheckoutForm({
           )}
           {couponApplied && (
             <p className="mt-2 text-sm text-[var(--bf-success)]">
-              Kupon uygulandı — {formatTry(couponDiscount)} indirim
+              {t.purchase.couponApplied(formatTry(couponDiscount))}
             </p>
           )}
         </section>
@@ -300,28 +302,28 @@ export function PurchaseCheckoutForm({
         <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
           <h2 className="flex items-center gap-2 font-semibold">
             <ShieldCheck className="size-5 text-primary" />
-            {isPaid ? 'Güvenli Ödeme' : 'Onay'}
+            {isPaid ? t.purchase.securePayment : t.purchase.orderConfirm}
           </h2>
           {isPaid ? (
             <div className="mt-4 space-y-3 text-sm text-muted-foreground">
               <p>
-                Kart bilgileriniz BiletFeed sunucularında{' '}
-                <strong className="text-foreground">saklanmaz</strong>. Ödeme banka
-                sanal POS altyapısı ile tamamlanır.
+                {t.purchase.paymentNotStoredPrefix}{' '}
+                <strong className="text-foreground">{t.purchase.notStoredEmphasis}</strong>.{' '}
+                {t.purchase.paymentNotStoredSuffix}
               </p>
               <PaymentCardLogos />
               <p className="flex items-center gap-2">
                 <Lock className="size-3.5 shrink-0 text-primary" />
-                SSL ile güvenli bağlantı
+                {t.purchase.paymentSslShort}
               </p>
               <p className="flex items-center gap-2">
                 <ExternalLink className="size-3.5 shrink-0" />
-                Devam ettiğinizde ödeme sayfasına yönlendirilirsiniz
+                {t.purchase.paymentRedirect}
               </p>
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
-              Ücretsiz etkinlik — onayladığınızda QR biletiniz oluşturulur.
+              {t.purchase.freeEventConfirmShort}
             </p>
           )}
         </section>
@@ -333,10 +335,10 @@ export function PurchaseCheckoutForm({
           className="h-14 w-full rounded-xl text-base font-bold lg:hidden"
         >
           {loading
-            ? 'İşleniyor...'
+            ? t.common.processing
             : isPaid
-              ? 'Siparişi Tamamla'
-              : 'Ücretsiz Bileti Al'}
+              ? t.purchase.completeOrder
+              : t.purchase.getFreeTicket}
         </Button>
       </div>
 
@@ -362,11 +364,11 @@ export function PurchaseCheckoutForm({
           <Separator />
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Bilet türü</span>
+              <span className="text-muted-foreground">{t.purchase.ticketTypeLabel}</span>
               <span className="font-medium">{ticketType.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Adet</span>
+              <span className="text-muted-foreground">{t.purchase.quantity}</span>
               <span className="font-medium">{quantity}</span>
             </div>
           </div>
@@ -384,10 +386,10 @@ export function PurchaseCheckoutForm({
             className="hidden h-12 w-full rounded-xl font-bold lg:flex"
           >
             {loading
-              ? 'İşleniyor...'
+              ? t.common.processing
               : isPaid
-                ? 'Siparişi Tamamla'
-                : 'Ücretsiz Bileti Al'}
+                ? t.purchase.completeOrder
+                : t.purchase.getFreeTicket}
           </Button>
           {isPaid && (
             <>

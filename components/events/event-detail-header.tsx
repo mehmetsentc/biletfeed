@@ -3,11 +3,12 @@ import Link from 'next/link';
 import { CalendarDays, Clock3, MapPin, Tag } from 'lucide-react';
 import {
   formatEventDateLong,
-  formatEventTimeRange,
   type MockEvent
 } from '@/lib/data/mock-events';
+import { formatEventTimeDisplay } from '@/lib/datetime/istanbul';
 import { getEventPlatformTheme } from '@/lib/events/platform-theme';
 import { isExternalListing } from '@/lib/events/ticket-url';
+import { getServerTranslations } from '@/lib/i18n/server';
 import { EventDetailActions } from '@/components/events/event-detail-actions';
 import { EventPurchaseCard } from '@/components/events/event-purchase-card';
 import { cn } from '@/lib/utils';
@@ -20,17 +21,18 @@ interface EventDetailHeaderProps {
   purchasable: boolean;
 }
 
-export function EventDetailHeader({
+export async function EventDetailHeader({
   event,
   eventUrl,
   isFavorite,
   isOnline,
   purchasable
 }: EventDetailHeaderProps) {
+  const { t } = await getServerTranslations();
   const theme = getEventPlatformTheme(event);
   const external = isExternalListing(event);
   const locationLine = isOnline
-    ? 'Online etkinlik'
+    ? t.events.onlineEvent
     : [event.venue, event.city].filter(Boolean).join(', ');
 
   return (
@@ -92,17 +94,17 @@ export function EventDetailHeader({
             <div className="grid gap-3 sm:grid-cols-2">
               <InfoRow
                 icon={CalendarDays}
-                label="Tarih"
+                label={t.events.date}
                 value={formatEventDateLong(event.startDate)}
               />
               <InfoRow
                 icon={Clock3}
-                label="Saat"
-                value={formatEventTimeRange(event)}
+                label={t.events.time}
+                value={formatEventTimeDisplay(event.startDate, event.endDate)}
               />
               <InfoRow
                 icon={MapPin}
-                label="Mekan"
+                label={t.events.venue}
                 value={locationLine}
                 className="sm:col-span-2"
               />
@@ -111,7 +113,7 @@ export function EventDetailHeader({
 
           {external && event.externalUrl && (
             <p className="text-xs text-muted-foreground">
-              Bilet satın alma işlemi{' '}
+              {t.events.externalCheckoutPrefix}{' '}
               <Link
                 href={event.externalUrl}
                 target="_blank"
@@ -120,7 +122,7 @@ export function EventDetailHeader({
               >
                 {theme.label}
               </Link>{' '}
-              sitesinde tamamlanır.
+              {t.events.externalCheckoutSuffix}
             </p>
           )}
         </div>

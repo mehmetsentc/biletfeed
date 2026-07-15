@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
 import type {
   DateFilter,
@@ -13,14 +15,6 @@ type ChipDef =
   | { kind: 'price'; id: PriceFilter; label: string }
   | { kind: 'date'; id: DateFilter; label: string }
   | { kind: 'format'; id: FormatFilter; label: string };
-
-const quickChips: ChipDef[] = [
-  { kind: 'date', id: 'today', label: 'Bugün' },
-  { kind: 'date', id: 'weekend', label: 'Hafta Sonu' },
-  { kind: 'price', id: 'free', label: 'Ücretsiz' },
-  { kind: 'format', id: 'concert', label: 'Konser' },
-  { kind: 'format', id: 'online', label: 'Online' }
-];
 
 function isChipActive(filters: EventsFilters, chip: ChipDef): boolean {
   switch (chip.kind) {
@@ -76,6 +70,18 @@ export function MobileQuickFilters({
   onChange,
   className
 }: MobileQuickFiltersProps) {
+  const t = useTranslations();
+  const quickChips = useMemo(
+    (): ChipDef[] => [
+      { kind: 'date', id: 'today', label: t.filters.today },
+      { kind: 'date', id: 'weekend', label: t.filters.weekend },
+      { kind: 'price', id: 'free', label: t.filters.free },
+      { kind: 'format', id: 'concert', label: t.filters.concert },
+      { kind: 'format', id: 'online', label: t.categories.online }
+    ],
+    [t]
+  );
+
   return (
     <div
       className={cn(

@@ -1,9 +1,8 @@
-import { getTranslations } from '@/lib/i18n';
+import { getServerTranslations } from '@/lib/i18n/server';
 import { QrScanner } from '@/components/tickets/qr-scanner';
 
-const t = getTranslations();
-
-export default function DashboardScannerPage() {
+export default async function DashboardScannerPage() {
+  const { t } = await getServerTranslations();
   return (
     <div className="space-y-6">
       <div>

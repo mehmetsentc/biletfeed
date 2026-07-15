@@ -1,6 +1,7 @@
 'use client';
 
 import { CalendarDays, Search, SlidersHorizontal } from 'lucide-react';
+import { useTranslations } from '@/components/providers';
 import { filterPublicEventTags } from '@/lib/events/public-tags';
 import { cn } from '@/lib/utils';
 
@@ -17,19 +18,48 @@ export type FeedCategoryPill =
   | 'workshop'
   | 'diger';
 
-const PILLS: { id: FeedCategoryPill; label: string }[] = [
-  { id: 'all',       label: 'Tümü' },
-  { id: 'konser',    label: 'Konser' },
-  { id: 'party',     label: 'Party' },
-  { id: 'festival',  label: 'Festival' },
-  { id: 'tiyatro',   label: 'Tiyatro' },
-  { id: 'standup',   label: 'Stand Up' },
-  { id: 'spor',      label: 'Spor' },
-  { id: 'cocuk',     label: 'Çocuk' },
-  { id: 'elektronik',label: 'Elektronik Müzik' },
-  { id: 'workshop',  label: 'Workshop' },
-  { id: 'diger',     label: 'Diğer' },
+const PILL_IDS: FeedCategoryPill[] = [
+  'all',
+  'konser',
+  'party',
+  'festival',
+  'tiyatro',
+  'standup',
+  'spor',
+  'cocuk',
+  'elektronik',
+  'workshop',
+  'diger'
 ];
+
+function pillLabel(id: FeedCategoryPill, t: ReturnType<typeof useTranslations>): string {
+  switch (id) {
+    case 'all':
+      return t.common.all;
+    case 'konser':
+      return t.filters.concert;
+    case 'party':
+      return t.categories.party;
+    case 'festival':
+      return t.categories.festival;
+    case 'tiyatro':
+      return t.categories.tiyatro;
+    case 'standup':
+      return t.filters.standUp;
+    case 'spor':
+      return t.categories.spor;
+    case 'cocuk':
+      return t.categories.cocuk;
+    case 'elektronik':
+      return t.filters.electronic;
+    case 'workshop':
+      return t.filters.workshop;
+    case 'diger':
+      return t.categories.diger;
+    default:
+      return id;
+  }
+}
 
 interface EventsFeedHeaderProps {
   cityLabel: string;
@@ -54,6 +84,8 @@ export function EventsFeedHeader({
   activeFilterCount = 0,
   sortSelect
 }: EventsFeedHeaderProps) {
+  const t = useTranslations();
+
   return (
     <header className="border-b border-border bg-background">
       <div className="container mx-auto px-4 py-6 md:py-8">
@@ -62,11 +94,11 @@ export function EventsFeedHeader({
             <div className="flex items-center gap-2.5">
               <CalendarDays className="size-7 text-primary" aria-hidden />
               <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-                Etkinlikler
+                {t.events.title}
               </h1>
             </div>
             <p className="mt-1.5 text-sm text-muted-foreground md:text-base">
-              {cityLabel} – Yaklaşan etkinlikler
+              {t.events.upcomingIn(cityLabel)}
             </p>
           </div>
 
@@ -77,10 +109,10 @@ export function EventsFeedHeader({
                 type="button"
                 onClick={onOpenFilters}
                 className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition hover:bg-muted"
-                aria-label="Gelişmiş filtreler"
+                aria-label={t.filters.advanced}
               >
                 <SlidersHorizontal className="size-4" />
-                <span className="hidden sm:inline">Filtre</span>
+                <span className="hidden sm:inline">{t.common.filter}</span>
                 {activeFilterCount > 0 && (
                   <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                     {activeFilterCount}
@@ -100,20 +132,20 @@ export function EventsFeedHeader({
             type="search"
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Şehir veya etkinlik ara…"
+            placeholder={t.events.searchPlaceholder}
             className="h-12 w-full rounded-xl border border-border bg-muted pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-            aria-label="Etkinlik ara"
+            aria-label={t.nav.search}
           />
         </div>
 
         <div className="mt-5 flex gap-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-b border-border">
-          {PILLS.map((pill) => {
-            const active = activePill === pill.id;
+          {PILL_IDS.map((pillId) => {
+            const active = activePill === pillId;
             return (
               <button
-                key={pill.id}
+                key={pillId}
                 type="button"
-                onClick={() => onPillChange(pill.id)}
+                onClick={() => onPillChange(pillId)}
                 className={cn(
                   'shrink-0 px-4 pb-3 pt-1 text-xs font-bold uppercase tracking-wide transition whitespace-nowrap border-b-2',
                   active
@@ -121,13 +153,15 @@ export function EventsFeedHeader({
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 )}
               >
-                {pill.label}
+                {pillLabel(pillId, t)}
               </button>
             );
           })}
         </div>
 
-        <p className="mt-4 text-sm text-muted-foreground">{resultCount} etkinlik</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          {t.filters.eventCount(resultCount)}
+        </p>
       </div>
     </header>
   );

@@ -9,12 +9,15 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
 
 type PasswordFieldProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  showLabel: string;
+  hideLabel: string;
   autoFocus?: boolean;
 };
 
@@ -22,6 +25,8 @@ function PasswordField({
   label,
   value,
   onChange,
+  showLabel,
+  hideLabel,
   autoFocus
 }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
@@ -49,7 +54,7 @@ function PasswordField({
           type="button"
           onClick={() => setVisible((v) => !v)}
           className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label={visible ? 'Şifreyi gizle' : 'Şifreyi göster'}
+          aria-label={visible ? hideLabel : showLabel}
         >
           {visible ? (
             <EyeOff className="size-4" strokeWidth={1.75} />
@@ -71,6 +76,7 @@ export function ChangePasswordDialog({
   open,
   onOpenChange
 }: ChangePasswordDialogProps) {
+  const t = useTranslations();
   const { changePassword, firebaseUser } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -101,15 +107,15 @@ export function ChangePasswordDialog({
     setError('');
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setError('Lütfen tüm alanları doldurun.');
+      setError(t.account.allFieldsRequired);
       return;
     }
     if (newPassword.length < 8) {
-      setError('Yeni şifre en az 8 karakter olmalıdır.');
+      setError(t.account.newPasswordMinLength);
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Yeni şifreler eşleşmiyor.');
+      setError(t.account.newPasswordMismatch);
       return;
     }
 
@@ -124,13 +130,13 @@ export function ChangePasswordDialog({
           ? String((err as { code?: string }).code)
           : '';
       if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
-        setError('Mevcut şifreniz hatalı.');
+        setError(t.account.wrongCurrentPassword);
       } else if (code === 'auth/weak-password') {
-        setError('Şifre çok zayıf. Daha güçlü bir şifre seçin.');
+        setError(t.account.weakPassword);
       } else if (code === 'auth/requires-recent-login') {
-        setError('Güvenlik için lütfen çıkış yapıp tekrar giriş yaptıktan sonra deneyin.');
+        setError(t.account.requiresRecentLogin);
       } else {
-        setError('Şifre güncellenemedi. Lütfen tekrar deneyin.');
+        setError(t.account.passwordUpdateFailed);
       }
     } finally {
       setSubmitting(false);
@@ -150,11 +156,10 @@ export function ChangePasswordDialog({
             </div>
             <div>
               <DialogTitle className="text-xl font-bold">
-                Şifre Değiştir
+                {t.account.changePassword}
               </DialogTitle>
               <p className="mt-1 text-sm text-muted-foreground">
-                Güvenliğiniz için şifrenizi düzenli olarak değiştirmenizi
-                öneririz.
+                {t.account.changePasswordSubtitle}
               </p>
             </div>
           </div>
@@ -163,27 +168,31 @@ export function ChangePasswordDialog({
         <form onSubmit={handleSubmit} className="px-6 py-5">
           {!hasPasswordProvider ? (
             <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-              Bu hesap sosyal giriş ile oluşturulmuş. Şifre belirlemek için
-              giriş ekranındaki &quot;Şifremi unuttum&quot; bağlantısını
-              kullanabilirsiniz.
+              {t.account.socialAccountNoPassword}
             </p>
           ) : (
             <div className="space-y-4">
               <PasswordField
-                label="Mevcut Şifreniz"
+                label={t.account.currentPassword}
                 value={currentPassword}
                 onChange={setCurrentPassword}
+                showLabel={t.account.showPassword}
+                hideLabel={t.account.hidePassword}
                 autoFocus
               />
               <PasswordField
-                label="Yeni Şifreniz"
+                label={t.account.newPassword}
                 value={newPassword}
                 onChange={setNewPassword}
+                showLabel={t.account.showPassword}
+                hideLabel={t.account.hidePassword}
               />
               <PasswordField
-                label="Yeni Şifrenizi Doğrulayın"
+                label={t.account.confirmNewPassword}
                 value={confirmPassword}
                 onChange={setConfirmPassword}
+                showLabel={t.account.showPassword}
+                hideLabel={t.account.hidePassword}
               />
             </div>
           )}
@@ -195,7 +204,7 @@ export function ChangePasswordDialog({
           )}
           {success && (
             <p className="mt-4 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary">
-              Şifreniz başarıyla güncellendi.
+              {t.account.passwordUpdateSuccess}
             </p>
           )}
 
@@ -206,7 +215,7 @@ export function ChangePasswordDialog({
               onClick={() => handleOpenChange(false)}
               className="font-semibold"
             >
-              Vazgeç
+              {t.common.cancel}
             </Button>
             {hasPasswordProvider && (
               <Button
@@ -218,10 +227,10 @@ export function ChangePasswordDialog({
                 )}
               >
                 {submitting
-                  ? 'Güncelleniyor…'
+                  ? t.account.updating
                   : success
-                    ? 'Güncellendi'
-                    : 'Şifreyi Güncelle'}
+                    ? t.account.updated
+                    : t.account.updatePassword}
               </Button>
             )}
           </div>

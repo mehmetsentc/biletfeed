@@ -12,6 +12,7 @@ import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
 import { getHomeCityEventsBundle } from '@/lib/services/home-city-events';
 import { getHomeHeroSlides } from '@/lib/services/home-hero-slides';
 import { getOnlineEvents, getCategories } from '@/lib/services/events';
+import { getServerTranslations } from '@/lib/i18n/server';
 
 export const metadata = createPageMetadata({
   title: 'Etkinlik Biletleri — Konser, Festival ve Daha Fazlası',
@@ -31,6 +32,7 @@ export const metadata = createPageMetadata({
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
+  const { t } = await getServerTranslations();
   const citySlug = await getPreferredCitySlug();
   const [cityBundle, online, heroSlides, categories] = await Promise.all([
     getHomeCityEventsBundle(citySlug),
@@ -64,10 +66,10 @@ export default async function HomePage() {
         <section className="hidden border-y border-border/80 bg-muted/30 py-14 md:block md:py-20">
           <div className="container mx-auto px-4">
             <h2 className="text-2xl font-extrabold tracking-tight md:text-3xl">
-              En İyi Online Etkinlikler
+              {t.home.onlineEventsTitle}
             </h2>
             <p className="mt-3 text-base font-medium text-muted-foreground">
-              Evden katılabileceğiniz etkinlikleri keşfedin
+              {t.home.onlineEventsSubtitle}
             </p>
             <div className="mt-10 grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
               {online.slice(0, 6).map((event) => (
@@ -81,7 +83,7 @@ export default async function HomePage() {
                   size="lg"
                   className="min-w-[200px] rounded-md border-foreground/20 px-12 font-semibold"
                 >
-                  Daha Fazla
+                  {t.common.more}
                 </Button>
               </Link>
             </div>

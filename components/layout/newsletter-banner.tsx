@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { NewsletterForm } from '@/components/footer/newsletter-form';
+import { useTranslations } from '@/components/providers';
 
 const STORAGE_KEY = 'bf_newsletter_subscribed';
 
 export function NewsletterBanner() {
+  const t = useTranslations();
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -25,11 +27,10 @@ export function NewsletterBanner() {
       <div className="container mx-auto flex flex-col items-start justify-between gap-6 px-4 md:flex-row md:items-center">
         <div className="max-w-lg">
           <h3 className="text-xl font-bold text-[#1a1d23] md:text-2xl">
-            Bültenimize abone olun
+            {t.home.newsletterTitle}
           </h3>
           <p className="mt-2 text-sm text-[#1a1d23]/80 md:text-base">
-            Haftalık bültenimizle favori organizatörlerinizden ve mekanlardan
-            yeni etkinlik güncellemelerini alın.
+            {t.home.newsletterSubtitle}
           </p>
         </div>
         <NewsletterForm variant="figma" onSubscribed={handleSubscribed} />

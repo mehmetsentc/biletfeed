@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from '@/components/providers';
 import { brandAssetUrl, brandLogos, brandTheme } from '@/lib/config/brand-theme';
 import { TicketQR } from '@/components/tickets/ticket-qr';
 import {
@@ -41,7 +42,7 @@ function InfoCell({
 export function TicketWebView({
   data,
   ctaHref,
-  ctaLabel = 'Etkinlik Detayları',
+  ctaLabel,
   footer,
   className,
   surface = 'dark'
@@ -54,6 +55,8 @@ export function TicketWebView({
   /** dark: mevcut koyu kart; light: BiletFeed beyaz bilet kartı */
   surface?: 'dark' | 'light';
 }) {
+  const t = useTranslations();
+  const resolvedCtaLabel = ctaLabel ?? t.tickets.eventDetails;
   const {
     kind,
     brand = 'biletfeed',
@@ -75,20 +78,23 @@ export function TicketWebView({
 
   const isValid = status === 'VALID';
   const isInvitation = kind === 'invitation';
-  const kindLabel = isInvitation ? 'Davetiye' : 'Etkinlik Bileti';
-  const codeLabel = isInvitation ? 'Davetiye Kodu' : 'Bilet Kodu';
+  const kindLabel = isInvitation ? t.tickets.invitation : t.tickets.eventTicket;
+  const codeLabel = isInvitation ? t.tickets.invitationCode : t.tickets.ticketCode;
   const barcodeUrl = barcodeToDataUrl(ticketCode, { width: 220, height: 44, barColor: '#ffffff' });
 
   const gridItems: Array<{ label: string; value: string }> = [
-    { label: 'Tarih', value: eventDate },
-    { label: 'Saat', value: eventTime },
-    { label: 'Mekan', value: `${venue}, ${city}` },
-    { label: isInvitation ? 'Davetiye Türü' : 'Bilet Türü', value: ticketTypeName },
-    { label: 'Katılımcı', value: holderName }
+    { label: t.events.date, value: eventDate },
+    { label: t.events.time, value: eventTime },
+    { label: t.events.venue, value: `${venue}, ${city}` },
+    {
+      label: isInvitation ? t.tickets.invitationType : t.tickets.ticketType,
+      value: ticketTypeName
+    },
+    { label: t.tickets.participant, value: holderName }
   ];
-  if (categoryLabel) gridItems.splice(3, 0, { label: 'Kategori', value: categoryLabel });
-  if (sectorGate) gridItems.push({ label: 'Sektör / Kapı', value: sectorGate });
-  if (data.priceLabel) gridItems.push({ label: 'Ücret', value: data.priceLabel });
+  if (categoryLabel) gridItems.splice(3, 0, { label: t.tickets.category, value: categoryLabel });
+  if (sectorGate) gridItems.push({ label: t.tickets.sectorGate, value: sectorGate });
+  if (data.priceLabel) gridItems.push({ label: t.tickets.fee, value: data.priceLabel });
 
   const isLight = surface === 'light';
 
@@ -138,7 +144,7 @@ export function TicketWebView({
       <div className={cn('p-6', isLight && 'text-zinc-900')}>
         {isInvitation && (
           <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-primary">
-            Sayın Davetli
+            {t.tickets.dearGuest}
           </p>
         )}
 
@@ -171,21 +177,16 @@ export function TicketWebView({
                 : 'border border-red-400/30 bg-red-400/10 text-red-400'
             )}
           >
-            {isValid ? '✓ Geçerli' : 'Geçersiz'}
+            {isValid ? t.tickets.validBadge : t.tickets.invalid}
           </span>
         </div>
 
         <p className={cn('mt-2 text-sm', isLight ? 'text-zinc-600' : 'text-white/60')}>
           {isInvitation ? (
-            <>
-              <span className={cn('font-semibold', isLight ? 'text-zinc-900' : 'text-white')}>
-                {holderName}
-              </span>{' '}
-              adına düzenlenmiştir.
-            </>
+            t.tickets.issuedFor(holderName)
           ) : (
             <>
-              Sayın{' '}
+              {t.tickets.dear}{' '}
               <span className={cn('font-semibold', isLight ? 'text-zinc-900' : 'text-white')}>
                 {holderName}
               </span>
@@ -241,7 +242,7 @@ export function TicketWebView({
             </div>
           ) : (
             <div className="flex size-[188px] shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-              <p className="px-4 text-center text-sm text-white/40">Bilet geçersiz veya kullanılmış</p>
+              <p className="px-4 text-center text-sm text-white/40">{t.tickets.invalidOrUsed}</p>
             </div>
           )}
 
@@ -276,9 +277,7 @@ export function TicketWebView({
                 isLight ? 'text-zinc-500' : 'text-white/40'
               )}
             >
-              {isInvitation
-                ? 'Girişte bu QR kodu veya davetiye kodunu gösterin.'
-                : 'Girişte bu QR kodu veya bilet kodunu gösterin. Bilet yalnızca bir kez kullanılabilir.'}
+              {isInvitation ? t.tickets.qrHintInvitation : t.tickets.qrHintTicket}
             </p>
           </div>
         </div>
@@ -308,7 +307,7 @@ export function TicketWebView({
             href={ctaHref}
             className="no-print mt-6 flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            {ctaLabel}
+            {resolvedCtaLabel}
           </Link>
         )}
 

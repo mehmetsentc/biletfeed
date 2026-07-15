@@ -73,10 +73,12 @@ export function SettingsPageHeader({
 
 export function SettingsSaveBar({
   label,
+  savedLabel,
   onClick,
   saved
 }: {
   label: string;
+  savedLabel?: string;
   onClick?: () => void;
   saved?: boolean;
 }) {
@@ -88,7 +90,7 @@ export function SettingsSaveBar({
           onClick={onClick}
           className="h-12 w-full rounded-xl bg-[#1a1d23] text-sm font-bold text-white transition-colors hover:bg-[#1a1d23]/90 md:h-10 md:w-auto md:rounded-md md:px-8"
         >
-          {saved ? 'Kaydedildi ✓' : label}
+          {saved ? savedLabel ?? label : label}
         </button>
       </div>
       <div className="h-[4.5rem] md:hidden" aria-hidden />

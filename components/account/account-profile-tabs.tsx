@@ -12,61 +12,67 @@ import {
   User
 } from 'lucide-react';
 import { isEventJoyEnabled } from '@/lib/config/features';
+import { useTranslations } from '@/components/providers';
 import { cn } from '@/lib/utils';
+import type { TranslationKeys } from '@/lib/i18n';
 
-const profileTabs = [
-  {
-    href: '/profil',
-    label: 'Profil',
-    icon: User,
-    isActive: (p: string) => p === '/profil' || p === '/profil/duzenle'
-  },
-  {
-    href: '/profil/ayarlar',
-    label: 'Ayarlar',
-    icon: Settings,
-    isActive: (p: string) =>
-      p === '/profil/ayarlar' ||
-      p === '/profil/email' ||
-      p === '/profil/sifre' ||
-      p === '/profil/ilgi-alanlari'
-  },
-  {
-    href: '/profil/bilgilerim',
-    label: 'Bilgilerim',
-    icon: Contact,
-    isActive: (p: string) => p === '/profil/bilgilerim'
-  },
-  {
-    href: '/biletlerim',
-    label: 'Biletlerim',
-    icon: Ticket,
-    isActive: (p: string) => p.startsWith('/biletlerim')
-  },
-  {
-    href: '/favorilerim',
-    label: 'Favorilerim',
-    icon: Heart,
-    isActive: (p: string) => p === '/favorilerim'
-  },
-  {
-    href: '/degerlendirmelerim',
-    label: 'Değerlendirmelerim',
-    icon: Star,
-    isActive: (p: string) => p === '/degerlendirmelerim'
-  },
-  {
-    href: '/eventjoy/panel',
-    label: 'Event Joy',
-    icon: Calendar,
-    userOnly: true,
-    hideOnPaths: ['/profil/bilgilerim', '/organizator-panel'],
-    isActive: (p: string) => p.startsWith('/eventjoy')
-  }
-] as const;
+function getProfileTabs(t: TranslationKeys) {
+  return [
+    {
+      href: '/profil',
+      label: t.account.profile,
+      icon: User,
+      isActive: (p: string) => p === '/profil' || p === '/profil/duzenle'
+    },
+    {
+      href: '/profil/ayarlar',
+      label: t.account.settings,
+      icon: Settings,
+      isActive: (p: string) =>
+        p === '/profil/ayarlar' ||
+        p === '/profil/email' ||
+        p === '/profil/sifre' ||
+        p === '/profil/ilgi-alanlari'
+    },
+    {
+      href: '/profil/bilgilerim',
+      label: t.account.personalInfo,
+      icon: Contact,
+      isActive: (p: string) => p === '/profil/bilgilerim'
+    },
+    {
+      href: '/biletlerim',
+      label: t.account.myTickets,
+      icon: Ticket,
+      isActive: (p: string) => p.startsWith('/biletlerim')
+    },
+    {
+      href: '/favorilerim',
+      label: t.account.favorites,
+      icon: Heart,
+      isActive: (p: string) => p === '/favorilerim'
+    },
+    {
+      href: '/degerlendirmelerim',
+      label: t.account.reviews,
+      icon: Star,
+      isActive: (p: string) => p === '/degerlendirmelerim'
+    },
+    {
+      href: '/eventjoy/panel',
+      label: 'Event Joy',
+      icon: Calendar,
+      userOnly: true,
+      hideOnPaths: ['/profil/bilgilerim', '/organizator-panel'],
+      isActive: (p: string) => p.startsWith('/eventjoy')
+    }
+  ] as const;
+}
 
 export function AccountProfileTabs() {
+  const t = useTranslations();
   const pathname = usePathname();
+  const profileTabs = getProfileTabs(t);
 
   const visibleTabs = profileTabs.filter((tab) => {
     if (tab.href.startsWith('/eventjoy') && !isEventJoyEnabled) return false;

@@ -8,6 +8,7 @@ import {
   ticketTypeRemaining
 } from '@/lib/tickets/purchase-types';
 import { formatTry } from '@/lib/tickets/purchase-pricing';
+import { getServerTranslations } from '@/lib/i18n/server';
 import { cn } from '@/lib/utils';
 
 interface TicketTierListProps {
@@ -16,15 +17,17 @@ interface TicketTierListProps {
   className?: string;
 }
 
-export function TicketTierList({
+export async function TicketTierList({
   eventSlug,
   ticketTypes,
   className
 }: TicketTierListProps) {
+  const { t } = await getServerTranslations();
+
   if (ticketTypes.length === 0) {
     return (
       <div className={cn('rounded-2xl border border-border bg-card p-6 text-center text-card-foreground', className)}>
-        <p className="text-muted-foreground">Bu etkinlik için aktif bilet bulunamadı.</p>
+        <p className="text-muted-foreground">{t.events.noActiveTickets}</p>
       </div>
     );
   }
@@ -34,7 +37,7 @@ export function TicketTierList({
       {ticketTypes.map((type) => {
         const available = ticketTypeAvailable(type);
         const remaining = ticketTypeRemaining(type);
-        const priceLabel = type.price <= 0 ? 'Ücretsiz' : formatTry(type.price);
+        const priceLabel = type.price <= 0 ? t.common.free : formatTry(type.price);
 
         return (
           <article
@@ -52,18 +55,23 @@ export function TicketTierList({
                     variant="secondary"
                     className="rounded-full bg-[var(--bf-orange-surface)] text-primary"
                   >
-                    Tükenmek üzere
+                    {t.events.almostGone}
                   </Badge>
                 )}
                 {!available && (
                   <Badge variant="secondary" className="rounded-full">
-                    Tükendi
+                    {t.events.soldOut}
                   </Badge>
                 )}
               </div>
+              {type.description?.trim() && (
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {type.description.trim()}
+                </p>
+              )}
               {available && remaining <= 20 && (
                 <p className="text-xs text-muted-foreground">
-                  Son {remaining} bilet
+                  {t.events.lastTickets(remaining)}
                 </p>
               )}
             </div>
@@ -77,12 +85,12 @@ export function TicketTierList({
                 >
                   <Link href={`/etkinlik/${eventSlug}/bilet/${type.id}`}>
                     <Ticket className="size-4" />
-                    Satın Al
+                    {t.events.buy}
                   </Link>
                 </Button>
               ) : (
                 <Button disabled className="h-11 rounded-xl px-6 font-bold">
-                  Tükendi
+                  {t.events.soldOut}
                 </Button>
               )}
             </div>

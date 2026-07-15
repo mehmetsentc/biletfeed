@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, SlidersHorizontal, X } from 'lucide-react';
+import { useTranslations } from '@/components/providers';
 import { EventsFilterContent } from '@/components/events/events-filter-content';
 import {
   clearAllFilters,
@@ -35,6 +36,7 @@ export function EventsFilterPanel({
   resultCount,
   categories
 }: EventsFilterPanelProps) {
+  const t = useTranslations();
   const activeCount = countActiveFilters(filters);
 
   return (
@@ -56,12 +58,12 @@ export function EventsFilterPanel({
           <div className="flex items-center justify-between gap-3">
             <div className="text-left">
               <DialogTitle className="text-lg font-bold text-foreground">
-                Filtreler
+                {t.filters.title}
               </DialogTitle>
               <DialogDescription className="mt-1 text-sm text-muted-foreground">
                 {activeCount > 0
-                  ? `${activeCount} filtre seçili`
-                  : 'Etkinlikleri daraltın'}
+                  ? t.filters.filtersSelected(activeCount)
+                  : t.filters.narrowEvents}
               </DialogDescription>
             </div>
             <div className="flex items-center gap-1">
@@ -72,7 +74,7 @@ export function EventsFilterPanel({
                   className="text-muted-foreground hover:text-foreground"
                   onClick={() => onChange(clearAllFilters())}
                 >
-                  Temizle
+                  {t.filters.clear}
                 </Button>
               )}
               <Button
@@ -80,7 +82,7 @@ export function EventsFilterPanel({
                 size="icon"
                 className="text-muted-foreground hover:text-foreground"
                 onClick={() => onOpenChange(false)}
-                aria-label="Kapat"
+                aria-label={t.common.close}
               >
                 <X className="size-5" />
               </Button>
@@ -103,7 +105,7 @@ export function EventsFilterPanel({
             className="h-12 w-full rounded-xl text-base font-bold"
             onClick={() => onOpenChange(false)}
           >
-            {resultCount} etkinliği göster
+            {t.filters.showEvents(resultCount)}
           </Button>
         </div>
       </DialogContent>
@@ -125,6 +127,7 @@ export function TabletFilterPanel({
   onChange,
   resultCount
 }: TabletFilterPanelProps) {
+  const t = useTranslations();
   const [expanded, setExpanded] = useState(false);
   const activeCount = countActiveFilters(filters);
 
@@ -138,11 +141,11 @@ export function TabletFilterPanel({
         <div className="flex items-center gap-3">
           <SlidersHorizontal className="size-5 text-primary" />
           <div>
-            <p className="font-bold text-foreground">Filtreler</p>
+            <p className="font-bold text-foreground">{t.filters.title}</p>
             <p className="text-sm text-muted-foreground">
               {activeCount > 0
-                ? `${activeCount} filtre aktif · ${resultCount} sonuç`
-                : `${resultCount} etkinlik`}
+                ? t.filters.filtersActive(activeCount, resultCount)
+                : t.filters.eventCount(resultCount)}
             </p>
           </div>
         </div>
@@ -164,7 +167,7 @@ export function TabletFilterPanel({
                 className="text-muted-foreground hover:text-foreground"
                 onClick={() => onChange(clearAllFilters())}
               >
-                Temizle
+                {t.filters.clear}
               </Button>
             )}
           </div>

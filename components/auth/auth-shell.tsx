@@ -7,9 +7,18 @@ interface AuthShellProps {
   children: React.ReactNode;
   title: string;
   subtitle: string;
+  bullets?: [string, string, string];
+  backHomeLabel: string;
 }
 
-export function AuthShell({ children, title, subtitle }: AuthShellProps) {
+export function AuthShell({
+  children,
+  title,
+  subtitle,
+  bullets,
+  backHomeLabel
+}: AuthShellProps) {
+  const bulletItems = bullets ?? [];
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between">
@@ -30,9 +39,9 @@ export function AuthShell({ children, title, subtitle }: AuthShellProps) {
             </h1>
             <p className="mt-4 max-w-md text-lg text-white/80">{subtitle}</p>
             <ul className="mt-8 space-y-3 text-sm text-white/70">
-              <li>✓ Binlerce etkinlik tek platformda</li>
-              <li>✓ Güvenli ödeme ve anında QR bilet</li>
-              <li>✓ Kişiselleştirilmiş öneriler</li>
+              {bulletItems.map((item) => (
+                <li key={item}>✓ {item}</li>
+              ))}
             </ul>
           </div>
           <p className="text-sm text-white/50">
@@ -47,7 +56,7 @@ export function AuthShell({ children, title, subtitle }: AuthShellProps) {
         <div className="w-full max-w-md">{children}</div>
         <p className="mt-8 text-center text-base font-medium text-foreground lg:hidden">
           <Link href="/" className="underline-offset-4 hover:text-primary hover:underline">
-            Ana sayfaya dön
+            {backHomeLabel}
           </Link>
         </p>
       </div>

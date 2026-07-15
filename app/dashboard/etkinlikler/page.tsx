@@ -6,11 +6,10 @@ import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerEvents } from '@/lib/services/organizer-dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { getTranslations } from '@/lib/i18n';
-
-const t = getTranslations();
+import { getServerTranslations } from '@/lib/i18n/server';
 
 export default async function DashboardEventsPage() {
+  const { t } = await getServerTranslations();
   const session = await requireOrganizer();
   const organizer = await getOrganizerForSession(session.uid);
   if (!organizer) {

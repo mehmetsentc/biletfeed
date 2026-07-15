@@ -6,18 +6,23 @@ import { verifySessionCookie } from '@/lib/auth/session';
 import { getOrderForUser } from '@/lib/services/orders';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
+import { getServerTranslations } from '@/lib/i18n/server';
 import { IframeBreaker } from '@/components/payments/iframe-breaker';
-
-export const metadata = createPageMetadata({
-  title: 'Ödeme Başarılı',
-  path: '/odeme/basarili'
-});
 
 interface Props {
   searchParams: Promise<{ order?: string }>;
 }
 
+export async function generateMetadata() {
+  const { t } = await getServerTranslations();
+  return createPageMetadata({
+    title: t.purchase.successTitle,
+    path: '/odeme/basarili'
+  });
+}
+
 export default async function PaymentSuccessPage({ searchParams }: Props) {
+  const { t } = await getServerTranslations();
   const { order: orderId } = await searchParams;
 
   let ticketCount: number | undefined;
@@ -65,27 +70,29 @@ export default async function PaymentSuccessPage({ searchParams }: Props) {
           <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-accent">
             <CheckCircle2 className="size-8 text-primary" />
           </div>
-          <h1 className="mt-5 text-2xl font-extrabold text-foreground">Biletiniz hazır!</h1>
+          <h1 className="mt-5 text-2xl font-extrabold text-foreground">{t.purchase.successTitle}</h1>
           <p className="mt-3 text-muted-foreground">
             {eventTitle ? (
               <>
-                <strong className="text-foreground">{eventTitle}</strong> için{' '}
-                {ticketCount ? `${ticketCount} adet ` : ''}biletiniz oluşturuldu.
+                <strong className="text-foreground">{eventTitle}</strong>
+                {ticketCount ? ` · ${ticketCount} ${t.purchase.ticketCount}` : null}
+                {' — '}
+                {t.purchase.successBody}
               </>
             ) : (
-              'QR kodunuzu Biletlerim sayfasından görüntüleyebilirsiniz.'
+              t.purchase.successBody
             )}
           </p>
           <div className="mt-8 flex flex-col gap-3">
             <Link href="/biletlerim">
               <Button className="h-12 w-full gap-2 rounded-xl text-base font-bold">
                 <Ticket className="size-5" />
-                Biletlerimi Gör
+                {t.purchase.viewMyTickets}
               </Button>
             </Link>
             <Link href="/etkinlikler">
               <Button variant="outline" className="h-11 w-full rounded-xl">
-                Daha Fazla Etkinlik
+                {t.purchase.moreEvents}
               </Button>
             </Link>
           </div>

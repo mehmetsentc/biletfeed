@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from '@/components/providers';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { OrganizatorHeader } from '@/components/organizator-panel/header';
 import { OrganizatorSidebar } from '@/components/organizator-panel/sidebar';
@@ -18,6 +19,7 @@ export function OrganizatorShell({
   displayName: string;
   userEmail?: string;
 }) {
+  const t = useTranslations();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const isWizard =
@@ -59,7 +61,7 @@ export function OrganizatorShell({
             type="button"
             className="fixed inset-0 z-30 bg-black/40 lg:hidden"
             onClick={() => setMobileOpen(false)}
-            aria-label="Menüyü kapat"
+            aria-label={t.common.close}
           />
         )}
 

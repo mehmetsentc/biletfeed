@@ -1,9 +1,8 @@
 import { DashboardPlaceholderPage } from '@/components/dashboard/placeholder-page';
-import { getTranslations } from '@/lib/i18n';
+import { getServerTranslations } from '@/lib/i18n/server';
 
-const t = getTranslations();
-
-export default function DashboardAiPage() {
+export default async function DashboardAiPage() {
+  const { t } = await getServerTranslations();
   return (
     <DashboardPlaceholderPage
       title={t.dashboard.aiAssistant}
