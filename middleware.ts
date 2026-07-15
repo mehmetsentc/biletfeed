@@ -22,12 +22,54 @@ import {
 } from '@/lib/config/domain';
 import { isEventJoyEnabled } from '@/lib/config/features';
 import {
+  LOCALE_COOKIE,
+  resolveLocaleFromAcceptLanguage
+} from '@/lib/i18n/locale';
+import {
   mapLegacyDashboardPath,
   mapLegacyDashboardToDevPanelPath
 } from '@/lib/routing/legacy-dashboard';
 
 const SESSION_COOKIE_NAME = 'session';
 const PANEL_SESSION_COOKIE_NAME = 'panel_session';
+
+function applyDeviceLocale(
+  request: NextRequest,
+  response: NextResponse
+): NextResponse {
+  const locale = resolveLocaleFromAcceptLanguage(
+    request.headers.get('accept-language')
+  );
+  response.cookies.set(LOCALE_COOKIE, locale, {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax'
+  });
+  response.headers.set('x-bf-locale', locale);
+  return response;
+}
+
+/** RSC'ye cihaz dilini iletmek için request header + cookie */
+function nextWithLocale(request: NextRequest): NextResponse {
+  const locale = resolveLocaleFromAcceptLanguage(
+    request.headers.get('accept-language')
+  );
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-bf-locale', locale);
+  const response = NextResponse.next({
+    request: { headers: requestHeaders }
+  });
+  response.cookies.set(LOCALE_COOKIE, locale, {
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: 'lax'
+  });
+  return response;
+}
+
+function withLocale(request: NextRequest, response: NextResponse): NextResponse {
+  return applyDeviceLocale(request, response);
+}
 
 const PANEL_PUBLIC_PATHS = new Set([
   '/giris',
@@ -353,52 +395,57 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!isEventJoyEnabled && pathname.startsWith('/eventjoy')) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return withLocale(request, NextResponse.redirect(new URL('/', request.url)));
   }
 
   const panelRedirect = redirectOrganizerPanelToSubdomain(request, pathname);
-  if (panelRedirect) return panelRedirect;
+  if (panelRedirect) return withLocale(request, panelRedirect);
 
   const dashboardRedirect = redirectLegacyDashboardToPanel(request, pathname);
-  if (dashboardRedirect) return dashboardRedirect;
+  if (dashboardRedirect) return withLocale(request, dashboardRedirect);
 
   const supportRedirect = redirectSupportToSubdomain(request, pathname);
-  if (supportRedirect) return supportRedirect;
+  if (supportRedirect) return withLocale(request, supportRedirect);
 
   const adminRedirect = redirectAdminToSubdomain(request, pathname);
-  if (adminRedirect) return adminRedirect;
+  if (adminRedirect) return withLocale(request, adminRedirect);
 
   const canonicalRedirect = redirectToCanonical(request);
-  if (canonicalRedirect) return canonicalRedirect;
+  if (canonicalRedirect) return withLocale(request, canonicalRedirect);
 
   const subdomain = extractSubdomain(request);
 
-  // Ana sitede kısa destek yolları → /destek/* rotalarına
   if (!subdomain && pathname.startsWith('/destek-talebi')) {
     const supportPath = pathname.replace(
       /^\/destek-talebi/,
       '/destek/destek-talebi'
     );
-    return NextResponse.rewrite(new URL(supportPath, request.url));
+    return withLocale(
+      request,
+      NextResponse.rewrite(new URL(supportPath, request.url))
+    );
   }
 
   if (isSupportSubdomain(subdomain)) {
     if (pathname === '/') {
-      return NextResponse.rewrite(new URL('/destek', request.url));
+      return withLocale(
+        request,
+        NextResponse.rewrite(new URL('/destek', request.url))
+      );
     }
-    return handleSupportSubdomain(request, pathname);
+    return withLocale(request, handleSupportSubdomain(request, pathname));
   }
 
   if (isGirisSubdomain(subdomain)) {
-    return handleGirisSubdomain(request, pathname);
+    return withLocale(request, handleGirisSubdomain(request, pathname));
   }
 
   if (isAdminSubdomain(subdomain)) {
-    return handleAdminSubdomain(request, pathname);
+    return withLocale(request, handleAdminSubdomain(request, pathname));
   }
 
   if (isOrganizerPanelSubdomain(subdomain)) {
-    return handleOrganizerPanelSubdomain(request, pathname);
+    return withLocale(request, handleOrganizerPanelSubdomain(request, pathname));
   }
 
   if (subdomain && !isReservedPlatformSubdomain(subdomain)) {
@@ -407,17 +454,21 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/dashboard') ||
       pathname.startsWith('/organizator-panel')
     ) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return withLocale(
+        request,
+        NextResponse.redirect(new URL('/', request.url))
+      );
     }
 
     if (pathname === '/') {
-      return NextResponse.rewrite(
-        new URL(`/organizator/${subdomain}`, request.url)
+      return withLocale(
+        request,
+        NextResponse.rewrite(new URL(`/organizator/${subdomain}`, request.url))
       );
     }
 
     if (pathname.startsWith('/etkinlik/')) {
-      return NextResponse.next();
+      return nextWithLocale(request);
     }
   }
 
@@ -427,7 +478,7 @@ export async function middleware(request: NextRequest) {
       if (!panelSession?.value) {
         const loginUrl = new URL('/organizator-panel/giris', request.url);
         loginUrl.searchParams.set('redirect', pathname);
-        return NextResponse.redirect(loginUrl);
+        return withLocale(request, NextResponse.redirect(loginUrl));
       }
     }
   }
@@ -437,11 +488,11 @@ export async function middleware(request: NextRequest) {
     if (!session) {
       const loginUrl = new URL('/giris', request.url);
       loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+      return withLocale(request, NextResponse.redirect(loginUrl));
     }
   }
 
-  return NextResponse.next();
+  return nextWithLocale(request);
 }
 
 export const config = {

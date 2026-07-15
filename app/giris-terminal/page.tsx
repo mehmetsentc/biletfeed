@@ -5,13 +5,20 @@ import { Suspense } from 'react';
 import { Logo } from '@/components/brand/logo';
 import { ScannerGateLoginForm } from '@/components/auth/scanner-gate-login-form';
 import { siteHref } from '@/lib/config/domain';
+import { getServerTranslations } from '@/lib/i18n';
+import { siteConfig } from '@/lib/config/site';
 
-export const metadata: Metadata = {
-  title: 'Kapı Girişi | BiletFeed',
-  description: 'Etkinlik kapısında bilet taraması için giriş yapın'
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getServerTranslations();
+  return {
+    title: `${t.gate.title} | ${siteConfig.name}`,
+    description: t.gate.subtitle
+  };
+}
 
-export default function GirisTerminalPage() {
+export default async function GirisTerminalPage() {
+  const { t } = await getServerTranslations();
+
   return (
     <div className="grid min-h-screen bg-[#0c1017] lg:grid-cols-2">
       <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between">
@@ -28,14 +35,13 @@ export default function GirisTerminalPage() {
           <Logo href={siteHref('/')} variant="on-dark" />
           <div>
             <p className="text-sm font-medium uppercase tracking-wider text-primary">
-              Kapı Terminali
+              {t.gate.title}
             </p>
             <h1 className="mt-3 text-3xl font-bold leading-tight md:text-4xl">
-              Biletleri hızla okutun
+              {t.gate.scanFastTitle}
             </h1>
             <p className="mt-4 max-w-md text-lg text-white/75">
-              Organizatörden aldığınız kapı kodu ile giriş yapın. Panel erişimi
-              gerekmez — sadece tarama.
+              {t.gate.subtitle}
             </p>
           </div>
           <p className="text-xs text-white/40">giris.biletfeed.com</p>
@@ -54,12 +60,12 @@ export default function GirisTerminalPage() {
           <ScannerGateLoginForm />
         </Suspense>
         <p className="mt-6 text-center text-xs text-white/40">
-          Organizatör müsünüz?{' '}
+          {t.gate.organizerPrompt}{' '}
           <Link
             href={siteHref('/')}
             className="text-primary underline-offset-2 hover:underline"
           >
-            Ana site
+            {t.gate.mainSite}
           </Link>
         </p>
       </div>

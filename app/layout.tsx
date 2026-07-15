@@ -6,13 +6,14 @@ import { Providers } from '@/components/providers';
 import { ThemeInitScript } from '@/components/theme/theme-init-script';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 import { siteConfig } from '@/lib/config/site';
+import { getServerLocale, LOCALE_HTML_LANG } from '@/lib/i18n';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { buildOrganizationSchema, buildWebsiteSchema } from '@/lib/seo/schemas';
 import './globals.css';
 
 const inter = Inter({
-  subsets: ['latin', 'latin-ext'],
+  subsets: ['latin', 'latin-ext', 'cyrillic'],
   variable: '--font-inter',
   display: 'swap'
 });
@@ -48,13 +49,15 @@ export const viewport: Viewport = {
   colorScheme: 'light dark'
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getServerLocale();
+
   return (
-    <html lang="tr" suppressHydrationWarning>
+    <html lang={LOCALE_HTML_LANG[locale]} suppressHydrationWarning>
       <head>
         <ThemeInitScript />
       </head>
@@ -62,7 +65,7 @@ export default function RootLayout({
         <JsonLd
           data={[buildOrganizationSchema(), buildWebsiteSchema()]}
         />
-        <Providers>{children}</Providers>
+        <Providers locale={locale}>{children}</Providers>
         <AppSpeedInsights />
         <GoogleAnalytics />
       </body>

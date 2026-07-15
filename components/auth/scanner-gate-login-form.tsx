@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { KeyRound } from 'lucide-react';
-import { useTranslations } from '@/components/providers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +13,18 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
+
+// giris-terminal layout'unda LocaleProvider yok — string'ler doğrudan tanımlandı
+const STRINGS = {
+  title: 'Kapı ekibi girişi',
+  subtitle:
+    'Organizatörün "Kodu kopyala" veya "Giriş linki" ile gönderdiği kodu yapıştırın. Aynı kodu 10 kişiye kadar paylaşabilirsiniz.',
+  codeLabel: 'Kapı kodu',
+  codePlaceholder: 'Kodu buraya yapıştırın',
+  submit: 'Taramaya başla',
+  submitting: 'Doğrulanıyor…',
+  errorInvalid: 'Geçersiz kapı kodu. Organizatörden yeni kod isteyin.'
+} as const;
 
 const SIX_DIGIT_ERROR =
   "Sadece numarayı değil, 'Kodu kopyala' ile gelen tam kodu yapıştırın";
@@ -28,7 +39,6 @@ function normalizeGateInput(value: string): string {
 }
 
 export function ScannerGateLoginForm() {
-  const t = useTranslations();
   const searchParams = useSearchParams();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,7 +73,7 @@ export function ScannerGateLoginForm() {
         };
 
         if (!res.ok) {
-          setError(data.error ?? t.gate.errorInvalid);
+          setError(data.error ?? STRINGS.errorInvalid);
           return;
         }
 
@@ -76,7 +86,7 @@ export function ScannerGateLoginForm() {
         setLoading(false);
       }
     },
-    [searchParams, t.gate.errorInvalid]
+    [searchParams]
   );
 
   useEffect(() => {
@@ -98,9 +108,9 @@ export function ScannerGateLoginForm() {
         <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
           <KeyRound className="size-5" strokeWidth={2} />
         </div>
-        <CardTitle className="text-lg">{t.gate.title}</CardTitle>
+        <CardTitle className="text-lg">{STRINGS.title}</CardTitle>
         <CardDescription className="text-white/60">
-          {t.gate.subtitle}
+          {STRINGS.subtitle}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -109,19 +119,20 @@ export function ScannerGateLoginForm() {
             <p>{error}</p>
             {(error.includes('Kısa kod') || error.includes('tam kodu')) && (
               <p className="mt-1.5 text-xs text-white/60">
-                💡 Organizatör panelinden <strong className="text-white/80">QR kod</strong>{' '}
-                veya <strong className="text-white/80">Giriş linki</strong> alın
+                💡 Organizatör panelinden{' '}
+                <strong className="text-white/80">QR kod</strong> veya{' '}
+                <strong className="text-white/80">Giriş linki</strong> alın
               </p>
             )}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="scanner-gate-code">{t.gate.codeLabel}</Label>
+            <Label htmlFor="scanner-gate-code">{STRINGS.codeLabel}</Label>
             <Input
               id="scanner-gate-code"
               autoComplete="one-time-code"
-              placeholder={t.gate.codePlaceholder}
+              placeholder={STRINGS.codePlaceholder}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className="border-white/15 bg-[#0c1017] text-sm text-white"
@@ -132,7 +143,7 @@ export function ScannerGateLoginForm() {
             className="w-full bg-primary text-black hover:bg-[var(--bf-orange-hover)]"
             disabled={loading || normalizeGateInput(code).length < 6}
           >
-            {loading ? t.gate.submitting : t.gate.submit}
+            {loading ? STRINGS.submitting : STRINGS.submit}
           </Button>
         </form>
       </CardContent>
