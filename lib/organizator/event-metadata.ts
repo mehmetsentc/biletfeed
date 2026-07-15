@@ -22,6 +22,7 @@ export type EventSeoMeta = {
   accessPassword?: string;
   hiddenFromSearch?: boolean;
   venueDetail?: string;
+  venueMapUrl?: string;
   organizerTermsAcceptedAt?: string;
   organizerTermsVersion?: string;
   seriesId?: string;
@@ -32,6 +33,7 @@ export type EventSeoMeta = {
 export interface OrganizerEventExtras {
   tags?: string[];
   venueDetail?: string;
+  venueMapUrl?: string;
   rules?: string;
   isOnline?: boolean;
   onlineUrl?: string;
@@ -89,6 +91,7 @@ export function buildEventExtrasData(extras: OrganizerEventExtras): {
       : {}),
     ...(extras.hiddenFromSearch ? { hiddenFromSearch: true } : {}),
     ...(extras.venueDetail?.trim() ? { venueDetail: extras.venueDetail.trim() } : {}),
+    ...(extras.venueMapUrl?.trim() ? { venueMapUrl: extras.venueMapUrl.trim() } : {}),
     ...(extras.organizerTermsAccepted
       ? {
           organizerTermsAcceptedAt: new Date().toISOString(),

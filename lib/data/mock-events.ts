@@ -50,6 +50,8 @@ export interface MockEvent {
   rules?: string;
   /** Sanatçı / katılımcı listesi (seo.performers) */
   performers?: Array<{ name: string; type: 'person' | 'group' }>;
+  /** Etkinlik haritası / oturma düzeni görseli */
+  venueMapUrl?: string;
 }
 
 /** @deprecated Yalnızca geriye dönük import uyumluluğu — boş dizi */

@@ -262,6 +262,7 @@ export function CreateOrganizerEventWizard({
     }
   );
   const [onlineUrl, setOnlineUrl] = useState('');
+  const [venueMapUrl, setVenueMapUrl] = useState<string | undefined>(initialData?.venueMapUrl);
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
   const [performers, setPerformers] = useState<PerformerRow[]>(
     () =>
@@ -644,6 +645,7 @@ export function CreateOrganizerEventWizard({
           capacity: Number(c.capacity),
           showLowStockBadge: c.showLowStockBadge
         })),
+        ...(venueMapUrl ? { venueMapUrl } : {}),
         ...(targetStatus ? { status: targetStatus } : {}),
         ...(targetStatus === 'pending' ? { organizerTermsAccepted: true } : {}),
         ...(eventTypeMode === 'recurring' && sessionDates.length >= 2
@@ -968,6 +970,8 @@ export function CreateOrganizerEventWizard({
               onOnlineUrlChange={setOnlineUrl}
               tags={tags}
               onTagsChange={setTags}
+              venueMapUrl={venueMapUrl}
+              onVenueMapUrlChange={setVenueMapUrl}
             />
           )}
 

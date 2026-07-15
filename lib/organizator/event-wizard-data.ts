@@ -51,6 +51,7 @@ export interface EventWizardInitialData {
     image?: string;
     role?: string;
   }>;
+  venueMapUrl?: string;
   eventRules: string;
   ruleSet: EventRuleSetData & { announcements: EventAnnouncementInput[] };
 }
@@ -168,6 +169,11 @@ export function mapEventToWizardInitialData(
           }));
       }
       return parsePerformersFromSeo(event.seo).map((p) => ({ ...p }));
+    })(),
+    venueMapUrl: (() => {
+      if (!event.seo || typeof event.seo !== 'object' || Array.isArray(event.seo)) return undefined;
+      const url = (event.seo as { venueMapUrl?: unknown }).venueMapUrl;
+      return typeof url === 'string' && url.trim() ? url.trim() : undefined;
     })(),
     eventRules: event.rules?.trim() ?? '',
     ruleSet: {

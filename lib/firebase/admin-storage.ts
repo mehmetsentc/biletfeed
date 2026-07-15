@@ -93,6 +93,25 @@ export async function uploadAdminImage(
   return uploadPublicBuffer(getBucketName()!, path, buffer, contentType);
 }
 
+export async function uploadVenueMapImage(
+  organizerId: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  if (!isFirebaseStorageUploadConfigured()) {
+    throw new Error('Firebase Storage yapılandırılmamış');
+  }
+  const ext = contentType.includes('png')
+    ? 'png'
+    : contentType.includes('webp')
+      ? 'webp'
+      : contentType.includes('pdf')
+        ? 'pdf'
+        : 'jpg';
+  const path = `venue-maps/${organizerId}/${randomUUID()}.${ext}`;
+  return uploadPublicBuffer(getBucketName()!, path, buffer, contentType);
+}
+
 export async function uploadArtistImage(
   artistId: string,
   buffer: Buffer,

@@ -41,6 +41,7 @@ const attendeeQuestionSchema = z.object({
 const eventExtrasSchema = {
   tags: z.array(z.string().max(50)).max(20).optional(),
   venueDetail: z.string().max(2000).optional(),
+  venueMapUrl: z.string().url().max(1000).optional(),
   rules: z.string().max(10000).optional(),
   isOnline: z.boolean().optional(),
   onlineUrl: optionalOnlineUrlSchema,
@@ -157,6 +158,7 @@ export async function POST(request: NextRequest) {
       ticketCategories: parsed.data.ticketCategories,
       tags: parsed.data.tags,
       venueDetail: parsed.data.venueDetail,
+      venueMapUrl: parsed.data.venueMapUrl,
       isOnline: parsed.data.isOnline,
       onlineUrl: parsed.data.onlineUrl || undefined,
       performers: parsed.data.performers,

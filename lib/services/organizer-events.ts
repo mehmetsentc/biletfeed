@@ -389,6 +389,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
     input.preventQuestionCopy !== undefined ||
     input.accessPassword !== undefined ||
     input.hiddenFromSearch !== undefined ||
+    input.venueMapUrl !== undefined ||
     input.organizerTermsAccepted;
 
   if (hasSeoUpdate) {
@@ -398,6 +399,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
       accessPassword: input.accessPassword,
       hiddenFromSearch: input.hiddenFromSearch,
       venueDetail: input.venueDetail,
+      venueMapUrl: input.venueMapUrl,
       rules: input.rules,
       organizerTermsAccepted: input.organizerTermsAccepted
     });

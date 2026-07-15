@@ -110,6 +110,11 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     performers: (() => {
       const list = parsePerformersFromSeo(event.seo);
       return list.length > 0 ? list : undefined;
+    })(),
+    venueMapUrl: (() => {
+      if (!event.seo || typeof event.seo !== 'object' || Array.isArray(event.seo)) return undefined;
+      const url = (event.seo as { venueMapUrl?: unknown }).venueMapUrl;
+      return typeof url === 'string' && url.trim() ? url.trim() : undefined;
     })()
   };
 }

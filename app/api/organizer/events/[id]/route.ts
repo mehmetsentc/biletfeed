@@ -66,6 +66,7 @@ const patchSchema = z.object({
   ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   venueDetail: z.string().max(2000).optional(),
+  venueMapUrl: z.string().url().max(1000).optional(),
   rules: z.string().max(10000).optional(),
   isOnline: z.boolean().optional(),
   onlineUrl: optionalOnlineUrlSchema,
@@ -211,6 +212,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           preventQuestionCopy: data.preventQuestionCopy
         }),
         ...(data.accessPassword !== undefined && { accessPassword: data.accessPassword }),
+        ...(data.venueMapUrl !== undefined && { venueMapUrl: data.venueMapUrl }),
         ...(data.hiddenFromSearch !== undefined && {
           hiddenFromSearch: data.hiddenFromSearch
         }),
