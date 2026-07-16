@@ -153,6 +153,7 @@ function main() {
   addEnv('RESEND_REPLY_TO', env.RESEND_REPLY_TO);
   addEnv('ACCOUNTING_VAT_RATE', env.ACCOUNTING_VAT_RATE || '20');
   addEnv('COMPANY_IBAN', env.COMPANY_IBAN);
+  addEnv('GOOGLE_MAPS_API_KEY', env.GOOGLE_MAPS_API_KEY);
 
   console.log('\n✅ Env yüklendi. Deploy: npm run deploy\n');
 }

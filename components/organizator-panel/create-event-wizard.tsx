@@ -1013,6 +1013,8 @@ export function CreateOrganizerEventWizard({
               onTagsChange={setTags}
               venueMapUrl={venueMapUrl}
               onVenueMapUrlChange={setVenueMapUrl}
+              cityHint={cityName}
+              onCitySlugChange={setCitySlug}
             />
           )}
 

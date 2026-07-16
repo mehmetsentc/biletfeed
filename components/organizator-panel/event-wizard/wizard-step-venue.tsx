@@ -11,7 +11,9 @@ import {
   WizardOptionCards,
   WizardTextarea
 } from '@/components/organizator-panel/wizard-form';
+import { VenuePlacesAutocomplete } from '@/components/organizator-panel/venue-places-autocomplete';
 import { EVENT_WIZARD_TAGS } from '@/lib/organizator/event-wizard-constants';
+import type { CitySlug } from '@/lib/location/cities';
 import { cn } from '@/lib/utils';
 
 type LocationMode = '' | 'venue' | 'online' | 'hybrid';
@@ -31,6 +33,8 @@ interface WizardStepVenueProps {
   onTagsChange: (tags: string[]) => void;
   venueMapUrl?: string;
   onVenueMapUrlChange: (url: string | undefined) => void;
+  cityHint?: string;
+  onCitySlugChange?: (slug: CitySlug) => void;
 }
 
 export function WizardStepVenue({
@@ -47,7 +51,9 @@ export function WizardStepVenue({
   tags,
   onTagsChange,
   venueMapUrl,
-  onVenueMapUrlChange
+  onVenueMapUrlChange,
+  cityHint,
+  onCitySlugChange
 }: WizardStepVenueProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -124,11 +130,17 @@ export function WizardStepVenue({
         {location !== 'online' && (
           <>
             <WizardFormRow label="Mekan adı" required={location === 'venue'}>
-              <Input
+              <VenuePlacesAutocomplete
                 value={venueName}
-                onChange={(e) => onVenueNameChange(e.target.value)}
-                placeholder="Örn: Volkswagen Arena"
-                className="h-11 rounded-lg"
+                onChange={onVenueNameChange}
+                cityHint={cityHint}
+                onPlaceSelect={(place) => {
+                  onVenueNameChange(place.name);
+                  if (place.address) onVenueAddressChange(place.address);
+                  if (place.citySlug && onCitySlugChange) {
+                    onCitySlugChange(place.citySlug);
+                  }
+                }}
               />
             </WizardFormRow>
             <WizardFormRow label="Adres">
