@@ -27,6 +27,13 @@ const PAYMENT_LOGOS = [
     alt: 'Troy — Türkiye\'nin Ödeme Yöntemi',
     width: 80,
     height: 40
+  },
+  {
+    id: 'tosla',
+    src: '/payment/tosla.png',
+    alt: 'Tosla',
+    width: 96,
+    height: 36
   }
 ] as const;
 
@@ -37,7 +44,7 @@ export function PaymentCardLogos({
   return (
     <div
       role="img"
-      aria-label="Kabul edilen ödeme kartları: Visa, Mastercard ve Troy"
+      aria-label="Kabul edilen ödeme yöntemleri: Visa, Mastercard, Troy ve Tosla"
       className={cn('flex flex-wrap items-center gap-2.5', className)}
     >
       {PAYMENT_LOGOS.map((logo) => (

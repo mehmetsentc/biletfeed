@@ -103,7 +103,7 @@ export default function DistanceSalesPage() {
           Ödemeler banka sanal POS altyapısı üzerinden SSL/TLS şifreli bağlantı
           ile alınır. Kart bilgileri BiletFeed sunucularında saklanmaz. Ödeme
           işlemleri 3D Secure doğrulamasına tabidir. Kabul edilen kart ağları
-          Visa, Mastercard ve Troy&apos;dur.
+          Visa, Mastercard, Troy ve Tosla&apos;dır.
         </p>
         <p>
           Fiyatlar Türk Lirası (TRY) cinsinden gösterilir; KDV dahil/hariç
