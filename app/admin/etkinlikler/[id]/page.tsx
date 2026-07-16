@@ -170,7 +170,7 @@ export default async function AdminEventEditPage({ params }: PageProps) {
                         >
                           {tt.status === 'active' ? 'Aktif' :
                            tt.status === 'sold_out' ? 'Tükendi' :
-                           tt.status === 'inactive' ? 'Pasif' :
+                           tt.status === 'paused' ? 'Pasif' :
                            tt.status}
                         </Badge>
                       </td>
