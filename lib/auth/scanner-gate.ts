@@ -34,7 +34,20 @@ type GateCodePayloadV2 = {
   createdAt: string;
 };
 
-type GateCodePayload = GateCodePayloadV1 | GateCodePayloadV2;
+/** Etkinliğe özel kapı kodu — görevli yalnızca bu etkinliği tarayabilir */
+type GateCodePayloadV3 = {
+  v: 3;
+  g: string;
+  organizerId: string;
+  eventId: string;
+  uid: string;
+  email: string;
+  role: UserRole;
+  exp: number;
+  createdAt: string;
+};
+
+type GateCodePayload = GateCodePayloadV1 | GateCodePayloadV2 | GateCodePayloadV3;
 
 type MemoryGateEntry = {
   payload: GateCodePayload;
@@ -68,7 +81,8 @@ function generateGateId(): string {
 }
 
 function payloadGateId(payload: GateCodePayload): string {
-  return payload.v === 2 ? payload.g : payload.pin;
+  if (payload.v === 2 || payload.v === 3) return payload.g;
+  return payload.pin;
 }
 
 function buildRedeemCode(payload: GateCodePayload): string {
@@ -86,6 +100,23 @@ function isPayloadExpired(exp: unknown): boolean {
 }
 
 function normalizeGatePayload(parsed: Record<string, unknown>): GateCodePayload | null {
+  if (parsed.v === 3) {
+    const gateId = parsed.g;
+    const eventId = parsed.eventId;
+    if (typeof gateId !== 'string' || !/^[A-Z2-9]{8}$/i.test(gateId)) return null;
+    if (typeof eventId !== 'string' || !eventId.trim()) return null;
+    if (
+      !parsed.organizerId ||
+      !parsed.uid ||
+      !parsed.email ||
+      !isValidRole(parsed.role)
+    ) {
+      return null;
+    }
+    if (isPayloadExpired(parsed.exp)) return null;
+    return parsed as unknown as GateCodePayloadV3;
+  }
+
   if (parsed.v === 2) {
     const gateId = parsed.g;
     if (typeof gateId !== 'string' || !/^[A-Z2-9]{8}$/i.test(gateId)) return null;
@@ -310,17 +341,19 @@ export function isShortGateIdInput(input: string): boolean {
 
 export async function createScannerGateCode(params: {
   organizerId: string;
+  eventId: string;
   uid: string;
   email: string;
   role: UserRole;
-}): Promise<{ pin: string; redeemCode: string; expiresAt: Date }> {
+}): Promise<{ pin: string; redeemCode: string; expiresAt: Date; eventId: string }> {
   const exp = Date.now() + SCANNER_GATE_CODE_TTL_SEC * 1000;
   let gateId = generateGateId();
 
-  const payload: GateCodePayloadV2 = {
-    v: 2,
+  const payload: GateCodePayloadV3 = {
+    v: 3,
     g: gateId,
     organizerId: params.organizerId,
+    eventId: params.eventId,
     uid: params.uid,
     email: params.email,
     role: params.role,
@@ -358,12 +391,23 @@ export async function createScannerGateCode(params: {
   return {
     pin: gateId,
     redeemCode,
-    expiresAt: new Date(exp)
+    expiresAt: new Date(exp),
+    eventId: params.eventId
   };
 }
 
+export function gateEventIdFromPayload(payload: GateCodePayload): string | undefined {
+  return payload.v === 3 ? payload.eventId : undefined;
+}
+
 export async function listScannerGateCodes(organizerId: string): Promise<
-  Array<{ pin: string; redeemCode?: string; expiresAt: Date; createdAt: string }>
+  Array<{
+    pin: string;
+    redeemCode?: string;
+    expiresAt: Date;
+    createdAt: string;
+    eventId?: string;
+  }>
 > {
   const valid = await loadValidGateEntries(organizerId);
   return valid
@@ -371,7 +415,8 @@ export async function listScannerGateCodes(organizerId: string): Promise<
       pin: payloadGateId(payload),
       redeemCode: buildRedeemCode(payload),
       createdAt: payload.createdAt,
-      expiresAt: new Date(payload.exp)
+      expiresAt: new Date(payload.exp),
+      eventId: gateEventIdFromPayload(payload)
     }))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
@@ -380,6 +425,8 @@ export async function redeemScannerGateCode(input: string): Promise<{
   sessionCookie: string;
   email: string;
   organizerId: string;
+  eventId?: string;
+  expiresAt: number;
 } | null> {
   const trimmed = normalizeScannerGateInput(input);
   const signed = parseSignedRedeemCode(trimmed);
@@ -399,6 +446,8 @@ export async function redeemScannerGateCode(input: string): Promise<{
   return {
     sessionCookie,
     email: payload.email,
-    organizerId: payload.organizerId
+    organizerId: payload.organizerId,
+    eventId: gateEventIdFromPayload(payload),
+    expiresAt: payload.exp
   };
 }

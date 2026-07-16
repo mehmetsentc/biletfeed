@@ -124,6 +124,7 @@ export async function validateTicketInput(input: {
   ticketId?: string;
   qrRaw?: string;
   eventId?: string;
+  gateEventId?: string;
   scannerUid: string;
   scannerEmail?: string;
   scannerRole?: UserRole;
@@ -198,6 +199,14 @@ export async function validateTicketInput(input: {
 
   if (!ticket) {
     return { status: 'INVALID', message: 'Bilet bulunamadı' };
+  }
+
+  if (input.gateEventId && ticket.eventId !== input.gateEventId) {
+    return {
+      status: 'INVALID',
+      message: 'Bu kapı kodu yalnızca tanımlı etkinlik için geçerlidir',
+      ticket: toSummary(ticket)
+    };
   }
 
   if (input.eventId && ticket.eventId !== input.eventId) {

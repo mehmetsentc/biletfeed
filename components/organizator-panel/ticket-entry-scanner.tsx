@@ -31,6 +31,8 @@ type OrganizerEvent = {
 export function TicketEntryScanner() {
   const [events, setEvents] = useState<OrganizerEvent[]>([]);
   const [eventId, setEventId] = useState<string>('all');
+  const [gateLockedEventId, setGateLockedEventId] = useState<string | null>(null);
+  const [gateLockedEventTitle, setGateLockedEventTitle] = useState<string | null>(null);
   const [scannerId, setScannerId] = useState<string | undefined>();
   const [cameraReady, setCameraReady] = useState(false);
   const [scannerAccount, setScannerAccount] = useState<{
@@ -52,12 +54,22 @@ export function TicketEntryScanner() {
   useEffect(() => {
     void fetch('/api/organizer/profile', { credentials: 'include' })
       .then((r) => r.json())
-      .then((data: { organizer?: { name: string }; user?: { email: string } }) => {
+      .then(
+        (data: {
+          organizer?: { name: string };
+          user?: { email: string };
+          gateScope?: { eventId: string; eventTitle: string } | null;
+        }) => {
         if (data.organizer?.name && data.user?.email) {
           setScannerAccount({
             email: data.user.email,
             organizerName: data.organizer.name
           });
+        }
+        if (data.gateScope?.eventId) {
+          setGateLockedEventId(data.gateScope.eventId);
+          setGateLockedEventTitle(data.gateScope.eventTitle ?? null);
+          setEventId(data.gateScope.eventId);
         }
       })
       .catch(() => {});
@@ -99,7 +111,13 @@ export function TicketEntryScanner() {
         </div>
       </header>
 
-      {!isGateTerminal && <ScannerGateAccessPanel />}
+      {!isGateTerminal && (
+        <ScannerGateAccessPanel
+          events={events}
+          selectedEventId={eventId}
+          onEventChange={setEventId}
+        />
+      )}
 
       {scannerAccount && (
         <div className="border-b border-white/10 px-4 py-2 text-xs text-white/60">
@@ -113,21 +131,32 @@ export function TicketEntryScanner() {
       {events.length > 0 && (
         <div className="border-b border-white/10 px-4 py-3">
           <label htmlFor="event-filter" className="mb-1.5 block text-xs text-white/50">
-            Etkinlik filtresi
+            {gateLockedEventId ? 'Kapı kodu etkinliği' : 'Etkinlik filtresi'}
           </label>
-          <select
-            id="event-filter"
-            value={eventId}
-            onChange={(e) => setEventId(e.target.value)}
-            className="h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 text-sm text-white"
-          >
-            <option value="all">Tüm etkinlikler</option>
-            {events.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.title}
-              </option>
-            ))}
-          </select>
+          {gateLockedEventId ? (
+            <p className="rounded-md border border-amber-400/30 bg-amber-400/10 px-3 py-2.5 text-sm font-medium text-amber-100">
+              {gateLockedEventTitle ??
+                events.find((e) => e.id === gateLockedEventId)?.title ??
+                'Tanımlı etkinlik'}
+              <span className="mt-1 block text-xs font-normal text-amber-100/70">
+                Bu oturum yalnızca bu etkinliğin biletlerini tarayabilir
+              </span>
+            </p>
+          ) : (
+            <select
+              id="event-filter"
+              value={eventId}
+              onChange={(e) => setEventId(e.target.value)}
+              className="h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 text-sm text-white"
+            >
+              <option value="all">Tüm etkinlikler</option>
+              {events.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.title}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 
@@ -136,7 +165,10 @@ export function TicketEntryScanner() {
           <QrScanner
             variant="entry"
             autoStart={cameraReady}
-            eventId={eventId === 'all' ? undefined : eventId}
+            eventId={
+              gateLockedEventId ??
+              (eventId === 'all' ? undefined : eventId)
+            }
             scannerId={scannerId}
           />
         ) : (

@@ -1,6 +1,7 @@
 import type { UserRole } from '@/types';
 import { verifyOrganizerPanelSession, sessionHasRole } from '@/lib/auth/session';
 import { resolveDbUserForSession } from '@/lib/auth/session-user-resolve';
+import { readGateScopeFromCookies } from '@/lib/auth/scanner-gate-scope';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerContactEmail } from '@/lib/services/organizer-panel';
 
@@ -50,6 +51,8 @@ export type ScannerContext = {
   organizer: { id: string } | null;
   scannerUserId: string;
   scannerOrganizerId?: string;
+  /** Kapı kodu ile giriş — yalnızca bu etkinlik taranabilir */
+  gateEventId?: string;
 };
 
 /** QR tarayıcı oturumu — kullanıcı + organizatör tek kaynaktan çözülür */
@@ -67,13 +70,20 @@ export async function resolveScannerContext(): Promise<ScannerContext | null> {
     select: { id: true }
   });
 
+  const gateScope = await readGateScopeFromCookies();
+  const gateEventId =
+    gateScope && gateScope.organizerId === organizer?.id
+      ? gateScope.eventId
+      : undefined;
+
   if (organizer) {
     return {
       session,
       user: { ...user, role: user.role as UserRole },
       organizer,
       scannerUserId: user.id,
-      scannerOrganizerId: organizer.id
+      scannerOrganizerId: organizer.id,
+      gateEventId
     };
   }
 
@@ -83,7 +93,8 @@ export async function resolveScannerContext(): Promise<ScannerContext | null> {
       user: { ...user, role: user.role as UserRole },
       organizer: null,
       scannerUserId: user.id,
-      scannerOrganizerId: undefined
+      scannerOrganizerId: undefined,
+      gateEventId: undefined
     };
   }
 

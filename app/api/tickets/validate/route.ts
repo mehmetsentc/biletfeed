@@ -22,7 +22,8 @@ async function resolveScannerAuth() {
   return {
     session: ctx.session,
     scannerUserId: ctx.scannerUserId,
-    scannerOrganizerId: ctx.scannerOrganizerId
+    scannerOrganizerId: ctx.scannerOrganizerId,
+    gateEventId: ctx.gateEventId
   };
 }
 
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
 
   const { searchParams } = request.nextUrl;
+  const scopedEventId = auth.gateEventId ?? searchParams.get('eventId') ?? undefined;
   const result = await validateTicketInput({
     ticketCode: searchParams.get('code') || undefined,
     validationToken: searchParams.get('token') || undefined,
@@ -83,7 +85,9 @@ export async function GET(request: NextRequest) {
     scannerRole: auth.session.role,
     scannerUserId: auth.scannerUserId,
     scannerOrganizerId: auth.scannerOrganizerId,
+    gateEventId: auth.gateEventId,
     markUsed: false,
+    eventId: scopedEventId || undefined,
   });
 
   return NextResponse.json(result);
@@ -121,9 +125,10 @@ export async function POST(request: NextRequest) {
     scannerRole: auth.session.role,
     scannerUserId: auth.scannerUserId,
     scannerOrganizerId: auth.scannerOrganizerId,
+    gateEventId: auth.gateEventId,
     markUsed: parsed.data.markUsed ?? true,
     scannerId: parsed.data.scannerId,
-    eventId: parsed.data.eventId,
+    eventId: auth.gateEventId ?? parsed.data.eventId,
     ipAddress:
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       request.headers.get('x-real-ip') ||

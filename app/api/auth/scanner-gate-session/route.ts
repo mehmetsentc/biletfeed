@@ -10,8 +10,13 @@ import {
   isSixDigitGateInput,
   isShortGateIdInput,
   normalizeScannerGateInput,
-  redeemScannerGateCode
+  redeemScannerGateCode,
 } from '@/lib/auth/scanner-gate';
+import {
+  buildGateScopeToken,
+  SCANNER_GATE_SCOPE_COOKIE,
+  gateScopeCookieOptions
+} from '@/lib/auth/scanner-gate-scope';
 import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
 const bodySchema = z.object({
@@ -85,6 +90,22 @@ export async function POST(request: NextRequest) {
     redeemed.sessionCookie,
     getSessionCookieOptions(SESSION_EXPIRES_MS / 1000)
   );
+
+  if (redeemed.eventId) {
+    const scopeTtlSec = Math.max(
+      60,
+      Math.floor((redeemed.expiresAt - Date.now()) / 1000)
+    );
+    response.cookies.set(
+      SCANNER_GATE_SCOPE_COOKIE,
+      buildGateScopeToken({
+        eventId: redeemed.eventId,
+        organizerId: redeemed.organizerId,
+        exp: redeemed.expiresAt
+      }),
+      gateScopeCookieOptions(scopeTtlSec)
+    );
+  }
 
   return response;
 }

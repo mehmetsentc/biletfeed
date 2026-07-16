@@ -1,5 +1,6 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { companyLegal } from '@/lib/config/company';
+import { splitGrossAmount } from '@/lib/accounting/tax';
 
 export async function getAccountingSummary() {
   await ensureDbConnection();
@@ -91,4 +92,336 @@ export async function getAccountingAuditLogs(limit = 80) {
     orderBy: { createdAt: 'desc' },
     take: limit
   });
+}
+
+type EventFinancialRow = {
+  eventId: string;
+  eventTitle: string;
+  startDate: Date;
+  endDate: Date;
+  status: string;
+  paidOrderCount: number;
+  grossSales: number;
+  organizerRevenue: number;
+  serviceFee: number;
+  vatAmount: number;
+  paymentReceived: number;
+  payoutNet: number;
+  payoutPaid: number;
+  payoutPending: number;
+};
+
+export async function getAccountingOrganizersOverview() {
+  await ensureDbConnection();
+
+  const organizers = await prisma.organizer.findMany({
+    where: { deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      owner: { select: { email: true, displayName: true } },
+      _count: { select: { events: true } }
+    }
+  });
+
+  const organizerIds = organizers.map((o) => o.id);
+  if (organizerIds.length === 0) return [];
+
+  const [orders, payouts, reconciliations] = await Promise.all([
+    prisma.order.findMany({
+      where: { organizerId: { in: organizerIds }, status: 'paid', deletedAt: null },
+      select: { organizerId: true, total: true, subtotal: true, commission: true }
+    }),
+    prisma.organizerPayout.findMany({
+      where: { organizerId: { in: organizerIds } },
+      select: { organizerId: true, netAmount: true, status: true }
+    }),
+    prisma.paymentReconciliation.findMany({
+      where: { order: { organizerId: { in: organizerIds } } },
+      select: { netAmount: true, status: true, order: { select: { organizerId: true } } }
+    })
+  ]);
+
+  const orderMap = new Map<
+    string,
+    { grossSales: number; organizerRevenue: number; serviceFee: number; paidOrderCount: number }
+  >();
+  for (const row of orders) {
+    const current = orderMap.get(row.organizerId) ?? {
+      grossSales: 0,
+      organizerRevenue: 0,
+      serviceFee: 0,
+      paidOrderCount: 0
+    };
+    current.grossSales += row.total;
+    current.organizerRevenue += row.subtotal;
+    current.serviceFee += row.commission;
+    current.paidOrderCount += 1;
+    orderMap.set(row.organizerId, current);
+  }
+
+  const payoutMap = new Map<string, { payoutNet: number; payoutPaid: number; payoutPending: number }>();
+  for (const row of payouts) {
+    const current = payoutMap.get(row.organizerId) ?? {
+      payoutNet: 0,
+      payoutPaid: 0,
+      payoutPending: 0
+    };
+    current.payoutNet += row.netAmount;
+    if (row.status === 'paid') current.payoutPaid += row.netAmount;
+    if (row.status === 'pending' || row.status === 'scheduled') current.payoutPending += row.netAmount;
+    payoutMap.set(row.organizerId, current);
+  }
+
+  const paymentMap = new Map<string, number>();
+  for (const row of reconciliations) {
+    if (row.status !== 'reconciled') continue;
+    const organizerId = row.order.organizerId;
+    paymentMap.set(organizerId, (paymentMap.get(organizerId) ?? 0) + row.netAmount);
+  }
+
+  return organizers.map((o) => {
+    const orderAgg = orderMap.get(o.id) ?? {
+      grossSales: 0,
+      organizerRevenue: 0,
+      serviceFee: 0,
+      paidOrderCount: 0
+    };
+    const payoutAgg = payoutMap.get(o.id) ?? { payoutNet: 0, payoutPaid: 0, payoutPending: 0 };
+    const paymentReceived = paymentMap.get(o.id) ?? 0;
+
+    return {
+      organizerId: o.id,
+      organizerName: o.name,
+      organizerSlug: o.slug,
+      ownerName: o.owner.displayName,
+      ownerEmail: o.owner.email,
+      eventCount: o._count.events,
+      paidOrderCount: orderAgg.paidOrderCount,
+      grossSales: orderAgg.grossSales,
+      organizerRevenue: orderAgg.organizerRevenue,
+      serviceFee: orderAgg.serviceFee,
+      vatAmount: splitGrossAmount(orderAgg.grossSales).vatAmount,
+      paymentReceived,
+      payoutNet: payoutAgg.payoutNet,
+      payoutPaid: payoutAgg.payoutPaid,
+      payoutPending: payoutAgg.payoutPending
+    };
+  });
+}
+
+export async function getAccountingOrganizerDetail(organizerId: string) {
+  await ensureDbConnection();
+
+  const organizer = await prisma.organizer.findFirst({
+    where: { id: organizerId, deletedAt: null },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      status: true,
+      commissionRate: true,
+      createdAt: true,
+      owner: { select: { email: true, displayName: true } }
+    }
+  });
+  if (!organizer) return null;
+
+  const events = await prisma.event.findMany({
+    where: { organizerId, deletedAt: null },
+    orderBy: { startDate: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      startDate: true,
+      endDate: true,
+      status: true
+    }
+  });
+
+  const eventIds = events.map((e) => e.id);
+  if (eventIds.length === 0) {
+    return { organizer, upcomingEvents: [] as EventFinancialRow[], pastEvents: [] as EventFinancialRow[] };
+  }
+
+  const [orders, payouts, reconciliations] = await Promise.all([
+    prisma.order.findMany({
+      where: { organizerId, eventId: { in: eventIds }, status: 'paid', deletedAt: null },
+      select: { eventId: true, total: true, subtotal: true, commission: true }
+    }),
+    prisma.organizerPayout.findMany({
+      where: { organizerId, eventId: { in: eventIds } },
+      select: { eventId: true, netAmount: true, status: true }
+    }),
+    prisma.paymentReconciliation.findMany({
+      where: { order: { organizerId, eventId: { in: eventIds } } },
+      select: { netAmount: true, status: true, order: { select: { eventId: true } } }
+    })
+  ]);
+
+  const orderMap = new Map<string, { grossSales: number; organizerRevenue: number; serviceFee: number; count: number }>();
+  for (const row of orders) {
+    const current = orderMap.get(row.eventId) ?? {
+      grossSales: 0,
+      organizerRevenue: 0,
+      serviceFee: 0,
+      count: 0
+    };
+    current.grossSales += row.total;
+    current.organizerRevenue += row.subtotal;
+    current.serviceFee += row.commission;
+    current.count += 1;
+    orderMap.set(row.eventId, current);
+  }
+
+  const payoutMap = new Map<string, { payoutNet: number; payoutPaid: number; payoutPending: number }>();
+  for (const row of payouts) {
+    const current = payoutMap.get(row.eventId) ?? {
+      payoutNet: 0,
+      payoutPaid: 0,
+      payoutPending: 0
+    };
+    current.payoutNet += row.netAmount;
+    if (row.status === 'paid') current.payoutPaid += row.netAmount;
+    if (row.status === 'pending' || row.status === 'scheduled') current.payoutPending += row.netAmount;
+    payoutMap.set(row.eventId, current);
+  }
+
+  const paymentMap = new Map<string, number>();
+  for (const row of reconciliations) {
+    if (row.status !== 'reconciled') continue;
+    const eventId = row.order.eventId;
+    paymentMap.set(eventId, (paymentMap.get(eventId) ?? 0) + row.netAmount);
+  }
+
+  const now = Date.now();
+  const rows: EventFinancialRow[] = events.map((event) => {
+    const orderAgg = orderMap.get(event.id) ?? {
+      grossSales: 0,
+      organizerRevenue: 0,
+      serviceFee: 0,
+      count: 0
+    };
+    const payoutAgg = payoutMap.get(event.id) ?? { payoutNet: 0, payoutPaid: 0, payoutPending: 0 };
+    return {
+      eventId: event.id,
+      eventTitle: event.title,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      status: event.status,
+      paidOrderCount: orderAgg.count,
+      grossSales: orderAgg.grossSales,
+      organizerRevenue: orderAgg.organizerRevenue,
+      serviceFee: orderAgg.serviceFee,
+      vatAmount: splitGrossAmount(orderAgg.grossSales).vatAmount,
+      paymentReceived: paymentMap.get(event.id) ?? 0,
+      payoutNet: payoutAgg.payoutNet,
+      payoutPaid: payoutAgg.payoutPaid,
+      payoutPending: payoutAgg.payoutPending
+    };
+  });
+
+  return {
+    organizer,
+    upcomingEvents: rows.filter((row) => row.startDate.getTime() >= now),
+    pastEvents: rows.filter((row) => row.startDate.getTime() < now)
+  };
+}
+
+export async function getAccountingOrganizerEventDetail(organizerId: string, eventId: string) {
+  await ensureDbConnection();
+
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, organizerId, deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      startDate: true,
+      endDate: true,
+      status: true,
+      organizer: { select: { id: true, name: true } }
+    }
+  });
+  if (!event) return null;
+
+  const [orders, payouts, reconciliations] = await Promise.all([
+    prisma.order.findMany({
+      where: { organizerId, eventId, status: 'paid', deletedAt: null },
+      orderBy: { paidAt: 'desc' },
+      include: {
+        user: { select: { displayName: true, email: true } }
+      }
+    }),
+    prisma.organizerPayout.findMany({
+      where: { organizerId, eventId },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    }),
+    prisma.paymentReconciliation.findMany({
+      where: { order: { organizerId, eventId } },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    })
+  ]);
+
+  const grossSales = orders.reduce((sum, row) => sum + row.total, 0);
+  const organizerRevenue = orders.reduce((sum, row) => sum + row.subtotal, 0);
+  const serviceFee = orders.reduce((sum, row) => sum + row.commission, 0);
+  const vat = splitGrossAmount(grossSales);
+
+  const payoutNet = payouts.reduce((sum, row) => sum + row.netAmount, 0);
+  const payoutPaid = payouts
+    .filter((row) => row.status === 'paid')
+    .reduce((sum, row) => sum + row.netAmount, 0);
+  const payoutPending = payouts
+    .filter((row) => row.status === 'pending' || row.status === 'scheduled')
+    .reduce((sum, row) => sum + row.netAmount, 0);
+  const paymentReceived = reconciliations
+    .filter((row) => row.status === 'reconciled')
+    .reduce((sum, row) => sum + row.netAmount, 0);
+
+  return {
+    event,
+    metrics: {
+      paidOrderCount: orders.length,
+      grossSales,
+      organizerRevenue,
+      serviceFee,
+      vatAmount: vat.vatAmount,
+      vatRate: vat.vatRate,
+      paymentReceived,
+      payoutNet,
+      payoutPaid,
+      payoutPending
+    },
+    recentOrders: orders.map((row) => ({
+      id: row.id,
+      buyerName: row.attendeeName || row.user.displayName || row.user.email,
+      paidAt: row.paidAt ?? row.createdAt,
+      subtotal: row.subtotal,
+      serviceFee: row.commission,
+      total: row.total,
+      status: row.status,
+      paymentProvider: row.paymentProvider
+    })),
+    payouts: payouts.map((row) => ({
+      id: row.id,
+      grossAmount: row.grossAmount,
+      commissionAmount: row.commissionAmount,
+      netAmount: row.netAmount,
+      status: row.status,
+      scheduledAt: row.scheduledAt,
+      paidAt: row.paidAt,
+      createdAt: row.createdAt
+    })),
+    reconciliations: reconciliations.map((row) => ({
+      id: row.id,
+      provider: row.provider,
+      expectedAmount: row.expectedAmount,
+      receivedAmount: row.receivedAmount,
+      netAmount: row.netAmount,
+      status: row.status,
+      reconciledAt: row.reconciledAt,
+      createdAt: row.createdAt
+    }))
+  };
 }

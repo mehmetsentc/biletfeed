@@ -11,9 +11,26 @@ type GateCodeRow = {
   redeemCode?: string;
   expiresAt: string;
   createdAt: string;
+  eventId?: string;
+  eventTitle?: string;
 };
 
-export function ScannerGateAccessPanel() {
+type OrganizerEventOption = {
+  id: string;
+  title: string;
+};
+
+type ScannerGateAccessPanelProps = {
+  events: OrganizerEventOption[];
+  selectedEventId: string;
+  onEventChange: (eventId: string) => void;
+};
+
+export function ScannerGateAccessPanel({
+  events,
+  selectedEventId,
+  onEventChange
+}: ScannerGateAccessPanelProps) {
   const [codes, setCodes] = useState<GateCodeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -22,6 +39,9 @@ export function ScannerGateAccessPanel() {
   const [copied, setCopied] = useState<'code' | 'link' | null>(null);
   const [showQr, setShowQr] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const selectedEvent = events.find((e) => e.id === selectedEventId);
+  const canCreateCode = selectedEventId !== 'all' && Boolean(selectedEvent);
 
   const loadCodes = useCallback(async () => {
     setLoading(true);
@@ -39,13 +59,19 @@ export function ScannerGateAccessPanel() {
         setError(data.error ?? 'Kodlar yüklenemedi');
         return;
       }
-      setCodes(data.codes ?? []);
+      const rows = (data.codes ?? []).map((row) => ({
+        ...row,
+        eventTitle:
+          row.eventTitle ??
+          events.find((e) => e.id === row.eventId)?.title
+      }));
+      setCodes(rows);
     } catch {
       setError('Bağlantı hatası');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [events]);
 
   useEffect(() => {
     void loadCodes();
@@ -56,7 +82,6 @@ export function ScannerGateAccessPanel() {
     ? `${getGirisUrl('/')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
     : null;
 
-  // QR kod canvas'a çiz
   useEffect(() => {
     if (!showQr || !gateLink || !qrCanvasRef.current) return;
     void QRCode.toCanvas(qrCanvasRef.current, gateLink, {
@@ -77,18 +102,27 @@ export function ScannerGateAccessPanel() {
   }
 
   async function createCode() {
+    if (!canCreateCode) {
+      setError('Önce kapı kodu için bir etkinlik seçin');
+      return;
+    }
+
     setCreating(true);
     setError(null);
     try {
       const res = await fetch('/api/organizer/scanner-gate', {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: selectedEventId })
       });
       const data = (await res.json().catch(() => ({}))) as {
         pin?: string;
         redeemCode?: string;
         code?: string;
         expiresAt?: string;
+        eventId?: string;
+        eventTitle?: string;
         error?: string;
       };
       if (!res.ok) {
@@ -103,7 +137,9 @@ export function ScannerGateAccessPanel() {
             pin: data.pin!,
             redeemCode,
             expiresAt: data.expiresAt!,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            eventId: data.eventId ?? selectedEventId,
+            eventTitle: data.eventTitle ?? selectedEvent?.title
           },
           ...prev
         ]);
@@ -146,17 +182,36 @@ export function ScannerGateAccessPanel() {
   return (
     <div className="border-b border-white/10 bg-[#11151c] px-4 py-3">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
             <KeyRound className="size-4 shrink-0 text-primary" />
             Kapı ekibi erişimi
           </div>
           <p className="mt-1 text-xs text-white/55">
-            <strong className="text-white/75">QR kod</strong> ile telefondan tarat veya{' '}
-            <strong className="text-white/75">Giriş linki</strong> gönderin.
-            Görevliler <span className="text-primary">giris.biletfeed.com</span>{' '}
-            üzerinden giriş yapar (3 gün geçerli).
+            Kod yalnızca seçili etkinlik için geçerlidir. Görevliler{' '}
+            <span className="text-primary">giris.biletfeed.com</span> üzerinden giriş yapar
+            (3 gün geçerli).
           </p>
+          {events.length > 0 && (
+            <div className="mt-3">
+              <label htmlFor="gate-event-select" className="mb-1.5 block text-xs text-white/50">
+                Kapı kodu etkinliği
+              </label>
+              <select
+                id="gate-event-select"
+                value={selectedEventId}
+                onChange={(e) => onEventChange(e.target.value)}
+                className="h-10 w-full max-w-md rounded-md border border-white/20 bg-white/5 px-3 text-sm text-white"
+              >
+                <option value="all">Etkinlik seçin…</option>
+                {events.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         <Button
           type="button"
@@ -164,7 +219,7 @@ export function ScannerGateAccessPanel() {
           variant="outline"
           className="shrink-0 border-white/20 bg-transparent text-white hover:bg-white/10"
           onClick={() => void createCode()}
-          disabled={creating || pruning}
+          disabled={creating || pruning || !canCreateCode}
         >
           {creating ? (
             <RefreshCw className="size-4 animate-spin" />
@@ -198,7 +253,16 @@ export function ScannerGateAccessPanel() {
         <p className="mt-2 text-xs text-white/45">Yükleniyor…</p>
       ) : activeCode ? (
         <div className="mt-3 space-y-2">
-          {/* Aksiyon butonları */}
+          {(activeCode.eventTitle || activeCode.eventId) && (
+            <p className="text-xs text-amber-200/90">
+              Etkinlik:{' '}
+              <span className="font-medium text-white">
+                {activeCode.eventTitle ??
+                  events.find((e) => e.id === activeCode.eventId)?.title ??
+                  'Seçili etkinlik'}
+              </span>
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -235,7 +299,6 @@ export function ScannerGateAccessPanel() {
             )}
           </div>
 
-          {/* QR kod paneli */}
           {showQr && gateLink && (
             <div className="relative mt-2 flex flex-col items-center gap-2 rounded-lg border border-white/10 bg-[#0c1017] p-4">
               <button
@@ -251,14 +314,16 @@ export function ScannerGateAccessPanel() {
                 giris.biletfeed.com adresine yönlendirir
               </p>
               <p className="text-center text-xs text-amber-300/80">
-                📱 Kapı görevlisi bu QR&apos;ı telefonundan okutarak giriş yapar
+                Kapı görevlisi bu QR ile yalnızca seçili etkinliği tarayabilir
               </p>
             </div>
           )}
         </div>
       ) : (
         <p className="mt-2 text-xs text-white/45">
-          Henüz aktif kod yok. Kapı görevlileri için kod oluşturun.
+          {canCreateCode
+            ? 'Seçili etkinlik için kapı kodu oluşturun.'
+            : 'Kod oluşturmak için önce bir etkinlik seçin.'}
         </p>
       )}
     </div>

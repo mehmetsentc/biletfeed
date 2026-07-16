@@ -4,10 +4,12 @@ import {
   getAccountingEmailDeliveries,
   getAccountingPayouts,
   getAccountingReconciliations,
-  getAccountingAuditLogs
+  getAccountingAuditLogs,
+  getAccountingOrganizersOverview
 } from '@/lib/services/accounting-admin';
 import { Badge } from '@/components/ui/badge';
 import { formatCompanyTaxLine } from '@/lib/config/company';
+import Link from 'next/link';
 
 function money(amount: number, currency = 'TRY') {
   return `${currency === 'TRY' ? '₺' : currency + ' '}${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
@@ -21,15 +23,17 @@ export default async function AdminAccountingPage() {
   let payouts: Awaited<ReturnType<typeof getAccountingPayouts>> = [];
   let reconciliations: Awaited<ReturnType<typeof getAccountingReconciliations>> = [];
   let auditLogs: Awaited<ReturnType<typeof getAccountingAuditLogs>> = [];
+  let organizers: Awaited<ReturnType<typeof getAccountingOrganizersOverview>> = [];
 
   try {
-    [summary, invoices, emails, payouts, reconciliations, auditLogs] = await Promise.all([
+    [summary, invoices, emails, payouts, reconciliations, auditLogs, organizers] = await Promise.all([
       getAccountingSummary(),
       getAccountingInvoices(),
       getAccountingEmailDeliveries(),
       getAccountingPayouts(),
       getAccountingReconciliations(),
-      getAccountingAuditLogs()
+      getAccountingAuditLogs(),
+      getAccountingOrganizersOverview()
     ]);
   } catch (e) {
     loadError =
@@ -121,6 +125,51 @@ export default async function AdminAccountingPage() {
           ])}
           empty="Hakediş kaydı yok."
         />
+      </Section>
+
+      <Section title="Organizatör finans görünümü" description="Organizatöre tıklayıp geçmiş/gelecek etkinlik ve detay finansları açın">
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full min-w-[980px] text-sm">
+            <thead className="border-b bg-muted/50 text-left">
+              <tr>
+                <th className="p-3 font-medium">Organizatör</th>
+                <th className="p-3 font-medium">Etkinlik</th>
+                <th className="p-3 font-medium">Ödenen Sipariş</th>
+                <th className="p-3 font-medium">Satış</th>
+                <th className="p-3 font-medium">Hizmet Bedeli</th>
+                <th className="p-3 font-medium">KDV</th>
+                <th className="p-3 font-medium">Ödeme Alındı</th>
+                <th className="p-3 font-medium">Bekleyen Hakediş</th>
+              </tr>
+            </thead>
+            <tbody>
+              {organizers.map((org) => (
+                <tr key={org.organizerId} className="border-b last:border-0 hover:bg-muted/20">
+                  <td className="p-3">
+                    <Link href={`/admin/muhasebe/${org.organizerId}`} className="font-semibold hover:underline">
+                      {org.organizerName}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">{org.ownerEmail}</p>
+                  </td>
+                  <td className="p-3">{org.eventCount}</td>
+                  <td className="p-3">{org.paidOrderCount}</td>
+                  <td className="p-3">{money(org.grossSales)}</td>
+                  <td className="p-3">{money(org.serviceFee)}</td>
+                  <td className="p-3">{money(org.vatAmount)}</td>
+                  <td className="p-3">{money(org.paymentReceived)}</td>
+                  <td className="p-3">{money(org.payoutPending)}</td>
+                </tr>
+              ))}
+              {organizers.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    Organizatör kaydı bulunamadı.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </Section>
 
       <Section title="E-posta teslimatı" description="Fatura ve bilet onay mailleri">

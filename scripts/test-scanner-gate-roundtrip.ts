@@ -9,6 +9,8 @@ import {
   redeemScannerGateCode
 } from '../lib/auth/scanner-gate';
 
+const TEST_EVENT_ID = '00000000-0000-4000-8000-000000000001';
+
 function assert(label: string, ok: boolean) {
   console.log(`${ok ? '✓' : '✗'} ${label}`);
   if (!ok) process.exit(1);
@@ -17,6 +19,7 @@ function assert(label: string, ok: boolean) {
 async function main() {
   const created = await createScannerGateCode({
     organizerId: 'org-test-123',
+    eventId: TEST_EVENT_ID,
     uid: 'uid-test-456',
     email: 'gate-staff@biletfeed.local',
     role: 'ROLE_ORGANIZER'
@@ -27,6 +30,7 @@ async function main() {
 
   const full = await redeemScannerGateCode(created.redeemCode);
   assert('tam kod ile giriş', full?.email === 'gate-staff@biletfeed.local');
+  assert('etkinlik kapsamı', full?.eventId === TEST_EVENT_ID);
 
   const gateParam = `https://giris.biletfeed.com/?gate=${encodeURIComponent(created.redeemCode)}`;
   const fromUrl = await redeemScannerGateCode(gateParam);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireOrganizerSession } from '@/lib/auth/organizer-api';
 import {
   createScannerGateCode,
@@ -8,6 +9,11 @@ import {
   SCANNER_GATE_MAX_ACTIVE_CODES
 } from '@/lib/auth/scanner-gate';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
+import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+
+const postSchema = z.object({
+  eventId: z.string().uuid('Geçerli bir etkinlik seçin')
+});
 
 export async function GET() {
   const ctx = await requireOrganizerSession();
@@ -34,9 +40,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
   }
 
+  let body: unknown = {};
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Geçersiz istek gövdesi' }, { status: 400 });
+  }
+
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'Etkinlik seçin' },
+      { status: 400 }
+    );
+  }
+
+  await ensureDbConnection();
+  const event = await prisma.event.findFirst({
+    where: {
+      id: parsed.data.eventId,
+      organizerId: ctx.organizer.id,
+      deletedAt: null,
+      status: { in: ['published', 'completed'] }
+    },
+    select: { id: true, title: true }
+  });
+
+  if (!event) {
+    return NextResponse.json(
+      { error: 'Etkinlik bulunamadı veya kapı kodu için uygun değil' },
+      { status: 400 }
+    );
+  }
+
   try {
     const created = await createScannerGateCode({
       organizerId: ctx.organizer.id,
+      eventId: event.id,
       uid: ctx.session.uid,
       email: ctx.user.email,
       role: ctx.session.role
@@ -46,6 +86,8 @@ export async function POST(request: NextRequest) {
       pin: created.pin,
       redeemCode: created.redeemCode,
       code: created.redeemCode,
+      eventId: created.eventId,
+      eventTitle: event.title,
       expiresAt: created.expiresAt.toISOString(),
       maxActiveCodes: SCANNER_GATE_MAX_ACTIVE_CODES,
       ttlHours: SCANNER_GATE_CODE_TTL_SEC / 3600

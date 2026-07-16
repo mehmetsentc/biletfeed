@@ -13,6 +13,7 @@ import { ensureOrganizerProfile } from '@/lib/services/organizer-onboarding';
 import { updateOrganizerSettings } from '@/lib/services/organizer-panel';
 import { requireOrganizerApi } from '@/lib/auth/organizer-route';
 import { resolveScannerUser } from '@/lib/auth/organizer-api';
+import { readGateScopeFromCookies } from '@/lib/auth/scanner-gate-scope';
 
 const patchSchema = z.object({
   name: z.string().min(2).max(120).optional(),
@@ -118,8 +119,26 @@ export async function GET() {
     where: { ownerId: user.id, deletedAt: null }
   });
 
+  const gateScope = await readGateScopeFromCookies();
+  let gateScopeResponse: { eventId: string; eventTitle: string } | null = null;
+
+  if (gateScope && organizer && gateScope.organizerId === organizer.id) {
+    const event = await prisma.event.findFirst({
+      where: {
+        id: gateScope.eventId,
+        organizerId: organizer.id,
+        deletedAt: null
+      },
+      select: { id: true, title: true }
+    });
+    if (event) {
+      gateScopeResponse = { eventId: event.id, eventTitle: event.title };
+    }
+  }
+
   return NextResponse.json({
     organizer,
-    user: { email: user.email, displayName: user.displayName }
+    user: { email: user.email, displayName: user.displayName },
+    gateScope: gateScopeResponse
   });
 }
