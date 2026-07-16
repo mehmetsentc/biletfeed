@@ -6,31 +6,34 @@ type PaymentCardLogosProps = {
   logoClassName?: string;
 };
 
+/** Public asset cache-bust — dosya değişince artır */
+const PAYMENT_LOGO_ASSET_V = '2';
+
 const PAYMENT_LOGOS = [
   {
     id: 'visa',
-    src: '/payment/visa.png',
+    src: `/payment/visa.png?v=${PAYMENT_LOGO_ASSET_V}`,
     alt: 'Visa',
-    width: 64,
-    height: 40
+    width: 72,
+    height: 50
   },
   {
     id: 'mastercard',
-    src: '/payment/mastercard.png',
+    src: `/payment/mastercard.png?v=${PAYMENT_LOGO_ASSET_V}`,
     alt: 'Mastercard',
-    width: 64,
-    height: 40
+    width: 72,
+    height: 50
   },
   {
     id: 'troy',
-    src: '/payment/troy.png',
+    src: `/payment/troy.png?v=${PAYMENT_LOGO_ASSET_V}`,
     alt: 'Troy — Türkiye\'nin Ödeme Yöntemi',
     width: 80,
     height: 40
   },
   {
     id: 'tosla',
-    src: '/payment/tosla.png',
+    src: `/payment/tosla.png?v=${PAYMENT_LOGO_ASSET_V}`,
     alt: 'Tosla',
     width: 96,
     height: 36
@@ -59,6 +62,7 @@ export function PaymentCardLogos({
             width={logo.width}
             height={logo.height}
             className={cn('w-auto object-contain', logoClassName)}
+            unoptimized
           />
         </span>
       ))}
