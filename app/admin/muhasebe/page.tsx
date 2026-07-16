@@ -129,10 +129,11 @@ export default async function AdminAccountingPage() {
 
       <Section title="Organizatör finans görünümü" description="Organizatöre tıklayıp geçmiş/gelecek etkinlik ve detay finansları açın">
         <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[980px] text-sm">
+          <table className="w-full min-w-[1100px] text-sm">
             <thead className="border-b bg-muted/50 text-left">
               <tr>
                 <th className="p-3 font-medium">Organizatör</th>
+                <th className="p-3 font-medium">Komisyon</th>
                 <th className="p-3 font-medium">Etkinlik</th>
                 <th className="p-3 font-medium">Ödenen Sipariş</th>
                 <th className="p-3 font-medium">Satış</th>
@@ -151,18 +152,30 @@ export default async function AdminAccountingPage() {
                     </Link>
                     <p className="text-xs text-muted-foreground">{org.ownerEmail}</p>
                   </td>
+                  <td className="p-3">
+                    <span className="font-medium">%{org.commissionRatePercent}</span>
+                    <p className="text-xs text-muted-foreground">
+                      {org.commissionRateCustom ? 'Özel' : 'Varsayılan'}
+                    </p>
+                  </td>
                   <td className="p-3">{org.eventCount}</td>
                   <td className="p-3">{org.paidOrderCount}</td>
                   <td className="p-3">{money(org.grossSales)}</td>
-                  <td className="p-3">{money(org.serviceFee)}</td>
-                  <td className="p-3">{money(org.vatAmount)}</td>
+                  <td className="p-3">
+                    {money(org.serviceFee)}
+                    <span className="ml-1 text-xs text-muted-foreground">(%{org.commissionRatePercent})</span>
+                  </td>
+                  <td className="p-3">
+                    {money(org.vatAmount)}
+                    <span className="ml-1 text-xs text-muted-foreground">(%{org.vatRate})</span>
+                  </td>
                   <td className="p-3">{money(org.paymentReceived)}</td>
                   <td className="p-3">{money(org.payoutPending)}</td>
                 </tr>
               ))}
               {organizers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     Organizatör kaydı bulunamadı.
                   </td>
                 </tr>

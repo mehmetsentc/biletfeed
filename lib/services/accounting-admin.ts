@@ -1,6 +1,8 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { companyLegal } from '@/lib/config/company';
+import { formatCommissionRatePercent } from '@/lib/config/commission';
 import { splitGrossAmount } from '@/lib/accounting/tax';
+import { resolveOrganizerCommissionRate } from '@/lib/services/commission';
 
 export async function getAccountingSummary() {
   await ensureDbConnection();
@@ -94,6 +96,16 @@ export async function getAccountingAuditLogs(limit = 80) {
   });
 }
 
+type TicketCategoryBreakdown = {
+  ticketTypeId: string;
+  name: string;
+  unitPrice: number;
+  soldCount: number;
+  invitationCount: number;
+  soldRevenue: number;
+  capacity: number;
+};
+
 type EventFinancialRow = {
   eventId: string;
   eventTitle: string;
@@ -101,10 +113,13 @@ type EventFinancialRow = {
   endDate: Date;
   status: string;
   paidOrderCount: number;
+  ticketsSold: number;
+  invitationsSent: number;
   grossSales: number;
   organizerRevenue: number;
   serviceFee: number;
   vatAmount: number;
+  vatRate: number;
   paymentReceived: number;
   payoutNet: number;
   payoutPaid: number;
@@ -179,6 +194,9 @@ export async function getAccountingOrganizersOverview() {
     paymentMap.set(organizerId, (paymentMap.get(organizerId) ?? 0) + row.netAmount);
   }
 
+  const vatRate = companyLegal.defaultVatRate;
+  const defaultCommissionRate = await resolveOrganizerCommissionRate(null);
+
   return organizers.map((o) => {
     const orderAgg = orderMap.get(o.id) ?? {
       grossSales: 0,
@@ -188,6 +206,8 @@ export async function getAccountingOrganizersOverview() {
     };
     const payoutAgg = payoutMap.get(o.id) ?? { payoutNet: 0, payoutPaid: 0, payoutPending: 0 };
     const paymentReceived = paymentMap.get(o.id) ?? 0;
+    const commissionRate = o.commissionRate ?? defaultCommissionRate;
+    const vat = splitGrossAmount(orderAgg.grossSales, vatRate);
 
     return {
       organizerId: o.id,
@@ -200,7 +220,11 @@ export async function getAccountingOrganizersOverview() {
       grossSales: orderAgg.grossSales,
       organizerRevenue: orderAgg.organizerRevenue,
       serviceFee: orderAgg.serviceFee,
-      vatAmount: splitGrossAmount(orderAgg.grossSales).vatAmount,
+      commissionRate,
+      commissionRatePercent: formatCommissionRatePercent(commissionRate),
+      commissionRateCustom: o.commissionRate != null,
+      vatAmount: vat.vatAmount,
+      vatRate: vat.vatRate,
       paymentReceived,
       payoutNet: payoutAgg.payoutNet,
       payoutPaid: payoutAgg.payoutPaid,
@@ -226,6 +250,9 @@ export async function getAccountingOrganizerDetail(organizerId: string) {
   });
   if (!organizer) return null;
 
+  const effectiveCommissionRate = await resolveOrganizerCommissionRate(organizer.commissionRate);
+  const vatRate = companyLegal.defaultVatRate;
+
   const events = await prisma.event.findMany({
     where: { organizerId, deletedAt: null },
     orderBy: { startDate: 'desc' },
@@ -240,25 +267,54 @@ export async function getAccountingOrganizerDetail(organizerId: string) {
 
   const eventIds = events.map((e) => e.id);
   if (eventIds.length === 0) {
-    return { organizer, upcomingEvents: [] as EventFinancialRow[], pastEvents: [] as EventFinancialRow[] };
+    return {
+      organizer: {
+        ...organizer,
+        effectiveCommissionRate,
+        commissionRatePercent: formatCommissionRatePercent(effectiveCommissionRate),
+        commissionRateCustom: organizer.commissionRate != null
+      },
+      vatRate,
+      upcomingEvents: [] as EventFinancialRow[],
+      pastEvents: [] as EventFinancialRow[]
+    };
   }
 
-  const [orders, payouts, reconciliations] = await Promise.all([
-    prisma.order.findMany({
-      where: { organizerId, eventId: { in: eventIds }, status: 'paid', deletedAt: null },
-      select: { eventId: true, total: true, subtotal: true, commission: true }
-    }),
-    prisma.organizerPayout.findMany({
-      where: { organizerId, eventId: { in: eventIds } },
-      select: { eventId: true, netAmount: true, status: true }
-    }),
-    prisma.paymentReconciliation.findMany({
-      where: { order: { organizerId, eventId: { in: eventIds } } },
-      select: { netAmount: true, status: true, order: { select: { eventId: true } } }
-    })
-  ]);
+  const [orders, payouts, reconciliations, ticketSoldByEvent, invitationsByEvent] =
+    await Promise.all([
+      prisma.order.findMany({
+        where: { organizerId, eventId: { in: eventIds }, status: 'paid', deletedAt: null },
+        select: { eventId: true, total: true, subtotal: true, commission: true }
+      }),
+      prisma.organizerPayout.findMany({
+        where: { organizerId, eventId: { in: eventIds } },
+        select: { eventId: true, netAmount: true, status: true }
+      }),
+      prisma.paymentReconciliation.findMany({
+        where: { order: { organizerId, eventId: { in: eventIds } } },
+        select: { netAmount: true, status: true, order: { select: { eventId: true } } }
+      }),
+      prisma.purchasedTicket.groupBy({
+        by: ['eventId'],
+        where: {
+          eventId: { in: eventIds },
+          deletedAt: null,
+          status: { in: ['VALID', 'USED'] },
+          invitation: { is: null }
+        },
+        _count: { _all: true }
+      }),
+      prisma.eventInvitation.groupBy({
+        by: ['eventId'],
+        where: { eventId: { in: eventIds }, deletedAt: null },
+        _count: { _all: true }
+      })
+    ]);
 
-  const orderMap = new Map<string, { grossSales: number; organizerRevenue: number; serviceFee: number; count: number }>();
+  const orderMap = new Map<
+    string,
+    { grossSales: number; organizerRevenue: number; serviceFee: number; count: number }
+  >();
   for (const row of orders) {
     const current = orderMap.get(row.eventId) ?? {
       grossSales: 0,
@@ -293,6 +349,9 @@ export async function getAccountingOrganizerDetail(organizerId: string) {
     paymentMap.set(eventId, (paymentMap.get(eventId) ?? 0) + row.netAmount);
   }
 
+  const soldMap = new Map(ticketSoldByEvent.map((r) => [r.eventId, r._count._all]));
+  const inviteMap = new Map(invitationsByEvent.map((r) => [r.eventId, r._count._all]));
+
   const now = Date.now();
   const rows: EventFinancialRow[] = events.map((event) => {
     const orderAgg = orderMap.get(event.id) ?? {
@@ -302,6 +361,7 @@ export async function getAccountingOrganizerDetail(organizerId: string) {
       count: 0
     };
     const payoutAgg = payoutMap.get(event.id) ?? { payoutNet: 0, payoutPaid: 0, payoutPending: 0 };
+    const vat = splitGrossAmount(orderAgg.grossSales, vatRate);
     return {
       eventId: event.id,
       eventTitle: event.title,
@@ -309,10 +369,13 @@ export async function getAccountingOrganizerDetail(organizerId: string) {
       endDate: event.endDate,
       status: event.status,
       paidOrderCount: orderAgg.count,
+      ticketsSold: soldMap.get(event.id) ?? 0,
+      invitationsSent: inviteMap.get(event.id) ?? 0,
       grossSales: orderAgg.grossSales,
       organizerRevenue: orderAgg.organizerRevenue,
       serviceFee: orderAgg.serviceFee,
-      vatAmount: splitGrossAmount(orderAgg.grossSales).vatAmount,
+      vatAmount: vat.vatAmount,
+      vatRate: vat.vatRate,
       paymentReceived: paymentMap.get(event.id) ?? 0,
       payoutNet: payoutAgg.payoutNet,
       payoutPaid: payoutAgg.payoutPaid,
@@ -321,7 +384,13 @@ export async function getAccountingOrganizerDetail(organizerId: string) {
   });
 
   return {
-    organizer,
+    organizer: {
+      ...organizer,
+      effectiveCommissionRate,
+      commissionRatePercent: formatCommissionRatePercent(effectiveCommissionRate),
+      commissionRateCustom: organizer.commissionRate != null
+    },
+    vatRate,
     upcomingEvents: rows.filter((row) => row.startDate.getTime() >= now),
     pastEvents: rows.filter((row) => row.startDate.getTime() < now)
   };
@@ -338,35 +407,90 @@ export async function getAccountingOrganizerEventDetail(organizerId: string, eve
       startDate: true,
       endDate: true,
       status: true,
-      organizer: { select: { id: true, name: true } }
+      organizer: {
+        select: { id: true, name: true, commissionRate: true }
+      },
+      ticketTypes: {
+        where: { deletedAt: null },
+        orderBy: { price: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          sold: true,
+          capacity: true,
+          quantity: true
+        }
+      }
     }
   });
   if (!event) return null;
 
-  const [orders, payouts, reconciliations] = await Promise.all([
-    prisma.order.findMany({
-      where: { organizerId, eventId, status: 'paid', deletedAt: null },
-      orderBy: { paidAt: 'desc' },
-      include: {
-        user: { select: { displayName: true, email: true } }
-      }
-    }),
-    prisma.organizerPayout.findMany({
-      where: { organizerId, eventId },
-      orderBy: { createdAt: 'desc' },
-      take: 50
-    }),
-    prisma.paymentReconciliation.findMany({
-      where: { order: { organizerId, eventId } },
-      orderBy: { createdAt: 'desc' },
-      take: 50
-    })
-  ]);
+  const effectiveCommissionRate = await resolveOrganizerCommissionRate(
+    event.organizer.commissionRate
+  );
+  const vatRate = companyLegal.defaultVatRate;
+
+  const [orders, payouts, reconciliations, invitationsByType, paidTicketsByType] =
+    await Promise.all([
+      prisma.order.findMany({
+        where: { organizerId, eventId, status: 'paid', deletedAt: null },
+        orderBy: { paidAt: 'desc' },
+        include: {
+          user: { select: { displayName: true, email: true } },
+          items: {
+            include: { ticketType: { select: { id: true, name: true } } }
+          }
+        }
+      }),
+      prisma.organizerPayout.findMany({
+        where: { organizerId, eventId },
+        orderBy: { createdAt: 'desc' },
+        take: 50
+      }),
+      prisma.paymentReconciliation.findMany({
+        where: { order: { organizerId, eventId } },
+        orderBy: { createdAt: 'desc' },
+        take: 50
+      }),
+      prisma.eventInvitation.groupBy({
+        by: ['ticketTypeId'],
+        where: { eventId, deletedAt: null },
+        _count: { _all: true }
+      }),
+      prisma.purchasedTicket.groupBy({
+        by: ['ticketTypeId'],
+        where: {
+          eventId,
+          deletedAt: null,
+          status: { in: ['VALID', 'USED'] },
+          invitation: { is: null }
+        },
+        _count: { _all: true }
+      })
+    ]);
+
+  const inviteCountMap = new Map(invitationsByType.map((r) => [r.ticketTypeId, r._count._all]));
+  const soldCountMap = new Map(paidTicketsByType.map((r) => [r.ticketTypeId, r._count._all]));
+
+  const categories: TicketCategoryBreakdown[] = event.ticketTypes.map((tt) => {
+    const soldCount = soldCountMap.get(tt.id) ?? tt.sold;
+    const invitationCount = inviteCountMap.get(tt.id) ?? 0;
+    return {
+      ticketTypeId: tt.id,
+      name: tt.name,
+      unitPrice: tt.price,
+      soldCount,
+      invitationCount,
+      soldRevenue: Math.round(soldCount * tt.price * 100) / 100,
+      capacity: tt.capacity || tt.quantity
+    };
+  });
 
   const grossSales = orders.reduce((sum, row) => sum + row.total, 0);
   const organizerRevenue = orders.reduce((sum, row) => sum + row.subtotal, 0);
   const serviceFee = orders.reduce((sum, row) => sum + row.commission, 0);
-  const vat = splitGrossAmount(grossSales);
+  const vat = splitGrossAmount(grossSales, vatRate);
 
   const payoutNet = payouts.reduce((sum, row) => sum + row.netAmount, 0);
   const payoutPaid = payouts
@@ -379,10 +503,31 @@ export async function getAccountingOrganizerEventDetail(organizerId: string, eve
     .filter((row) => row.status === 'reconciled')
     .reduce((sum, row) => sum + row.netAmount, 0);
 
+  const ticketsSold = categories.reduce((sum, c) => sum + c.soldCount, 0);
+  const invitationsSent = categories.reduce((sum, c) => sum + c.invitationCount, 0);
+
   return {
-    event,
+    event: {
+      id: event.id,
+      title: event.title,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      status: event.status,
+      organizer: {
+        id: event.organizer.id,
+        name: event.organizer.name
+      }
+    },
+    rates: {
+      vatRate,
+      commissionRate: effectiveCommissionRate,
+      commissionRatePercent: formatCommissionRatePercent(effectiveCommissionRate),
+      commissionRateCustom: event.organizer.commissionRate != null
+    },
     metrics: {
       paidOrderCount: orders.length,
+      ticketsSold,
+      invitationsSent,
       grossSales,
       organizerRevenue,
       serviceFee,
@@ -393,6 +538,7 @@ export async function getAccountingOrganizerEventDetail(organizerId: string, eve
       payoutPaid,
       payoutPending
     },
+    categories,
     recentOrders: orders.map((row) => ({
       id: row.id,
       buyerName: row.attendeeName || row.user.displayName || row.user.email,
@@ -401,7 +547,11 @@ export async function getAccountingOrganizerEventDetail(organizerId: string, eve
       serviceFee: row.commission,
       total: row.total,
       status: row.status,
-      paymentProvider: row.paymentProvider
+      paymentProvider: row.paymentProvider,
+      categories: row.items.map((item) => ({
+        name: item.ticketType.name,
+        quantity: item.quantity
+      }))
     })),
     payouts: payouts.map((row) => ({
       id: row.id,

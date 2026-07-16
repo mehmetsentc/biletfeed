@@ -29,30 +29,87 @@ export default async function AdminAccountingOrganizerEventDetailPage({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Toplam satış" value={money(detail.metrics.grossSales)} />
-        <MetricCard label="Hizmet bedeli" value={money(detail.metrics.serviceFee)} />
         <MetricCard
-          label={`KDV (%${detail.metrics.vatRate})`}
+          label="Platform komisyonu"
+          value={`%${detail.rates.commissionRatePercent}`}
+          hint={
+            detail.rates.commissionRateCustom
+              ? 'Organizatöre özel oran'
+              : 'Platform varsayılan oranı'
+          }
+        />
+        <MetricCard
+          label={`KDV oranı (%${detail.rates.vatRate})`}
           value={money(detail.metrics.vatAmount)}
+          hint="Brüt satıştan ayrıştırılan KDV"
+        />
+        <MetricCard label="Toplam satış" value={money(detail.metrics.grossSales)} />
+        <MetricCard
+          label={`Hizmet bedeli (%${detail.rates.commissionRatePercent})`}
+          value={money(detail.metrics.serviceFee)}
         />
         <MetricCard label="Ödeme alındı" value={money(detail.metrics.paymentReceived)} />
         <MetricCard label="Hakediş (Net)" value={money(detail.metrics.payoutNet)} />
-        <MetricCard label="Ödenen hakediş" value={money(detail.metrics.payoutPaid)} />
-        <MetricCard label="Bekleyen hakediş" value={money(detail.metrics.payoutPending)} />
-        <MetricCard label="Ödenen sipariş" value={String(detail.metrics.paidOrderCount)} />
+        <MetricCard label="Satılan bilet" value={String(detail.metrics.ticketsSold)} />
+        <MetricCard label="Gönderilen davetiye" value={String(detail.metrics.invitationsSent)} />
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Satış detayları</h2>
+        <div>
+          <h2 className="text-lg font-semibold">Bilet / davetiye kategorileri</h2>
+          <p className="text-sm text-muted-foreground">
+            Satılan bilet ve gönderilen davetiye, kategori bazında
+          </p>
+        </div>
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full min-w-[920px] text-sm">
             <thead className="border-b bg-muted/50 text-left">
               <tr>
+                <th className="p-3 font-medium">Kategori</th>
+                <th className="p-3 font-medium">Birim fiyat</th>
+                <th className="p-3 font-medium">Satılan</th>
+                <th className="p-3 font-medium">Davetiye</th>
+                <th className="p-3 font-medium">Kapasite</th>
+                <th className="p-3 font-medium">Satış tutarı (net)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {detail.categories.map((cat) => (
+                <tr key={cat.ticketTypeId} className="border-b last:border-0">
+                  <td className="p-3 font-medium">{cat.name}</td>
+                  <td className="p-3">{money(cat.unitPrice)}</td>
+                  <td className="p-3">{cat.soldCount}</td>
+                  <td className="p-3">{cat.invitationCount}</td>
+                  <td className="p-3">
+                    {cat.soldCount + cat.invitationCount} / {cat.capacity}
+                  </td>
+                  <td className="p-3 font-medium">{money(cat.soldRevenue)}</td>
+                </tr>
+              ))}
+              {detail.categories.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    Bu etkinlikte bilet kategorisi yok.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Satış detayları</h2>
+        <div className="overflow-x-auto rounded-lg border">
+          <table className="w-full min-w-[980px] text-sm">
+            <thead className="border-b bg-muted/50 text-left">
+              <tr>
                 <th className="p-3 font-medium">Sipariş</th>
                 <th className="p-3 font-medium">Alıcı</th>
+                <th className="p-3 font-medium">Kategori</th>
                 <th className="p-3 font-medium">Sağlayıcı</th>
-                <th className="p-3 font-medium">Organizatör Geliri</th>
-                <th className="p-3 font-medium">Hizmet Bedeli</th>
+                <th className="p-3 font-medium">Organizatör geliri</th>
+                <th className="p-3 font-medium">Hizmet bedeli</th>
                 <th className="p-3 font-medium">Toplam</th>
                 <th className="p-3 font-medium">Durum</th>
                 <th className="p-3 font-medium">Tarih</th>
@@ -63,6 +120,11 @@ export default async function AdminAccountingOrganizerEventDetailPage({
                 <tr key={order.id} className="border-b last:border-0">
                   <td className="p-3 font-mono text-xs">{order.id.slice(0, 8)}</td>
                   <td className="p-3">{order.buyerName}</td>
+                  <td className="p-3">
+                    {order.categories.length > 0
+                      ? order.categories.map((c) => `${c.name} ×${c.quantity}`).join(', ')
+                      : '—'}
+                  </td>
                   <td className="p-3">{order.paymentProvider}</td>
                   <td className="p-3">{money(order.subtotal)}</td>
                   <td className="p-3">{money(order.serviceFee)}</td>
@@ -75,7 +137,7 @@ export default async function AdminAccountingOrganizerEventDetailPage({
               ))}
               {detail.recentOrders.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     Bu etkinlikte ödenmiş sipariş yok.
                   </td>
                 </tr>
@@ -129,11 +191,20 @@ export default async function AdminAccountingOrganizerEventDetailPage({
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function MetricCard({
+  label,
+  value,
+  hint
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
   return (
     <div className="rounded-lg border bg-card p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 text-xl font-semibold">{value}</p>
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }

@@ -10,7 +10,9 @@ function money(amount: number, currency = 'TRY') {
 function EventFinanceTable({
   title,
   rows,
-  organizerId
+  organizerId,
+  commissionRatePercent,
+  vatRate
 }: {
   title: string;
   rows: Array<{
@@ -18,6 +20,8 @@ function EventFinanceTable({
     eventTitle: string;
     startDate: Date;
     status: string;
+    ticketsSold: number;
+    invitationsSent: number;
     grossSales: number;
     serviceFee: number;
     vatAmount: number;
@@ -25,20 +29,24 @@ function EventFinanceTable({
     payoutPending: number;
   }>;
   organizerId: string;
+  commissionRatePercent: string;
+  vatRate: number;
 }) {
   return (
     <section className="space-y-3">
       <h2 className="text-lg font-semibold">{title}</h2>
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[1100px] text-sm">
+        <table className="w-full min-w-[1280px] text-sm">
           <thead className="border-b bg-muted/50 text-left">
             <tr>
               <th className="p-3 font-medium">Etkinlik</th>
               <th className="p-3 font-medium">Tarih</th>
               <th className="p-3 font-medium">Durum</th>
+              <th className="p-3 font-medium">Satılan bilet</th>
+              <th className="p-3 font-medium">Davetiye</th>
               <th className="p-3 font-medium">Satış</th>
-              <th className="p-3 font-medium">Hizmet Bedeli</th>
-              <th className="p-3 font-medium">KDV</th>
+              <th className="p-3 font-medium">Hizmet bedeli (%{commissionRatePercent})</th>
+              <th className="p-3 font-medium">KDV (%{vatRate})</th>
               <th className="p-3 font-medium">Ödeme</th>
               <th className="p-3 font-medium">Hakediş</th>
             </tr>
@@ -58,16 +66,24 @@ function EventFinanceTable({
                 <td className="p-3">
                   <Badge variant="secondary">{row.status}</Badge>
                 </td>
+                <td className="p-3">{row.ticketsSold}</td>
+                <td className="p-3">{row.invitationsSent}</td>
                 <td className="p-3">{money(row.grossSales)}</td>
-                <td className="p-3">{money(row.serviceFee)}</td>
-                <td className="p-3">{money(row.vatAmount)}</td>
+                <td className="p-3">
+                  <span className="font-medium">{money(row.serviceFee)}</span>
+                  <span className="ml-1 text-xs text-muted-foreground">(%{commissionRatePercent})</span>
+                </td>
+                <td className="p-3">
+                  <span className="font-medium">{money(row.vatAmount)}</span>
+                  <span className="ml-1 text-xs text-muted-foreground">(%{vatRate})</span>
+                </td>
                 <td className="p-3">{money(row.paymentReceived)}</td>
                 <td className="p-3">{money(row.payoutPending)}</td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                <td colSpan={10} className="p-8 text-center text-muted-foreground">
                   Kayıt yok.
                 </td>
               </tr>
@@ -110,16 +126,18 @@ export default async function AdminAccountingOrganizerDetailPage({
           <p className="mt-1 text-2xl font-bold">{detail.pastEvents.length}</p>
         </div>
         <div className="rounded-lg border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Varsayılan hizmet bedeli</p>
-          <p className="mt-1 text-2xl font-bold">
-            {detail.organizer.commissionRate != null
-              ? `%${(detail.organizer.commissionRate * 100).toLocaleString('tr-TR')}`
-              : 'Platform varsayılanı'}
+          <p className="text-sm text-muted-foreground">Platform komisyonu</p>
+          <p className="mt-1 text-2xl font-bold">%{detail.organizer.commissionRatePercent}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {detail.organizer.commissionRateCustom
+              ? 'Organizatöre özel oran'
+              : 'Platform varsayılan oranı'}
           </p>
         </div>
         <div className="rounded-lg border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Durum</p>
-          <p className="mt-1 text-xl font-semibold">{detail.organizer.status}</p>
+          <p className="text-sm text-muted-foreground">KDV oranı</p>
+          <p className="mt-1 text-2xl font-bold">%{detail.vatRate}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Brüt satıştan ayrıştırılır</p>
         </div>
       </div>
 
@@ -127,11 +145,15 @@ export default async function AdminAccountingOrganizerDetailPage({
         title="Gelecek Etkinlikler"
         rows={detail.upcomingEvents}
         organizerId={detail.organizer.id}
+        commissionRatePercent={detail.organizer.commissionRatePercent}
+        vatRate={detail.vatRate}
       />
       <EventFinanceTable
         title="Geçmiş Etkinlikler"
         rows={detail.pastEvents}
         organizerId={detail.organizer.id}
+        commissionRatePercent={detail.organizer.commissionRatePercent}
+        vatRate={detail.vatRate}
       />
     </div>
   );
