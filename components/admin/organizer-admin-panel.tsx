@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, XCircle, Clock, Search, Percent } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Search, Percent, RotateCcw } from 'lucide-react';
+import { formatCommissionRatePercent } from '@/lib/config/commission';
 
 type Organizer = {
   id: string;
@@ -12,7 +13,7 @@ type Organizer = {
   slug: string;
   status: string;
   verified: boolean;
-  commissionRate: number;
+  commissionRate: number | null;
   contactEmail: string | null;
   contactPhone: string | null;
   followerCount: number;
@@ -33,7 +34,23 @@ const STATUS_COLORS: Record<string, 'success' | 'secondary' | 'destructive'> = {
   suspended: 'destructive'
 };
 
-export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] }) {
+function effectiveRateLabel(
+  rate: number | null,
+  defaultCommissionRate: number
+): string {
+  if (rate == null) {
+    return `Varsayılan (%${formatCommissionRatePercent(defaultCommissionRate)})`;
+  }
+  return `%${formatCommissionRatePercent(rate)}`;
+}
+
+export function OrganizerAdminPanel({
+  organizers,
+  defaultCommissionRate
+}: {
+  organizers: Organizer[];
+  defaultCommissionRate: number;
+}) {
   const [list, setList] = useState(organizers);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState<string | null>(null);
@@ -60,9 +77,7 @@ export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] })
     }
   }
 
-  async function saveCommission(id: string) {
-    const rate = parseFloat(commissionInput) / 100;
-    if (isNaN(rate) || rate < 0 || rate > 1) return;
+  async function saveCommission(id: string, rate: number | null) {
     setLoading(id);
     try {
       await fetch(`/api/admin/organizers/${id}`, {
@@ -79,9 +94,14 @@ export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] })
     }
   }
 
+  async function applyCommissionInput(id: string) {
+    const rate = parseFloat(commissionInput) / 100;
+    if (Number.isNaN(rate) || rate < 0 || rate > 1) return;
+    await saveCommission(id, rate);
+  }
+
   return (
     <div className="space-y-4">
-      {/* Search */}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -92,7 +112,6 @@ export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] })
         />
       </div>
 
-      {/* Summary badges */}
       <div className="flex gap-3 text-sm">
         {(['approved', 'pending', 'suspended'] as const).map((s) => (
           <span key={s} className="flex items-center gap-1.5 text-muted-foreground">
@@ -104,7 +123,6 @@ export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] })
         ))}
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead className="border-b bg-muted/50 text-left">
@@ -112,7 +130,7 @@ export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] })
               <th className="p-3 font-medium">Organizatör</th>
               <th className="p-3 font-medium">Sahip</th>
               <th className="p-3 font-medium">Etkinlik</th>
-              <th className="p-3 font-medium">Komisyon</th>
+              <th className="p-3 font-medium">Hizmet bedeli</th>
               <th className="p-3 font-medium">Durum</th>
               <th className="p-3 font-medium">Kayıt</th>
               <th className="p-3 font-medium">İşlem</th>
@@ -141,7 +159,7 @@ export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] })
                 </td>
                 <td className="p-3">
                   {editingCommission === org.id ? (
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-1">
                       <Input
                         type="number"
                         min={0}
@@ -155,10 +173,21 @@ export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] })
                       <Button
                         size="sm"
                         className="h-7 px-2 text-xs"
-                        onClick={() => void saveCommission(org.id)}
+                        onClick={() => void applyCommissionInput(org.id)}
                         disabled={loading === org.id}
                       >
                         Kaydet
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 px-2 text-xs"
+                        onClick={() => void saveCommission(org.id, null)}
+                        disabled={loading === org.id}
+                        title="Platform varsayılanına dön"
+                      >
+                        <RotateCcw className="size-3" />
+                        Varsayılan
                       </Button>
                       <Button
                         size="sm"
@@ -173,12 +202,16 @@ export function OrganizerAdminPanel({ organizers }: { organizers: Organizer[] })
                     <button
                       onClick={() => {
                         setEditingCommission(org.id);
-                        setCommissionInput(String(Math.round(org.commissionRate * 100)));
+                        setCommissionInput(
+                          org.commissionRate != null
+                            ? String(Math.round(org.commissionRate * 100))
+                            : String(Math.round(defaultCommissionRate * 100))
+                        );
                       }}
                       className="flex items-center gap-1 text-sm hover:underline"
                     >
                       <Percent className="size-3" />
-                      {Math.round(org.commissionRate * 100)}
+                      {effectiveRateLabel(org.commissionRate, defaultCommissionRate)}
                     </button>
                   )}
                 </td>

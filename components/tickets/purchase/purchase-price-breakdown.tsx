@@ -46,13 +46,6 @@ export function PriceBreakdownRows({
         value={formatTry(pricing.ticketSubtotal)}
         compact={compact}
       />
-      {!isFree && pricing.serviceFee > 0 && (
-        <Row
-          label="Hizmet bedeli"
-          value={formatTry(pricing.serviceFee)}
-          compact={compact}
-        />
-      )}
       {pricing.discount > 0 && (
         <Row
           label="Kupon indirimi"
@@ -69,7 +62,8 @@ export function PriceBreakdownRows({
         <span
           className={cn(
             'font-extrabold text-primary',
-            compact ? 'text-base' : 'text-xl'
+            compact ? 'text-base' : 'text-xl',
+            isFree && 'text-[var(--bf-success)]'
           )}
         >
           {formatTry(pricing.total)}

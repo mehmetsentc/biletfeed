@@ -5,7 +5,7 @@ import { updateOrganizerStatus, updateOrganizerCommission } from '@/lib/services
 
 const patchSchema = z.object({
   status: z.enum(['approved', 'pending', 'suspended']).optional(),
-  commissionRate: z.number().min(0).max(1).optional()
+  commissionRate: z.number().min(0).max(1).nullable().optional()
 });
 
 export async function PATCH(

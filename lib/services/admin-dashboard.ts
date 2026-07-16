@@ -223,7 +223,7 @@ export async function updateOrganizerStatus(
   return prisma.organizer.update({ where: { id }, data: { status } });
 }
 
-export async function updateOrganizerCommission(id: string, rate: number) {
+export async function updateOrganizerCommission(id: string, rate: number | null) {
   await ensureDbConnection();
   return prisma.organizer.update({ where: { id }, data: { commissionRate: rate } });
 }

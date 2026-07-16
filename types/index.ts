@@ -68,7 +68,7 @@ export interface Organizer extends Timestamps {
   status: OrganizerStatus;
   ownerId: string;
   followerCount: number;
-  commissionRate: number;
+  commissionRate: number | null;
   socialLinks: Record<string, string>;
 }
 

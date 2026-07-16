@@ -1,4 +1,5 @@
 import { companyLegal } from '@/lib/config/company';
+import { formatCommissionRatePercent } from '@/lib/config/commission';
 import { emailConfig, formatEmailFrom, getSenderAddress, isEmailConfigured } from '@/lib/config/email';
 import { getEnvStatusItems, type EnvCheckItem } from '@/lib/config/env-status';
 import { siteConfig } from '@/lib/config/site';
@@ -28,14 +29,26 @@ function boolLabel(value: boolean): string {
 }
 
 /** Admin ayarlar sayfası için salt okunur yapılandırma özeti */
-export function getAdminSettingsSnapshot(): AdminSettingsSnapshot {
+export function getAdminSettingsSnapshot(
+  defaultCommissionRate?: number
+): AdminSettingsSnapshot {
   const envChecks = getEnvStatusItems();
 
   const sections: AdminSettingSection[] = [
     {
       title: 'Ödeme & Muhasebe',
-      description: 'Komisyon oranları organizatör bazında yönetilir; KDV ortam değişkeninden okunur.',
+      description:
+        'Varsayılan hizmet bedeli yukarıdaki karttan düzenlenir; organizatör bazında override Admin → Organizatörler.',
       fields: [
+        {
+          label: 'Varsayılan hizmet bedeli (%)',
+          key: 'default_commission_rate',
+          value:
+            defaultCommissionRate != null
+              ? `%${formatCommissionRatePercent(defaultCommissionRate)}`
+              : 'Panelden yönetilir',
+          hint: 'Organizatöre özel oran yoksa uygulanır; müşteriye gösterilmez'
+        },
         {
           label: 'Ödeme sağlayıcı',
           key: 'PAYMENT_PROVIDER',

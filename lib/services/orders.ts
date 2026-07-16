@@ -20,6 +20,10 @@ import { validateCoupon, incrementCouponUsage } from '@/lib/services/coupons';
 import { notifyTicketPurchase } from '@/lib/services/notifications';
 import { findOrCreateGuestUser } from '@/lib/services/guest-user';
 import { upsertUserBillingProfile } from '@/lib/services/user-billing';
+import {
+  calculateOrderCommission,
+  resolveOrganizerCommissionRate
+} from '@/lib/services/commission';
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 
@@ -96,8 +100,8 @@ async function loadCheckoutContext(params: {
   }
 
   const subtotal = ticketType.price * qty;
-  const commissionRate = event.organizer.commissionRate ?? 0.1;
-  const commission = Math.round(subtotal * commissionRate * 100) / 100;
+  const commissionRate = await resolveOrganizerCommissionRate(event.organizer.commissionRate);
+  const commission = calculateOrderCommission(subtotal, commissionRate);
 
   return { user, event, ticketType, ticketTypes: event.ticketTypes, qty, subtotal, commission };
 }

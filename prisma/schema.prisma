@@ -287,7 +287,7 @@ model Organizer {
   status         OrganizerStatus @default(pending)
   ownerId        String          @unique @map("owner_id") @db.Uuid
   followerCount  Int             @default(0) @map("follower_count")
-  commissionRate Float           @default(0.1) @map("commission_rate")
+  commissionRate Float?           @map("commission_rate")
   socialLinks    Json            @default("{}") @map("social_links")
   contactEmail   String?         @map("contact_email")
   contactPhone   String?         @map("contact_phone")
@@ -1501,4 +1501,12 @@ model EventArtist {
   @@index([eventId])
   @@index([artistId])
   @@map("event_artists")
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
 }

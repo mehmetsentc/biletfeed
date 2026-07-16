@@ -6,6 +6,7 @@ import type { AdminSettingsSnapshot } from '@/lib/config/admin-settings-snapshot
 import type { EnvCheckStatus } from '@/lib/config/env-status';
 import { cn } from '@/lib/utils';
 import { AdminMaintenancePanel } from '@/components/admin/admin-maintenance-panel';
+import { CommissionSettingsCard } from '@/components/admin/commission-settings-card';
 import { Clock, Info } from 'lucide-react';
 
 const statusStyles: Record<EnvCheckStatus, string> = {
@@ -22,11 +23,17 @@ const statusLabels: Record<EnvCheckStatus, string> = {
 
 interface SystemSettingsPanelProps {
   snapshot: AdminSettingsSnapshot;
+  defaultCommissionRate: number;
 }
 
-export function SystemSettingsPanel({ snapshot }: SystemSettingsPanelProps) {
+export function SystemSettingsPanel({
+  snapshot,
+  defaultCommissionRate
+}: SystemSettingsPanelProps) {
   return (
     <div className="space-y-6">
+      <CommissionSettingsCard initialRate={defaultCommissionRate} />
+
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex gap-2">
         <Clock className="size-4 shrink-0 mt-0.5" />
         <span>
