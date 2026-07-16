@@ -5,21 +5,27 @@ import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 import { resolveCitySlug } from '@/lib/scraper/normalize';
 
+const emptyToUndefined = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((value) => {
+    if (value === '' || value === null || value === undefined) return undefined;
+    return value;
+  }, schema.optional());
+
 const updateSchema = z.object({
   title: z.string().min(2).max(200).optional(),
   description: z.string().min(10).optional(),
-  shortDescription: z.string().max(200).optional(),
-  coverImage: z.string().url().optional(),
-  venue: z.string().max(200).optional(),
-  address: z.string().max(300).optional(),
-  cityName: z.string().max(80).optional(),
+  shortDescription: emptyToUndefined(z.string().max(200)),
+  coverImage: emptyToUndefined(z.string().url()),
+  venue: emptyToUndefined(z.string().max(200)),
+  address: emptyToUndefined(z.string().max(300)),
+  cityName: emptyToUndefined(z.string().max(80)),
   categorySlug: z.string().max(60).optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   basePrice: z.number().min(0).optional(),
   isFree: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
-  externalUrl: z.string().url().optional(),
+  externalUrl: emptyToUndefined(z.string().url()),
   tags: z.array(z.string()).optional()
 });
 
@@ -53,7 +59,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const parsed = updateSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: 'Geçersiz veri',
+        details: parsed.error.issues.map((i) => ({
+          path: i.path.join('.'),
+          message: i.message
+        }))
+      },
+      { status: 400 }
+    );
   }
 
   await ensureDbConnection();
@@ -137,7 +152,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       ...(data.basePrice !== undefined && { basePrice: data.basePrice }),
       ...(data.isFree !== undefined && { isFree: data.isFree }),
       ...(data.isFeatured !== undefined && { isFeatured: data.isFeatured }),
-      ...(data.externalUrl && { externalUrl: data.externalUrl }),
+      ...(data.externalUrl !== undefined && { externalUrl: data.externalUrl }),
       cityId,
       venueId,
       categoryId,

@@ -80,33 +80,47 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
     setError(null);
 
     try {
+      const payload: Record<string, unknown> = {
+        title: form.title,
+        description: form.description,
+        shortDescription: form.shortDescription || null,
+        venue: form.venue,
+        address: form.address,
+        cityName: form.cityName,
+        startDate: new Date(form.startDate).toISOString(),
+        endDate: new Date(form.endDate).toISOString(),
+        basePrice: Number(form.basePrice) || 0,
+        categorySlug: form.categorySlug,
+        isFree: form.isFree,
+        isFeatured: form.isFeatured,
+        tags: event.tags.filter(
+          (t) => t !== 'eksik-gorsel' && t !== 'eksik-aciklama'
+        )
+      };
+
+      if (form.coverImage.trim()) {
+        payload.coverImage = form.coverImage.trim();
+      }
+      if (form.externalUrl.trim()) {
+        payload.externalUrl = form.externalUrl.trim();
+      }
+
       const res = await fetch(`/api/admin/events/${event.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title,
-          description: form.description,
-          shortDescription: form.shortDescription,
-          coverImage: form.coverImage,
-          venue: form.venue,
-          address: form.address,
-          cityName: form.cityName,
-          startDate: new Date(form.startDate).toISOString(),
-          endDate: new Date(form.endDate).toISOString(),
-          basePrice: Number(form.basePrice) || 0,
-          categorySlug: form.categorySlug,
-          isFree: form.isFree,
-          isFeatured: form.isFeatured,
-          externalUrl: form.externalUrl,
-          tags: event.tags.filter(
-            (t) => t !== 'eksik-gorsel' && t !== 'eksik-aciklama'
-          )
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Kaydedilemedi');
+        const data = (await res.json()) as {
+          error?: string;
+          details?: Array<{ path: string; message: string }>;
+        };
+        const detail =
+          data.details?.[0] != null
+            ? `${data.details[0].path}: ${data.details[0].message}`
+            : null;
+        throw new Error(detail || data.error || 'Kaydedilemedi');
       }
 
       router.push('/admin/etkinlikler');
