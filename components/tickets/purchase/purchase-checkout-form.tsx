@@ -19,6 +19,7 @@ import {
 } from '@/lib/data/mock-events';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import { calculatePurchasePricing, formatTry } from '@/lib/tickets/purchase-pricing';
+import { splitTicketDisplay } from '@/lib/tickets/purchase-types';
 import { validateCheckoutAttendee } from '@/lib/validation/checkout-attendee';
 import {
   emptyCheckoutBilling,
@@ -76,6 +77,10 @@ export function PurchaseCheckoutForm({
     discount: couponDiscount
   });
   const isPaid = pricing.total > 0;
+  const { title: ticketTitle } = splitTicketDisplay(
+    ticketType.name,
+    ticketType.description
+  );
 
   async function applyCoupon() {
     setCouponError(null);
@@ -365,7 +370,7 @@ export function PurchaseCheckoutForm({
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t.purchase.ticketTypeLabel}</span>
-              <span className="font-medium text-right">{ticketType.name}</span>
+              <span className="font-medium text-right">{ticketTitle}</span>
             </div>
             {(ticketType.seatsPerUnit ?? 1) > 1 && (
               <div className="flex justify-between">

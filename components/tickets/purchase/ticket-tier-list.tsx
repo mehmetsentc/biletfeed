@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import {
   ticketTypeAvailable,
-  ticketTypeRemaining
+  ticketTypeRemaining,
+  splitTicketDisplay
 } from '@/lib/tickets/purchase-types';
 import { formatTry } from '@/lib/tickets/purchase-pricing';
 import { getServerTranslations } from '@/lib/i18n/server';
@@ -65,6 +66,7 @@ export async function TicketTierList({
         const available = ticketTypeAvailable(type);
         const remaining = ticketTypeRemaining(type);
         const seats = Math.max(1, type.seatsPerUnit || 1);
+        const { title } = splitTicketDisplay(type.name, type.description);
         const priceLabel = type.price <= 0 ? t.common.free : formatTry(type.price);
 
         return (
@@ -77,7 +79,7 @@ export async function TicketTierList({
           >
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base font-bold">{type.name}</h2>
+                <h2 className="text-base font-bold">{title}</h2>
                 {seats > 1 && (
                   <Badge variant="secondary" className="rounded-full">
                     {seats} kişi / QR
@@ -97,11 +99,6 @@ export async function TicketTierList({
                   </Badge>
                 )}
               </div>
-              {type.description?.trim() && (
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {type.description.trim()}
-                </p>
-              )}
               {available && remaining <= 20 && (
                 <p className="text-xs text-muted-foreground">
                   {t.events.lastTickets(remaining)}

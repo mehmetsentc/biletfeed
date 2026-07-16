@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { PurchasePriceBreakdown } from '@/components/tickets/purchase/purchase-price-breakdown';
 import { useTranslations } from '@/components/providers';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
-import { ticketTypeRemaining } from '@/lib/tickets/purchase-types';
+import { ticketTypeRemaining, splitTicketDisplay } from '@/lib/tickets/purchase-types';
 import { formatTry } from '@/lib/tickets/purchase-pricing';
 
 interface QuantityStepProps {
@@ -19,6 +19,10 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
   const t = useTranslations();
   const maxQty = Math.min(10, ticketTypeRemaining(ticketType));
   const [quantity, setQuantity] = useState(1);
+  const { title, description } = splitTicketDisplay(
+    ticketType.name,
+    ticketType.description
+  );
 
   function decrement() {
     setQuantity((q) => Math.max(1, q - 1));
@@ -34,7 +38,12 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
     <div className="space-y-6">
       <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
         <h1 className="text-lg font-bold">{t.purchase.quantitySelect}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{ticketType.name}</p>
+        <p className="mt-1 text-sm font-medium text-foreground">{title}</p>
+        {description ? (
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
         <p className="mt-3 text-2xl font-extrabold">{unitLabel}</p>
 
         <div className="mt-6 flex items-center justify-center gap-4">
@@ -84,16 +93,16 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
         </div>
       </section>
 
-      {ticketType.description?.trim() && (
+      {description ? (
         <section className="rounded-2xl border border-border bg-muted/30 p-5 text-card-foreground">
           <div className="flex items-start gap-2.5">
             <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-              {ticketType.description.trim()}
+              {description}
             </p>
           </div>
         </section>
-      )}
+      ) : null}
 
       <Button
         asChild
