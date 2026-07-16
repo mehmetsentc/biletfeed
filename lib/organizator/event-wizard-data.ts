@@ -40,6 +40,7 @@ export interface EventWizardInitialData {
     description: string;
     price: string;
     capacity: string;
+    seatsPerUnit?: string;
     sold: number;
     showLowStockBadge: boolean;
   }>;
@@ -150,6 +151,7 @@ export function mapEventToWizardInitialData(
         description: label.description,
         price: String(ticket.price),
         capacity: String(ticket.capacity || ticket.quantity),
+        seatsPerUnit: String(ticket.seatsPerUnit ?? 1),
         sold: ticket.sold,
         showLowStockBadge: ticket.showLowStockBadge
       };

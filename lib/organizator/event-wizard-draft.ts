@@ -34,6 +34,7 @@ export type EventWizardDraft = {
     description: string;
     price: string;
     capacity: string;
+    seatsPerUnit?: string;
     showLowStockBadge?: boolean;
   }>;
   attendeeQuestions: AttendeeQuestionRow[];

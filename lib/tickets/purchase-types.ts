@@ -9,6 +9,8 @@ export type CheckoutTicketType = {
   currency: string;
   capacity: number;
   sold: number;
+  /** Tek satın alımda üretilecek QR / kişi sayısı */
+  seatsPerUnit: number;
   showLowStockBadge: boolean;
 };
 

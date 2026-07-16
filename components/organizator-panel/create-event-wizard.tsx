@@ -23,7 +23,8 @@ import {
   WizardFormRow,
   WizardFormSection,
   WizardOptionCards,
-  WizardSelect
+  WizardSelect,
+  WizardTextarea
 } from '@/components/organizator-panel/wizard-form';
 import { categories } from '@/lib/data/mock-events';
 import {
@@ -74,6 +75,7 @@ interface TicketCategory {
   description: string;
   price: string;
   capacity: string;
+  seatsPerUnit: string;
   sold: number;
   showLowStockBadge: boolean;
 }
@@ -95,6 +97,7 @@ function newTicketCategory(): TicketCategory {
     description: '',
     price: '',
     capacity: '',
+    seatsPerUnit: '1',
     sold: 0,
     showLowStockBadge: false
   };
@@ -105,7 +108,7 @@ function isValidTicketCategory(c: TicketCategory): boolean {
   const capacityRaw = String(c.capacity ?? '').trim();
   if (!name || !capacityRaw) return false;
   if (name.length > 200) return false;
-  if ((c.description ?? '').trim().length > 500) return false;
+  if ((c.description ?? '').trim().length > 2000) return false;
   const capacityNum = Number(capacityRaw);
   return Number.isFinite(capacityNum) && capacityNum > 0;
 }
@@ -122,7 +125,7 @@ function ticketCategoryValidationError(categories: TicketCategory[]): string | n
       return `${label}: "Kategori Adı" en fazla 200 karakter olabilir (şu an ${name.length}).`;
     }
     if ((c.description ?? '').trim().length > 500) {
-      return `${label}: Açıklama en fazla 500 karakter olabilir.`;
+      return `${label}: Açıklama en fazla 2000 karakter olabilir.`;
     }
     const capacityNum = Number(String(c.capacity ?? '').trim());
     if (!Number.isFinite(capacityNum) || capacityNum < 1) {
@@ -144,6 +147,10 @@ function ticketCategoriesFromDraft(
     description: c.description ?? '',
     price: c.price != null ? String(c.price) : '',
     capacity: c.capacity != null ? String(c.capacity) : '',
+    seatsPerUnit:
+      'seatsPerUnit' in c && c.seatsPerUnit != null
+        ? String(c.seatsPerUnit)
+        : '1',
     sold: 0,
     showLowStockBadge: c.showLowStockBadge ?? false
   }));
@@ -157,6 +164,7 @@ function initialTicketCategory(data: EventWizardInitialData['ticketCategories'][
     description: data.description,
     price: data.price,
     capacity: data.capacity,
+    seatsPerUnit: data.seatsPerUnit ?? '1',
     sold: data.sold,
     showLowStockBadge: data.showLowStockBadge
   };
@@ -179,6 +187,19 @@ function sessionToIso(session: SessionRow, useEnd = false): string | null {
   return new Date(`${session.startDate}T${time}:00`).toISOString();
 }
 
+/** "HH:MM" → dakika cinsinden değer */
+function timeToMinutes(t: string): number {
+  const [h = 0, m = 0] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/** YYYY-MM-DD string'ine N gün ekler */
+function addDaysToDateStr(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T12:00:00`); // öğlen → DST güvenli
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function sessionToDateRange(
   session: SessionRow,
   isFestival: boolean
@@ -188,10 +209,19 @@ function sessionToDateRange(
 
   let endDate: string;
   if (isFestival && session.endDate) {
+    // Festival: kullanıcının seçtiği bitiş tarihi
     const endTime = session.endTime || session.startTime || '23:59';
     endDate = new Date(`${session.endDate}T${endTime}:00`).toISOString();
+  } else if (session.endTime) {
+    // Gece yarısı geçiyor mu kontrol et (örn: başlangıç 20:00 → bitiş 02:00)
+    const startMin = timeToMinutes(session.startTime);
+    const endMin = timeToMinutes(session.endTime);
+    const dateForEnd = endMin <= startMin
+      ? addDaysToDateStr(session.startDate, 1) // ertesi gün
+      : session.startDate;
+    endDate = new Date(`${dateForEnd}T${session.endTime}:00`).toISOString();
   } else {
-    endDate = sessionToIso(session, true) ?? startDate;
+    endDate = startDate;
   }
 
   return { startDate, endDate, ...(session.eventId ? { eventId: session.eventId } : {}) };
@@ -643,6 +673,7 @@ export function CreateOrganizerEventWizard({
           description: c.description.trim(),
           price: ticketType === 'free' ? 0 : Number(c.price),
           capacity: Number(c.capacity),
+          seatsPerUnit: Math.max(1, Number(c.seatsPerUnit) || 1),
           showLowStockBadge: c.showLowStockBadge
         })),
         ...(venueMapUrl ? { venueMapUrl } : {}),
@@ -680,7 +711,10 @@ export function CreateOrganizerEventWizard({
             selectedRules: ruleSet.selectedRules,
             customRules: ruleSet.customRules,
             appliedTemplateId: ruleSet.appliedTemplateId ?? null,
-            announcements: ruleSet.announcements
+            // Başlığı veya içeriği boş olan duyuruları gönderme
+            announcements: ruleSet.announcements.filter(
+              (a) => a.titleTr.trim().length > 0 && a.contentTr.replace(/<[^>]*>/g, '').trim().length > 0
+            )
           })
         });
         if (!rulesRes.ok) {
@@ -934,6 +968,13 @@ export function CreateOrganizerEventWizard({
                                 className="h-11 rounded-lg pl-10"
                               />
                             </div>
+                            {session.endTime && session.startTime &&
+                              session.endTime <= session.startTime && (
+                              <p className="mt-1.5 flex items-center gap-1 text-xs text-amber-500">
+                                <span>⚠</span>
+                                Bitiş saati başlangıçtan önce — etkinlik ertesi güne uzanıyor (+1 gün otomatik)
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1070,26 +1111,54 @@ export function CreateOrganizerEventWizard({
                       )}
                       <div>
                         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                          Kontenjan<span className="text-destructive">*</span>
+                          Satılabilir adet<span className="text-destructive">*</span>
                         </label>
                         <Input
                           type="number"
                           value={cat.capacity}
                           onChange={(e) => updateTicketCategory(cat.id, 'capacity', e.target.value)}
-                          placeholder="100"
+                          placeholder="1"
                           className="h-11 rounded-lg"
                         />
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          Masa/loca için genelde 1
+                        </p>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                          Kişi / QR sayısı
+                        </label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={cat.seatsPerUnit}
+                          onChange={(e) =>
+                            updateTicketCategory(cat.id, 'seatsPerUnit', e.target.value)
+                          }
+                          placeholder="1"
+                          className="h-11 rounded-lg"
+                        />
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          1 satın alımda kaç QR üretilecek (ör. Bistro=4)
+                        </p>
                       </div>
                       <div className="sm:col-span-2">
                         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                          Açıklama
+                          Bilgi / Politika Notu
                         </label>
-                        <Input
+                        <WizardTextarea
                           value={cat.description}
                           onChange={(e) => updateTicketCategory(cat.id, 'description', e.target.value)}
-                          placeholder="Örn: Sahne önü, ayakta alan. Sınırlı sayıda."
-                          className="h-11 rounded-lg"
+                          placeholder="Örn: İptal &amp; İade Politikası — Satın alımdan itibaren 48 saat içinde iptal hakkınız bulunmaktadır."
+                          rows={4}
+                          maxLength={2000}
                         />
+                        {cat.description.trim().length > 0 && (
+                          <p className="mt-1 text-right text-xs text-muted-foreground">
+                            {cat.description.trim().length}/2000
+                          </p>
+                        )}
                       </div>
                       <div className="sm:col-span-2">
                         <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">

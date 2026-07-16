@@ -24,9 +24,10 @@ import { setEventArtists } from '@/lib/services/artist';
 const ticketCategorySchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1, 'Kategori adı zorunludur').max(200),
-  description: z.string().max(500).optional().default(''),
+  description: z.string().max(2000).optional().default(''),
   price: z.number().min(0).default(0),
   capacity: z.number().int().min(1),
+  seatsPerUnit: z.number().int().min(1).max(50).optional().default(1),
   showLowStockBadge: z.boolean().optional().default(false)
 });
 

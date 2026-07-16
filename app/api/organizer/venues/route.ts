@@ -6,6 +6,7 @@ import {
   createOrganizerVenue,
   getOrganizerVenues
 } from '@/lib/services/organizer-panel';
+import { seatPlanSchema } from '@/lib/api/seat-plan-schema';
 
 const createSchema = z.object({
   name: z.string().min(2).max(120),
@@ -13,22 +14,7 @@ const createSchema = z.object({
   citySlug: z.string().min(1),
   capacity: z.number().int().min(1).max(100000).optional(),
   description: z.string().max(500).optional(),
-  seatPlan: z
-    .object({
-      layout: z.enum(['general', 'sections']),
-      rows: z.number().int().min(1).max(200).optional(),
-      seatsPerRow: z.number().int().min(1).max(500).optional(),
-      sections: z
-        .array(
-          z.object({
-            name: z.string().min(1).max(80),
-            capacity: z.number().int().min(1)
-          })
-        )
-        .optional(),
-      notes: z.string().max(300).optional()
-    })
-    .optional()
+  seatPlan: seatPlanSchema.optional()
 });
 
 export async function GET() {

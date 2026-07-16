@@ -123,6 +123,7 @@ export async function getCheckoutTicketTypes(eventSlug: string) {
           currency: true,
           capacity: true,
           sold: true,
+          seatsPerUnit: true,
           showLowStockBadge: true
         }
       }
@@ -421,19 +422,25 @@ async function issueTickets(
   });
   if (!ticketType) throw new Error('Bilet türü bulunamadı');
 
+  const units = Math.max(1, params.quantity);
+  const seatsPerUnit = Math.max(1, ticketType.seatsPerUnit || 1);
+  const qrCount = units * seatsPerUnit;
+
   const reserved = await tx.ticketType.updateMany({
     where: {
       id: params.ticketTypeId,
-      sold: { lte: ticketType.capacity - params.quantity }
+      sold: { lte: ticketType.capacity - units }
     },
-    data: { sold: { increment: params.quantity } }
+    data: { sold: { increment: units } }
   });
   if (reserved.count === 0) {
     throw new Error('Yeterli bilet kalmadı');
   }
 
-  for (let i = 0; i < params.quantity; i++) {
+  for (let i = 0; i < qrCount; i++) {
     const ticketId = newTicketId();
+    const seatLabel =
+      seatsPerUnit > 1 ? ` (${i + 1}/${qrCount})` : '';
     await tx.purchasedTicket.create({
       data: {
         id: ticketId,
@@ -444,7 +451,9 @@ async function issueTickets(
         ticketCode: generateTicketCode(),
         validationToken: generateValidationToken(ticketId, params.eventId),
         status: 'VALID',
-        attendeeName: params.attendeeName ?? null,
+        attendeeName: params.attendeeName
+          ? `${params.attendeeName}${seatLabel}`
+          : null,
         attendeeEmail: params.attendeeEmail ?? null,
         attendeePhone: params.attendeePhone ?? null
       }

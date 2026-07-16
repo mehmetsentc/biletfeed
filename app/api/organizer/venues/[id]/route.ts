@@ -3,28 +3,14 @@ import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { requireOrganizerApi } from '@/lib/auth/organizer-route';
 import { updateOrganizerVenue } from '@/lib/services/organizer-panel';
+import { seatPlanSchema } from '@/lib/api/seat-plan-schema';
 
 const patchSchema = z.object({
   name: z.string().min(2).max(120).optional(),
   address: z.string().min(2).max(300).optional(),
   capacity: z.number().int().min(1).max(100000).optional(),
   description: z.string().max(500).optional(),
-  seatPlan: z
-    .object({
-      layout: z.enum(['general', 'sections']),
-      rows: z.number().int().min(1).max(200).optional(),
-      seatsPerRow: z.number().int().min(1).max(500).optional(),
-      sections: z
-        .array(
-          z.object({
-            name: z.string().min(1).max(80),
-            capacity: z.number().int().min(1)
-          })
-        )
-        .optional(),
-      notes: z.string().max(300).optional()
-    })
-    .optional()
+  seatPlan: seatPlanSchema.optional()
 });
 
 export async function PATCH(

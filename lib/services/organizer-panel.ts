@@ -2,11 +2,27 @@ import type { Prisma } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { uniqueSlug } from '@/lib/utils/slug';
 
+export type SeatPlanUnit = {
+  id: string;
+  label: string;
+  ticketTypeHint?: string;
+};
+
+export type SeatPlanZone = {
+  code: string;
+  label: string;
+  seatsPerUnit: number;
+  color?: string;
+  units: SeatPlanUnit[];
+};
+
 export type SeatPlan = {
-  layout: 'general' | 'sections';
+  layout: 'general' | 'sections' | 'tables';
   rows?: number;
   seatsPerRow?: number;
   sections?: Array<{ name: string; capacity: number }>;
+  zones?: SeatPlanZone[];
+  mapImageUrl?: string;
   notes?: string;
 };
 

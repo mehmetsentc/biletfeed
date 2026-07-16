@@ -242,9 +242,7 @@ export async function createEventInvitation(params: {
 
   const guest = await findOrCreateGuestUser(params.guestName, params.guestEmail);
   const inviteToken = createInviteToken();
-  const ticketId = newTicketId();
-  const ticketCode = generateTicketCode();
-  const validationToken = generateValidationToken(ticketId, params.eventId);
+  const seatsPerUnit = Math.max(1, ticketType.seatsPerUnit || 1);
 
   const { invitation } = await prisma.$transaction(async (tx) => {
     // Atomik rezervasyon — her oluşturmada full count yapmak timeout üretir
@@ -293,26 +291,32 @@ export async function createEventInvitation(params: {
       }
     });
 
-    await tx.purchasedTicket.create({
-      data: {
-        id: ticketId,
-        orderId: order.id,
-        ticketTypeId: params.ticketTypeId,
-        userId: guest.id,
-        eventId: params.eventId,
-        ticketCode,
-        validationToken,
-        status: 'VALID',
-        attendeeName: params.guestName.trim(),
-        attendeeEmail: params.guestEmail?.trim() || null
-      }
-    });
+    let primaryTicketId = '';
+    for (let i = 0; i < seatsPerUnit; i++) {
+      const ticketId = newTicketId();
+      if (i === 0) primaryTicketId = ticketId;
+      const seatLabel = seatsPerUnit > 1 ? ` (${i + 1}/${seatsPerUnit})` : '';
+      await tx.purchasedTicket.create({
+        data: {
+          id: ticketId,
+          orderId: order.id,
+          ticketTypeId: params.ticketTypeId,
+          userId: guest.id,
+          eventId: params.eventId,
+          ticketCode: generateTicketCode(),
+          validationToken: generateValidationToken(ticketId, params.eventId),
+          status: 'VALID',
+          attendeeName: `${params.guestName.trim()}${seatLabel}`,
+          attendeeEmail: params.guestEmail?.trim() || null
+        }
+      });
+    }
 
     const createdInvitation = await tx.eventInvitation.create({
       data: {
         eventId: params.eventId,
         organizerId: params.organizerId,
-        purchasedTicketId: ticketId,
+        purchasedTicketId: primaryTicketId,
         ticketTypeId: params.ticketTypeId,
         guestName: params.guestName.trim(),
         guestEmail: params.guestEmail?.trim() || null,

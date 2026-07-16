@@ -14,6 +14,8 @@ export interface TicketCategoryInput {
   description?: string;
   price: number;
   capacity: number;
+  /** Tek satın alımda QR / kişi sayısı (masa/loca) */
+  seatsPerUnit?: number;
   showLowStockBadge?: boolean;
 }
 
@@ -189,6 +191,7 @@ async function createEventRecord(
                 quantity: cat.capacity,
                 sold: 0,
                 capacity: cat.capacity,
+                seatsPerUnit: Math.max(1, cat.seatsPerUnit ?? 1),
                 saleStartDate: now,
                 saleEndDate: params.startDate,
                 status: 'active' as const,
@@ -460,6 +463,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
               price,
               capacity: cat.capacity,
               quantity: cat.capacity,
+              seatsPerUnit: Math.max(1, cat.seatsPerUnit ?? 1),
               type: index === 0 ? 'general' : 'vip',
               showLowStockBadge: cat.showLowStockBadge ?? false
             }
@@ -477,6 +481,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
               quantity: cat.capacity,
               sold: 0,
               capacity: cat.capacity,
+              seatsPerUnit: Math.max(1, cat.seatsPerUnit ?? 1),
               saleStartDate: now,
               saleEndDate: input.endDate ?? event.endDate,
               status: 'active',

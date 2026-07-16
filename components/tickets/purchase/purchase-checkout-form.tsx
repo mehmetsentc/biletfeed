@@ -365,8 +365,16 @@ export function PurchaseCheckoutForm({
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t.purchase.ticketTypeLabel}</span>
-              <span className="font-medium">{ticketType.name}</span>
+              <span className="font-medium text-right">{ticketType.name}</span>
             </div>
+            {(ticketType.seatsPerUnit ?? 1) > 1 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">QR / kişi</span>
+                <span className="font-medium">
+                  {(ticketType.seatsPerUnit ?? 1) * quantity} bilet
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">{t.purchase.quantity}</span>
               <span className="font-medium">{quantity}</span>

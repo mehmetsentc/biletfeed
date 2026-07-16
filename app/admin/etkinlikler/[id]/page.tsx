@@ -32,6 +32,7 @@ export default async function AdminEventEditPage({ params }: PageProps) {
         quantity: true,
         sold: true,
         capacity: true,
+        seatsPerUnit: true,
         status: true,
         _count: { select: { purchasedTickets: true } }
       }
@@ -44,6 +45,14 @@ export default async function AdminEventEditPage({ params }: PageProps) {
 
   const totalSold = ticketTypes.reduce((acc, t) => acc + t.sold, 0);
   const totalCapacity = ticketTypes.reduce((acc, t) => acc + t.capacity, 0);
+  const totalGuestCapacity = ticketTypes.reduce(
+    (acc, t) => acc + t.capacity * Math.max(1, t.seatsPerUnit || 1),
+    0
+  );
+  const totalGuestSold = ticketTypes.reduce(
+    (acc, t) => acc + t.sold * Math.max(1, t.seatsPerUnit || 1),
+    0
+  );
   const totalRevenue = ticketTypes.reduce((acc, t) => acc + t.sold * t.price, 0);
   const isCancelled = event.status === 'cancelled';
 
@@ -83,10 +92,13 @@ export default async function AdminEventEditPage({ params }: PageProps) {
             <div className="rounded-lg border bg-card p-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Ticket className="size-4" />
-                Toplam Satış
+                Birim satışı
               </div>
               <p className="mt-1 text-2xl font-bold">{totalSold.toLocaleString('tr-TR')}</p>
-              <p className="text-xs text-muted-foreground">/ {totalCapacity.toLocaleString('tr-TR')} kapasite</p>
+              <p className="text-xs text-muted-foreground">
+                / {totalCapacity.toLocaleString('tr-TR')} masa-loca · {totalGuestSold} /{' '}
+                {totalGuestCapacity} kişi (QR)
+              </p>
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -96,7 +108,9 @@ export default async function AdminEventEditPage({ params }: PageProps) {
               <p className="mt-1 text-2xl font-bold">
                 {totalCapacity > 0 ? Math.round((totalSold / totalCapacity) * 100) : 0}%
               </p>
-              <p className="text-xs text-muted-foreground">{totalCapacity - totalSold} koltuk boş</p>
+              <p className="text-xs text-muted-foreground">
+                {totalCapacity - totalSold} birim boş
+              </p>
             </div>
             <div className="rounded-lg border bg-card p-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -118,7 +132,8 @@ export default async function AdminEventEditPage({ params }: PageProps) {
                   <th className="p-3 font-medium">Bilet Türü</th>
                   <th className="p-3 font-medium">Kategori</th>
                   <th className="p-3 text-right font-medium">Fiyat</th>
-                  <th className="p-3 text-right font-medium">Kapasite</th>
+                  <th className="p-3 text-right font-medium">Stok</th>
+                  <th className="p-3 text-right font-medium">Kişi/QR</th>
                   <th className="p-3 text-right font-medium">Satılan</th>
                   <th className="p-3 text-right font-medium">Doluluk</th>
                   <th className="p-3 text-right font-medium">Gelir</th>
@@ -144,6 +159,9 @@ export default async function AdminEventEditPage({ params }: PageProps) {
                           tt.price.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                       </td>
                       <td className="p-3 text-right">{tt.capacity.toLocaleString('tr-TR')}</td>
+                      <td className="p-3 text-right font-medium">
+                        {Math.max(1, tt.seatsPerUnit || 1)}
+                      </td>
                       <td className="p-3 text-right font-medium">{tt.sold.toLocaleString('tr-TR')}</td>
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-2">

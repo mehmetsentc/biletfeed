@@ -27,25 +27,31 @@ export default async function TicketTierPage({ params }: Props) {
     redirect(ctx.event.externalUrl);
   }
 
-  const { event, ticketTypes } = ctx;
+  const { event, ticketTypes, seatPlan } = ctx;
 
-  if (ticketTypes.length === 1) {
+  if (ticketTypes.length === 1 && (!seatPlan || seatPlan.layout !== 'tables')) {
     redirect(`/etkinlik/${slug}/bilet/${ticketTypes[0].id}`);
   }
 
   return (
     <div className="min-h-screen bg-background pb-10">
       <PurchaseEventBar event={event} backHref={`/etkinlik/${slug}`} />
-      <div className="container mx-auto max-w-2xl px-4 py-6 md:py-8">
+      <div className="container mx-auto max-w-3xl px-4 py-6 md:py-8">
         <header className="mb-6 text-foreground">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
             Bilet Seçin
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Satın almak istediğiniz bilet türünü seçin.
+            {seatPlan?.layout === 'tables'
+              ? 'Haritadan masa veya loca seçin. Her birim, kişi sayısı kadar QR bilet üretir.'
+              : 'Satın almak istediğiniz bilet türünü seçin.'}
           </p>
         </header>
-        <TicketTierList eventSlug={slug} ticketTypes={ticketTypes} />
+        <TicketTierList
+          eventSlug={slug}
+          ticketTypes={ticketTypes}
+          seatPlan={seatPlan}
+        />
       </div>
     </div>
   );
