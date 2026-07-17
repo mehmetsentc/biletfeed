@@ -116,7 +116,18 @@ function QrCameraReaderInner({
       const activeScanner = scannerRef.current;
       scannerRef.current = null;
       if (activeScanner) {
-        void activeScanner.stop().catch(() => {});
+        // html5-qrcode's stop() throws synchronously (not a rejected promise)
+        // when the scanner isn't running yet — e.g. cleanup fires while start()
+        // is still in flight. Guard both the sync throw and the async rejection
+        // so it never escapes the effect cleanup and trips the app error boundary.
+        try {
+          const stopResult = activeScanner.stop();
+          if (stopResult && typeof stopResult.catch === 'function') {
+            stopResult.catch(() => {});
+          }
+        } catch {
+          // scanner wasn't running yet — nothing to stop
+        }
       }
     };
   }, [active]);
