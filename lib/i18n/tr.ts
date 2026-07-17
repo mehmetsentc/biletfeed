@@ -608,7 +608,7 @@ export const tr = {
     staffLoginSubtitle:
       'Organizatörün "Kodu kopyala" veya "Giriş linki" ile gönderdiği kodu yapıştırın. Aynı kodu 10 kişiye kadar paylaşabilirsiniz.',
     codeLabel: 'Kapı kodu',
-    codePlaceholder: 'Kodu buraya yapıştırın',
+    codePlaceholder: '10 haneli kodu girin (örn. 2PKYECT9GW)',
     submit: 'Giriş Yap',
     startScanning: 'Taramaya başla',
     submitting: 'Doğrulanıyor…',

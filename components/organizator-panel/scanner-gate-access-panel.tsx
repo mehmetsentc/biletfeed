@@ -78,8 +78,9 @@ export function ScannerGateAccessPanel({
   }, [loadCodes]);
 
   const activeCode = codes[0];
-  const gateLink = activeCode?.redeemCode
-    ? `${getGirisUrl('/')}?gate=${encodeURIComponent(activeCode.redeemCode)}`
+  const shareCode = activeCode?.pin ?? null;
+  const gateLink = shareCode
+    ? `${getGirisUrl('/')}?gate=${encodeURIComponent(shareCode)}`
     : null;
 
   useEffect(() => {
@@ -131,7 +132,7 @@ export function ScannerGateAccessPanel({
       }
 
       const redeemCode = data.redeemCode ?? data.code;
-      if (data.pin && redeemCode && data.expiresAt) {
+      if (data.pin && data.expiresAt) {
         setCodes((prev) => [
           {
             pin: data.pin!,
@@ -143,7 +144,7 @@ export function ScannerGateAccessPanel({
           },
           ...prev
         ]);
-        await copyText(redeemCode, 'code');
+        await copyText(data.pin!, 'code');
       } else {
         await loadCodes();
       }
@@ -263,6 +264,32 @@ export function ScannerGateAccessPanel({
               </span>
             </p>
           )}
+          {shareCode && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#0c1017] px-3 py-2.5">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-white/45">
+                  Kapı kodu
+                </p>
+                <p className="font-mono text-xl font-bold tracking-[0.2em] text-primary">
+                  {shareCode}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="shrink-0 border-white/20 bg-transparent text-white hover:bg-white/10"
+                onClick={() => void copyText(shareCode, 'code')}
+              >
+                <Copy className="mr-1.5 size-4" />
+                {copied === 'code' ? 'Kopyalandı' : 'Kodu kopyala'}
+              </Button>
+            </div>
+          )}
+          <p className="text-[11px] text-white/45">
+            Görevli <span className="text-primary">giris.biletfeed.com</span> adresine
+            bu 10 haneli kodu girer ya da giriş linkini/QR'ı kullanır.
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -283,18 +310,6 @@ export function ScannerGateAccessPanel({
               >
                 <Link2 className="mr-1.5 size-4" />
                 {copied === 'link' ? 'Kopyalandı' : 'Giriş linki'}
-              </Button>
-            )}
-            {activeCode.redeemCode && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="border-white/20 bg-transparent text-white hover:bg-white/10"
-                onClick={() => void copyText(activeCode.redeemCode!, 'code')}
-              >
-                <Copy className="mr-1.5 size-4" />
-                {copied === 'code' ? 'Kopyalandı' : 'Kodu kopyala'}
               </Button>
             )}
           </div>

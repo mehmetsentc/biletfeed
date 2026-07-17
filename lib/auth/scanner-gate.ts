@@ -1,16 +1,22 @@
 import { randomInt } from 'crypto';
 import type { UserRole } from '@/types';
 import { buildSessionCookie, SESSION_EXPIRES_MS } from '@/lib/auth/session';
-import {
-  buildSignedSessionToken,
-  verifySignedSessionToken
-} from '@/lib/auth/session-crypto';
+import { verifySignedSessionToken } from '@/lib/auth/session-crypto';
 import { getRedisClient } from '@/lib/redis';
+import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 export const SCANNER_GATE_MAX_ACTIVE_CODES = 10;
 export const SCANNER_GATE_CODE_TTL_SEC = 72 * 60 * 60;
 
+/** Karışıklığa yol açan karakterler (0/O, 1/I) hariç, paylaşılabilir kısa kod alfabesi */
 const GATE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+/** Yeni kapı kodlarının uzunluğu (paylaşılabilir, elle girilebilir) */
+export const SCANNER_GATE_SHORT_CODE_LENGTH = 10;
+
+/** Kısa kod eşleşme deseni — 6-12 karakter, DB kodları + eski 8'li id'ler */
+const SHORT_CODE_PATTERN = /^[A-Z2-9]{6,12}$/;
+
+// ——— Geriye dönük uyumluluk: eski imzalı token payload'ları ———
 
 type GateCodePayloadV1 = {
   v: 1;
@@ -34,7 +40,6 @@ type GateCodePayloadV2 = {
   createdAt: string;
 };
 
-/** Etkinliğe özel kapı kodu — görevli yalnızca bu etkinliği tarayabilir */
 type GateCodePayloadV3 = {
   v: 3;
   g: string;
@@ -49,13 +54,15 @@ type GateCodePayloadV3 = {
 
 type GateCodePayload = GateCodePayloadV1 | GateCodePayloadV2 | GateCodePayloadV3;
 
-type MemoryGateEntry = {
-  payload: GateCodePayload;
-  expiresAt: number;
+/** Farklı kaynaklardan (DB / imzalı token / redis) çözümlenmiş ortak kapı bilgisi */
+type ResolvedGate = {
+  uid: string;
+  email: string;
+  role: UserRole;
+  organizerId: string;
+  eventId?: string;
+  exp: number;
 };
-
-const memoryCodes = new Map<string, MemoryGateEntry>();
-const memoryOrgCodes = new Map<string, Set<string>>();
 
 const VALID_ROLES = new Set<UserRole>([
   'ROLE_SUPER_ADMIN',
@@ -63,33 +70,6 @@ const VALID_ROLES = new Set<UserRole>([
   'ROLE_ORGANIZER',
   'ROLE_USER'
 ]);
-
-function codeKey(code: string): string {
-  return `bf:scanner-gate:code:${code}`;
-}
-
-function orgCodesKey(organizerId: string): string {
-  return `bf:scanner-gate:org:${organizerId}`;
-}
-
-function generateGateId(): string {
-  let code = '';
-  for (let i = 0; i < 8; i += 1) {
-    code += GATE_CODE_ALPHABET[randomInt(GATE_CODE_ALPHABET.length)];
-  }
-  return code;
-}
-
-function payloadGateId(payload: GateCodePayload): string {
-  if (payload.v === 2 || payload.v === 3) return payload.g;
-  return payload.pin;
-}
-
-function buildRedeemCode(payload: GateCodePayload): string {
-  const gateId = payloadGateId(payload);
-  const token = buildSignedSessionToken(payload as unknown as Record<string, unknown>);
-  return `${gateId}.${token}`;
-}
 
 function isValidRole(role: unknown): role is UserRole {
   return typeof role === 'string' && VALID_ROLES.has(role as UserRole);
@@ -99,227 +79,12 @@ function isPayloadExpired(exp: unknown): boolean {
   return typeof exp !== 'number' || Date.now() >= exp;
 }
 
-function normalizeGatePayload(parsed: Record<string, unknown>): GateCodePayload | null {
-  if (parsed.v === 3) {
-    const gateId = parsed.g;
-    const eventId = parsed.eventId;
-    if (typeof gateId !== 'string' || !/^[A-Z2-9]{8}$/i.test(gateId)) return null;
-    if (typeof eventId !== 'string' || !eventId.trim()) return null;
-    if (
-      !parsed.organizerId ||
-      !parsed.uid ||
-      !parsed.email ||
-      !isValidRole(parsed.role)
-    ) {
-      return null;
-    }
-    if (isPayloadExpired(parsed.exp)) return null;
-    return parsed as unknown as GateCodePayloadV3;
+function generateShortCode(length = SCANNER_GATE_SHORT_CODE_LENGTH): string {
+  let code = '';
+  for (let i = 0; i < length; i += 1) {
+    code += GATE_CODE_ALPHABET[randomInt(GATE_CODE_ALPHABET.length)];
   }
-
-  if (parsed.v === 2) {
-    const gateId = parsed.g;
-    if (typeof gateId !== 'string' || !/^[A-Z2-9]{8}$/i.test(gateId)) return null;
-    if (
-      !parsed.organizerId ||
-      !parsed.uid ||
-      !parsed.email ||
-      !isValidRole(parsed.role)
-    ) {
-      return null;
-    }
-    if (isPayloadExpired(parsed.exp)) return null;
-    return parsed as unknown as GateCodePayloadV2;
-  }
-
-  if (parsed.v === 1) {
-    const pin = parsed.pin;
-    if (typeof pin !== 'string' || !/^\d{6}$/.test(pin)) return null;
-    if (
-      !parsed.organizerId ||
-      !parsed.uid ||
-      !parsed.email ||
-      !isValidRole(parsed.role)
-    ) {
-      return null;
-    }
-    if (isPayloadExpired(parsed.exp)) return null;
-    return parsed as unknown as GateCodePayloadV1;
-  }
-
-  return null;
-}
-
-function parseSignedRedeemCode(input: string): GateCodePayload | null {
-  const trimmed = input.trim();
-  const match = trimmed.match(/^([A-Z2-9]{8}|\d{6})\.(.+)$/i);
-  if (!match) return null;
-
-  const [, gateId, token] = match;
-  const parsed = verifySignedSessionToken(token);
-  if (!parsed) return null;
-
-  const payload = normalizeGatePayload(parsed);
-  if (!payload) return null;
-
-  const expectedId = payloadGateId(payload);
-  if (expectedId.toUpperCase() !== gateId.toUpperCase()) return null;
-
-  return payload;
-}
-
-function pruneMemoryOrgCodes(organizerId: string): void {
-  const codes = memoryOrgCodes.get(organizerId);
-  if (!codes) return;
-  const now = Date.now();
-  for (const code of codes) {
-    const entry = memoryCodes.get(code);
-    if (!entry || entry.expiresAt <= now) {
-      codes.delete(code);
-      memoryCodes.delete(code);
-    }
-  }
-}
-
-async function storeGateCodeLegacy(
-  organizerId: string,
-  gateId: string,
-  payload: GateCodePayload
-): Promise<void> {
-  const redis = getRedisClient();
-  const serialized = JSON.stringify(payload);
-
-  if (redis) {
-    await redis.set(codeKey(gateId), serialized, { ex: SCANNER_GATE_CODE_TTL_SEC });
-    await redis.sadd(orgCodesKey(organizerId), gateId);
-    await redis.expire(orgCodesKey(organizerId), SCANNER_GATE_CODE_TTL_SEC);
-    return;
-  }
-
-  memoryCodes.set(gateId, {
-    payload,
-    expiresAt: payload.exp
-  });
-  const orgSet = memoryOrgCodes.get(organizerId) ?? new Set<string>();
-  orgSet.add(gateId);
-  memoryOrgCodes.set(organizerId, orgSet);
-}
-
-async function readLegacyGateId(gateId: string): Promise<GateCodePayload | null> {
-  const normalized = gateId.trim().toUpperCase();
-  if (!/^[A-Z2-9]{8}$/.test(normalized)) return null;
-
-  const redis = getRedisClient();
-  if (redis) {
-    const raw = await redis.get<string>(codeKey(normalized));
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      return normalizeGatePayload(parsed);
-    } catch {
-      return null;
-    }
-  }
-
-  const entry = memoryCodes.get(normalized);
-  if (!entry || entry.expiresAt <= Date.now()) {
-    memoryCodes.delete(normalized);
-    return null;
-  }
-  return entry.payload;
-}
-
-async function readLegacyPin(pin: string): Promise<GateCodePayload | null> {
-  if (!/^\d{6}$/.test(pin)) return null;
-
-  const redis = getRedisClient();
-  if (redis) {
-    const raw = await redis.get<string>(codeKey(pin));
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      return normalizeGatePayload(parsed);
-    } catch {
-      return null;
-    }
-  }
-
-  const entry = memoryCodes.get(pin);
-  if (!entry || entry.expiresAt <= Date.now()) {
-    memoryCodes.delete(pin);
-    return null;
-  }
-  return entry.payload;
-}
-
-type ValidGateEntry = { gateId: string; payload: GateCodePayload };
-
-async function loadValidGateEntries(organizerId: string): Promise<ValidGateEntry[]> {
-  const redis = getRedisClient();
-  if (redis) {
-    const codes = await redis.smembers<string[]>(orgCodesKey(organizerId));
-    if (!codes?.length) return [];
-
-    const valid: ValidGateEntry[] = [];
-    for (const gateId of codes) {
-      const raw = await redis.get<string>(codeKey(gateId));
-      if (!raw) {
-        await redis.srem(orgCodesKey(organizerId), gateId);
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(raw) as Record<string, unknown>;
-        const payload = normalizeGatePayload(parsed);
-        if (!payload) {
-          await redis.del(codeKey(gateId));
-          await redis.srem(orgCodesKey(organizerId), gateId);
-          continue;
-        }
-        valid.push({ gateId, payload });
-      } catch {
-        await redis.del(codeKey(gateId));
-        await redis.srem(orgCodesKey(organizerId), gateId);
-      }
-    }
-    return valid;
-  }
-
-  pruneMemoryOrgCodes(organizerId);
-  const codes = memoryOrgCodes.get(organizerId);
-  if (!codes) return [];
-
-  const valid: ValidGateEntry[] = [];
-  for (const gateId of codes) {
-    const entry = memoryCodes.get(gateId);
-    if (!entry || entry.expiresAt <= Date.now()) {
-      codes.delete(gateId);
-      memoryCodes.delete(gateId);
-      continue;
-    }
-    valid.push({ gateId, payload: entry.payload });
-  }
-  return valid;
-}
-
-async function countActiveGateCodes(organizerId: string): Promise<number> {
-  const valid = await loadValidGateEntries(organizerId);
-  return valid.length;
-}
-
-/** Remove expired or orphaned entries from the org gate-code set (Redis or memory). */
-export async function pruneStaleScannerGateCodes(
-  organizerId: string
-): Promise<{ removed: number; remaining: number }> {
-  const redis = getRedisClient();
-  if (redis) {
-    const before = (await redis.smembers<string[]>(orgCodesKey(organizerId)))?.length ?? 0;
-    const valid = await loadValidGateEntries(organizerId);
-    return { removed: before - valid.length, remaining: valid.length };
-  }
-
-  const before = memoryOrgCodes.get(organizerId)?.size ?? 0;
-  const valid = await loadValidGateEntries(organizerId);
-  return { removed: before - valid.length, remaining: valid.length };
+  return code;
 }
 
 export function normalizeScannerGateInput(input: string): string {
@@ -336,8 +101,10 @@ export function isSixDigitGateInput(input: string): boolean {
 }
 
 export function isShortGateIdInput(input: string): boolean {
-  return /^[A-Z2-9]{8}$/i.test(normalizeScannerGateInput(input));
+  return SHORT_CODE_PATTERN.test(normalizeScannerGateInput(input).toUpperCase());
 }
+
+// ——— Kapı kodu oluşturma / listeleme / temizleme (DB birincil kaynak) ———
 
 export async function createScannerGateCode(params: {
   organizerId: string;
@@ -346,58 +113,51 @@ export async function createScannerGateCode(params: {
   email: string;
   role: UserRole;
 }): Promise<{ pin: string; redeemCode: string; expiresAt: Date; eventId: string }> {
-  const exp = Date.now() + SCANNER_GATE_CODE_TTL_SEC * 1000;
-  let gateId = generateGateId();
+  await ensureDbConnection();
 
-  const payload: GateCodePayloadV3 = {
-    v: 3,
-    g: gateId,
-    organizerId: params.organizerId,
-    eventId: params.eventId,
-    uid: params.uid,
-    email: params.email,
-    role: params.role,
-    exp,
-    createdAt: new Date().toISOString()
-  };
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + SCANNER_GATE_CODE_TTL_SEC * 1000);
 
-  let redeemCode = buildRedeemCode(payload);
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    if (parseSignedRedeemCode(redeemCode)) break;
-    gateId = generateGateId();
-    payload.g = gateId;
-    redeemCode = buildRedeemCode(payload);
+  // Süresi dolmuş kodları temizle
+  await prisma.scannerGateCode.deleteMany({
+    where: { organizerId: params.organizerId, expiresAt: { lt: now } }
+  });
+
+  const active = await prisma.scannerGateCode.count({
+    where: { organizerId: params.organizerId, expiresAt: { gte: now } }
+  });
+  if (active >= SCANNER_GATE_MAX_ACTIVE_CODES) {
+    throw new Error(
+      `En fazla ${SCANNER_GATE_MAX_ACTIVE_CODES} aktif kapı kodu olabilir. Eski kodları temizleyin.`
+    );
   }
 
-  if (!parseSignedRedeemCode(redeemCode)) {
-    throw new Error('Kapı kodu oluşturulamadı. Tekrar deneyin.');
-  }
-
-  const redis = getRedisClient();
-  if (redis) {
-    await pruneStaleScannerGateCodes(params.organizerId);
-    const active = await countActiveGateCodes(params.organizerId);
-    if (active < SCANNER_GATE_MAX_ACTIVE_CODES) {
-      await storeGateCodeLegacy(params.organizerId, gateId, payload);
-    }
-  } else {
-    pruneMemoryOrgCodes(params.organizerId);
-    const active = memoryOrgCodes.get(params.organizerId)?.size ?? 0;
-    if (active < SCANNER_GATE_MAX_ACTIVE_CODES) {
-      await storeGateCodeLegacy(params.organizerId, gateId, payload);
+  let code = generateShortCode();
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const exists = await prisma.scannerGateCode.findUnique({
+      where: { code },
+      select: { id: true }
+    });
+    if (!exists) break;
+    code = generateShortCode();
+    if (attempt === 5) {
+      throw new Error('Kapı kodu oluşturulamadı. Tekrar deneyin.');
     }
   }
 
-  return {
-    pin: gateId,
-    redeemCode,
-    expiresAt: new Date(exp),
-    eventId: params.eventId
-  };
-}
+  await prisma.scannerGateCode.create({
+    data: {
+      code,
+      organizerId: params.organizerId,
+      eventId: params.eventId,
+      uid: params.uid,
+      email: params.email,
+      role: params.role,
+      expiresAt
+    }
+  });
 
-export function gateEventIdFromPayload(payload: GateCodePayload): string | undefined {
-  return payload.v === 3 ? payload.eventId : undefined;
+  return { pin: code, redeemCode: code, expiresAt, eventId: params.eventId };
 }
 
 export async function listScannerGateCodes(organizerId: string): Promise<
@@ -409,16 +169,145 @@ export async function listScannerGateCodes(organizerId: string): Promise<
     eventId?: string;
   }>
 > {
-  const valid = await loadValidGateEntries(organizerId);
-  return valid
-    .map(({ payload }) => ({
-      pin: payloadGateId(payload),
-      redeemCode: buildRedeemCode(payload),
-      createdAt: payload.createdAt,
-      expiresAt: new Date(payload.exp),
-      eventId: gateEventIdFromPayload(payload)
-    }))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  await ensureDbConnection();
+  const rows = await prisma.scannerGateCode.findMany({
+    where: { organizerId, expiresAt: { gte: new Date() } },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  return rows.map((row) => ({
+    pin: row.code,
+    redeemCode: row.code,
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt,
+    eventId: row.eventId
+  }));
+}
+
+export async function pruneStaleScannerGateCodes(
+  organizerId: string
+): Promise<{ removed: number; remaining: number }> {
+  await ensureDbConnection();
+  const now = new Date();
+  const before = await prisma.scannerGateCode.count({ where: { organizerId } });
+  await prisma.scannerGateCode.deleteMany({
+    where: { organizerId, expiresAt: { lt: now } }
+  });
+  const remaining = await prisma.scannerGateCode.count({ where: { organizerId } });
+  return { removed: before - remaining, remaining };
+}
+
+// ——— Kod çözümleme (giriş) ———
+
+async function resolveDbGateCode(code: string): Promise<ResolvedGate | null> {
+  const normalized = code.trim().toUpperCase();
+  if (!SHORT_CODE_PATTERN.test(normalized)) return null;
+
+  await ensureDbConnection();
+  const row = await prisma.scannerGateCode.findUnique({
+    where: { code: normalized }
+  });
+  if (!row) return null;
+  if (row.expiresAt.getTime() <= Date.now()) {
+    await prisma.scannerGateCode
+      .delete({ where: { id: row.id } })
+      .catch(() => undefined);
+    return null;
+  }
+  if (!isValidRole(row.role)) return null;
+
+  return {
+    uid: row.uid,
+    email: row.email,
+    role: row.role,
+    organizerId: row.organizerId,
+    eventId: row.eventId,
+    exp: row.expiresAt.getTime()
+  };
+}
+
+function payloadToResolved(payload: GateCodePayload): ResolvedGate {
+  return {
+    uid: payload.uid,
+    email: payload.email,
+    role: payload.role,
+    organizerId: payload.organizerId,
+    eventId: payload.v === 3 ? payload.eventId : undefined,
+    exp: payload.exp
+  };
+}
+
+function normalizeGatePayload(parsed: Record<string, unknown>): GateCodePayload | null {
+  if (parsed.v === 3) {
+    const gateId = parsed.g;
+    const eventId = parsed.eventId;
+    if (typeof gateId !== 'string' || !SHORT_CODE_PATTERN.test(gateId.toUpperCase())) {
+      return null;
+    }
+    if (typeof eventId !== 'string' || !eventId.trim()) return null;
+    if (!parsed.organizerId || !parsed.uid || !parsed.email || !isValidRole(parsed.role)) {
+      return null;
+    }
+    if (isPayloadExpired(parsed.exp)) return null;
+    return parsed as unknown as GateCodePayloadV3;
+  }
+
+  if (parsed.v === 2) {
+    const gateId = parsed.g;
+    if (typeof gateId !== 'string' || !SHORT_CODE_PATTERN.test(gateId.toUpperCase())) {
+      return null;
+    }
+    if (!parsed.organizerId || !parsed.uid || !parsed.email || !isValidRole(parsed.role)) {
+      return null;
+    }
+    if (isPayloadExpired(parsed.exp)) return null;
+    return parsed as unknown as GateCodePayloadV2;
+  }
+
+  if (parsed.v === 1) {
+    const pin = parsed.pin;
+    if (typeof pin !== 'string' || !/^\d{6}$/.test(pin)) return null;
+    if (!parsed.organizerId || !parsed.uid || !parsed.email || !isValidRole(parsed.role)) {
+      return null;
+    }
+    if (isPayloadExpired(parsed.exp)) return null;
+    return parsed as unknown as GateCodePayloadV1;
+  }
+
+  return null;
+}
+
+/** Eski dağıtılmış uzun linkler için imzalı token çözümleme (geriye dönük) */
+function parseSignedRedeemCode(input: string): GateCodePayload | null {
+  const trimmed = input.trim();
+  const match = trimmed.match(/^([A-Z2-9]{6,12}|\d{6})\.(.+)$/i);
+  if (!match) return null;
+
+  const [, gateId, token] = match;
+  const parsed = verifySignedSessionToken(token);
+  if (!parsed) return null;
+
+  const payload = normalizeGatePayload(parsed);
+  if (!payload) return null;
+
+  const expectedId = payload.v === 1 ? payload.pin : payload.g;
+  if (expectedId.toUpperCase() !== gateId.toUpperCase()) return null;
+
+  return payload;
+}
+
+/** Eski Redis/bellek tabanlı kapı kaydı (geriye dönük) */
+async function readLegacyRedisGate(codeOrPin: string): Promise<GateCodePayload | null> {
+  const redis = getRedisClient();
+  if (!redis) return null;
+  const raw = await redis.get<string>(`bf:scanner-gate:code:${codeOrPin}`);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return normalizeGatePayload(parsed);
+  } catch {
+    return null;
+  }
 }
 
 export async function redeemScannerGateCode(input: string): Promise<{
@@ -428,26 +317,37 @@ export async function redeemScannerGateCode(input: string): Promise<{
   eventId?: string;
   expiresAt: number;
 } | null> {
-  const trimmed = normalizeScannerGateInput(input);
-  const signed = parseSignedRedeemCode(trimmed);
-  const payload =
-    signed ??
-    (await readLegacyGateId(trimmed)) ??
-    (await readLegacyPin(trimmed.replace(/\D/g, '').slice(0, 6)));
-  if (!payload) return null;
+  const normalized = normalizeScannerGateInput(input);
+
+  let resolved = await resolveDbGateCode(normalized);
+
+  if (!resolved) {
+    const signed = parseSignedRedeemCode(normalized);
+    if (signed) resolved = payloadToResolved(signed);
+  }
+
+  if (!resolved) {
+    const upper = normalized.toUpperCase();
+    const legacy =
+      (await readLegacyRedisGate(upper)) ??
+      (await readLegacyRedisGate(normalized.replace(/\D/g, '').slice(0, 6)));
+    if (legacy) resolved = payloadToResolved(legacy);
+  }
+
+  if (!resolved) return null;
 
   const sessionCookie = buildSessionCookie(
-    payload.uid,
-    payload.email,
-    payload.role,
+    resolved.uid,
+    resolved.email,
+    resolved.role,
     SESSION_EXPIRES_MS
   );
 
   return {
     sessionCookie,
-    email: payload.email,
-    organizerId: payload.organizerId,
-    eventId: gateEventIdFromPayload(payload),
-    expiresAt: payload.exp
+    email: resolved.email,
+    organizerId: resolved.organizerId,
+    eventId: resolved.eventId,
+    expiresAt: resolved.exp
   };
 }
