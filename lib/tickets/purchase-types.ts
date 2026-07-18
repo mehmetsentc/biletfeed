@@ -15,7 +15,7 @@ export type CheckoutTicketType = {
 };
 
 /**
- * Wizard bazen açıklamayı `name — açıklama` olarak name alanına yazar.
+ * Eski kayıtlarda açıklama `name — açıklama` olarak name'e yazılmış olabilir.
  * Görüntüleme için kısa ad + açıklamayı ayırır.
  */
 export function splitTicketDisplay(

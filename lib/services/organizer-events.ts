@@ -19,6 +19,23 @@ export interface TicketCategoryInput {
   showLowStockBadge?: boolean;
 }
 
+/** Eski kayıtlarda `ad — açıklama` birleşik olabilir; alanları ayırır. */
+function normalizeTicketCategoryFields(cat: TicketCategoryInput): {
+  name: string;
+  description: string;
+} {
+  const sep = ' — ';
+  const rawName = cat.name.trim();
+  const idx = rawName.indexOf(sep);
+  const cleanName = (idx >= 0 ? rawName.slice(0, idx) : rawName).trim();
+  const fromName = idx >= 0 ? rawName.slice(idx + sep.length).trim() : '';
+  const fromField = cat.description?.trim() ?? '';
+  return {
+    name: cleanName || rawName,
+    description: fromField || fromName
+  };
+}
+
 export interface CreateOrganizerEventInput extends OrganizerEventExtras {
   organizerId: string;
   title: string;
@@ -181,10 +198,10 @@ async function createEventRecord(
       ticketTypes: {
         create: (params.ticketCategories && params.ticketCategories.length > 0
           ? params.ticketCategories.map((cat, i) => {
-              const desc = cat.description?.trim();
-              const displayName = desc ? `${cat.name} — ${desc}` : cat.name;
+              const { name, description } = normalizeTicketCategoryFields(cat);
               return {
-                name: displayName,
+                name,
+                description,
                 type: i === 0 ? ('general' as const) : ('vip' as const),
                 price: params.isFree ? 0 : cat.price,
                 currency: 'TRY',
@@ -440,9 +457,8 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
       const keptIds = new Set<string>();
 
       for (const [index, cat] of input.ticketCategories.entries()) {
-        const displayName = cat.description?.trim()
-          ? `${cat.name} — ${cat.description.trim()}`
-          : cat.name;
+        const { name: ticketName, description: ticketDescription } =
+          normalizeTicketCategoryFields(cat);
         const price = input.isFree ?? event.isFree ? 0 : cat.price;
 
         if (cat.id) {
@@ -451,15 +467,15 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
 
           if (cat.capacity < existing.sold) {
             throw new Error(
-              `"${cat.name}" kontenjanı satılan bilet sayısından (${existing.sold}) az olamaz`
+              `"${ticketName}" kontenjanı satılan bilet sayısından (${existing.sold}) az olamaz`
             );
           }
 
           await tx.ticketType.update({
             where: { id: cat.id },
             data: {
-              name: displayName,
-              description: cat.description?.trim() || '',
+              name: ticketName,
+              description: ticketDescription,
               price,
               capacity: cat.capacity,
               quantity: cat.capacity,
@@ -473,8 +489,8 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
           const created = await tx.ticketType.create({
             data: {
               eventId: input.eventId,
-              name: displayName,
-              description: cat.description?.trim() || '',
+              name: ticketName,
+              description: ticketDescription,
               type: index === 0 ? 'general' : 'vip',
               price,
               currency: 'TRY',

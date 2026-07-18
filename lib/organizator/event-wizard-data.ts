@@ -78,23 +78,20 @@ function toLocalDateParts(value: Date | string): { date: string; time: string } 
   };
 }
 
+/** Eski kayıtlarda `ad — açıklama` birleşik olabilir; alanları ayırır. */
 function splitTicketLabel(
   name: string,
   description: string | null | undefined
 ): { name: string; description: string } {
-  const desc = description ?? '';
-  if (desc.trim()) {
-    return { name, description: desc };
-  }
   const sep = ' — ';
   const idx = name.indexOf(sep);
-  if (idx >= 0) {
-    return {
-      name: name.slice(0, idx),
-      description: name.slice(idx + sep.length)
-    };
-  }
-  return { name, description: '' };
+  const cleanName = (idx >= 0 ? name.slice(0, idx) : name).trim();
+  const fromName = idx >= 0 ? name.slice(idx + sep.length).trim() : '';
+  const fromField = description?.trim() ?? '';
+  return {
+    name: cleanName || name.trim(),
+    description: fromField || fromName
+  };
 }
 
 export function mapEventToWizardInitialData(
