@@ -30,6 +30,7 @@ import {
   type AdminPermission
 } from '@/lib/auth/admin-permissions';
 import { useTranslations } from '@/components/providers';
+import { adminHref } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
 type AdminLink = {
@@ -57,12 +58,12 @@ function AdminNavLinks({
         return (
           <Link
             key={link.href}
-            href={link.href}
+            href={adminHref(link.href)}
             onClick={onNavigate}
             className={cn(
               'flex min-h-11 items-center gap-3 rounded-[var(--radius-button)] px-3 py-2.5 text-sm font-semibold transition-colors duration-[var(--duration-fast)]',
               active
-                ? 'bg-[var(--admin-sidebar-active)] text-[var(--bf-text)] shadow-[var(--shadow-sm)]'
+                ? 'bg-[var(--admin-sidebar-active)] text-[var(--bf-neon-on)] shadow-[var(--shadow-sm)]'
                 : 'hover:bg-[var(--admin-sidebar-hover)]'
             )}
             style={active ? undefined : { color: 'var(--admin-sidebar-fg)' }}
@@ -144,7 +145,7 @@ export function AdminShell({
           className="flex h-16 items-center border-b px-6"
           style={{ borderColor: 'var(--admin-sidebar-border)' }}
         >
-          <Logo href="/admin" variant="on-dark" className="max-w-[150px]" />
+          <Logo href={adminHref('/')} variant="on-dark" className="max-w-[150px]" />
         </div>
         <AdminNavLinks links={visibleLinks} pathname={pathname} />
       </aside>
@@ -160,7 +161,7 @@ export function AdminShell({
           className="flex h-16 items-center justify-between border-b px-4"
           style={{ borderColor: 'var(--admin-sidebar-border)' }}
         >
-          <Logo href="/admin" variant="on-dark" className="max-w-[130px]" />
+          <Logo href={adminHref('/')} variant="on-dark" className="max-w-[130px]" />
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
@@ -197,7 +198,7 @@ export function AdminShell({
             <Menu className="size-5" />
           </button>
           <div className="lg:hidden">
-            <Logo href="/admin" variant="auto" className="max-w-[120px]" />
+            <Logo href={adminHref('/')} variant="auto" className="max-w-[120px]" />
           </div>
           <div className="ml-auto">
             <ProfileDropdown />
