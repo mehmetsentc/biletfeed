@@ -91,8 +91,8 @@ export function EventPurchaseCard({
           {purchasable ? (
             <Button
               size="lg"
-              className="h-14 w-full gap-2 rounded-xl text-base font-bold text-white hover:opacity-95"
-              style={{ backgroundColor: theme.accent }}
+              className="h-14 w-full gap-2 rounded-xl text-base font-bold hover:opacity-95"
+              style={{ backgroundColor: theme.accent, color: theme.accentForeground }}
               asChild
             >
               {external ? (

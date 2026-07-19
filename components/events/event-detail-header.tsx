@@ -41,6 +41,7 @@ export async function EventDetailHeader({
       style={
         {
           '--event-accent': theme.accent,
+          '--event-accent-foreground': theme.accentForeground,
           '--event-accent-soft': theme.accentSoft
         } as React.CSSProperties
       }
@@ -63,8 +64,8 @@ export async function EventDetailHeader({
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
-                    className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
-                    style={{ backgroundColor: theme.accent }}
+                    className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide"
+                    style={{ backgroundColor: theme.accent, color: theme.accentForeground }}
                   >
                     {theme.label}
                   </span>
@@ -159,8 +160,11 @@ function InfoRow({
       )}
     >
       <span
-        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg text-white"
-        style={{ backgroundColor: 'var(--event-accent)' }}
+        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
+        style={{
+          backgroundColor: 'var(--event-accent)',
+          color: 'var(--event-accent-foreground)'
+        }}
       >
         <Icon className="size-4" strokeWidth={2} />
       </span>

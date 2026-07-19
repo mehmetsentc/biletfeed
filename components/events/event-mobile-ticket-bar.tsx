@@ -54,8 +54,8 @@ export function EventMobileTicketBar({
         {purchasable ? (
           <Button
             size="lg"
-            className="h-12 shrink-0 gap-2 rounded-xl px-5 text-sm font-bold text-white hover:opacity-95"
-            style={{ backgroundColor: theme.accent }}
+            className="h-12 shrink-0 gap-2 rounded-xl px-5 text-sm font-bold hover:opacity-95"
+            style={{ backgroundColor: theme.accent, color: theme.accentForeground }}
             asChild
           >
             {external ? (
