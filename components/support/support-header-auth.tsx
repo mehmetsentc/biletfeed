@@ -80,7 +80,7 @@ export function SupportHeaderAuth({
       <Link
         href={accountSiteHref('/profil/destek')}
         className={cn(
-          'rounded-lg border border-[var(--bf-orange-border)] bg-[var(--bf-orange-surface)] px-4 py-2 text-sm font-semibold text-[#c78600] transition-colors hover:bg-[var(--bf-orange-soft)]',
+          'rounded-lg border border-zinc-200 bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-700 transition-colors hover:border-[var(--bf-orange-border)] hover:bg-[var(--bf-orange-soft)] hover:text-[var(--bf-neon-pressed)]',
           className
         )}
       >

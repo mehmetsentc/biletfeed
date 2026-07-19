@@ -14,7 +14,7 @@ export async function SupportContactPage() {
       <div>
         <Link
           href={supportHref('/')}
-          className="text-sm font-medium text-[var(--bf-accent-ink)] hover:underline"
+          className="text-sm font-medium text-zinc-700 hover:text-[var(--bf-neon-pressed)] hover:underline"
         >
           ← Destek merkezi
         </Link>
@@ -39,8 +39,8 @@ export async function SupportContactPage() {
             { icon: MapPin, label: 'Adres', value: platformContact.address }
           ].map((item) => (
             <div key={item.label} className="flex items-start gap-4">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                <item.icon className="size-5 text-[var(--bf-accent-ink)]" />
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100">
+                <item.icon className="size-5 text-zinc-700" />
               </div>
               <div>
                 <p className="text-sm font-medium text-zinc-900">{item.label}</p>
@@ -55,7 +55,7 @@ export async function SupportContactPage() {
           </div>
           <a
             href={`mailto:${companyLegal.email}?subject=Destek%20Talebi`}
-            className="block text-center text-sm font-medium text-[var(--bf-accent-ink)] hover:underline"
+            className="block text-center text-sm font-medium text-zinc-700 hover:text-[var(--bf-neon-pressed)] hover:underline"
           >
             E-posta ile yazın →
           </a>
