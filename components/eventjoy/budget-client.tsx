@@ -43,7 +43,7 @@ export function BudgetClient({
       </div>
 
       <div className="px-4">
-        <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+        <span className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--bf-accent-ink)]">
           <Plus className="size-4" />
           Bütçe Kalemi Ekle
         </span>

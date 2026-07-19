@@ -26,7 +26,7 @@ export function BfCheckoutSteps({ current, className }: BfCheckoutStepsProps) {
                 className={cn(
                   'flex size-8 items-center justify-center rounded-full text-xs font-bold transition-colors',
                   done && 'bg-primary text-primary-foreground',
-                  active && 'bg-primary/15 text-primary ring-2 ring-primary',
+                  active && 'bg-primary/15 text-[var(--bf-accent-ink)] ring-2 ring-primary',
                   !done && !active && 'bg-muted text-muted-foreground'
                 )}
               >
@@ -35,7 +35,7 @@ export function BfCheckoutSteps({ current, className }: BfCheckoutStepsProps) {
               <span
                 className={cn(
                   'hidden truncate text-center text-[11px] font-medium sm:block',
-                  active && 'text-primary',
+                  active && 'text-[var(--bf-accent-ink)]',
                   done && 'text-foreground',
                   !done && !active && 'text-muted-foreground'
                 )}
@@ -61,6 +61,6 @@ export function BfCheckoutSteps({ current, className }: BfCheckoutStepsProps) {
 /** İç adım: bilet türü → adet */
 export function BfSubStepLabel({ label }: { label: string }) {
   return (
-    <p className="text-xs font-semibold uppercase tracking-wider text-primary">{label}</p>
+    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--bf-accent-ink)]">{label}</p>
   );
 }

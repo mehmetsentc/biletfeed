@@ -54,7 +54,7 @@ export function ThemeSelector({ variant = 'grid', className, onThemeChange }: Th
               className={cn(
                 'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 active
-                  ? 'bg-primary/10 text-primary'
+                  ? 'bg-primary/10 text-[var(--bf-accent-ink)]'
                   : 'text-foreground hover:bg-muted'
               )}
             >
@@ -84,11 +84,11 @@ export function ThemeSelector({ variant = 'grid', className, onThemeChange }: Th
             className={cn(
               'flex flex-col items-center gap-2 rounded-xl border-2 py-3 text-xs font-semibold transition-all',
               active
-                ? 'border-primary bg-primary/8 text-primary'
+                ? 'border-primary bg-primary/8 text-[var(--bf-accent-ink)]'
                 : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
             )}
           >
-            <Icon className={cn('size-5', active && 'text-primary')} strokeWidth={active ? 2.25 : 1.75} />
+            <Icon className={cn('size-5', active && 'text-[var(--bf-accent-ink)]')} strokeWidth={active ? 2.25 : 1.75} />
             {label}
           </button>
         );

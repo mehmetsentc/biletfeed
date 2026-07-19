@@ -13,13 +13,13 @@ export function ToslaHostedFallbackModal({ hostedPaymentUrl }: { hostedPaymentUr
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 p-6 backdrop-blur-sm">
       <div className="flex max-w-sm flex-col items-center text-center">
         <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-primary/10">
-          <ShieldCheck className="size-7 text-primary" />
+          <ShieldCheck className="size-7 text-[var(--bf-accent-ink)]" />
         </div>
-        <Loader2 className="mb-4 size-8 animate-spin text-primary" />
+        <Loader2 className="mb-4 size-8 animate-spin text-[var(--bf-accent-ink)]" />
         <p className="text-lg font-bold text-foreground">Tosla güvenli ödeme sayfasına yönlendiriliyorsunuz</p>
         <p className="mt-2 text-sm text-muted-foreground">
           Birkaç saniye içinde otomatik olarak yönlendirileceksiniz. Sayfa açılmazsa{' '}
-          <a href={hostedPaymentUrl} className="font-medium text-primary underline-offset-2 hover:underline">
+          <a href={hostedPaymentUrl} className="font-medium text-[var(--bf-accent-ink)] underline-offset-2 hover:underline">
             buraya tıklayın
           </a>
           .

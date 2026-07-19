@@ -68,7 +68,7 @@ export function FeedGridClient({
 
         {trending.length > 1 && (
           <section className="mb-8">
-            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-primary">
+            <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-[var(--bf-accent-ink)]">
               Trend Hikâyeler
             </h2>
             <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -97,7 +97,7 @@ export function FeedGridClient({
         <section>
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Gündem</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--bf-accent-ink)]">Gündem</p>
               <h2 className="mt-1 text-xl font-extrabold text-white">Haber Akışı</h2>
             </div>
             <span className="text-xs text-zinc-500">{flatTimeline.length + 1} hikâye</span>

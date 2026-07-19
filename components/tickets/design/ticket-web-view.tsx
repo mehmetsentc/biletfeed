@@ -26,14 +26,14 @@ function InfoCell({
   if (surface === 'light') {
     return (
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5">
-        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">{label}</p>
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--bf-accent-ink)]">{label}</p>
         <p className="text-[13px] font-semibold leading-snug break-words text-zinc-900">{value}</p>
       </div>
     );
   }
   return (
     <div className="rounded-[10px] border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5">
-      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">{label}</p>
+      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--bf-accent-ink)]">{label}</p>
       <p className="text-[13px] font-semibold leading-snug break-words text-white">{value}</p>
     </div>
   );
@@ -143,7 +143,7 @@ export function TicketWebView({
 
       <div className={cn('p-6', isLight && 'text-zinc-900')}>
         {isInvitation && (
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-primary">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[var(--bf-accent-ink)]">
             {t.tickets.dearGuest}
           </p>
         )}
@@ -153,7 +153,7 @@ export function TicketWebView({
             <Link
               href={ctaHref}
               className={cn(
-                'flex-1 text-xl font-bold leading-tight transition-colors hover:text-primary sm:text-2xl',
+                'flex-1 text-xl font-bold leading-tight transition-colors hover:text-[var(--bf-accent-ink)] sm:text-2xl',
                 isLight ? 'text-zinc-900' : 'text-white'
               )}
             >
@@ -258,7 +258,7 @@ export function TicketWebView({
             <p
               className={cn(
                 'mt-1 font-mono text-lg font-extrabold tracking-widest sm:text-xl',
-                isLight ? 'text-primary' : 'text-white'
+                isLight ? 'text-[var(--bf-accent-ink)]' : 'text-white'
               )}
             >
               {ticketCode}

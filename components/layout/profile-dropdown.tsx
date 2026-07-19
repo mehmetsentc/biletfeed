@@ -69,15 +69,15 @@ export function ProfileDropdown() {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'group flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-[var(--header-fg)] transition-all duration-200 ease-[var(--ease-out)] hover:bg-[var(--header-hover)] hover:text-primary sm:gap-2.5 sm:pr-3',
-          isProfileActive && 'text-primary',
-          open && 'bg-[var(--header-hover)] text-primary'
+          'group flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-[var(--header-fg)] transition-all duration-200 ease-[var(--ease-out)] hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)] sm:gap-2.5 sm:pr-3',
+          isProfileActive && 'text-[var(--bf-accent-ink)]',
+          open && 'bg-[var(--header-hover)] text-[var(--bf-accent-ink)]'
         )}
         aria-expanded={open}
         aria-haspopup="menu"
       >
         <Avatar className="size-8 border border-[var(--header-border)] shadow-[var(--shadow-xs)] transition-transform duration-200 group-hover:scale-[1.02] sm:size-9">
-          <AvatarFallback className="bg-primary/12 text-xs font-bold text-primary sm:text-sm">
+          <AvatarFallback className="bg-primary/12 text-xs font-bold text-[var(--bf-accent-ink)] sm:text-sm">
             {initials}
           </AvatarFallback>
         </Avatar>
@@ -114,7 +114,7 @@ export function ProfileDropdown() {
                   href={panelHref('/organizator-panel/etkinlik/yeni')}
                   {...PANEL_EXTERNAL_LINK_PROPS}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[var(--bf-accent-ink)] transition-colors hover:bg-muted"
                 >
                   <Plus className="size-4 shrink-0" strokeWidth={1.75} />
                   {t.account.createEvent}
@@ -155,8 +155,8 @@ export function HeaderIconLink({
     <Link
       href={href}
       className={cn(
-        'hidden flex-col items-center gap-0.5 px-2 py-1 text-[var(--header-fg)] transition-colors hover:text-primary sm:flex',
-        active && 'text-primary'
+        'hidden flex-col items-center gap-0.5 px-2 py-1 text-[var(--header-fg)] transition-colors hover:text-[var(--bf-accent-ink)] sm:flex',
+        active && 'text-[var(--bf-accent-ink)]'
       )}
     >
       <Icon className="size-5" strokeWidth={1.75} />

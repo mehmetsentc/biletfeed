@@ -25,7 +25,7 @@ const badgeVariants = cva(
         featured:
           'border-transparent bg-primary text-primary-foreground',
         vip:
-          'border-[var(--bf-orange-border)] bg-[var(--bf-orange-surface)] text-[var(--bf-orange-700)]',
+          'border-[var(--bf-neon-soft-border)] bg-[var(--bf-neon-light-surface)] text-[var(--bf-text)]',
         earlyBird:
           'border-transparent bg-[var(--bf-info-soft)] text-[var(--bf-info)]',
         soldOut:
@@ -39,13 +39,13 @@ const badgeVariants = cva(
         free:
           'border-transparent bg-[var(--bf-success-soft)] text-[var(--bf-success)]',
         new:
-          'border-transparent bg-[var(--bf-orange-surface)] text-[var(--bf-orange-700)]',
+          'border-transparent bg-[var(--bf-neon)] text-[var(--bf-neon-on)]',
         trending:
-          'border-transparent bg-[var(--bf-orange-soft)] text-[var(--bf-orange-700)]',
+          'border-transparent bg-[var(--bf-neon-light-surface)] text-[var(--bf-text)]',
         live:
           'border-transparent bg-[var(--bf-danger-soft)] text-[var(--bf-danger)] animate-pulse',
         today:
-          'border-[var(--bf-orange-border)] bg-[var(--bf-orange-surface)] text-[var(--bf-orange-700)]',
+          'border-[var(--bf-neon-soft-border)] bg-[var(--bf-neon-light-surface)] text-[var(--bf-text)]',
         tomorrow:
           'border-transparent bg-secondary text-secondary-foreground',
         verified:

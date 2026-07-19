@@ -214,7 +214,7 @@ function ArtistPickerInput({
               className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted transition-colors"
             >
               <div className="size-8 rounded-full bg-primary/10 shrink-0 flex items-center justify-center">
-                <Plus className="size-4 text-primary" />
+                <Plus className="size-4 text-[var(--bf-accent-ink)]" />
               </div>
               <div>
                 <p className="text-sm font-medium">"{query.trim()}" — Yeni sanatçı ekle</p>
@@ -343,7 +343,7 @@ function PerformerItem({
         <p className="text-xs text-muted-foreground">
           {performer.type === 'group' ? 'Grup' : 'Kişi'}
           {performer.artistId && (
-            <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-primary text-[10px] font-medium">
+            <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[var(--bf-accent-ink)] text-[10px] font-medium">
               Kayıtlı
             </span>
           )}

@@ -80,7 +80,7 @@ export function PurchaseSuccessTicket({
 
         <article className="overflow-hidden rounded-2xl bg-card text-card-foreground shadow-2xl">
           <div className="border-b border-border px-6 py-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-primary">
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--bf-accent-ink)]">
               Etkinlik Bileti
             </p>
             <h2 className="mt-1 text-lg font-extrabold leading-snug text-foreground">
@@ -106,7 +106,7 @@ export function PurchaseSuccessTicket({
                 key={label}
                 className="rounded-xl border border-border bg-card px-3 py-2.5"
               >
-                <p className="text-[10px] font-bold uppercase tracking-wide text-primary">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--bf-accent-ink)]">
                   {label}
                 </p>
                 <p className="mt-0.5 text-xs font-semibold leading-snug text-foreground">
@@ -135,7 +135,7 @@ export function PurchaseSuccessTicket({
           <Button
             asChild
             variant="secondary"
-            className="h-12 flex-1 rounded-xl bg-card font-bold text-primary hover:bg-card/90"
+            className="h-12 flex-1 rounded-xl bg-card font-bold text-[var(--bf-accent-ink)] hover:bg-card/90"
           >
             <Link href="/biletlerim">Biletlerim</Link>
           </Button>

@@ -1,4 +1,4 @@
-/** Unified category badge — brand orange (#EB672B), theme-aware */
+/** Unified category badge — brand neon (#DFFF00), theme-aware */
 export type CategoryBadgeStyle = {
   bg: string;
   text: string;
@@ -15,7 +15,7 @@ export type CategoryOverlayStyle = {
 
 const UNIFIED_BADGE: CategoryBadgeStyle = {
   bg: 'bg-primary/12',
-  text: 'text-primary',
+  text: 'text-[var(--bf-accent-ink)]',
   ring: 'ring-primary/35'
 };
 

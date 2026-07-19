@@ -392,7 +392,7 @@ export function EventsFilterContent({
         <button
           type="button"
           onClick={() => setShowAllCategories(!showAllCategories)}
-          className="shrink-0 text-sm font-medium text-primary hover:underline"
+          className="shrink-0 text-sm font-medium text-[var(--bf-accent-ink)] hover:underline"
         >
           {showAllCategories ? t.filters.less : t.common.more}
         </button>

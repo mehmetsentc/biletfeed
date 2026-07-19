@@ -27,7 +27,7 @@ export function StepIndicator({
                 className={cn(
                   'flex size-9 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors',
                   done && 'border-primary bg-primary text-primary-foreground',
-                  active && 'border-primary bg-primary/10 text-primary',
+                  active && 'border-primary bg-primary/10 text-[var(--bf-accent-ink)]',
                   !done && !active && 'border-muted bg-muted text-muted-foreground'
                 )}
               >
@@ -36,7 +36,7 @@ export function StepIndicator({
               <span
                 className={cn(
                   'hidden text-center text-xs sm:block',
-                  active && 'font-semibold text-primary',
+                  active && 'font-semibold text-[var(--bf-accent-ink)]',
                   done && 'text-foreground',
                   !done && !active && 'text-muted-foreground'
                 )}

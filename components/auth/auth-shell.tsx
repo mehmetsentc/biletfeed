@@ -55,7 +55,7 @@ export function AuthShell({
         </div>
         <div className="w-full max-w-md">{children}</div>
         <p className="mt-8 text-center text-base font-medium text-foreground lg:hidden">
-          <Link href="/" className="underline-offset-4 hover:text-primary hover:underline">
+          <Link href="/" className="underline-offset-4 hover:text-[var(--bf-accent-ink)] hover:underline">
             {backHomeLabel}
           </Link>
         </p>

@@ -68,7 +68,7 @@ export function InterestsForm({
                     className={cn(
                       'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
                       active
-                        ? 'border-primary bg-primary/10 text-primary'
+                        ? 'border-primary bg-primary/10 text-[var(--bf-accent-ink)]'
                         : 'border-border bg-background text-foreground hover:border-primary/30'
                     )}
                   >

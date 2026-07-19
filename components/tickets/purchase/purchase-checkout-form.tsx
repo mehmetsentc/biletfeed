@@ -306,7 +306,7 @@ export function PurchaseCheckoutForm({
 
         <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
           <h2 className="flex items-center gap-2 font-semibold">
-            <ShieldCheck className="size-5 text-primary" />
+            <ShieldCheck className="size-5 text-[var(--bf-accent-ink)]" />
             {isPaid ? t.purchase.securePayment : t.purchase.orderConfirm}
           </h2>
           {isPaid ? (
@@ -318,7 +318,7 @@ export function PurchaseCheckoutForm({
               </p>
               <PaymentCardLogos />
               <p className="flex items-center gap-2">
-                <Lock className="size-3.5 shrink-0 text-primary" />
+                <Lock className="size-3.5 shrink-0 text-[var(--bf-accent-ink)]" />
                 {t.purchase.paymentSslShort}
               </p>
               <p className="flex items-center gap-2">

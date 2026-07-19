@@ -62,11 +62,11 @@ export function EventJoyProfileEdit() {
 
       <div className="flex justify-center">
         <div className="relative">
-          <span className="flex size-28 items-center justify-center rounded-full bg-primary/10 text-3xl font-bold text-primary">
+          <span className="flex size-28 items-center justify-center rounded-full bg-primary/10 text-3xl font-bold text-[var(--bf-accent-ink)]">
             {initials}
           </span>
           <span className="absolute bottom-1 right-1 flex size-8 items-center justify-center rounded-full border-2 border-card bg-muted">
-            <Camera className="size-4 text-primary" />
+            <Camera className="size-4 text-[var(--bf-accent-ink)]" />
           </span>
         </div>
       </div>

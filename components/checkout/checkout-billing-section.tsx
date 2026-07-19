@@ -44,7 +44,7 @@ export function CheckoutBillingSection({
       }
     >
       <h2 className="flex items-center gap-2 text-lg font-bold">
-        <FileText className="size-5 text-primary" />
+        <FileText className="size-5 text-[var(--bf-accent-ink)]" />
         {t.purchase.billingTitle}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">{t.purchase.billingNote}</p>

@@ -421,7 +421,7 @@ export function InvitationsPanel({
           className="rounded-xl border border-border bg-card p-5 md:p-6"
         >
           <div className="flex items-center gap-2">
-            <Send className="size-5 text-primary" />
+            <Send className="size-5 text-[var(--bf-accent-ink)]" />
             <h2 className="text-lg font-semibold text-foreground">Yeni Davetiye</h2>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">

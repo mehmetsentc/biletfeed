@@ -10,15 +10,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'btn-gradient-primary rounded-[var(--radius-button)] text-primary-foreground shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] active:scale-[0.98] hover:-translate-y-px',
+          'btn-gradient-primary rounded-[var(--radius-button)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] active:scale-[0.98] hover:-translate-y-px',
         destructive:
           'rounded-[var(--radius-button)] bg-destructive text-destructive-foreground shadow-[var(--shadow-sm)] hover:bg-destructive/90 active:scale-[0.98]',
         outline:
-          'rounded-[var(--radius-button)] border border-border bg-background shadow-[var(--shadow-xs)] hover:border-[var(--bf-orange-border)] hover:bg-[var(--bf-orange-surface)] hover:text-foreground active:scale-[0.98]',
+          'rounded-[var(--radius-button)] border border-[var(--bf-gray-200)] dark:border-[var(--bf-gray-700)] bg-transparent text-foreground hover:bg-[var(--bf-gray-100)] dark:hover:bg-[var(--bf-gray-800)] active:scale-[0.98]',
         secondary:
-          'rounded-[var(--radius-button)] bg-secondary text-secondary-foreground shadow-[var(--shadow-xs)] hover:bg-[var(--bf-muted-surface)] active:scale-[0.98]',
+          'rounded-[var(--radius-button)] border border-[var(--bf-gray-200)] dark:border-[var(--bf-gray-700)] bg-[var(--bf-white)] dark:bg-[var(--bf-gray-900)] text-foreground shadow-[var(--shadow-xs)] hover:bg-[var(--bf-gray-100)] dark:hover:bg-[var(--bf-gray-800)] active:scale-[0.98]',
         ghost:
-          'rounded-[var(--radius-button)] text-foreground hover:bg-[var(--bf-orange-surface)] hover:text-[var(--bf-orange-700)] active:scale-[0.98]',
+          'rounded-[var(--radius-button)] text-foreground hover:bg-[var(--bf-gray-100)] dark:hover:bg-[var(--bf-gray-800)] active:scale-[0.98]',
         link:
           'text-[var(--bf-text-link)] underline-offset-4 hover:text-[var(--bf-text-link-hover)] hover:underline font-semibold p-0 h-auto',
         text:

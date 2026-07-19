@@ -36,7 +36,7 @@ export function MessageChatClient({ event }: { event: EventJoyEvent }) {
           placeholder="Mesaj yazın"
           className="flex-1 rounded-full border bg-muted/30 px-4 py-2.5 text-sm outline-none"
         />
-        <button type="button" className="text-primary" aria-label="Gönder">
+        <button type="button" className="text-[var(--bf-accent-ink)]" aria-label="Gönder">
           <Send className="size-5" />
         </button>
       </div>

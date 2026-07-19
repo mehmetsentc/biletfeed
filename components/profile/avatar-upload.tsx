@@ -84,7 +84,7 @@ export function AvatarUpload() {
       <div className="relative">
         <Avatar className="size-28 md:size-32 lg:size-36">
           {photoURL ? <AvatarImage src={photoURL} alt="" /> : null}
-          <AvatarFallback className="bg-primary/15 text-3xl font-bold text-primary">
+          <AvatarFallback className="bg-primary/15 text-3xl font-bold text-[var(--bf-accent-ink)]">
             {initials}
           </AvatarFallback>
         </Avatar>

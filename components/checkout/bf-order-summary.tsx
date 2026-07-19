@@ -61,7 +61,7 @@ export function BfOrderSummary({
 
         <div className="flex items-end justify-between">
           <span className="text-sm font-semibold text-muted-foreground">Toplam</span>
-          <span className="text-2xl font-extrabold text-primary">
+          <span className="text-2xl font-extrabold text-[var(--bf-accent-ink)]">
             {total === 0 ? 'Ücretsiz' : `${total.toLocaleString('tr-TR')} ₺`}
           </span>
         </div>
@@ -70,7 +70,7 @@ export function BfOrderSummary({
           <div className="mt-5 space-y-3 rounded-xl bg-muted p-3">
             <PaymentCardLogos className="justify-center" logoClassName="h-5 w-auto" />
             <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
-              <Lock className="size-3 shrink-0 text-primary" aria-hidden />
+              <Lock className="size-3 shrink-0 text-[var(--bf-accent-ink)]" aria-hidden />
               3D Secure ile güvenli ödeme
             </p>
           </div>
@@ -98,7 +98,7 @@ export function BfPriceRow({
   return (
     <div className="flex items-center justify-between py-2">
       <span className={highlight ? 'font-semibold' : 'text-muted-foreground'}>{label}</span>
-      <span className={highlight ? 'text-xl font-extrabold text-primary' : 'font-semibold'}>
+      <span className={highlight ? 'text-xl font-extrabold text-[var(--bf-accent-ink)]' : 'font-semibold'}>
         {value}
       </span>
     </div>

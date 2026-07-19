@@ -105,7 +105,7 @@ export function ForgotPasswordForm() {
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          <Link href="/giris" className="text-primary hover:underline">
+          <Link href="/giris" className="text-[var(--bf-accent-ink)] hover:underline">
             {t.common.back}
           </Link>
         </p>

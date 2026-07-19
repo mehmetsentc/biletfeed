@@ -7,7 +7,7 @@
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
-    "assets:generate": "npx @capacitor/assets generate --assetPath assets --iconBackgroundColor '#f97316' --iconBackgroundColorDark '#f97316' --splashBackgroundColor '#0a0a0a' --splashBackgroundColorDark '#0a0a0a'"
+    "assets:generate": "npx @capacitor/assets generate --assetPath assets --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#000000' --splashBackgroundColorDark '#000000'"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.0",

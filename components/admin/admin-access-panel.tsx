@@ -78,7 +78,7 @@ function PermissionPicker({
                 disabled={disabled}
                 onClick={() => toggleGroup(groupKeys)}
                 className={cn(
-                  'shrink-0 text-xs font-medium text-primary hover:underline disabled:opacity-50',
+                  'shrink-0 text-xs font-medium text-[var(--bf-accent-ink)] hover:underline disabled:opacity-50',
                   allSelected && 'text-muted-foreground'
                 )}
               >
@@ -244,7 +244,7 @@ export function AdminAccessPanel({ initialAdmins }: AdminAccessPanelProps) {
 
       <section className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center gap-2">
-          <UserPlus className="size-5 text-primary" />
+          <UserPlus className="size-5 text-[var(--bf-accent-ink)]" />
           <h2 className="text-lg font-bold">Yeni Admin Ata</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">

@@ -61,7 +61,7 @@ export function PriceBreakdownRows({
         </span>
         <span
           className={cn(
-            'font-extrabold text-primary',
+            'font-extrabold text-[var(--bf-accent-ink)]',
             compact ? 'text-base' : 'text-xl',
             isFree && 'text-[var(--bf-success)]'
           )}

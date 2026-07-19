@@ -43,7 +43,7 @@ export function EventSeriesSessions({ sessions }: EventSeriesSessionsProps) {
                   )}
                 >
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--bf-accent-ink)]">
                       Seans {session.sessionIndex || '—'} · Bu sayfa
                     </p>
                     <p className="font-medium">{formatEventDateLong(startIso)}</p>
@@ -68,7 +68,7 @@ export function EventSeriesSessions({ sessions }: EventSeriesSessionsProps) {
                       {formatSessionTimeRange(startIso, endIso)}
                     </p>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--bf-accent-ink)]">
                     <CalendarDays className="size-4" />
                     Bu seansı gör
                   </span>

@@ -147,7 +147,7 @@ export function PanelLoginForm() {
               <Label htmlFor="panel-password">Şifre</Label>
               <Link
                 href="/sifremi-unuttum"
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-[var(--bf-accent-ink)] hover:underline"
               >
                 Şifremi unuttum
               </Link>
@@ -204,7 +204,7 @@ export function PanelLoginForm() {
           Bilet almak için{' '}
           <Link
             href={siteHref('/giris')}
-            className="text-primary hover:underline"
+            className="text-[var(--bf-accent-ink)] hover:underline"
           >
             ana siteye giriş yapın
           </Link>

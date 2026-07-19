@@ -85,7 +85,7 @@ export function SelectedRulesPreview({
               </p>
             ) : null}
             {item.parameterLabel ? (
-              <p className="mt-2 inline-flex rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <p className="mt-2 inline-flex rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-[var(--bf-accent-ink)]">
                 {item.parameterLabel}
               </p>
             ) : null}

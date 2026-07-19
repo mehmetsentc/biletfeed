@@ -145,7 +145,7 @@ export function SupportPageClient() {
                         </span>
                       </span>
                       {category === option.value && (
-                        <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                        <Check className="mt-0.5 size-4 shrink-0 text-[var(--bf-accent-ink)]" />
                       )}
                     </button>
                   ))}
@@ -177,7 +177,7 @@ export function SupportPageClient() {
           )}
 
           {success && (
-            <p className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary">
+            <p className="rounded-xl bg-primary/10 px-4 py-3 text-sm text-[var(--bf-accent-ink)]">
               {t.account.supportSuccess}
             </p>
           )}

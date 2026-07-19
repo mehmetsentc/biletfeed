@@ -21,7 +21,7 @@ export function FeedEventCta({
       <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card via-card to-primary/5 shadow-sm">
         <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:p-8">
           <div className="min-w-0 flex-1">
-            <div className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
+            <div className="mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--bf-accent-ink)]">
               <CalendarDays className="size-3.5" />
               {isEventLinked ? 'İlgili Etkinlik' : 'Keşfet'}
             </div>

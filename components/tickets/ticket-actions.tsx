@@ -192,15 +192,15 @@ export function TicketActions({
         </Button>
       </div>
       <div className="flex flex-wrap gap-2 text-xs">
-        <a href={icsUrl} download={`${eventTitle}.ics`} className="text-primary hover:underline">
+        <a href={icsUrl} download={`${eventTitle}.ics`} className="text-[var(--bf-accent-ink)] hover:underline">
           Apple Calendar (.ics)
         </a>
         <span className="text-muted-foreground">·</span>
-        <a href={outlookUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+        <a href={outlookUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--bf-accent-ink)] hover:underline">
           Outlook
         </a>
         <span className="text-muted-foreground">·</span>
-        <a href={yahooUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+        <a href={yahooUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--bf-accent-ink)] hover:underline">
           Yahoo
         </a>
       </div>

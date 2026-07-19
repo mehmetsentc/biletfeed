@@ -165,7 +165,7 @@ export function HomeEventSearchBar({
         <div className="grid grid-cols-2 gap-2">
           <div className="relative min-w-0">
             <Tag
-              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-primary"
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--bf-accent-ink)]"
               aria-hidden
             />
             <select
@@ -186,7 +186,7 @@ export function HomeEventSearchBar({
 
           <div className="relative min-w-0">
             <MapPin
-              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-primary"
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--bf-accent-ink)]"
               aria-hidden
             />
             <select
@@ -207,7 +207,7 @@ export function HomeEventSearchBar({
 
           <div className="relative min-w-0">
             <CalendarDays
-              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-primary"
+              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--bf-accent-ink)]"
               aria-hidden
             />
             <select
@@ -229,7 +229,7 @@ export function HomeEventSearchBar({
             className={cn(
               'flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold transition-colors',
               onlineOnly
-                ? 'border-primary/40 bg-primary/10 text-primary'
+                ? 'border-primary/40 bg-primary/10 text-[var(--bf-accent-ink)]'
                 : 'border-border/60 bg-muted/30 text-foreground'
             )}
           >
@@ -345,10 +345,10 @@ export function HomeEventSearchBar({
             type="checkbox"
             checked={onlineOnly}
             onChange={(e) => setOnlineOnly(e.target.checked)}
-            className="size-4 rounded border-border text-primary focus:ring-primary"
+            className="size-4 rounded border-border text-[var(--bf-accent-ink)] focus:ring-primary"
           />
           <span className="flex flex-col items-center gap-1.5 text-xs font-bold uppercase tracking-wide">
-            <Globe className="size-4 shrink-0 text-primary" aria-hidden />
+            <Globe className="size-4 shrink-0 text-[var(--bf-accent-ink)]" aria-hidden />
             {t.categories.online}
           </span>
         </label>

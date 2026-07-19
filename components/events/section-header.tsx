@@ -28,7 +28,7 @@ export function SectionHeader({
       </div>
       {href && (
         <Link href={href}>
-          <Button variant="ghost" className="gap-2 text-primary">
+          <Button variant="ghost" className="gap-2 text-[var(--bf-accent-ink)]">
             {linkText}
             <ArrowRight className="size-4" />
           </Button>

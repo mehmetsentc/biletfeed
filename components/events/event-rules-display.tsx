@@ -75,7 +75,7 @@ function SectionCard({
               <p className="mt-0.5 leading-relaxed">{item.description}</p>
             ) : null}
             {item.parameterLabel ? (
-              <p className="mt-1.5 inline-flex rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <p className="mt-1.5 inline-flex rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-[var(--bf-accent-ink)]">
                 {item.parameterLabel}
               </p>
             ) : null}
@@ -87,7 +87,7 @@ function SectionCard({
           type="button"
           variant="ghost"
           size="sm"
-          className="mt-2 gap-1 text-primary"
+          className="mt-2 gap-1 text-[var(--bf-accent-ink)]"
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? t.events.showLess : t.events.showAll}
@@ -183,7 +183,7 @@ export function EventRulesAcceptanceList({
               Satın almadan önce kuralları okuyup onaylamanız gerekir.
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+          <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-[var(--bf-accent-ink)]">
             {totalRuleCount} madde
           </span>
         </div>
@@ -213,7 +213,7 @@ export function EventRulesAcceptanceList({
           <ul className="max-h-28 space-y-2 overflow-y-auto text-sm text-muted-foreground">
             {lines.slice(0, 4).map((line) => (
               <li key={line} className="flex gap-2 leading-snug">
-                <span className="text-primary">•</span>
+                <span className="text-[var(--bf-accent-ink)]">•</span>
                 <span>{line}</span>
               </li>
             ))}
@@ -229,7 +229,7 @@ export function EventRulesAcceptanceList({
           type="button"
           variant="outline"
           size="sm"
-          className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/5"
+          className="w-full gap-2 border-primary/30 text-[var(--bf-accent-ink)] hover:bg-primary/5"
           onClick={() => setDialogOpen(true)}
         >
           <FileText className="size-4" />
@@ -246,7 +246,7 @@ export function EventRulesAcceptanceList({
           <span className="text-foreground">
             <button
               type="button"
-              className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+              className="font-semibold text-[var(--bf-accent-ink)] underline underline-offset-2 hover:text-[var(--bf-accent-ink)]/80"
               onClick={(e) => {
                 e.preventDefault();
                 setDialogOpen(true);

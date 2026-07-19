@@ -24,7 +24,7 @@ export function CitySelectorButton({ className }: CitySelectorButtonProps) {
       )}
       aria-label={t.filters.changeCity}
     >
-      <MapPin className="size-3.5 text-primary" />
+      <MapPin className="size-3.5 text-[var(--bf-accent-ink)]" />
       {city.cityName}
     </button>
   );

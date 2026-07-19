@@ -66,7 +66,7 @@ export function OrganizerProfileEventCard({
           <Badge variant="secondary" className="mb-2 text-xs">
             {event.category}
           </Badge>
-          <h3 className="line-clamp-2 font-semibold leading-tight group-hover:text-primary">
+          <h3 className="line-clamp-2 font-semibold leading-tight group-hover:text-[var(--bf-accent-ink)]">
             {event.title}
           </h3>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -79,7 +79,7 @@ export function OrganizerProfileEventCard({
               {event.city}
             </span>
           </div>
-          <p className="mt-2 text-sm font-semibold text-primary">
+          <p className="mt-2 text-sm font-semibold text-[var(--bf-accent-ink)]">
             {formatPrice(event)}
           </p>
         </div>
@@ -87,7 +87,7 @@ export function OrganizerProfileEventCard({
       {isOwner && event.status !== 'published' && (
         <Link
           href={`/organizator-panel/etkinlik/${event.id}/duzenle`}
-          className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-full bg-background/90 text-muted-foreground shadow-sm transition-colors hover:text-primary"
+          className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-full bg-background/90 text-muted-foreground shadow-sm transition-colors hover:text-[var(--bf-accent-ink)]"
           aria-label="Düzenle"
         >
           <Pencil className="size-3.5" />

@@ -55,7 +55,7 @@ export function LegalSidebar() {
                   className={cn(
                     'flex items-center gap-3 border-b border-border px-4 py-3.5 text-sm font-medium transition-colors last:border-b-0',
                     active
-                      ? 'bg-primary/10 font-semibold text-primary'
+                      ? 'bg-primary/10 font-semibold text-[var(--bf-accent-ink)]'
                       : 'text-foreground hover:bg-muted'
                   )}
                 >

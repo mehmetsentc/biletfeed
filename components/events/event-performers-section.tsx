@@ -25,7 +25,7 @@ export function EventPerformersSection({
               key={`${performer.type}-${performer.name}`}
               className="flex items-center gap-3 rounded-xl border border-border/70 bg-muted/30 px-3 py-2.5"
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[var(--bf-accent-ink)]">
                 <Icon className="size-4" aria-hidden />
               </span>
               <div className="min-w-0">

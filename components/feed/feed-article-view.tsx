@@ -108,7 +108,7 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
           {post.sourceUrl && (
             <>
               {' '}
-              <Link href={post.sourceUrl} className="text-primary underline" target="_blank" rel="noopener noreferrer">
+              <Link href={post.sourceUrl} className="text-[var(--bf-accent-ink)] underline" target="_blank" rel="noopener noreferrer">
                 Kaynağı görüntüle
               </Link>
             </>

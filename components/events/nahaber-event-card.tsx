@@ -63,7 +63,7 @@ export function NahaberEventCard({ event }: { event: MockEvent }) {
         <p className="truncate text-xs text-muted-foreground">{locationLine}</p>
 
         <Link href={`/etkinlik/${event.slug}`}>
-          <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-foreground transition hover:text-primary">
+          <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-foreground transition hover:text-[var(--bf-accent-ink)]">
             {event.title}
           </h3>
         </Link>

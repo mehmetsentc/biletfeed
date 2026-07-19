@@ -88,7 +88,7 @@ export async function TicketTierList({
                 {type.showLowStockBadge && available && (
                   <Badge
                     variant="secondary"
-                    className="rounded-full bg-[var(--bf-orange-surface)] text-primary"
+                    className="rounded-full bg-[var(--bf-orange-surface)] text-[var(--bf-accent-ink)]"
                   >
                     {t.events.almostGone}
                   </Badge>

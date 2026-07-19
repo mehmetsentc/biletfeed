@@ -73,7 +73,7 @@ export function EventifyCard({
             <span className="text-2xl font-extrabold leading-none text-foreground">{day}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground transition-colors duration-200 group-hover:text-primary">
+            <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground transition-colors duration-200 group-hover:text-[var(--bf-accent-ink)]">
               {event.title}
             </h3>
             <p className="mt-1 truncate text-sm font-medium text-muted-foreground">
@@ -86,11 +86,11 @@ export function EventifyCard({
             </p>
             <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs font-medium text-muted-foreground">
               <span className="inline-flex items-center gap-1 font-semibold text-foreground">
-                <Tag className="size-3 shrink-0 text-primary/80" aria-hidden />
+                <Tag className="size-3 shrink-0 text-[var(--bf-accent-ink)]/80" aria-hidden />
                 {formatPrice(event)}
               </span>
               {interested > 0 && (
-                <span className="inline-flex items-center gap-1 text-primary/80">
+                <span className="inline-flex items-center gap-1 text-[var(--bf-accent-ink)]/80">
                   <Star className="size-3" />
                   {interested} ilgi
                 </span>

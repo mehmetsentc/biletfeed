@@ -35,7 +35,7 @@ export function CreateEventBanner() {
       </div>
       <div className="container relative mx-auto flex flex-col items-center gap-8 px-4 md:flex-row md:justify-between">
         <div className="max-w-xl text-center md:text-left">
-          <h2 className="text-2xl font-bold text-primary md:text-3xl">
+          <h2 className="text-2xl font-bold text-[var(--bf-accent-ink)] md:text-3xl">
             {t.home.createEventTitle}
           </h2>
           <p className="mt-3 text-sm text-white/80 md:text-base">

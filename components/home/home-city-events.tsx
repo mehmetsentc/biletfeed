@@ -66,7 +66,7 @@ export function HomeCityEvents({ initial }: HomeCityEventsProps) {
     <>
       {loading && (
         <div className="flex items-center justify-center gap-2 border-b border-border bg-muted/30 py-3 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin text-primary" />
+          <Loader2 className="size-4 animate-spin text-[var(--bf-accent-ink)]" />
           {displayName} etkinlikleri yükleniyor…
         </div>
       )}

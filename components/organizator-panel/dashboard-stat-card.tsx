@@ -28,7 +28,7 @@ export function DashboardStatCard({
         <div
           className={cn(
             'flex size-11 shrink-0 items-center justify-center rounded-xl',
-            accent === 'primary' && 'bg-primary/15 text-primary',
+            accent === 'primary' && 'bg-primary/15 text-[var(--bf-accent-ink)]',
             accent === 'success' && 'bg-[var(--bf-success)]/10 text-[var(--bf-success)]',
             accent === 'default' && 'bg-muted text-muted-foreground'
           )}
@@ -37,7 +37,7 @@ export function DashboardStatCard({
         </div>
       </div>
       {href && (
-        <p className="mt-3 text-xs font-medium text-primary">Detayları gör →</p>
+        <p className="mt-3 text-xs font-medium text-[var(--bf-accent-ink)]">Detayları gör →</p>
       )}
     </>
   );

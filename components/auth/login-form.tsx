@@ -146,7 +146,7 @@ export function LoginForm() {
               <Label htmlFor="password">{t.auth.password}</Label>
               <Link
                 href="/sifremi-unuttum"
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-[var(--bf-accent-ink)] hover:underline"
               >
                 {t.auth.forgotPassword}
               </Link>
@@ -197,7 +197,7 @@ export function LoginForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           {t.auth.noAccount}{' '}
-          <Link href="/kayit" className="text-primary hover:underline">
+          <Link href="/kayit" className="text-[var(--bf-accent-ink)] hover:underline">
             {t.nav.register}
           </Link>
         </p>

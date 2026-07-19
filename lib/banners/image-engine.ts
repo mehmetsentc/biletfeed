@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import { BANNER_DIMENSIONS } from '@/lib/banners/hero-slide-types';
 
-const BRAND_ORANGE = '#EB672B';
+const BRAND_ORANGE = '#DFFF00';
 
 async function fetchImageBuffer(url: string): Promise<Buffer> {
   const res = await fetch(url, {

@@ -98,7 +98,7 @@ function OrgAvatar({ name, logo }: { name: string; logo: string | null }) {
   }
 
   return (
-    <div className="flex size-[72px] items-center justify-center rounded-2xl bg-primary/15 text-2xl font-bold text-primary">
+    <div className="flex size-[72px] items-center justify-center rounded-2xl bg-primary/15 text-2xl font-bold text-[var(--bf-accent-ink)]">
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -115,7 +115,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background text-primary shadow-sm">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background text-[var(--bf-accent-ink)] shadow-sm">
         <Icon className="size-4" strokeWidth={2} />
       </div>
       <div className="min-w-0">
@@ -248,7 +248,7 @@ export function OrganizationPanel({ initial }: { initial: OrganizationData }) {
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div>
-        <p className="text-sm font-medium text-primary">Organizasyon Yönetimi</p>
+        <p className="text-sm font-medium text-[var(--bf-accent-ink)]">Organizasyon Yönetimi</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           {initial.name}
         </h1>
@@ -296,7 +296,7 @@ export function OrganizationPanel({ initial }: { initial: OrganizationData }) {
       {activeTab === 'organizasyon' && (
         <section className="overflow-hidden rounded-[var(--radius-card)] border bg-card shadow-[var(--shadow-sm)]">
           <div className="border-b bg-gradient-to-r from-primary/10 via-transparent to-transparent px-6 py-5">
-            <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--bf-accent-ink)]">
               Herkese açık profil
             </p>
           </div>
@@ -316,7 +316,7 @@ export function OrganizationPanel({ initial }: { initial: OrganizationData }) {
                   href={initial.publicUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--bf-accent-ink)] hover:underline"
                 >
                   {initial.publicUrl.replace(/^https?:\/\//, '')}
                   <ExternalLink className="size-3.5" />
@@ -360,7 +360,7 @@ export function OrganizationPanel({ initial }: { initial: OrganizationData }) {
         <section className="space-y-4">
           <div className="rounded-[var(--radius-card)] border bg-card p-6 shadow-[var(--shadow-sm)]">
             <div className="mb-5 flex items-center gap-2">
-              <User className="size-5 text-primary" />
+              <User className="size-5 text-[var(--bf-accent-ink)]" />
               <h2 className="text-lg font-semibold">Hesap Sahibi</h2>
             </div>
             <p className="mb-5 text-sm text-muted-foreground">
@@ -404,12 +404,12 @@ export function OrganizationPanel({ initial }: { initial: OrganizationData }) {
           </div>
 
           <div className="flex gap-3 rounded-[var(--radius-card)] border border-primary/20 bg-primary/5 p-4">
-            <Shield className="mt-0.5 size-5 shrink-0 text-primary" />
+            <Shield className="mt-0.5 size-5 shrink-0 text-[var(--bf-accent-ink)]" />
             <div className="text-sm">
               <p className="font-medium text-foreground">Güvenlik</p>
               <p className="mt-1 text-muted-foreground">
                 Yetkili kullanıcı değişikliği için{' '}
-                <Link href="/organizator-panel/iletisim" className="font-medium text-primary hover:underline">
+                <Link href="/organizator-panel/iletisim" className="font-medium text-[var(--bf-accent-ink)] hover:underline">
                   destek ekibimizle iletişime geçin
                 </Link>
                 .
@@ -430,7 +430,7 @@ export function OrganizationPanel({ initial }: { initial: OrganizationData }) {
 
           {profiles.length === 0 && !showForm && (
             <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border bg-card px-6 py-14 text-center shadow-[var(--shadow-sm)]">
-              <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-[var(--bf-accent-ink)]">
                 <Landmark className="size-7" strokeWidth={1.75} />
               </div>
               <h3 className="font-semibold text-foreground">Henüz banka bilgisi yok</h3>
@@ -453,7 +453,7 @@ export function OrganizationPanel({ initial }: { initial: OrganizationData }) {
                 <div className="min-w-0 flex-1 p-5 sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-center gap-2">
-                      <Landmark className="size-4 text-primary" />
+                      <Landmark className="size-4 text-[var(--bf-accent-ink)]" />
                       <h3 className="font-semibold text-foreground">{profile.label}</h3>
                       <Badge variant="secondary">{profile.currency}</Badge>
                     </div>

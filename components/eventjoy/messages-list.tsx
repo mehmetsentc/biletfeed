@@ -38,7 +38,7 @@ export function EventJoyMessagesList() {
                 href={`/eventjoy/mesajlar/${event.id}`}
                 className="flex items-center gap-4 px-5 py-4 transition hover:bg-muted/50"
               >
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-[var(--bf-accent-ink)]">
                   {event.title.slice(0, 2).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">

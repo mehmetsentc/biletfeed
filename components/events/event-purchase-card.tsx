@@ -126,11 +126,11 @@ export function EventPurchaseCard({
             ) : (
               <>
                 <li className="flex items-start gap-2">
-                  <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--bf-accent-ink)]" />
                   Güvenli ödeme ve anında e-bilet
                 </li>
                 <li className="flex items-start gap-2">
-                  <Ticket className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <Ticket className="mt-0.5 size-4 shrink-0 text-[var(--bf-accent-ink)]" />
                   QR kod ile hızlı giriş
                 </li>
               </>

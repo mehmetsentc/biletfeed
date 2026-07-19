@@ -25,7 +25,7 @@ export function EventJoyEventsList() {
   return (
     <div className="space-y-6 lg:space-y-8">
       <nav aria-label="Konum" className="text-sm text-muted-foreground">
-        <Link href={eventJoyRoutes.panel} className="hover:text-primary">
+        <Link href={eventJoyRoutes.panel} className="hover:text-[var(--bf-accent-ink)]">
           Ana Sayfa
         </Link>
         <span className="mx-2">/</span>
@@ -75,7 +75,7 @@ export function EventJoyEventsList() {
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {event.type}
                     </p>
-                    <p className="mt-1 font-bold text-foreground group-hover:text-primary">
+                    <p className="mt-1 font-bold text-foreground group-hover:text-[var(--bf-accent-ink)]">
                       {event.title}
                     </p>
                   </div>
@@ -98,7 +98,7 @@ export function EventJoyEventsList() {
                     {event.confirmedCount}/
                     {event.guestCount || event.guests.length} onaylı
                   </p>
-                  <ChevronRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                  <ChevronRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-[var(--bf-accent-ink)]" />
                 </div>
               </div>
             </Link>

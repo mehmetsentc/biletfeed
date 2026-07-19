@@ -37,8 +37,8 @@ export function ThemeToggle() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          'inline-flex size-9 items-center justify-center rounded-full text-[var(--header-fg)] transition-colors hover:bg-[var(--header-hover)] hover:text-primary',
-          open && 'bg-[var(--header-hover)] text-primary'
+          'inline-flex size-9 items-center justify-center rounded-full text-[var(--header-fg)] transition-colors hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)]',
+          open && 'bg-[var(--header-hover)] text-[var(--bf-accent-ink)]'
         )}
         aria-expanded={open}
         aria-haspopup="listbox"

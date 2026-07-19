@@ -56,7 +56,7 @@ export function GuestListClient({ event }: { event: EventJoyEvent }) {
             className={cn(
               'flex-1 border-b-2 px-1 py-3 text-[11px] font-medium transition-colors sm:text-xs',
               tab === t.id
-                ? 'border-primary text-primary'
+                ? 'border-primary text-[var(--bf-accent-ink)]'
                 : 'border-transparent text-muted-foreground'
             )}
           >
@@ -88,7 +88,7 @@ export function GuestListClient({ event }: { event: EventJoyEvent }) {
             {event.guests.length === 0 && (
               <Link
                 href={`/eventjoy/misafirler/${event.id}/ekle`}
-                className="mt-3 inline-block text-sm font-semibold text-primary"
+                className="mt-3 inline-block text-sm font-semibold text-[var(--bf-accent-ink)]"
               >
                 Misafir ekle
               </Link>

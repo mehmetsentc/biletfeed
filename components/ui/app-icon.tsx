@@ -21,7 +21,7 @@ const iconSizes: Record<AppIconSize, string> = {
 const variants: Record<AppIconVariant, string> = {
   default: 'bg-muted/80 text-muted-foreground ring-1 ring-border/60',
   primary:
-    'bg-primary/12 text-primary ring-1 ring-primary/25 shadow-sm shadow-primary/10',
+    'bg-primary/12 text-[var(--bf-accent-ink)] ring-1 ring-primary/25 shadow-sm shadow-primary/10',
   soft: 'bg-card text-foreground ring-1 ring-border shadow-sm',
   ghost: 'bg-transparent text-muted-foreground'
 };

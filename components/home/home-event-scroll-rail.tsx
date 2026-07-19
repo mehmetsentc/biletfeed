@@ -28,7 +28,7 @@ export function HomeEventScrollRail({
         {href ? (
           <Link
             href={href}
-            className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-primary"
+            className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[var(--bf-accent-ink)]"
           >
             Tümü
             <ChevronRight className="size-3.5" aria-hidden />

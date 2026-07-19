@@ -53,7 +53,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            className="absolute left-3 flex size-11 items-center justify-center text-primary"
+            className="absolute left-3 flex size-11 items-center justify-center text-[var(--bf-accent-ink)]"
             aria-label={t.common.menu}
           >
             <Menu className="size-6" strokeWidth={2.5} />
@@ -79,7 +79,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
           <button
             type="button"
             onClick={openCityPicker}
-            className="flex shrink-0 items-center gap-1 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary"
+            className="flex shrink-0 items-center gap-1 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-[var(--bf-accent-ink)]"
             aria-label={t.filters.changeCity}
           >
             <MapPin className="size-3.5 shrink-0" />
@@ -163,7 +163,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={user.photoURL} alt="" className="size-9 rounded-full object-cover" />
                   ) : (
-                    <div className="flex size-9 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
+                    <div className="flex size-9 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-[var(--bf-accent-ink)]">
                       {user.displayName?.[0]?.toUpperCase() ?? 'U'}
                     </div>
                   )}
@@ -186,7 +186,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                       href={panelHref('/organizator-panel/etkinlik/yeni')}
                       {...PANEL_EXTERNAL_LINK_PROPS}
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-primary transition-colors hover:bg-[var(--muted)]"
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-[var(--bf-accent-ink)] transition-colors hover:bg-[var(--muted)]"
                     >
                       <Plus className="size-4 shrink-0" strokeWidth={2} />
                       {t.account.createEvent}
@@ -195,7 +195,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                       href={panelHref('/organizator-panel/baslangic')}
                       {...PANEL_EXTERNAL_LINK_PROPS}
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-[var(--bf-accent-ink)]"
                     >
                       <LayoutDashboard className="size-4 shrink-0" strokeWidth={1.75} />
                       {t.account.organizerPanel}
@@ -207,7 +207,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                       href={panelLoginHref()}
                       {...PANEL_EXTERNAL_LINK_PROPS}
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-primary transition-colors hover:bg-[var(--muted)]"
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-[var(--bf-accent-ink)] transition-colors hover:bg-[var(--muted)]"
                     >
                       <LayoutDashboard className="size-4 shrink-0" strokeWidth={2} />
                       {t.chrome.panelLogin}
@@ -216,7 +216,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                       href={panelLoginHref('/organizator-panel/etkinlik/yeni')}
                       {...PANEL_EXTERNAL_LINK_PROPS}
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-[var(--bf-accent-ink)]"
                     >
                       <Plus className="size-4 shrink-0" strokeWidth={1.75} />
                       {t.account.createEvent}
@@ -234,14 +234,14 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                 <Link
                   href="/feed"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center rounded-lg px-3 py-3 text-sm font-semibold text-primary"
+                  className="flex items-center rounded-lg px-3 py-3 text-sm font-semibold text-[var(--bf-accent-ink)]"
                 >
                   {t.chrome.feed}
                 </Link>
                 <Link
                   href="/etkinlikler"
                   onClick={() => setMenuOpen(false)}
-                  className="flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
+                  className="flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-[var(--bf-accent-ink)]"
                 >
                   {t.nav.allEvents}
                 </Link>
@@ -258,7 +258,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                     key={link.slug}
                     href={link.href}
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-primary"
+                    className="flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-[var(--bf-accent-ink)]"
                   >
                     {link.label}
                   </Link>
@@ -266,7 +266,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                 <Link
                   href="/kategoriler"
                   onClick={() => setMenuOpen(false)}
-                  className="mt-1 flex items-center rounded-lg px-3 py-3 text-sm font-semibold text-primary"
+                  className="mt-1 flex items-center rounded-lg px-3 py-3 text-sm font-semibold text-[var(--bf-accent-ink)]"
                 >
                   {t.common.viewAll}
                 </Link>

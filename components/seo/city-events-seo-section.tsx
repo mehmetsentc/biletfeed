@@ -49,16 +49,16 @@ export function CityEventsSeoSection({ citySlug }: CityEventsSeoSectionProps) {
         <p className="mt-10 text-sm text-white/50">
           <Link
             href={`/${citySlug}-etkinlikleri`}
-            className="font-medium text-primary hover:underline"
+            className="font-medium text-[var(--bf-accent-ink)] hover:underline"
           >
             {cityName} etkinlikleri
           </Link>
           {' · '}
-          <Link href="/etkinlikler" className="hover:text-primary hover:underline">
+          <Link href="/etkinlikler" className="hover:text-[var(--bf-accent-ink)] hover:underline">
             Tüm etkinlikler
           </Link>
           {' · '}
-          <Link href="/kategoriler" className="hover:text-primary hover:underline">
+          <Link href="/kategoriler" className="hover:text-[var(--bf-accent-ink)] hover:underline">
             Kategoriler
           </Link>
         </p>

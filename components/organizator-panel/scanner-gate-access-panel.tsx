@@ -185,12 +185,12 @@ export function ScannerGateAccessPanel({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <KeyRound className="size-4 shrink-0 text-primary" />
+            <KeyRound className="size-4 shrink-0 text-[var(--bf-accent-ink)]" />
             Kapı ekibi erişimi
           </div>
           <p className="mt-1 text-xs text-white/55">
             Kod yalnızca seçili etkinlik için geçerlidir. Görevliler{' '}
-            <span className="text-primary">giris.biletfeed.com</span> üzerinden giriş yapar
+            <span className="text-[var(--bf-accent-ink)]">giris.biletfeed.com</span> üzerinden giriş yapar
             (3 gün geçerli).
           </p>
           {events.length > 0 && (
@@ -270,7 +270,7 @@ export function ScannerGateAccessPanel({
                 <p className="text-[11px] uppercase tracking-wide text-white/45">
                   Kapı kodu
                 </p>
-                <p className="font-mono text-xl font-bold tracking-[0.2em] text-primary">
+                <p className="font-mono text-xl font-bold tracking-[0.2em] text-[var(--bf-accent-ink)]">
                   {shareCode}
                 </p>
               </div>
@@ -287,7 +287,7 @@ export function ScannerGateAccessPanel({
             </div>
           )}
           <p className="text-[11px] text-white/45">
-            Görevli <span className="text-primary">giris.biletfeed.com</span> adresine
+            Görevli <span className="text-[var(--bf-accent-ink)]">giris.biletfeed.com</span> adresine
             bu 10 haneli kodu girer ya da giriş linkini/QR'ı kullanır.
           </p>
           <div className="flex flex-wrap gap-2">

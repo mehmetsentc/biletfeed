@@ -151,7 +151,7 @@ export function ChangePasswordDialog({
       >
         <div className="border-b border-border px-6 py-5">
           <div className="flex items-start gap-3 pr-8">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[var(--bf-accent-ink)]">
               <ShieldCheck className="size-5" strokeWidth={1.75} />
             </div>
             <div>
@@ -203,7 +203,7 @@ export function ChangePasswordDialog({
             </p>
           )}
           {success && (
-            <p className="mt-4 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary">
+            <p className="mt-4 rounded-xl bg-primary/10 px-4 py-3 text-sm text-[var(--bf-accent-ink)]">
               {t.account.passwordUpdateSuccess}
             </p>
           )}

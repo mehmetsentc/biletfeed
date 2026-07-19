@@ -43,14 +43,14 @@ export function CookieConsentBanner({
               <button
                 type="button"
                 onClick={onReject}
-                className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-[var(--bf-accent-ink)]"
               >
                 {t.common.reject}
               </button>{' '}
               {t.consent.rejectContinue}{' '}
               <Link
                 href="/cerezler"
-                className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-[var(--bf-accent-ink)]"
               >
                 {t.consent.cookiePolicy}
               </Link>{' '}
@@ -58,7 +58,7 @@ export function CookieConsentBanner({
               <button
                 type="button"
                 onClick={onOpenPreferences}
-                className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+                className="font-medium text-foreground underline underline-offset-2 hover:text-[var(--bf-accent-ink)]"
               >
                 {t.common.preferences}
               </button>

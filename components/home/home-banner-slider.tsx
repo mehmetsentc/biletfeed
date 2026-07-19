@@ -103,7 +103,7 @@ function BannerSlide({
       <div className="pointer-events-none absolute inset-0 flex items-end">
         <div className="w-full px-5 pb-6 pt-16 sm:px-10 sm:pb-8 md:px-14 md:pb-10 lg:max-w-3xl">
           {slide.highlight ? (
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary sm:text-xs">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--bf-accent-ink)] sm:text-xs">
               {slide.highlight}
             </p>
           ) : null}

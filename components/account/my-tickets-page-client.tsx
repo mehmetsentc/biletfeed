@@ -135,7 +135,7 @@ function TicketCard({
             {ticket.venue}, {ticket.city}
           </span>
         </div>
-        <p className="mt-2 flex items-center gap-1 text-xs text-primary">
+        <p className="mt-2 flex items-center gap-1 text-xs text-[var(--bf-accent-ink)]">
           <QrCode className="size-3" />
           {ticket.code}
         </p>
@@ -209,7 +209,7 @@ export function MyTicketsPageClient({
                 className={cn(
                   'rounded-full px-3 py-2 text-sm font-medium transition-colors sm:px-4',
                   tab === item.id
-                    ? 'text-primary'
+                    ? 'text-[var(--bf-accent-ink)]'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -243,7 +243,7 @@ export function MyTicketsPageClient({
               {tab === 'active' && (
                 <Link
                   href="/etkinlikler"
-                  className="mt-5 inline-flex text-sm font-semibold text-primary hover:underline"
+                  className="mt-5 inline-flex text-sm font-semibold text-[var(--bf-accent-ink)] hover:underline"
                 >
                   {t.account.browseEvents}
                 </Link>

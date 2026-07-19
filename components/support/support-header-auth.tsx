@@ -93,7 +93,7 @@ export function SupportHeaderAuth({
     <Link
       href={loginHref}
       className={cn(
-        'rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90',
+        'rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90',
         className
       )}
     >

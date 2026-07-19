@@ -54,7 +54,7 @@ export function OrganizatorContactPage({
                 href={platformContact.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-1 inline-block text-sm text-primary hover:underline"
+                className="mt-1 inline-block text-sm text-[var(--bf-accent-ink)] hover:underline"
               >
                 Mesaj gönder
               </a>

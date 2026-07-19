@@ -96,7 +96,7 @@ export function ScannerGateLoginForm() {
   return (
     <Card className="w-full max-w-md border-white/10 bg-[#151a24] text-white">
       <CardHeader className="pb-3 text-center">
-        <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+        <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-primary/15 text-[var(--bf-accent-ink)]">
           <KeyRound className="size-5" strokeWidth={2} />
         </div>
         <CardTitle className="text-lg">{t.gate.staffLoginTitle}</CardTitle>

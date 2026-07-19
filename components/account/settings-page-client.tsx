@@ -41,7 +41,7 @@ function SettingsCard({
     <section className="rounded-2xl border border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <h2 className="text-lg font-semibold">{title}</h2>
-        <Icon className="size-5 text-primary" strokeWidth={1.75} />
+        <Icon className="size-5 text-[var(--bf-accent-ink)]" strokeWidth={1.75} />
       </div>
       <div className="px-5">{children}</div>
     </section>
@@ -97,7 +97,7 @@ function SecurityActionRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-4 border-b border-border py-4 text-left transition-colors last:border-b-0 hover:text-primary"
+      className="flex w-full items-center justify-between gap-4 border-b border-border py-4 text-left transition-colors last:border-b-0 hover:text-[var(--bf-accent-ink)]"
     >
       <div className="flex min-w-0 items-start gap-3">
         <Icon
@@ -225,7 +225,7 @@ export function SettingsPageClient() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="flex w-full items-center justify-between gap-4 border-b border-border py-4 text-left transition-colors hover:text-primary"
+            className="flex w-full items-center justify-between gap-4 border-b border-border py-4 text-left transition-colors hover:text-[var(--bf-accent-ink)]"
           >
             <div className="flex min-w-0 items-start gap-3">
               <LogOut

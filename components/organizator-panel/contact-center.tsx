@@ -56,7 +56,7 @@ export function ContactCenter({ initialTickets }: { initialTickets: TicketRow[] 
             Platform desteği:{' '}
             <a
               href={`mailto:${platformContact.email}`}
-              className="text-primary underline"
+              className="text-[var(--bf-accent-ink)] underline"
             >
               {platformContact.email}
             </a>

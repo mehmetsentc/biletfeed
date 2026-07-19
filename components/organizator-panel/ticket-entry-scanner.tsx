@@ -102,7 +102,7 @@ export function TicketEntryScanner() {
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <ScanLine className="size-5 shrink-0 text-primary" strokeWidth={2} />
+            <ScanLine className="size-5 shrink-0 text-[var(--bf-accent-ink)]" strokeWidth={2} />
             <h1 className="truncate text-lg font-semibold">Bilet Tara</h1>
           </div>
           <p className="truncate text-xs text-white/55">
@@ -124,7 +124,7 @@ export function TicketEntryScanner() {
           Giriş: <span className="text-white/90">{scannerAccount.email}</span>
           {' · '}
           Organizasyon:{' '}
-          <span className="font-medium text-primary">{scannerAccount.organizerName}</span>
+          <span className="font-medium text-[var(--bf-accent-ink)]">{scannerAccount.organizerName}</span>
         </div>
       )}
 

@@ -20,7 +20,7 @@ const statusConfig: Record<
   VALID: {
     icon: CheckCircle2,
     cardClass: 'border-primary/35 bg-primary/10',
-    iconClass: 'text-primary',
+    iconClass: 'text-[var(--bf-accent-ink)]',
     label: 'Giriş yapıldı'
   },
   USED: {
@@ -63,7 +63,7 @@ function getEntryStatusStyle(status: string): {
   if (status === 'VALID') {
     return {
       iconWrap:
-        'bg-primary text-primary-foreground shadow-[0_8px_32px_rgba(235,103,43,0.4)]',
+        'bg-primary text-primary-foreground shadow-[0_8px_32px_rgba(223,255,0,0.4)]',
       titleClass: 'text-white',
       messageClass: 'text-white/75'
     };
@@ -105,7 +105,7 @@ function TicketScanDetails({
         />
       )}
       {!ticket.ticketKind && ticket.isInvitation && (
-        <p className="mb-2 inline-flex rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary ring-1 ring-primary/30">
+        <p className="mb-2 inline-flex rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-[var(--bf-accent-ink)] ring-1 ring-primary/30">
           Davetiye
         </p>
       )}
@@ -124,7 +124,7 @@ function TicketScanDetails({
       )}
       <p className="font-mono text-xs text-white/50">{ticket.code}</p>
       {ticket.entryCount != null && ticket.entryCount > 0 && (
-        <p className="text-xs text-primary/90">Giriş sayısı: {ticket.entryCount}</p>
+        <p className="text-xs text-[var(--bf-accent-ink)]/90">Giriş sayısı: {ticket.entryCount}</p>
       )}
     </div>
   );
@@ -259,7 +259,7 @@ export function QrScanner({
           )}
           <Button
             type="button"
-            className="mt-10 h-14 min-w-[220px] rounded-xl bg-primary text-lg font-bold text-primary-foreground shadow-[0_8px_24px_rgba(235,103,43,0.35)] hover:bg-[var(--bf-orange-hover)]"
+            className="mt-10 h-14 min-w-[220px] rounded-xl bg-primary text-lg font-bold text-primary-foreground shadow-[0_8px_24px_rgba(223,255,0,0.35)] hover:bg-[var(--bf-orange-hover)]"
             onClick={handleNext}
           >
             Sonraki bilet

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
 import { AppSpeedInsights } from '@/components/analytics/speed-insights';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { Providers } from '@/components/providers';
@@ -62,7 +63,7 @@ export default async function RootLayout({
       <head>
         <ThemeInitScript />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${GeistSans.variable} ${inter.variable} font-sans antialiased`}>
         <JsonLd
           data={[buildOrganizationSchema(), buildWebsiteSchema()]}
         />

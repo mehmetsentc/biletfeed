@@ -16,7 +16,7 @@ export function HomeHeroMobile() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#000000]/92 via-[#000000]/72 to-[#000000]" />
 
       <div className="relative px-4 pb-8 pt-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--bf-accent-ink)]">
           Bilet Feed
         </p>
         <h1 className="mt-2 max-w-[16rem] text-2xl font-extrabold leading-[1.2] tracking-tight text-white">
@@ -46,10 +46,10 @@ export function HomeHeroTablet() {
 
       <div className="container relative mx-auto flex min-h-[420px] items-center px-6 py-14">
         <div className="max-w-lg">
-          <p className="text-sm font-semibold text-primary">Kaçırmayın!</p>
+          <p className="text-sm font-semibold text-[var(--bf-accent-ink)]">Kaçırmayın!</p>
           <h1 className="mt-3 max-w-md text-4xl font-extrabold leading-[1.15] tracking-tight text-white">
             Yakınınızdaki{' '}
-            <span className="text-primary">canlı etkinlikleri</span> keşfedin
+            <span className="text-[var(--bf-accent-ink)]">canlı etkinlikleri</span> keşfedin
           </h1>
           <div className="mt-8">
             <HeroSearch variant="figma" />
@@ -79,7 +79,7 @@ export function HomeHeroDesktop() {
           <p className="text-lg font-semibold text-white/90">Kaçırmayın!</p>
           <h1 className="mx-auto mt-4 max-w-3xl text-5xl font-extrabold leading-[1.12] tracking-tight text-white lg:text-6xl">
             Yakınınızdaki ve dünya çapındaki{' '}
-            <span className="text-primary">canlı etkinlikleri</span> keşfedin.
+            <span className="text-[var(--bf-accent-ink)]">canlı etkinlikleri</span> keşfedin.
           </h1>
           <div className="mt-12">
             <HeroSearch variant="figma" />

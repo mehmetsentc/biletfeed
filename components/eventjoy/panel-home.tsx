@@ -36,7 +36,7 @@ function StatCard({
 }) {
   return (
     <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-      <p className={cn('text-3xl font-bold tabular-nums lg:text-4xl', accent || 'text-primary')}>
+      <p className={cn('text-3xl font-bold tabular-nums lg:text-4xl', accent || 'text-[var(--bf-accent-ink)]')}>
         {value}
       </p>
       <p className="mt-1 text-sm font-semibold text-foreground">{label}</p>
@@ -84,7 +84,7 @@ export function EventJoyPanelHome() {
       icon: CalendarPlus,
       label: 'Etkinlik Oluştur',
       desc: 'Davetiye, tarih ve kapak görseli',
-      accent: 'bg-primary/10 text-primary'
+      accent: 'bg-primary/10 text-[var(--bf-accent-ink)]'
     },
     {
       href: nextEvent
@@ -119,7 +119,7 @@ export function EventJoyPanelHome() {
 
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-[var(--bf-accent-ink)]">
               <Sparkles className="size-3.5" />
               EventJoy Panel
             </div>
@@ -134,7 +134,7 @@ export function EventJoyPanelHome() {
             {name === 'Kullanıcı' && !user?.displayName && (
               <Link
                 href={eventJoyRoutes.profileEdit}
-                className="mt-4 inline-flex text-sm font-semibold text-primary hover:underline"
+                className="mt-4 inline-flex text-sm font-semibold text-[var(--bf-accent-ink)] hover:underline"
               >
                 Profilinizi tamamlayın →
               </Link>
@@ -195,7 +195,7 @@ export function EventJoyPanelHome() {
             </div>
             <Link
               href="/eventjoy/etkinlikler"
-              className="text-sm font-semibold text-primary hover:underline"
+              className="text-sm font-semibold text-[var(--bf-accent-ink)] hover:underline"
             >
               Tümünü gör
             </Link>
@@ -240,7 +240,7 @@ export function EventJoyPanelHome() {
               </div>
               <div className="grid gap-4 p-5 sm:grid-cols-3">
                 <div className="flex items-center gap-3">
-                  <Calendar className="size-4 text-primary" />
+                  <Calendar className="size-4 text-[var(--bf-accent-ink)]" />
                   <div>
                     <p className="text-xs text-muted-foreground">Tarih</p>
                     <p className="text-sm font-semibold text-foreground">
@@ -253,7 +253,7 @@ export function EventJoyPanelHome() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Clock className="size-4 text-primary" />
+                  <Clock className="size-4 text-[var(--bf-accent-ink)]" />
                   <div>
                     <p className="text-xs text-muted-foreground">Saat</p>
                     <p className="text-sm font-semibold text-foreground">
@@ -262,7 +262,7 @@ export function EventJoyPanelHome() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Users className="size-4 text-primary" />
+                  <Users className="size-4 text-[var(--bf-accent-ink)]" />
                   <div>
                     <p className="text-xs text-muted-foreground">Misafir</p>
                     <p className="text-sm font-semibold text-foreground">
@@ -274,7 +274,7 @@ export function EventJoyPanelHome() {
             </Link>
           ) : (
             <section className="rounded-2xl border border-dashed border-border bg-white p-10 text-center shadow-sm">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-[var(--bf-accent-ink)]">
                 <CalendarPlus className="size-7" />
               </div>
               <p className="mt-5 text-xl font-bold text-foreground">
@@ -337,7 +337,7 @@ export function EventJoyPanelHome() {
             </p>
             <Link
               href={eventJoyRoutes.accountProfile}
-              className="mt-3 inline-flex text-xs font-semibold text-primary hover:underline"
+              className="mt-3 inline-flex text-xs font-semibold text-[var(--bf-accent-ink)] hover:underline"
             >
               Hesap ayarları →
             </Link>

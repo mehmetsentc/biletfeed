@@ -73,7 +73,7 @@ export function VenueTablePicker({ eventSlug, ticketTypes, seatPlan }: Props) {
             className={cn(
               'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
               zone.code === activeZone.code
-                ? 'border-primary bg-primary/10 text-primary'
+                ? 'border-primary bg-primary/10 text-[var(--bf-accent-ink)]'
                 : 'border-border bg-card text-muted-foreground hover:bg-muted'
             )}
           >
@@ -127,7 +127,7 @@ export function VenueTablePicker({ eventSlug, ticketTypes, seatPlan }: Props) {
                 className="rounded-lg border border-primary/30 bg-primary/5 px-2 py-3 text-center transition-colors hover:border-primary hover:bg-primary/10"
               >
                 <span className="block text-xs font-bold text-foreground">{unit.label}</span>
-                <span className="mt-0.5 block text-[10px] font-semibold text-primary">
+                <span className="mt-0.5 block text-[10px] font-semibold text-[var(--bf-accent-ink)]">
                   {price != null ? formatTry(price) : '—'}
                 </span>
                 {remaining <= 0 ? null : (

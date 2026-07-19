@@ -12,7 +12,7 @@ export function MobileFooter() {
 
   return (
     <footer className="border-t border-white/10 bg-brand-surface px-4 py-8 text-white md:hidden">
-      <p className="text-lg font-bold text-primary">{siteConfig.name}</p>
+      <p className="text-lg font-bold text-[var(--bf-accent-ink)]">{siteConfig.name}</p>
       <p className="mt-1 text-sm text-white/70">
         Türkiye&apos;nin etkinlik keşif platformu
       </p>
@@ -22,7 +22,7 @@ export function MobileFooter() {
           <Link
             key={link.href}
             href={link.href}
-            className="text-sm font-medium text-white/85 hover:text-primary"
+            className="text-sm font-medium text-white/85 hover:text-[var(--bf-accent-ink)]"
           >
             {link.label}
           </Link>

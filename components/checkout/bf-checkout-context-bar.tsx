@@ -45,11 +45,11 @@ export function BfCheckoutContextBar({
           <p className="truncate text-base font-bold sm:text-lg">{event.title}</p>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground sm:text-sm">
             <span className="inline-flex items-center gap-1.5">
-              <Calendar className="size-3.5 shrink-0 text-primary" />
+              <Calendar className="size-3.5 shrink-0 text-[var(--bf-accent-ink)]" />
               {formatEventDate(event.startDate)}
             </span>
             <span className="inline-flex min-w-0 items-center gap-1.5">
-              <MapPin className="size-3.5 shrink-0 text-primary" />
+              <MapPin className="size-3.5 shrink-0 text-[var(--bf-accent-ink)]" />
               <span className="truncate">
                 {event.venue}
                 {event.city ? `, ${event.city}` : ''}

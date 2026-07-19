@@ -73,7 +73,7 @@ export function WizardStepPublish({
             </div>
           )}
           <div className="rounded-xl border border-border bg-muted/20 p-5">
-            <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+            <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--bf-accent-ink)]">
               {categoryName}
             </span>
             {tags.length > 0 && (
@@ -163,7 +163,7 @@ export function WizardStepPublish({
                   <button
                     type="button"
                     onClick={openOrganizerAgreement}
-                    className="font-medium text-primary underline-offset-2 hover:underline"
+                    className="font-medium text-[var(--bf-accent-ink)] underline-offset-2 hover:underline"
                   >
                     Organizatör Kullanıcı Sözleşmesi
                   </button>

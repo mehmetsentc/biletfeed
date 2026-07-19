@@ -75,7 +75,7 @@ function PendingEventCard({
       <div className="min-w-0 flex-1">
         <Link
           href={`/etkinlik/${event.slug}`}
-          className="font-semibold hover:text-primary"
+          className="font-semibold hover:text-[var(--bf-accent-ink)]"
         >
           {event.title}
         </Link>
@@ -122,7 +122,7 @@ function ReviewCard({ review }: { review: UserReviewItem }) {
       <div className="min-w-0 flex-1">
         <Link
           href={`/etkinlik/${review.event.slug}`}
-          className="font-semibold hover:text-primary"
+          className="font-semibold hover:text-[var(--bf-accent-ink)]"
         >
           {review.event.title}
         </Link>

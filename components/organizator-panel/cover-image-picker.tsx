@@ -185,7 +185,7 @@ export function CoverImagePicker({
             </div>
           ) : (
             <>
-              <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-[var(--bf-accent-ink)]">
                 <Upload className="size-6" />
               </span>
               <p className="mt-4 font-semibold text-foreground">

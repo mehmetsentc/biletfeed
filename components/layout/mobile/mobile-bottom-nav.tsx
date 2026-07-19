@@ -77,7 +77,7 @@ export function MobileBottomNav() {
                 'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5',
                 'text-[10px] font-semibold transition-colors duration-200',
                 active
-                  ? 'text-primary'
+                  ? 'text-[var(--bf-accent-ink)]'
                   : 'text-[var(--header-fg-muted)] hover:text-[var(--header-fg)]'
               )}
             >

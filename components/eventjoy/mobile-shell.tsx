@@ -64,7 +64,7 @@ function EventJoyTopBar({ showProfileLink }: { showProfileLink: boolean }) {
         <Logo href={eventJoyRoutes.siteHome} variant="on-dark" className="h-8 w-auto ring-0" />
         <Link
           href={eventJoyRoutes.panel}
-          className="hidden rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary transition hover:bg-primary/25 sm:inline"
+          className="hidden rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-[var(--bf-accent-ink)] transition hover:bg-primary/25 sm:inline"
         >
           EventJoy
         </Link>

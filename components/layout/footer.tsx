@@ -157,14 +157,14 @@ export async function Footer() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm font-medium text-white/90 transition-colors hover:text-primary"
+                      className="text-sm font-medium text-white/90 transition-colors hover:text-[var(--bf-accent-ink)]"
                     >
                       {link.label}
                     </Link>
                   </li>
                 ))}
                 <li>
-                  <CookiePreferencesButton className="text-sm font-medium text-white/90 transition-colors hover:text-primary" />
+                  <CookiePreferencesButton className="text-sm font-medium text-white/90 transition-colors hover:text-[var(--bf-accent-ink)]" />
                 </li>
               </ul>
             </div>
@@ -178,7 +178,7 @@ export async function Footer() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm font-medium text-white/90 transition-colors hover:text-primary"
+                      className="text-sm font-medium text-white/90 transition-colors hover:text-[var(--bf-accent-ink)]"
                     >
                       {link.label}
                     </Link>
@@ -196,7 +196,7 @@ export async function Footer() {
                   <li key={cat.slug}>
                     <Link
                       href={`/kategoriler/${cat.slug}`}
-                      className="text-sm font-medium text-white/90 transition-colors hover:text-primary"
+                      className="text-sm font-medium text-white/90 transition-colors hover:text-[var(--bf-accent-ink)]"
                     >
                       {cat.name}
                     </Link>
@@ -217,7 +217,7 @@ export async function Footer() {
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-medium text-white/90 transition-colors hover:text-primary"
+                        className="text-sm font-medium text-white/90 transition-colors hover:text-[var(--bf-accent-ink)]"
                       >
                         {link.label}
                       </a>

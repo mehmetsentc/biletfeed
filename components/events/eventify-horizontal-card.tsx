@@ -50,7 +50,7 @@ export function EventifyHorizontalCard({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col justify-center p-4 sm:p-5">
-          <h3 className="line-clamp-2 text-base font-bold leading-snug group-hover:text-primary md:text-lg">
+          <h3 className="line-clamp-2 text-base font-bold leading-snug group-hover:text-[var(--bf-accent-ink)] md:text-lg">
             {event.title}
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -60,7 +60,7 @@ export function EventifyHorizontalCard({
             {formatEventTimeRange(event)}
           </p>
           <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <Tag className="size-3.5 shrink-0 text-primary/80" aria-hidden />
+            <Tag className="size-3.5 shrink-0 text-[var(--bf-accent-ink)]/80" aria-hidden />
             {formatPrice(event)}
           </p>
         </div>

@@ -92,7 +92,7 @@ export function EventsFeedHeader({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <CalendarDays className="size-7 text-primary" aria-hidden />
+              <CalendarDays className="size-7 text-[var(--bf-accent-ink)]" aria-hidden />
               <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
                 {t.events.title}
               </h1>
@@ -149,7 +149,7 @@ export function EventsFeedHeader({
                 className={cn(
                   'shrink-0 px-4 pb-3 pt-1 text-xs font-bold uppercase tracking-wide transition whitespace-nowrap border-b-2',
                   active
-                    ? 'border-primary text-primary'
+                    ? 'border-primary text-[var(--bf-accent-ink)]'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 )}
               >

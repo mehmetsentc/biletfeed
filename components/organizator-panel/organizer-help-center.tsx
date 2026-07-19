@@ -35,7 +35,7 @@ const categoryIcons: Record<HelpCategory['icon'], typeof HelpCircle> = {
 function CategoryIcon({ icon }: { icon: HelpCategory['icon'] }) {
   const Icon = categoryIcons[icon];
   return (
-    <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-[var(--bf-accent-ink)]">
       <Icon className="size-6" strokeWidth={1.75} />
     </div>
   );
@@ -109,7 +109,7 @@ export function OrganizerHelpHome({
               <BookOpen className="size-5" />
             </div>
             <div>
-              <p className="font-semibold text-foreground group-hover:text-primary">
+              <p className="font-semibold text-foreground group-hover:text-[var(--bf-accent-ink)]">
                 Makalelere göz atın
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -121,11 +121,11 @@ export function OrganizerHelpHome({
             href="/organizator-panel/iletisim"
             className="group flex gap-4 rounded-[var(--radius-card)] border bg-card p-5 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
           >
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-[var(--bf-accent-ink)]">
               <MessageSquarePlus className="size-5" />
             </div>
             <div>
-              <p className="font-semibold text-foreground group-hover:text-primary">
+              <p className="font-semibold text-foreground group-hover:text-[var(--bf-accent-ink)]">
                 Destek talebi gönder
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -141,7 +141,7 @@ export function OrganizerHelpHome({
         <section id="bilgi-tabani">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-lg font-bold text-primary">Bilgi tabanı</h2>
+              <h2 className="text-lg font-bold text-[var(--bf-accent-ink)]">Bilgi tabanı</h2>
               <p className="text-sm text-muted-foreground">Tüm makaleleri görüntüleyin</p>
             </div>
           </div>
@@ -173,10 +173,10 @@ export function OrganizerHelpHome({
       {!query.trim() && (
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-primary">En popüler makaleler</h2>
+            <h2 className="text-lg font-bold text-[var(--bf-accent-ink)]">En popüler makaleler</h2>
             <Link
               href="/organizator-panel/yardim/kategori/sss"
-              className="text-sm font-medium text-primary hover:underline"
+              className="text-sm font-medium text-[var(--bf-accent-ink)] hover:underline"
             >
               Tüm makaleler
             </Link>
@@ -188,7 +188,7 @@ export function OrganizerHelpHome({
                 href={`/organizator-panel/yardim/makale/${article.slug}`}
                 className="flex items-start gap-3 rounded-[var(--radius-card)] border bg-card p-4 shadow-sm transition-colors hover:border-primary/20 hover:bg-primary/[0.02]"
               >
-                <BookOpen className="mt-0.5 size-4 shrink-0 text-primary" />
+                <BookOpen className="mt-0.5 size-4 shrink-0 text-[var(--bf-accent-ink)]" />
                 <div className="min-w-0">
                   <p className="font-medium text-foreground">{article.title}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -208,7 +208,7 @@ export function OrganizerHelpHome({
 
       <div className="rounded-[var(--radius-card)] border border-dashed border-primary/30 bg-primary/[0.03] px-5 py-4 text-center text-sm text-muted-foreground">
         BiletFeed organizatör yardım merkezi —{' '}
-        <Link href="/organizator-panel/iletisim" className="font-medium text-primary hover:underline">
+        <Link href="/organizator-panel/iletisim" className="font-medium text-[var(--bf-accent-ink)] hover:underline">
           destek@biletfeed.com
         </Link>
       </div>
@@ -222,7 +222,7 @@ export function HelpArticleView({ article }: { article: HelpArticle }) {
       <div>
         <Link
           href={`/organizator-panel/yardim/kategori/${article.categorySlug}`}
-          className="text-sm font-medium text-primary hover:underline"
+          className="text-sm font-medium text-[var(--bf-accent-ink)] hover:underline"
         >
           ← Kategoriye dön
         </Link>
@@ -284,7 +284,7 @@ export function HelpCategoryView({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <Link href="/organizator-panel/yardim" className="text-sm font-medium text-primary hover:underline">
+        <Link href="/organizator-panel/yardim" className="text-sm font-medium text-[var(--bf-accent-ink)] hover:underline">
           ← Yardım merkezi
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-foreground">{category.title}</h1>
@@ -298,7 +298,7 @@ export function HelpCategoryView({
               href={`/organizator-panel/yardim/makale/${a.slug}`}
               className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-muted/30"
             >
-              <BookOpen className="size-4 shrink-0 text-primary" />
+              <BookOpen className="size-4 shrink-0 text-[var(--bf-accent-ink)]" />
               <div>
                 <p className="font-medium text-foreground">{a.title}</p>
                 <p className="text-xs text-muted-foreground">{a.summary}</p>

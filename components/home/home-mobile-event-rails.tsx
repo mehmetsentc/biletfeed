@@ -54,7 +54,7 @@ export function HomeMobileEventRails({ initial }: HomeMobileEventRailsProps) {
     <div className="border-b border-border/60 bg-background md:hidden">
       {loading && (
         <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin text-primary" />
+          <Loader2 className="size-4 animate-spin text-[var(--bf-accent-ink)]" />
           {t.common.loading}
         </div>
       )}

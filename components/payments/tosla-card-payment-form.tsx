@@ -258,7 +258,7 @@ export function ToslaCardPaymentForm({
         </Button>
 
         <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
-          <Lock className="mt-0.5 size-3.5 shrink-0 text-primary" />
+          <Lock className="mt-0.5 size-3.5 shrink-0 text-[var(--bf-accent-ink)]" />
           <p>
             Kart bilgileriniz BiletFeed sunucularına iletilmez; doğrudan Tosla güvenli ödeme
             altyapısına gönderilir. Ardından bankanızın 3D Secure doğrulaması açılır.
@@ -266,7 +266,7 @@ export function ToslaCardPaymentForm({
         </div>
 
         <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="size-3.5 text-primary" />
+          <ShieldCheck className="size-3.5 text-[var(--bf-accent-ink)]" />
           256-bit SSL · PCI-DSS uyumlu altyapı
         </div>
 
@@ -278,7 +278,7 @@ export function ToslaCardPaymentForm({
             <button
               type="button"
               onClick={onUseHostedFallback}
-              className="text-xs text-primary underline-offset-2 hover:underline"
+              className="text-xs text-[var(--bf-accent-ink)] underline-offset-2 hover:underline"
             >
               Kart formu açılmıyorsa alternatif ödeme sayfasını dene
             </button>

@@ -58,8 +58,8 @@ export function Header() {
                 href={link.href}
                 data-active={active ? 'true' : 'false'}
                 className={cn(
-                  'nav-link-premium text-sm font-semibold text-[var(--header-fg)] transition-colors duration-200 hover:text-primary',
-                  active && 'text-primary'
+                  'nav-link-premium text-sm font-semibold text-[var(--header-fg)] transition-colors duration-200 hover:text-[var(--bf-accent-ink)]',
+                  active && 'text-[var(--bf-accent-ink)]'
                 )}
               >
                 {link.label}

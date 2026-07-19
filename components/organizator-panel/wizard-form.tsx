@@ -63,7 +63,7 @@ export function WizardFormSection({
       <div className="border-b border-border/60 bg-muted/30 px-5 py-4 md:px-6">
         <div className="flex items-start gap-3">
           {Icon && (
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-[var(--bf-accent-ink)]">
               <Icon className="size-5" />
             </span>
           )}

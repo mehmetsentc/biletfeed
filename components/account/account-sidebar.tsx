@@ -32,7 +32,7 @@ export function AccountSidebar() {
     <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
         <Avatar className="size-12 shrink-0">
-          <AvatarFallback className="bg-primary/10 font-semibold text-primary">
+          <AvatarFallback className="bg-primary/10 font-semibold text-[var(--bf-accent-ink)]">
             {initials || 'BF'}
           </AvatarFallback>
         </Avatar>
@@ -54,7 +54,7 @@ export function AccountSidebar() {
               <Link
                 href={panelHref('/organizator-panel/etkinlik/yeni')}
                 {...PANEL_EXTERNAL_LINK_PROPS}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--bf-accent-ink)] transition-colors hover:bg-muted"
               >
                 <Plus className="size-4 shrink-0" strokeWidth={1.75} />
                 {t.account.createEvent}

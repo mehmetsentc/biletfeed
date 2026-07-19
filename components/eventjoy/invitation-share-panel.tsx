@@ -174,7 +174,7 @@ export function EventJoyInvitationShare({ event }: { event: EventJoyEvent }) {
           )}
         >
           <div className={cn(event.coverImage && 'p-6 text-center')}>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary">
+            <p className="text-xs font-medium uppercase tracking-wide text-[var(--bf-accent-ink)]">
               {event.type}
             </p>
             <h2 className="mt-2 text-2xl font-bold text-foreground">{event.title}</h2>
@@ -248,7 +248,7 @@ export function EventJoyInvitationShare({ event }: { event: EventJoyEvent }) {
 
             <div className="rounded-xl border border-border p-4">
               <div className="mb-3 flex items-center gap-2 font-semibold">
-                <Mail className="size-4 text-primary" />
+                <Mail className="size-4 text-[var(--bf-accent-ink)]" />
                 E-posta ile Gönder
               </div>
               <div className="space-y-3">

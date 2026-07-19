@@ -20,7 +20,7 @@ export function EventJoyDetail({ id }: { id: string }) {
     return (
       <div className="px-4 py-12 text-center">
         <p className="font-semibold text-foreground">Etkinlik bulunamadı</p>
-        <Link href="/eventjoy/etkinlikler" className="mt-4 text-sm text-primary hover:underline">
+        <Link href="/eventjoy/etkinlikler" className="mt-4 text-sm text-[var(--bf-accent-ink)] hover:underline">
           Etkinliklere dön
         </Link>
       </div>
@@ -122,7 +122,7 @@ export function EventJoyDetail({ id }: { id: string }) {
                 href={item.href}
                 className="flex items-center gap-4 px-5 py-4 transition hover:bg-muted/50"
               >
-                <item.icon className="size-5 text-primary" />
+                <item.icon className="size-5 text-[var(--bf-accent-ink)]" />
                 <div className="flex-1">
                   <p className="font-semibold text-foreground">{item.label}</p>
                   <p className="text-sm text-muted-foreground">{item.sub}</p>

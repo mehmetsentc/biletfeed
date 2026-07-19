@@ -22,7 +22,7 @@ export function HomeCityChips() {
           </span>
           {detectingLocation && !hasChosenCity ? (
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Loader2 className="size-4 animate-spin text-primary" />
+              <Loader2 className="size-4 animate-spin text-[var(--bf-accent-ink)]" />
               Konumunuz tespit ediliyor…
             </div>
           ) : (

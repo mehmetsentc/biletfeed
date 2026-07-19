@@ -23,7 +23,7 @@ function EventLoader({
     return (
       <div className="px-4 py-12 text-center">
         <p className="font-semibold">Etkinlik bulunamadı</p>
-        <Link href="/eventjoy/etkinlikler" className="mt-2 text-sm text-primary">
+        <Link href="/eventjoy/etkinlikler" className="mt-2 text-sm text-[var(--bf-accent-ink)]">
           Geri dön
         </Link>
       </div>

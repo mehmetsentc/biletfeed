@@ -20,7 +20,7 @@ export function ExternalEventBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary shadow-[var(--shadow-xs)] backdrop-blur-sm',
+        'inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--bf-accent-ink)] shadow-[var(--shadow-xs)] backdrop-blur-sm',
         className
       )}
     >

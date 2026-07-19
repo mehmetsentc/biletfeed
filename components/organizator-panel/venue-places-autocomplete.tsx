@@ -208,7 +208,7 @@ export function VenuePlacesAutocomplete({
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => void selectSuggestion(suggestion)}
               >
-                <MapPin className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                <MapPin className="mt-0.5 size-3.5 shrink-0 text-[var(--bf-accent-ink)]" />
                 <span className="min-w-0">
                   <span className="block font-medium text-foreground">{suggestion.name}</span>
                   {suggestion.secondaryText ? (

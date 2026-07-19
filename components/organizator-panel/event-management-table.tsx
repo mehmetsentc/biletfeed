@@ -208,7 +208,7 @@ export function EventManagementTable({
       {/* Başlık */}
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-primary">Organizatör Paneli</p>
+          <p className="text-sm font-medium text-[var(--bf-accent-ink)]">Organizatör Paneli</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
             Etkinlikler
           </h1>
@@ -237,7 +237,7 @@ export function EventManagementTable({
             key={item.label}
             className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 shadow-sm"
           >
-            <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-[var(--bf-accent-ink)]">
               <item.icon className="size-5" />
             </span>
             <div>
@@ -303,7 +303,7 @@ export function EventManagementTable({
                       href={`/organizator-panel/etkinlik/${event.id}`}
                       className="group block max-w-[280px]"
                     >
-                      <p className="font-semibold text-foreground transition-colors group-hover:text-primary">
+                      <p className="font-semibold text-foreground transition-colors group-hover:text-[var(--bf-accent-ink)]">
                         {event.title}
                       </p>
                       <p className="mt-0.5 font-mono text-xs text-muted-foreground">
@@ -396,7 +396,7 @@ export function EventManagementTable({
                 <div className="min-w-0">
                   <Link
                     href={`/organizator-panel/etkinlik/${event.id}`}
-                    className="text-base font-semibold text-foreground hover:text-primary"
+                    className="text-base font-semibold text-foreground hover:text-[var(--bf-accent-ink)]"
                   >
                     {event.title}
                   </Link>
@@ -441,13 +441,13 @@ export function EventManagementTable({
 
               <div className="grid gap-2 text-sm text-muted-foreground">
                 <p className="inline-flex items-center gap-2">
-                  <CalendarDays className="size-4 shrink-0 text-primary/80" />
+                  <CalendarDays className="size-4 shrink-0 text-[var(--bf-accent-ink)]/80" />
                   {formatEventDate(event.startDate)} ·{' '}
                   {formatEventTime(event.startDate)}
                 </p>
                 {event.venue?.name && (
                   <p className="inline-flex items-center gap-2">
-                    <MapPin className="size-4 shrink-0 text-primary/80" />
+                    <MapPin className="size-4 shrink-0 text-[var(--bf-accent-ink)]/80" />
                     {event.venue.name}
                   </p>
                 )}

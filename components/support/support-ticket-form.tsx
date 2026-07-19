@@ -170,7 +170,7 @@ export function SupportTicketForm({
                     </span>
                   </span>
                   {category === option.value && (
-                    <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                    <Check className="mt-0.5 size-4 shrink-0 text-[var(--bf-accent-ink)]" />
                   )}
                 </button>
               ))}

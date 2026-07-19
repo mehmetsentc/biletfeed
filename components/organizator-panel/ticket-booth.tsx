@@ -131,7 +131,7 @@ export function TicketBoothPanel() {
               <Icon
                 className={cn(
                   'mb-3 size-10',
-                  active ? 'text-primary' : 'text-muted-foreground'
+                  active ? 'text-[var(--bf-accent-ink)]' : 'text-muted-foreground'
                 )}
               />
               <span className="font-semibold text-foreground">{tab.label}</span>
@@ -211,7 +211,7 @@ export function TicketBoothPanel() {
                       <p className="font-medium text-foreground">{order.buyerName}</p>
                       <p className="text-xs text-muted-foreground">{order.buyerEmail}</p>
                     </div>
-                    <p className="font-semibold text-primary">
+                    <p className="font-semibold text-[var(--bf-accent-ink)]">
                       {order.total.toLocaleString('tr-TR')} ₺
                     </p>
                   </div>

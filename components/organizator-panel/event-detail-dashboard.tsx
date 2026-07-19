@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organizer-csv-download-button';
 import { turkeyCalendarDayDiff } from '@/lib/datetime/istanbul';
+import { girisHref } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
 type CategoryRow = {
@@ -220,13 +221,13 @@ function CopyField({ label, value }: { label: string; value: string }) {
         <button
           type="button"
           onClick={() => void copy()}
-          className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+          className="shrink-0 text-muted-foreground transition-colors hover:text-[var(--bf-accent-ink)]"
           aria-label="Kopyala"
         >
           <Copy className="size-3.5" />
         </button>
       </div>
-      {copied && <p className="text-[10px] text-primary">Kopyalandı</p>}
+      {copied && <p className="text-[10px] text-[var(--bf-accent-ink)]">Kopyalandı</p>}
     </div>
   );
 }
@@ -426,8 +427,8 @@ export function EventDetailDashboard({
             href="/organizator-panel/etkinlik/yeni"
             className="flex flex-col items-center gap-1 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 text-center transition-colors hover:bg-primary/10"
           >
-            <Plus className="size-5 text-primary" />
-            <span className="text-[11px] font-semibold text-primary">Yeni</span>
+            <Plus className="size-5 text-[var(--bf-accent-ink)]" />
+            <span className="text-[11px] font-semibold text-[var(--bf-accent-ink)]">Yeni</span>
           </Link>
         </div>
         <Badge variant="secondary" className="font-mono text-xs">
@@ -435,7 +436,7 @@ export function EventDetailDashboard({
         </Badge>
       </div>
 
-      <p className="text-sm font-medium text-primary">Etkinlik Detayı</p>
+      <p className="text-sm font-medium text-[var(--bf-accent-ink)]">Etkinlik Detayı</p>
 
       {/* Etkinlik başlık şeridi */}
       <section className="rounded-[var(--radius-card)] border border-border bg-card px-5 py-5 shadow-[var(--shadow-sm)]">
@@ -460,9 +461,9 @@ export function EventDetailDashboard({
               {event.title}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              <CalendarDays className="mr-1.5 inline size-4 text-primary" />
+              <CalendarDays className="mr-1.5 inline size-4 text-[var(--bf-accent-ink)]" />
               {formatEventDate(event.startDate)} {formatEventTime(event.startDate)} · Türkiye Saati
-              <span className="ml-2 text-xs text-primary">
+              <span className="ml-2 text-xs text-[var(--bf-accent-ink)]">
                 ({relativeEventLabel(event.startDate, event.endDate)})
               </span>
             </p>
@@ -532,7 +533,7 @@ export function EventDetailDashboard({
         <Widget title="Net Hasılat">
           <div className="space-y-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--bf-accent-ink)]">
                 Sistem üzerinden gelirler
               </p>
               <p className="text-2xl font-bold tabular-nums text-foreground">
@@ -678,7 +679,7 @@ export function EventDetailDashboard({
                               className="size-7 rounded-full object-cover shrink-0"
                             />
                           ) : (
-                            <div className="size-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0 text-primary font-semibold text-xs">
+                            <div className="size-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0 text-[var(--bf-accent-ink)] font-semibold text-xs">
                               {org.name.charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -702,7 +703,7 @@ export function EventDetailDashboard({
                 {/* Seçili organizatör etiketi */}
                 {transferSelected && (
                   <div className="flex items-center gap-2 rounded-md bg-primary/10 border border-primary/20 px-2.5 py-1.5 text-xs">
-                    <CheckCircle2 className="size-3.5 text-primary shrink-0" />
+                    <CheckCircle2 className="size-3.5 text-[var(--bf-accent-ink)] shrink-0" />
                     <span className="font-medium">{transferSelected.name}</span>
                     <span className="text-muted-foreground truncate">({transferSelected.email})</span>
                   </div>
@@ -782,10 +783,14 @@ export function EventDetailDashboard({
         <Widget title="İşlemler">
           <div className="flex flex-col gap-2">
             <Button asChild variant="secondary" size="sm" className="justify-start gap-2">
-              <Link href="/organizator-panel/tarayici">
+              <a
+                href={girisHref('/tarayici')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <QrCode className="size-3.5" />
                 Bilet tara
-              </Link>
+              </a>
             </Button>
             <Button asChild variant="secondary" size="sm" className="justify-start gap-2">
               <Link href="/organizator-panel/siparisler">

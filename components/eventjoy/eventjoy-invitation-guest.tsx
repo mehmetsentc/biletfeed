@@ -75,7 +75,7 @@ export function EventJoyInvitationGuest({
           )}
 
           <div className="px-6 pb-8 pt-5">
-            <p className="text-xs font-medium uppercase tracking-wide text-primary">
+            <p className="text-xs font-medium uppercase tracking-wide text-[var(--bf-accent-ink)]">
               {invitation.type}
             </p>
             <h1 className="mt-2 text-xl font-bold leading-tight text-white">

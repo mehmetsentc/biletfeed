@@ -1,52 +1,88 @@
 /**
  * BiletFeed Design System v2 — CSS token kaynağı
- * Logo turuncusu: #EB672B (premium, sıcak, kırmızı alt ton)
- * Metin: #1A1A1A · Light: Apple-style · Dark: Apple dark (OLED değil)
+ * Marka: Neon Lime (#DFFF00) + Siyah / Beyaz / Gri
+ * Referans: Apple × Linear × Stripe × Nothing × Arc — minimal, premium, dark-first.
+ * Neon SADECE vurgu içindir: primary button, seçili tab, aktif nav, fiyat, CTA,
+ * aktif ikon, focus, checkbox/radio/switch, progress, loading, premium rozet.
+ * Neon asla uzun metinlerde kullanılmaz.
  */
 
 :root {
-  /* ── Brand Orange Scale (logo-derived, NOT Tailwind orange) ── */
-  --bf-orange-50: #fff5ee;
-  --bf-orange-100: #ffe7d6;
-  --bf-orange-200: #ffd4b8;
-  --bf-orange-300: #ffb888;
-  --bf-orange-400: #f58a17;
-  --bf-orange-500: #eb672b;
-  --bf-orange-600: #d9581c;
-  --bf-orange-700: #c44a18;
-  --bf-orange-800: #a33d14;
-  --bf-orange-900: #7a2e0f;
-  --bf-orange-950: #451a08;
+  /* ── Neon accent (logo-derived) — TEK vurgu rengi ── */
+  --bf-neon: #dfff00;
+  --bf-neon-hover: #f0ff33;
+  --bf-neon-pressed: #c9e800;
+  --bf-neon-light-surface: #f8ffd9;
+  --bf-neon-soft-border: #eaf6a8;
+  --bf-neon-transparent: rgba(223, 255, 0, 0.08);
+  --bf-neon-focus-ring: rgba(223, 255, 0, 0.35);
+  --bf-neon-glow: rgba(223, 255, 0, 0.25);
+  --bf-neon-on: #050505; /* neon zemin üzerinde metin/ikon — her zaman siyah */
 
-  --bf-orange: var(--bf-orange-500);
+  /* ── Neon scale (geriye dönük uyumluluk — eski --bf-orange-* adları) ──
+     Not: 700-950 basamakları SADECE dekoratif/legacy referanslar için var;
+     rozet/metin rengi olarak kullanılmaz (bkz. badge.tsx → --bf-text). */
+  --bf-orange-50: color-mix(in srgb, var(--bf-neon) 10%, white);
+  --bf-orange-100: var(--bf-neon-light-surface);
+  --bf-orange-200: var(--bf-neon-soft-border);
+  --bf-orange-300: color-mix(in srgb, var(--bf-neon) 55%, white);
+  --bf-orange-400: color-mix(in srgb, var(--bf-neon) 80%, white);
+  --bf-orange-500: var(--bf-neon);
+  --bf-orange-600: var(--bf-neon-pressed);
+  --bf-orange-700: color-mix(in srgb, var(--bf-neon) 70%, black);
+  --bf-orange-800: color-mix(in srgb, var(--bf-neon) 50%, black);
+  --bf-orange-900: color-mix(in srgb, var(--bf-neon) 32%, black);
+  --bf-orange-950: color-mix(in srgb, var(--bf-neon) 18%, black);
+
+  --bf-orange: var(--bf-neon);
   --bf-orange-light: var(--bf-orange-400);
-  --bf-orange-hover: var(--bf-orange-600);
-  --bf-orange-pressed: var(--bf-orange-700);
-  --bf-orange-soft: var(--bf-orange-100);
+  --bf-orange-hover: var(--bf-neon-hover);
+  --bf-orange-pressed: var(--bf-neon-pressed);
+  --bf-orange-soft: var(--bf-neon-light-surface);
   --bf-orange-surface: var(--bf-orange-50);
-  --bf-orange-border: var(--bf-orange-200);
+  --bf-orange-border: var(--bf-neon-soft-border);
 
-  /* ── Light surfaces (Apple-style, saf beyaz değil) ── */
-  --bf-bg: #fafafa;
-  --bf-surface: #ffffff;
+  /* ── Neutral scale (marka nötrleri) ── */
+  --bf-white: #ffffff;
+  --bf-off-white: #fafafa;
+  --bf-gray-50: #f7f7f7;
+  --bf-gray-100: #efefef;
+  --bf-gray-200: #e4e4e4;
+  --bf-gray-300: #d2d2d2;
+  --bf-gray-400: #a5a5a5;
+  --bf-gray-500: #7a7a7a;
+  --bf-gray-600: #555555;
+  --bf-gray-700: #3a3a3a;
+  --bf-gray-800: #242424;
+  --bf-gray-900: #111111;
+  --bf-black: #050505;
+
+  /* ── Light surfaces ── */
+  --bf-bg: #ffffff;
+  --bf-surface: #fafafa;
   --bf-card: #ffffff;
   --bf-sidebar: #ffffff;
   --bf-navbar: #ffffff;
   --bf-border: #ececec;
   --bf-input-bg: #ffffff;
-  --bf-secondary-bg: #f7f7f7;
-  --bf-muted-surface: #f5f5f5;
+  --bf-secondary-bg: #fafafa;
+  --bf-muted-surface: #f7f7f7;
 
   /* ── Text ── */
-  --bf-text: #1a1a1a;
-  --bf-text-secondary: #525252;
-  --bf-text-muted: #737373;
-  --bf-text-disabled: #a3a3a3;
+  --bf-text: #050505;
+  --bf-text-secondary: #555555;
+  --bf-text-muted: #777777;
+  --bf-text-disabled: #b4b4b4;
   --bf-text-inverse: #ffffff;
-  --bf-text-link: var(--bf-orange);
-  --bf-text-link-hover: var(--bf-orange-hover);
+  --bf-text-link: var(--bf-text);
+  --bf-text-link-hover: var(--bf-neon-pressed);
 
-  /* ── Status ── */
+  /* Vurgu metni — neon açık zeminde OKUNMAZ (WCAG başarısız), bu yüzden
+     "metin olarak" aksan rengi ayrı bir token: açık zeminde nötr, koyu
+     zeminde neon. Arkaplan/dolgu kullanımları (bg-primary) etkilenmez. */
+  --bf-accent-ink: var(--bf-text);
+
+  /* ── Status (fonksiyonel — dekoratif değil, marka kuralının dışında) ── */
   --bf-success: #16a34a;
   --bf-success-soft: #dcfce7;
   --bf-warning: #d97706;
@@ -56,7 +92,7 @@
   --bf-info: #2563eb;
   --bf-info-soft: #dbeafe;
 
-  /* ── Spacing ── */
+  /* ── Spacing (tercih edilen adımlar: 24/32/40/48/64 → Tailwind p-6/8/10/12/16) ── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -67,37 +103,37 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  /* ── Radius ── */
-  --radius-sm: 8px;
-  --radius-button: 12px;
-  --radius-input: 12px;
-  --radius-badge: 8px;
-  --radius-card: 16px;
-  --radius-card-lg: 20px;
-  --radius-dialog: 20px;
-  --radius-image: 16px;
+  /* ── Radius (design system v2) ── */
+  --radius-sm: 10px;
+  --radius-button: 18px;
+  --radius-input: 16px;
+  --radius-badge: 999px;
+  --radius-card: 24px;
+  --radius-card-lg: 28px;
+  --radius-dialog: 28px;
+  --radius-image: 24px;
 
-  /* ── Shadow (premium soft) ── */
-  --shadow-xs: 0 1px 2px rgba(26, 26, 26, 0.04);
-  --shadow-sm: 0 2px 8px rgba(26, 26, 26, 0.05);
-  --shadow-md: 0 8px 24px rgba(26, 26, 26, 0.07);
-  --shadow-lg: 0 16px 40px rgba(26, 26, 26, 0.09);
-  --shadow-card: 0 2px 12px rgba(26, 26, 26, 0.06);
-  --shadow-card-hover: 0 12px 32px rgba(26, 26, 26, 0.1);
-  --shadow-glass: 0 4px 20px rgba(26, 26, 26, 0.06);
-  --shadow-focus: 0 0 0 3px color-mix(in srgb, var(--bf-orange) 32%, transparent);
+  /* ── Shadow — Light: çok yumuşak, neredeyse yüzen. Dark: kart gölgesi yok (border kullan). ── */
+  --shadow-xs: 0 1px 2px rgba(5, 5, 5, 0.04);
+  --shadow-sm: 0 2px 8px rgba(5, 5, 5, 0.05);
+  --shadow-md: 0 8px 24px rgba(5, 5, 5, 0.07);
+  --shadow-lg: 0 24px 56px rgba(5, 5, 5, 0.10);
+  --shadow-card: 0 1px 2px rgba(5, 5, 5, 0.03), 0 12px 32px rgba(5, 5, 5, 0.05);
+  --shadow-card-hover: 0 20px 48px rgba(5, 5, 5, 0.09);
+  --shadow-glass: 0 4px 20px rgba(5, 5, 5, 0.05);
+  --shadow-focus: 0 0 0 3px var(--bf-neon-focus-ring);
   --shadow-focus-glow:
-    0 0 0 3px color-mix(in srgb, var(--bf-orange) 28%, transparent),
-    0 4px 16px color-mix(in srgb, var(--bf-orange) 16%, transparent);
+    0 0 0 3px var(--bf-neon-focus-ring),
+    0 4px 20px var(--bf-neon-glow);
 
   /* ── Glass ── */
-  --glass-bg: rgba(255, 255, 255, 0.78);
-  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(5, 5, 5, 0.06);
 
-  /* ── Motion (Apple-style, subtle) ── */
+  /* ── Motion (Apple-vari, ölçülü) ── */
   --duration-fast: 180ms;
   --duration-normal: 220ms;
-  --duration-slow: 280ms;
+  --duration-slow: 250ms;
   --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
   /* ── shadcn semantic (light) ── */
@@ -108,14 +144,14 @@
   --card-foreground: var(--bf-text);
   --popover: var(--bf-card);
   --popover-foreground: var(--bf-text);
-  --primary: var(--bf-orange);
-  --primary-foreground: var(--bf-text-inverse);
-  --secondary: var(--bf-secondary-bg);
+  --primary: var(--bf-neon);
+  --primary-foreground: var(--bf-neon-on);
+  --secondary: var(--bf-gray-100);
   --secondary-foreground: var(--bf-text);
   --muted: var(--bf-muted-surface);
   --muted-foreground: var(--bf-text-secondary);
-  --accent: var(--bf-orange-surface);
-  --accent-foreground: var(--bf-orange-700);
+  --accent: var(--bf-neon-light-surface);
+  --accent-foreground: var(--bf-text);
   --destructive: var(--bf-danger);
   --destructive-foreground: var(--bf-text-inverse);
   --success: var(--bf-success);
@@ -123,43 +159,43 @@
   --warning: var(--bf-warning);
   --info: var(--bf-info);
   --border: var(--bf-border);
-  --input: var(--bf-border);
-  --ring: var(--bf-orange);
+  --input: var(--bf-gray-200);
+  --ring: var(--bf-neon-pressed);
 
   /* Brand aliases */
-  --brand-orange: var(--bf-orange);
-  --brand-orange-hover: var(--bf-orange-hover);
-  --brand-orange-soft: var(--bf-orange-soft);
+  --brand-orange: var(--bf-neon);
+  --brand-orange-hover: var(--bf-neon-hover);
+  --brand-orange-soft: var(--bf-neon-light-surface);
   --brand-black: var(--bf-text);
   --brand-white: var(--bf-text-inverse);
   --brand-surface: var(--bf-bg);
   --brand-hero: var(--bf-bg);
 
-  /* Header (light) */
-  --header-bg: rgba(255, 255, 255, 0.82);
+  /* Header (light) — backdrop blur ile yarı saydam */
+  --header-bg: rgba(255, 255, 255, 0.75);
   --header-bg-solid: var(--bf-navbar);
   --header-fg: var(--bf-text);
   --header-fg-muted: var(--bf-text-secondary);
-  --header-border: color-mix(in srgb, var(--bf-border) 90%, transparent);
-  --header-hover: rgba(26, 26, 26, 0.04);
-  --header-btn-outline: rgba(26, 26, 26, 0.1);
-  --header-accent: var(--bf-orange);
+  --header-border: #ececec;
+  --header-hover: rgba(5, 5, 5, 0.04);
+  --header-btn-outline: var(--bf-gray-200);
+  --header-accent: var(--bf-neon-pressed);
 
   /* Admin sidebar */
-  --admin-sidebar-bg: #171717;
+  --admin-sidebar-bg: #050505;
   --admin-sidebar-fg: rgba(255, 255, 255, 0.72);
   --admin-sidebar-fg-active: #ffffff;
-  --admin-sidebar-border: #2a2a2a;
-  --admin-sidebar-active: var(--bf-orange);
+  --admin-sidebar-border: #232323;
+  --admin-sidebar-active: var(--bf-neon);
   --admin-sidebar-hover: rgba(255, 255, 255, 0.06);
 
-  /* Ticket / davetiye hero surfaces (city SEO, print — not purchase checkout) */
-  --ticket-page-bg: var(--bf-orange-500);
+  /* Ticket / davetiye hero surfaces — siyah premium zemin, neon sadece vurguda */
+  --ticket-page-bg: #0b0b0b;
   --ticket-card-bg: var(--bf-card);
-  --events-accent: var(--bf-orange);
+  --events-accent: var(--bf-neon);
 
-  /* Category badges — single brand accent for all categories */
-  --category-accent: var(--bf-orange);
+  /* Category badges — tek marka vurgusu (tüm kategoriler için) */
+  --category-accent: var(--bf-neon-pressed);
   --category-muzik: var(--category-accent);
   --category-konser: var(--category-accent);
   --category-party: var(--category-accent);
@@ -178,59 +214,63 @@
 
   /* Organizatör panel (Linear + Stripe) */
   --organizer-shell-bg: var(--bf-bg);
-  --organizer-header-bg: #181818;
-  --organizer-sidebar-bg: #171717;
-  --organizer-sidebar-active: #1d1d1d;
+  --organizer-header-bg: #050505;
+  --organizer-sidebar-bg: #050505;
+  --organizer-sidebar-active: #111111;
   --organizer-sidebar-hover: rgba(255, 255, 255, 0.06);
   --organizer-chrome-fg: rgba(255, 255, 255, 0.88);
   --organizer-chrome-fg-muted: rgba(255, 255, 255, 0.55);
 
   /* Charts */
-  --chart-1: var(--bf-orange);
+  --chart-1: var(--bf-neon);
   --chart-2: var(--bf-orange-400);
-  --chart-3: var(--bf-orange-600);
+  --chart-3: var(--bf-neon-pressed);
   --chart-4: var(--bf-orange-200);
   --chart-5: var(--bf-orange-100);
 
   /* shadcn sidebar */
   --sidebar: var(--bf-sidebar);
   --sidebar-foreground: var(--bf-text);
-  --sidebar-primary: var(--bf-orange);
-  --sidebar-primary-foreground: var(--bf-text-inverse);
-  --sidebar-accent: var(--bf-orange-surface);
-  --sidebar-accent-foreground: var(--bf-orange-700);
+  --sidebar-primary: var(--bf-neon);
+  --sidebar-primary-foreground: var(--bf-neon-on);
+  --sidebar-accent: var(--bf-neon-light-surface);
+  --sidebar-accent-foreground: var(--bf-text);
   --sidebar-border: var(--bf-border);
-  --sidebar-ring: var(--bf-orange);
+  --sidebar-ring: var(--bf-neon-pressed);
 }
 
 .dark {
-  --bf-bg: #111111;
-  --bf-surface: #181818;
-  --bf-card: #1d1d1d;
-  --bf-sidebar: #171717;
-  --bf-navbar: #181818;
-  --bf-border: #2a2a2a;
-  --bf-input-bg: #202020;
-  --bf-secondary-bg: #1a1a1a;
-  --bf-muted-surface: #1a1a1a;
+  --bf-bg: #050505;
+  --bf-surface: #0b0b0b;
+  --bf-card: #111111;
+  --bf-sidebar: #050505;
+  --bf-navbar: #050505;
+  --bf-border: #232323;
+  --bf-input-bg: #111111;
+  --bf-secondary-bg: #111111;
+  --bf-muted-surface: #181818;
 
-  --bf-text: #f5f5f5;
-  --bf-text-secondary: rgba(245, 245, 245, 0.72);
-  --bf-text-muted: rgba(245, 245, 245, 0.52);
-  --bf-text-disabled: rgba(245, 245, 245, 0.32);
+  --bf-text: #ffffff;
+  --bf-text-secondary: #bdbdbd;
+  --bf-text-muted: #808080;
+  --bf-text-disabled: #5a5a5a;
+  --bf-text-link: var(--bf-text);
+  --bf-text-link-hover: var(--bf-neon);
+  --bf-accent-ink: var(--bf-neon);
 
-  --bf-orange-soft: rgba(235, 103, 43, 0.14);
-  --bf-orange-surface: rgba(235, 103, 43, 0.08);
-  --bf-orange-border: rgba(235, 103, 43, 0.28);
+  --bf-orange-soft: rgba(223, 255, 0, 0.14);
+  --bf-orange-surface: rgba(223, 255, 0, 0.08);
+  --bf-orange-border: rgba(223, 255, 0, 0.28);
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
-  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.32);
-  --shadow-card-hover: 0 12px 32px rgba(0, 0, 0, 0.42);
+  /* Dark'ta kart gölgesi YOK — 1px border ile ince yükselti */
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.45);
+  --shadow-card: none;
+  --shadow-card-hover: none;
 
-  --glass-bg: rgba(24, 24, 24, 0.82);
+  --glass-bg: rgba(5, 5, 5, 0.72);
   --glass-border: rgba(255, 255, 255, 0.08);
 
   --background: var(--bf-bg);
@@ -239,28 +279,33 @@
   --card-foreground: var(--bf-text);
   --popover: var(--bf-card);
   --popover-foreground: var(--bf-text);
-  --primary: var(--bf-orange);
-  --primary-foreground: var(--bf-text-inverse);
-  --secondary: var(--bf-secondary-bg);
+  --primary: var(--bf-neon);
+  --primary-foreground: var(--bf-neon-on);
+  --secondary: var(--bf-gray-900);
   --secondary-foreground: var(--bf-text);
   --muted: var(--bf-muted-surface);
   --muted-foreground: var(--bf-text-muted);
-  --accent: var(--bf-orange-surface);
-  --accent-foreground: var(--bf-orange-400);
+  --accent: rgba(223, 255, 0, 0.1);
+  --accent-foreground: var(--bf-neon);
   --border: var(--bf-border);
-  --input: var(--bf-border);
+  --input: var(--bf-gray-700);
+  --ring: var(--bf-neon);
 
   --brand-surface: var(--bf-bg);
   --brand-hero: var(--bf-bg);
 
-  --header-bg: rgba(17, 17, 17, 0.85);
+  --header-bg: rgba(5, 5, 5, 0.72);
   --header-bg-solid: var(--bf-navbar);
   --header-fg: var(--bf-text);
   --header-fg-muted: var(--bf-text-muted);
-  --header-border: color-mix(in srgb, var(--bf-border) 80%, transparent);
+  --header-border: #232323;
   --header-hover: rgba(255, 255, 255, 0.06);
-  --header-btn-outline: rgba(255, 255, 255, 0.14);
+  --header-btn-outline: var(--bf-gray-700);
+  --header-accent: var(--bf-neon);
 
   --ticket-page-bg: var(--bf-bg);
   --ticket-card-bg: var(--bf-card);
+
+  --sidebar-accent: rgba(223, 255, 0, 0.1);
+  --sidebar-accent-foreground: var(--bf-neon);
 }

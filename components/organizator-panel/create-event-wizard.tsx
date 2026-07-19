@@ -784,7 +784,7 @@ export function CreateOrganizerEventWizard({
                 <ArrowLeft className="size-4" />
               </Link>
               <div>
-                <div className="flex items-center gap-2 text-primary">
+                <div className="flex items-center gap-2 text-[var(--bf-accent-ink)]">
                   <Sparkles className="size-4" />
                   <span className="text-xs font-semibold uppercase tracking-wide">
                     Organizatör Panel
@@ -798,7 +798,7 @@ export function CreateOrganizerEventWizard({
                 </p>
               </div>
             </div>
-            <span className="hidden shrink-0 items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary sm:inline-flex">
+            <span className="hidden shrink-0 items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-[var(--bf-accent-ink)] sm:inline-flex">
               Adım {step} / {TOTAL_STEPS}
             </span>
           </div>
@@ -887,7 +887,7 @@ export function CreateOrganizerEventWizard({
                 </WizardFormRow>
 
                 {isFestival && (
-                  <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-[var(--bf-accent-ink)]">
                     🎪 Festival seçildi — birden fazla gün sürebilir. Başlangıç ve bitiş tarihini ayrı girin.
                   </div>
                 )}
@@ -914,7 +914,7 @@ export function CreateOrganizerEventWizard({
                               Başlangıç Tarihi<span className="text-destructive">*</span>
                             </label>
                             <div className="relative">
-                              <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70" />
+                              <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--bf-accent-ink)]/70" />
                               <Input
                                 type="date"
                                 value={session.startDate}
@@ -929,7 +929,7 @@ export function CreateOrganizerEventWizard({
                               Bitiş Tarihi{isFestival && <span className="text-destructive">*</span>}
                             </label>
                             <div className="relative">
-                              <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70" />
+                              <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--bf-accent-ink)]/70" />
                               <Input
                                 type="date"
                                 value={session.endDate}
@@ -945,7 +945,7 @@ export function CreateOrganizerEventWizard({
                               Başlangıç Saati<span className="text-destructive">*</span>
                             </label>
                             <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70" />
+                              <Clock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--bf-accent-ink)]/70" />
                               <Input
                                 type="time"
                                 value={session.startTime}
@@ -960,7 +960,7 @@ export function CreateOrganizerEventWizard({
                               Bitiş Saati
                             </label>
                             <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary/70" />
+                              <Clock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--bf-accent-ink)]/70" />
                               <Input
                                 type="time"
                                 value={session.endTime}

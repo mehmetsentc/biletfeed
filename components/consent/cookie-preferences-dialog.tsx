@@ -68,7 +68,7 @@ export function CookiePreferencesDialog({
           <DialogTitle>{t.consent.preferencesTitle}</DialogTitle>
           <DialogDescription>
             Hangi çerez kategorilerine izin vermek istediğinizi seçin.{' '}
-            <Link href="/cerezler" className="text-primary underline">
+            <Link href="/cerezler" className="text-[var(--bf-accent-ink)] underline">
               {t.consent.cookiePolicy}
             </Link>
           </DialogDescription>

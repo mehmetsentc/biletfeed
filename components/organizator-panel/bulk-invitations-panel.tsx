@@ -242,7 +242,7 @@ export function BulkInvitationsPanel({
   return (
     <div className="rounded-xl border border-border bg-card p-5 md:p-6">
       <div className="flex items-center gap-2">
-        <Users className="size-5 text-primary" />
+        <Users className="size-5 text-[var(--bf-accent-ink)]" />
         <h2 className="text-lg font-semibold text-foreground">Toplu Davetiye</h2>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">

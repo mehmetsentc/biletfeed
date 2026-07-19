@@ -1,58 +1,87 @@
 /**
- * BiletFeed Design System — TypeScript token referansı
+ * BiletFeed Design System v2 — TypeScript token referansı
  * Tek kaynak CSS: app/theme.css
- * Logo turuncusu: premium, sıcak, hafif kırmızı alt ton (#EB672B)
+ * Marka vurgusu: Neon Lime #DFFF00 (logo). Siyah / Beyaz / Gri ile birlikte
+ * TEK aksan rengi — büyük yüzeylerde veya uzun metinlerde kullanılmaz.
  */
 export const designTokens = {
   color: {
+    /** @deprecated `neon` kullanın — isim geriye dönük uyumluluk için korunuyor */
     orange: {
-      50: '#FFF5EE',
-      100: '#FFE7D6',
-      200: '#FFD4B8',
-      300: '#FFB888',
-      400: '#F58A17',
-      500: '#EB672B',
-      600: '#D9581C',
-      700: '#C44A18',
-      800: '#A33D14',
-      900: '#7A2E0F',
-      950: '#451A08'
+      50: '#FCFFEA',
+      100: '#F8FFD9',
+      200: '#EAF6A8',
+      300: '#ECFF8C',
+      400: '#E5FF66',
+      500: '#DFFF00',
+      600: '#C9E800',
+      700: '#8FA800',
+      800: '#5C6E00',
+      900: '#3A4600',
+      950: '#212700'
     },
-    primary: '#EB672B',
-    primaryLight: '#F58A17',
-    primaryHover: '#D9581C',
-    primaryPressed: '#C44A18',
-    primarySoft: '#FFE7D6',
-    primarySurface: '#FFF5EE',
-    primaryBorder: '#FFD4B8',
+    neon: {
+      DEFAULT: '#DFFF00',
+      hover: '#F0FF33',
+      pressed: '#C9E800',
+      lightSurface: '#F8FFD9',
+      softBorder: '#EAF6A8',
+      transparent: 'rgba(223,255,0,.08)',
+      focusRing: 'rgba(223,255,0,.35)',
+      glow: 'rgba(223,255,0,.25)',
+      on: '#050505'
+    },
+    primary: '#DFFF00',
+    primaryLight: '#E5FF66',
+    primaryHover: '#F0FF33',
+    primaryPressed: '#C9E800',
+    primarySoft: '#F8FFD9',
+    primarySurface: '#FCFFEA',
+    primaryBorder: '#EAF6A8',
+    neutral: {
+      white: '#FFFFFF',
+      offWhite: '#FAFAFA',
+      gray50: '#F7F7F7',
+      gray100: '#EFEFEF',
+      gray200: '#E4E4E4',
+      gray300: '#D2D2D2',
+      gray400: '#A5A5A5',
+      gray500: '#7A7A7A',
+      gray600: '#555555',
+      gray700: '#3A3A3A',
+      gray800: '#242424',
+      gray900: '#111111',
+      black: '#050505'
+    },
     text: {
-      primary: '#1A1A1A',
-      secondary: '#525252',
-      muted: '#737373',
-      disabled: '#A3A3A3',
+      primary: '#050505',
+      secondary: '#555555',
+      muted: '#777777',
+      disabled: '#B4B4B4',
       inverse: '#FFFFFF',
-      link: '#EB672B',
-      linkHover: '#D9581C'
+      link: '#050505',
+      linkHover: '#C9E800'
     },
     light: {
-      background: '#FAFAFA',
-      surface: '#FFFFFF',
+      background: '#FFFFFF',
+      surface: '#FAFAFA',
       card: '#FFFFFF',
       sidebar: '#FFFFFF',
       navbar: '#FFFFFF',
       divider: '#ECECEC',
       input: '#FFFFFF',
-      secondary: '#F7F7F7',
-      muted: '#F5F5F5'
+      secondary: '#FAFAFA',
+      muted: '#F7F7F7'
     },
     dark: {
-      background: '#111111',
-      surface: '#181818',
-      card: '#1D1D1D',
-      sidebar: '#171717',
-      navbar: '#181818',
-      border: '#2A2A2A',
-      input: '#202020'
+      background: '#050505',
+      surface: '#0B0B0B',
+      card: '#111111',
+      cardElevated: '#181818',
+      sidebar: '#050505',
+      navbar: '#050505',
+      border: '#232323',
+      input: '#111111'
     },
     status: {
       success: '#16A34A',
@@ -66,33 +95,34 @@ export const designTokens = {
     }
   },
   radius: {
-    sm: 8,
-    button: 12,
-    input: 12,
-    badge: 8,
-    card: 16,
-    cardLg: 20,
-    dialog: 20,
-    image: 16,
+    sm: 10,
+    button: 18,
+    input: 16,
+    badge: 999,
+    card: 24,
+    cardLg: 28,
+    dialog: 28,
+    image: 24,
     full: 9999
   },
   shadow: {
-    card: '0 2px 12px rgba(26, 26, 26, 0.06)',
-    cardHover: '0 12px 32px rgba(26, 26, 26, 0.1)',
-    focus: '0 0 0 3px color-mix(in srgb, #EB672B 32%, transparent)'
+    card: '0 1px 2px rgba(5, 5, 5, 0.03), 0 12px 32px rgba(5, 5, 5, 0.05)',
+    cardHover: '0 20px 48px rgba(5, 5, 5, 0.09)',
+    focus: '0 0 0 3px rgba(223,255,0,.35)'
   },
   spacing: [4, 8, 12, 16, 20, 24, 32, 48, 64] as const,
   motion: {
     fast: 180,
     normal: 220,
-    slow: 280,
+    slow: 250,
     ease: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
   },
   category: {
     accent: 'var(--category-accent)'
   },
   typography: {
-    fontFamily: 'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
+    fontFamily:
+      'var(--font-geist-sans), var(--font-inter), ui-sans-serif, system-ui, sans-serif',
     display: { size: '2.75rem', weight: 800, lineHeight: 1.1 },
     heading: { size: '2rem', weight: 800, lineHeight: 1.2 },
     title: { size: '1.25rem', weight: 700, lineHeight: 1.3 },

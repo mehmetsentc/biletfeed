@@ -219,12 +219,12 @@ export function WizardStepVenue({
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="size-8 animate-spin text-primary" />
+                    <Loader2 className="size-8 animate-spin text-[var(--bf-accent-ink)]" />
                     <p className="text-sm text-muted-foreground">Yükleniyor...</p>
                   </>
                 ) : (
                   <>
-                    <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-[var(--bf-accent-ink)]">
                       <MapPin className="size-6" />
                     </span>
                     <div className="text-center">
@@ -267,7 +267,7 @@ export function WizardStepVenue({
                 className={cn(
                   'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
                   selected
-                    ? 'border-primary bg-primary/10 text-primary'
+                    ? 'border-primary bg-primary/10 text-[var(--bf-accent-ink)]'
                     : 'border-border bg-background text-muted-foreground hover:border-primary/40'
                 )}
               >

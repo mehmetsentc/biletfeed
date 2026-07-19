@@ -81,7 +81,7 @@ export function FavoriteButton({
         variant === 'outline'
           ? 'flex size-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-none transition-colors hover:bg-muted disabled:cursor-not-allowed'
           : 'flex size-9 items-center justify-center rounded-full bg-black/50 text-white shadow-md backdrop-blur-sm transition-all hover:bg-black/70 disabled:cursor-not-allowed',
-        variant === 'outline' && active && 'border-primary/40 bg-primary/10 text-primary',
+        variant === 'outline' && active && 'border-primary/40 bg-primary/10 text-[var(--bf-accent-ink)]',
         variant === 'overlay' && active && '!bg-amber-400/95 !text-white hover:!bg-amber-500',
         shake && 'animate-wiggle',
         className

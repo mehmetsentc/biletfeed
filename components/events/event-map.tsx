@@ -13,7 +13,7 @@ export function EventMap({ venue, address, city }: EventMapProps) {
   return (
     <div className="overflow-hidden rounded-2xl border bg-card">
       <div className="flex items-center gap-2 border-b px-4 py-3">
-        <MapPin className="size-4 text-primary" strokeWidth={1.75} />
+        <MapPin className="size-4 text-[var(--bf-accent-ink)]" strokeWidth={1.75} />
         <span className="text-sm font-medium">Konum</span>
       </div>
       <div className="relative aspect-[16/9] w-full bg-muted">

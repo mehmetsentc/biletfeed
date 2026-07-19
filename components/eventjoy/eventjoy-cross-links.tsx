@@ -16,7 +16,7 @@ export function EventJoyCrossLinks({ className }: { className?: string }) {
           <li key={link.href}>
             <Link
               href={link.href}
-              className="text-muted-foreground transition-colors hover:text-primary"
+              className="text-muted-foreground transition-colors hover:text-[var(--bf-accent-ink)]"
             >
               {link.label}
             </Link>

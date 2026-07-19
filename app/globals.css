@@ -33,7 +33,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   --color-brand-orange: var(--brand-orange);
   --color-brand-black: var(--brand-black);
@@ -107,11 +107,15 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Renk kasıtlı olarak yok — miras alır (inherit). Böylece koyu bir
+     yüzeye (ör. siyah footer) yerleştirilen başlık, ebeveynin text-white
+     rengini alır. Sabit text-foreground burada olsaydı her zaman ezerdi
+     ve koyu zeminde "siyah üstüne siyah" gibi okunmaz başlıklara yol açardı. */
   h1,
   h2,
   h3,
   h4 {
-    @apply font-extrabold tracking-tight text-foreground;
+    @apply font-extrabold tracking-tight;
     line-height: 1.25;
   }
 
@@ -246,22 +250,20 @@
     width: 100%;
   }
 
+  /* Düz neon dolgu — marka kuralı gereği gradyan YOK */
   .btn-gradient-primary {
-    background: linear-gradient(
-      135deg,
-      var(--bf-orange) 0%,
-      var(--bf-orange-hover) 100%
-    );
-    color: var(--bf-text-inverse);
+    background: var(--bf-neon);
+    color: var(--bf-neon-on);
   }
 
   .btn-gradient-primary:hover {
-    background: linear-gradient(
-      135deg,
-      var(--bf-orange-hover) 0%,
-      var(--bf-orange-pressed) 100%
-    );
+    background: var(--bf-neon-hover);
     transform: translateY(-1px);
+  }
+
+  .btn-gradient-primary:active {
+    background: var(--bf-neon-pressed);
+    transform: translateY(0) scale(0.98);
   }
 
   /* Typography scale */

@@ -1,7 +1,11 @@
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
 import { Bookmark, Clock, Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
-import { FEED_CATEGORY_BADGE_COLORS, FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
+import {
+  FEED_CATEGORY_BADGE_COLORS,
+  FEED_CATEGORY_BADGE_FALLBACK,
+  FEED_POST_TYPE_LABELS
+} from '@/lib/feed/constants';
 import type { FeedPostCard } from '@/lib/feed/types';
 import { cn } from '@/lib/utils';
 
@@ -9,7 +13,7 @@ function badgeClass(categorySlug: string | null, contentType: string): string {
   if (categorySlug && FEED_CATEGORY_BADGE_COLORS[categorySlug]) {
     return FEED_CATEGORY_BADGE_COLORS[categorySlug];
   }
-  return 'bg-primary';
+  return FEED_CATEGORY_BADGE_FALLBACK;
 }
 
 export function FeedPostCardView({
@@ -42,7 +46,7 @@ export function FeedPostCardView({
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         <span
           className={cn(
-            'absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-bold text-white shadow',
+            'absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-bold shadow',
             badgeClass(post.categorySlug, post.contentType)
           )}
         >
@@ -71,7 +75,7 @@ export function FeedPostCardView({
         <Link href={`/feed/${post.slug}`}>
           <h2
             className={cn(
-              'font-bold leading-snug text-foreground transition group-hover:text-primary',
+              'font-bold leading-snug text-foreground transition group-hover:text-[var(--bf-accent-ink)]',
               featured ? 'text-xl md:text-2xl' : 'text-base'
             )}
           >
@@ -82,7 +86,7 @@ export function FeedPostCardView({
         <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{post.summary}</p>
 
         {post.eventTitle && (
-          <p className="mt-3 text-xs font-medium text-primary">
+          <p className="mt-3 text-xs font-medium text-[var(--bf-accent-ink)]">
             İlgili etkinlik: {post.eventTitle}
           </p>
         )}

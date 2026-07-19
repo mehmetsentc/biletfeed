@@ -46,7 +46,7 @@ export function CategoryIcon({
       )}
     >
       <Icon
-        className={cn(iconSizes[size], 'text-primary')}
+        className={cn(iconSizes[size], 'text-[var(--bf-accent-ink)]')}
         strokeWidth={2}
         aria-hidden
       />

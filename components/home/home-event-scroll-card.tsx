@@ -41,7 +41,7 @@ export function HomeEventScrollCard({ event, className }: HomeEventScrollCardPro
         <h3 className="line-clamp-2 text-sm font-bold leading-snug text-foreground">
           {event.title}
         </h3>
-        <p className="text-xs font-semibold capitalize text-primary">
+        <p className="text-xs font-semibold capitalize text-[var(--bf-accent-ink)]">
           {formatMobileEventDateLine(event.startDate)}
         </p>
         <p className="line-clamp-1 text-xs text-muted-foreground">{location}</p>

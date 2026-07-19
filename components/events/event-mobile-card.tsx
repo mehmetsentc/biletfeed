@@ -36,7 +36,7 @@ export function EventMobileCard({ event }: EventMobileCardProps) {
         </div>
 
         <div className="p-4">
-          <p className="text-xs font-semibold text-primary">
+          <p className="text-xs font-semibold text-[var(--bf-accent-ink)]">
             {formatEventDateLine(event)}
           </p>
           <h3 className="mt-1 line-clamp-2 text-base font-bold leading-snug">

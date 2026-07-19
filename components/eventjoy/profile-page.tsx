@@ -30,7 +30,7 @@ export function EventJoyProfilePage() {
   return (
     <div className="max-w-xl space-y-6">
       <nav aria-label="Konum" className="text-sm text-muted-foreground">
-        <Link href={eventJoyRoutes.panel} className="hover:text-primary">
+        <Link href={eventJoyRoutes.panel} className="hover:text-[var(--bf-accent-ink)]">
           Ana Sayfa
         </Link>
         <span className="mx-2">/</span>
@@ -40,19 +40,19 @@ export function EventJoyProfilePage() {
       <div className="flex flex-wrap gap-2 text-sm">
         <Link
           href={eventJoyRoutes.events}
-          className="rounded-lg border border-border bg-card px-3 py-1.5 font-medium hover:border-primary/40 hover:text-primary"
+          className="rounded-lg border border-border bg-card px-3 py-1.5 font-medium hover:border-primary/40 hover:text-[var(--bf-accent-ink)]"
         >
           Etkinliklerim
         </Link>
         <Link
           href={eventJoyRoutes.messages}
-          className="rounded-lg border border-border bg-card px-3 py-1.5 font-medium hover:border-primary/40 hover:text-primary"
+          className="rounded-lg border border-border bg-card px-3 py-1.5 font-medium hover:border-primary/40 hover:text-[var(--bf-accent-ink)]"
         >
           Mesajlar
         </Link>
         <Link
           href={eventJoyRoutes.siteHome}
-          className="rounded-lg border border-border bg-card px-3 py-1.5 font-medium hover:border-primary/40 hover:text-primary"
+          className="rounded-lg border border-border bg-card px-3 py-1.5 font-medium hover:border-primary/40 hover:text-[var(--bf-accent-ink)]"
         >
           BiletFeed Ana Sayfa
         </Link>
@@ -60,7 +60,7 @@ export function EventJoyProfilePage() {
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="flex items-center gap-4 border-b border-border px-6 py-8">
-          <span className="flex size-20 items-center justify-center rounded-xl bg-primary/10 text-2xl font-bold text-primary">
+          <span className="flex size-20 items-center justify-center rounded-xl bg-primary/10 text-2xl font-bold text-[var(--bf-accent-ink)]">
             {initials}
           </span>
           <div>

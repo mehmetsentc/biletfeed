@@ -1,7 +1,11 @@
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
 import { Bookmark, Clock, Eye, Heart } from 'lucide-react';
-import { FEED_CATEGORY_BADGE_COLORS, FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
+import {
+  FEED_CATEGORY_BADGE_COLORS,
+  FEED_CATEGORY_BADGE_FALLBACK,
+  FEED_POST_TYPE_LABELS
+} from '@/lib/feed/constants';
 import { formatFeedTimelineDate } from '@/lib/feed/format-date';
 import type { FeedPostCard } from '@/lib/feed/types';
 import { cn } from '@/lib/utils';
@@ -10,7 +14,7 @@ function badgeClass(categorySlug: string | null, contentType: string): string {
   if (categorySlug && FEED_CATEGORY_BADGE_COLORS[categorySlug]) {
     return FEED_CATEGORY_BADGE_COLORS[categorySlug];
   }
-  return 'bg-primary';
+  return FEED_CATEGORY_BADGE_FALLBACK;
 }
 
 export function FeedTimelineCard({
@@ -41,7 +45,7 @@ export function FeedTimelineCard({
         )}
         <time
           dateTime={post.publishedAt ?? undefined}
-          className="mt-2 w-10 text-center text-[10px] font-bold leading-tight text-primary/90"
+          className="mt-2 w-10 text-center text-[10px] font-bold leading-tight text-[var(--bf-accent-ink)]/90"
         >
           {dateLabel.split(' ').map((part, i) => (
             <span key={i} className="block">
@@ -67,7 +71,7 @@ export function FeedTimelineCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           <span
             className={cn(
-              'absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white',
+              'absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide',
               badgeClass(post.categorySlug, post.contentType)
             )}
           >
@@ -90,7 +94,7 @@ export function FeedTimelineCard({
             </span>
           </div>
 
-          <h3 className="text-base font-bold leading-snug text-white transition group-hover:text-primary">
+          <h3 className="text-base font-bold leading-snug text-white transition group-hover:text-[var(--bf-accent-ink)]">
             {post.title}
           </h3>
 
@@ -99,7 +103,7 @@ export function FeedTimelineCard({
           </p>
 
           {post.eventTitle && (
-            <p className="mt-2 text-xs font-medium text-primary/90">
+            <p className="mt-2 text-xs font-medium text-[var(--bf-accent-ink)]/90">
               {post.eventTitle}
             </p>
           )}

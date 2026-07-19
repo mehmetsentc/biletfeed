@@ -159,7 +159,7 @@ export function MyFavoritesPageClient({
                 className={cn(
                   'rounded-full px-4 py-2 text-sm font-medium transition-colors',
                   tab === item.id
-                    ? 'bg-primary/15 text-primary'
+                    ? 'bg-primary/15 text-[var(--bf-accent-ink)]'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -181,7 +181,7 @@ export function MyFavoritesPageClient({
               {empty.cta && (
                 <Link
                   href={empty.cta.href}
-                  className="mt-5 inline-flex text-sm font-semibold text-primary hover:underline"
+                  className="mt-5 inline-flex text-sm font-semibold text-[var(--bf-accent-ink)] hover:underline"
                 >
                   {empty.cta.label}
                 </Link>

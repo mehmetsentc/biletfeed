@@ -158,9 +158,9 @@ export function CityPickerDialog({
               )}
             >
               {detecting ? (
-                <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-primary" />
+                <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin text-[var(--bf-accent-ink)]" />
               ) : (
-                <Navigation className="mt-0.5 size-4 shrink-0 text-primary" />
+                <Navigation className="mt-0.5 size-4 shrink-0 text-[var(--bf-accent-ink)]" />
               )}
               <span>{detecting ? t.location.detecting : detectMessage}</span>
             </div>
@@ -193,7 +193,7 @@ export function CityPickerDialog({
                         <span className="text-muted-foreground">{t.location.turkeySuffix}</span>
                       </span>
                       {city.count != null && city.count > 0 ? (
-                        <span className="shrink-0 text-xs font-medium text-primary">
+                        <span className="shrink-0 text-xs font-medium text-[var(--bf-accent-ink)]">
                           {city.count}
                         </span>
                       ) : null}

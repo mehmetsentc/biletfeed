@@ -28,14 +28,19 @@ export const FEED_POST_TYPE_LABELS: Record<FeedPostType, string> = {
   organizer_update: 'Organizatör Duyurusu'
 };
 
+// Not: her giriş kendi okunabilir metin rengini de içerir (bg-primary artık neon
+// olduğu için sabit text-white kontrastı bozuyordu, bu yüzden text rengi burada
+// bg ile birlikte tanımlanıyor).
 export const FEED_CATEGORY_BADGE_COLORS: Record<string, string> = {
-  'konser-haberleri': 'bg-rose-600',
-  'festival-haberleri': 'bg-purple-600',
-  'muzik-haberleri': 'bg-indigo-600',
-  'eglence-haberleri': 'bg-amber-600',
-  'etkinlik-duyurulari': 'bg-primary',
-  'trend-hikayeler': 'bg-emerald-600'
+  'konser-haberleri': 'bg-rose-600 text-white',
+  'festival-haberleri': 'bg-purple-600 text-white',
+  'muzik-haberleri': 'bg-indigo-600 text-white',
+  'eglence-haberleri': 'bg-amber-600 text-white',
+  'etkinlik-duyurulari': 'bg-primary text-[var(--bf-neon-on)]',
+  'trend-hikayeler': 'bg-emerald-600 text-white'
 };
+
+export const FEED_CATEGORY_BADGE_FALLBACK = 'bg-primary text-[var(--bf-neon-on)]';
 
 export const DEFAULT_FEED_CATEGORIES = [
   {

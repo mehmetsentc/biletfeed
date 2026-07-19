@@ -43,7 +43,7 @@ export function EventCard({
         </div>
         <div className="flex min-w-0 flex-1 flex-col justify-center">
           <CategoryBadge slug={event.categorySlug} label={event.category} className="mb-1 w-fit" />
-          <h3 className="line-clamp-2 font-semibold leading-tight group-hover:text-primary">
+          <h3 className="line-clamp-2 font-semibold leading-tight group-hover:text-[var(--bf-accent-ink)]">
             {event.title}
           </h3>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -56,7 +56,7 @@ export function EventCard({
               {event.city}
             </span>
           </div>
-          <p className="mt-1 text-sm font-semibold text-primary">
+          <p className="mt-1 text-sm font-semibold text-[var(--bf-accent-ink)]">
             {formatPrice(event)}
           </p>
         </div>
@@ -138,11 +138,11 @@ export function EventCard({
         <div className="p-4 md:p-5">
           <div className="mb-2.5 flex items-center justify-between gap-2">
             <CategoryBadge slug={event.categorySlug} label={event.category} />
-            <span className="text-sm font-bold text-primary">
+            <span className="text-sm font-bold text-[var(--bf-accent-ink)]">
               {formatPrice(event)}
             </span>
           </div>
-          <h3 className="line-clamp-2 text-base font-bold leading-snug transition-colors duration-200 group-hover:text-primary">
+          <h3 className="line-clamp-2 text-base font-bold leading-snug transition-colors duration-200 group-hover:text-[var(--bf-accent-ink)]">
             {event.title}
           </h3>
           <div className="mt-3 flex flex-col gap-1 text-sm text-muted-foreground">

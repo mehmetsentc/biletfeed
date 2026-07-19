@@ -86,7 +86,7 @@ export function AccountMenuList({
                       : 'px-4 py-2.5',
                     active
                       ? isSidebar
-                        ? 'bg-primary/10 text-primary'
+                        ? 'bg-primary/10 text-[var(--bf-accent-ink)]'
                         : 'bg-muted text-foreground'
                       : 'text-foreground hover:bg-muted'
                   )}
@@ -123,7 +123,7 @@ export function AccountMenuList({
           isSidebar ? 'rounded-xl px-3 py-2.5' : 'px-4 py-2.5',
           yardimActive
             ? isSidebar
-              ? 'bg-primary/10 text-primary'
+              ? 'bg-primary/10 text-[var(--bf-accent-ink)]'
               : 'bg-muted text-foreground'
             : 'text-foreground hover:bg-muted'
         )}

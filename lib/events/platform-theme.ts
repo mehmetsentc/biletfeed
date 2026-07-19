@@ -64,8 +64,8 @@ export function getEventPlatformTheme(event: MockEvent): PlatformTheme {
   const label = getExternalPlatformLabel(event.externalPlatform) ?? 'Resmi site';
   return {
     label,
-    accent: '#EB672B',
-    accentSoft: 'rgba(235, 103, 43, 0.12)',
+    accent: '#DFFF00',
+    accentSoft: 'rgba(223, 255, 0, 0.12)',
     ctaLabel: `${label}'da Bilet Al`
   };
 }

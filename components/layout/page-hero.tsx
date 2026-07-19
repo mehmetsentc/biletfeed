@@ -31,7 +31,7 @@ export function PageHero({
               <span key={i} className="flex items-center gap-1">
                 {i > 0 && <ChevronRight className="size-3" />}
                 {crumb.href ? (
-                  <Link href={crumb.href} className="hover:text-primary">
+                  <Link href={crumb.href} className="hover:text-[var(--bf-accent-ink)]">
                     {crumb.label}
                   </Link>
                 ) : (

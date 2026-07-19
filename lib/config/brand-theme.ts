@@ -1,6 +1,6 @@
 import { designTokens } from '@/lib/config/design-tokens';
 
-/** BiletFeed marka renkleri — logo referans (#EB672B premium turuncu) */
+/** BiletFeed marka renkleri — logo referans (#DFFF00 neon lime, TEK aksan rengi) */
 export const brandTheme = {
   orange: designTokens.color.primary,
   orangeLight: designTokens.color.primaryLight,
@@ -32,7 +32,7 @@ export const brandLogos = {
   favicon: '/brand/favicon.png'
 } as const;
 
-export const brandAssetsVersion = '17';
+export const brandAssetsVersion = '19';
 
 export function brandAssetUrl(path: string): string {
   return `${path}?v=${brandAssetsVersion}`;

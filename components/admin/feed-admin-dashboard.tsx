@@ -6,6 +6,7 @@ import { Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { EditorialQueueItem } from '@/lib/feed/types';
+import { adminHref } from '@/lib/config/domain';
 
 type FeedStats = {
   published: number;
@@ -94,7 +95,7 @@ export function FeedAdminDashboard() {
           Manuel haber oluşturun veya mevcut içerikleri düzenleyin
         </p>
         <Button asChild>
-          <Link href="/admin/feed/yeni">
+          <Link href={adminHref('/feed/yeni')}>
             <Plus className="mr-2 size-4" />
             Yeni Haber
           </Link>
@@ -175,7 +176,7 @@ export function FeedAdminDashboard() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" asChild>
-                        <Link href={`/admin/feed/${post.id}`}>
+                        <Link href={adminHref(`/feed/${post.id}`)}>
                           <Pencil className="mr-1 size-3.5" />
                           Düzenle
                         </Link>
@@ -192,7 +193,7 @@ export function FeedAdminDashboard() {
                       {post.status === 'published' && (
                         <a
                           href={`/feed/${post.slug}`}
-                          className="inline-flex h-8 items-center text-sm text-primary underline"
+                          className="inline-flex h-8 items-center text-sm text-[var(--bf-accent-ink)] underline"
                           target="_blank"
                           rel="noreferrer"
                         >

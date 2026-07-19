@@ -101,7 +101,7 @@ export function LegalPageShell({
                 <li key={section.id}>
                   <a
                     href={`#${section.id}`}
-                    className="block py-1 text-sm text-muted-foreground transition-colors hover:text-primary"
+                    className="block py-1 text-sm text-muted-foreground transition-colors hover:text-[var(--bf-accent-ink)]"
                   >
                     {section.label}
                   </a>
@@ -114,7 +114,7 @@ export function LegalPageShell({
         <article
           className={cn(
             'min-w-0 max-w-none prose prose-neutral dark:prose-invert',
-            'prose-headings:scroll-mt-24 prose-a:text-primary'
+            'prose-headings:scroll-mt-24 prose-a:text-[var(--bf-accent-ink)]'
           )}
         >
           {children}

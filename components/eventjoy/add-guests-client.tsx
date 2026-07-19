@@ -145,7 +145,7 @@ export function AddGuestsClient({ eventId }: { eventId: string }) {
                     <p className="font-medium text-foreground">{contact.name}</p>
                     <p className="text-sm text-muted-foreground">{contact.phone}</p>
                   </div>
-                  {isSelected && <Check className="size-5 text-primary" />}
+                  {isSelected && <Check className="size-5 text-[var(--bf-accent-ink)]" />}
                 </button>
               );
             })}

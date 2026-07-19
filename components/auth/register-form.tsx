@@ -214,7 +214,7 @@ export function RegisterForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           {t.auth.hasAccount}{' '}
-          <Link href="/giris" className="text-primary hover:underline">
+          <Link href="/giris" className="text-[var(--bf-accent-ink)] hover:underline">
             {t.nav.login}
           </Link>
         </p>

@@ -139,7 +139,7 @@ export function TabletFilterPanel({
         className="flex w-full items-center justify-between px-5 py-4 text-left"
       >
         <div className="flex items-center gap-3">
-          <SlidersHorizontal className="size-5 text-primary" />
+          <SlidersHorizontal className="size-5 text-[var(--bf-accent-ink)]" />
           <div>
             <p className="font-bold text-foreground">{t.filters.title}</p>
             <p className="text-sm text-muted-foreground">

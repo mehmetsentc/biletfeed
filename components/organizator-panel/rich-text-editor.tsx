@@ -23,7 +23,7 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline' } })
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-[var(--bf-accent-ink)] underline' } })
     ],
     content: value,
     immediatelyRender: false,

@@ -78,14 +78,14 @@ export function FollowedEntitiesSection({
           <div className="mt-4 flex flex-wrap justify-center gap-3">
             <Link
               href="/organizatorler"
-              className="text-sm font-semibold text-primary hover:underline"
+              className="text-sm font-semibold text-[var(--bf-accent-ink)] hover:underline"
             >
               Organizatörleri keşfet
             </Link>
             <span className="text-muted-foreground">·</span>
             <Link
               href="/mekanlar"
-              className="text-sm font-semibold text-primary hover:underline"
+              className="text-sm font-semibold text-[var(--bf-accent-ink)] hover:underline"
             >
               Mekanları keşfet
             </Link>
@@ -106,7 +106,7 @@ export function FollowedEntitiesSection({
         </div>
         <Link
           href="/favorilerim"
-          className="text-sm font-semibold text-primary hover:underline"
+          className="text-sm font-semibold text-[var(--bf-accent-ink)] hover:underline"
         >
           Tümünü gör
         </Link>
