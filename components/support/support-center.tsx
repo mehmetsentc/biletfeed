@@ -58,9 +58,9 @@ export function SupportHome({
 
   return (
     <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-bf-orange-400 to-bf-orange-600 px-6 py-10 text-white shadow-lg sm:px-10">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-bf-orange-400 to-bf-orange-600 px-6 py-10 text-[var(--bf-neon-on)] shadow-lg sm:px-10">
         <div className="relative z-10 max-w-xl">
-          <p className="text-sm font-medium text-white/85">BiletFeed Destek</p>
+          <p className="text-sm font-medium text-[var(--bf-neon-on)]/70">BiletFeed Destek</p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
             Merhaba, size nasıl yardımcı olabiliriz?
           </h1>
@@ -74,7 +74,7 @@ export function SupportHome({
             />
           </div>
         </div>
-        <BookOpen className="pointer-events-none absolute -right-4 -top-4 size-32 text-white/10" />
+        <BookOpen className="pointer-events-none absolute -right-4 -top-4 size-32 text-[var(--bf-neon-on)]/10" />
       </div>
 
       {query.trim() && (
