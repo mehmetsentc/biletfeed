@@ -5,17 +5,28 @@ import { platformContact } from '@/lib/config/contact';
 import { getSiteUrl } from '@/lib/config/domain';
 import { formatTurkeyDateTimeLong } from '@/lib/datetime/istanbul';
 
-/** Transactional e-postalar — açık tema (teslimat ve okunabilirlik için) */
+/**
+ * Transactional e-postalar — açık tema (teslimat + kontrast).
+ * Neon Lime (#DFFF00) yalnızca düğme/çizgi aksanı; üzerine her zaman siyah yazı.
+ * Metin/linklerde neon kullanılmaz (beyaz zemin + sarı yazı okunmaz).
+ */
 export const EMAIL_BRAND = {
   pageBg: '#F4F4F5',
   cardBg: '#FFFFFF',
   headerBg: '#FFFFFF',
-  text: '#1A1A1A',
-  textSecondary: '#52525B',
-  textMuted: '#71717A',
+  text: '#050505',
+  textSecondary: '#555555',
+  textMuted: '#777777',
   border: '#E4E4E7',
+  /** Neon Lime — yalnızca büyük yüzey (CTA zemin, ince bar) */
   accent: brandTheme.orange,
-  accentDark: brandTheme.orangeHover,
+  /** Neon üzerinde yazı — siyah (beyaz asla kullanma) */
+  onAccent: '#050505',
+  /**
+   * Açık zeminde okunabilir koyu olive — link, etiket, fiyat, kod.
+   * (brandTheme.orangeHover = #F0FF33; e-postada metin olarak kullanılmamalı)
+   */
+  accentDark: '#5C6E00',
   accentSoft: brandTheme.orangeSoft,
   success: '#059669'
 } as const;
@@ -79,16 +90,18 @@ export function emailAccentBar(): string {
 export function emailPrimaryButton(href: string, label: string): string {
   return `
     <a href="${href}"
-       style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:#FFFFFF;font-size:15px;font-weight:700;text-decoration:none;border-radius:999px;letter-spacing:0.2px;">
-      ${esc(label)}
+       style="display:inline-block;padding:14px 28px;background:${EMAIL_BRAND.accent};color:${EMAIL_BRAND.onAccent};font-size:15px;font-weight:700;text-decoration:none;border-radius:999px;letter-spacing:0.2px;mso-padding-alt:0;">
+      <!--[if mso]><i style="letter-spacing:28px;mso-font-width:-100%;mso-text-raise:21pt;">&nbsp;</i><![endif]-->
+      <span style="color:${EMAIL_BRAND.onAccent};">${esc(label)}</span>
+      <!--[if mso]><i style="letter-spacing:28px;mso-font-width:-100%;">&nbsp;</i><![endif]-->
     </a>`;
 }
 
 export function emailSecondaryButton(href: string, label: string): string {
   return `
     <a href="${href}"
-       style="display:inline-block;padding:12px 24px;background:#FFFFFF;color:${EMAIL_BRAND.accentDark};font-size:15px;font-weight:700;text-decoration:none;border-radius:999px;border:2px solid ${EMAIL_BRAND.accent};">
-      ${esc(label)}
+       style="display:inline-block;padding:12px 24px;background:#FFFFFF;color:${EMAIL_BRAND.onAccent};font-size:15px;font-weight:700;text-decoration:none;border-radius:999px;border:2px solid ${EMAIL_BRAND.accent};">
+      <span style="color:${EMAIL_BRAND.onAccent};">${esc(label)}</span>
     </a>`;
 }
 

@@ -47,7 +47,7 @@ export function buildNewsletterDigestEmail(params: {
   const body = `
     <tr>
       <td style="padding:32px 28px 8px;">
-        <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${EMAIL_BRAND.accent};">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${EMAIL_BRAND.accentDark};">
           Haftalık Bülten
         </p>
         <h1 style="margin:0 0 12px;font-size:24px;font-weight:800;color:${EMAIL_BRAND.text};line-height:1.3;">

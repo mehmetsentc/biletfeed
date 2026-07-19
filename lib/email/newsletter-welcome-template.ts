@@ -39,7 +39,7 @@ export function buildNewsletterWelcomeEmail(params: {
   const body = `
     <tr>
       <td style="padding:32px 28px 12px;">
-        <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${EMAIL_BRAND.accent};">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:${EMAIL_BRAND.accentDark};">
           BiletFeed Bülteni
         </p>
         <h1 style="margin:0 0 14px;font-size:26px;font-weight:800;color:${EMAIL_BRAND.text};line-height:1.25;">

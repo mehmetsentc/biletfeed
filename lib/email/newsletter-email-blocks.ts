@@ -53,7 +53,7 @@ export function newsletterEventRow(event: NewsletterDigestEvent): string {
           <p style="margin:6px 0 0;font-size:13px;color:${EMAIL_BRAND.textSecondary};line-height:1.5;">
             ${formatEventDate(event.startDate)} · ${esc(event.cityName)}
           </p>
-          <p style="margin:6px 0 0;font-size:14px;font-weight:700;color:${EMAIL_BRAND.accent};">
+          <p style="margin:6px 0 0;font-size:14px;font-weight:700;color:${EMAIL_BRAND.onAccent};">
             ${price}
           </p>
         </td>
