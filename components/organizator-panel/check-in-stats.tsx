@@ -37,10 +37,10 @@ export function CheckInStatsPanel({
                       size="xs"
                     />
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-foreground/70">
                     {row.eventTitle} · {row.ticketCode}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground/80">
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
                     {new Intl.DateTimeFormat('tr-TR', {
                       day: 'numeric',
                       month: 'short',
@@ -52,9 +52,9 @@ export function CheckInStatsPanel({
                 <span
                   className={
                     row.result === 'VALID'
-                      ? 'shrink-0 text-xs font-semibold text-[var(--bf-success)]'
+                      ? 'shrink-0 text-xs font-semibold text-emerald-700 dark:text-emerald-400'
                       : row.result === 'USED'
-                        ? 'shrink-0 text-xs font-semibold text-amber-600'
+                        ? 'shrink-0 text-xs font-semibold text-amber-800 dark:text-amber-400'
                         : 'shrink-0 text-xs font-semibold text-destructive'
                   }
                 >

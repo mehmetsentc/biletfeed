@@ -17,6 +17,7 @@ import { OrganizerTicketTypeFilters } from '@/components/organizator-panel/organ
 import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organizer-csv-download-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { getGirisUrl } from '@/lib/config/domain';
 
 interface PageProps {
   searchParams: Promise<{ event?: string; type?: string; category?: string }>;
@@ -87,9 +88,13 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/organizator-panel/tarayici">
+          <a
+            href={getGirisUrl('/tarayici')}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Button>QR Tarayıcı</Button>
-          </Link>
+          </a>
           <OrganizerCsvDownloadButton
             href={csvHref}
             fallbackFilename={csvFilename}
@@ -133,7 +138,7 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
                   <td className="p-3">
                     <Link
                       href={buildOrganizerTicketsHref(ticket.event.id)}
-                      className="font-medium text-primary hover:underline"
+                      className="font-medium text-foreground underline-offset-2 hover:text-[var(--bf-accent-ink)] hover:underline"
                     >
                       {ticket.event.title}
                     </Link>

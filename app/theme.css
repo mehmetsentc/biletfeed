@@ -258,6 +258,12 @@
   --bf-text-link-hover: var(--bf-neon);
   --bf-accent-ink: var(--bf-neon);
 
+  /* Soft status surfaces — dark'ta pastel açık zeminleri koyulaştır */
+  --bf-success-soft: rgba(22, 163, 74, 0.18);
+  --bf-warning-soft: rgba(217, 119, 6, 0.2);
+  --bf-danger-soft: rgba(220, 38, 38, 0.2);
+  --bf-info-soft: rgba(37, 99, 235, 0.2);
+
   --bf-orange-soft: rgba(223, 255, 0, 0.14);
   --bf-orange-surface: rgba(223, 255, 0, 0.08);
   --bf-orange-border: rgba(223, 255, 0, 0.28);
@@ -284,9 +290,9 @@
   --secondary: var(--bf-gray-900);
   --secondary-foreground: var(--bf-text);
   --muted: var(--bf-muted-surface);
-  --muted-foreground: var(--bf-text-muted);
+  --muted-foreground: var(--bf-text-secondary);
   --accent: rgba(223, 255, 0, 0.1);
-  --accent-foreground: var(--bf-neon);
+  --accent-foreground: var(--bf-neon-on);
   --border: var(--bf-border);
   --input: var(--bf-gray-700);
   --ring: var(--bf-neon);

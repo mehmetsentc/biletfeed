@@ -105,7 +105,7 @@ function TicketScanDetails({
         />
       )}
       {!ticket.ticketKind && ticket.isInvitation && (
-        <p className="mb-2 inline-flex rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-[var(--bf-accent-ink)] ring-1 ring-primary/30">
+        <p className="mb-2 inline-flex rounded-full bg-primary/20 px-2.5 py-0.5 text-xs font-semibold text-[var(--bf-neon-on)] ring-1 ring-primary/40 dark:text-primary">
           Davetiye
         </p>
       )}

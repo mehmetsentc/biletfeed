@@ -2,12 +2,14 @@ import { type NextRequest, NextResponse } from 'next/server';
 import {
   canonicalHost,
   getAdminUrl,
+  getGirisUrl,
   getPanelUrl,
   getSupportUrl,
   isAccountSitePath,
   isAdminSubdomain,
   isGirisSubdomain,
   isLegalSitePath,
+  isMainSiteOnlyPath,
   isOrganizerPanelSubdomain,
   isProductionHost,
   isReservedPlatformSubdomain,
@@ -135,9 +137,19 @@ function redirectOrganizerPanelToSubdomain(
   const subdomain = extractSubdomain(request);
   if (subdomain) return null;
 
-  // Ana siteden gelen /organizator-panel/* panel'e
-  // (tarayıcı yolu panelde kalır — kapı ekibi giris.biletfeed.com kullanır)
+  // Eski tarayıcı yolu artık bağımsız kapı terminaline gider.
+  if (
+    pathname === '/organizator-panel/tarayici' ||
+    pathname.startsWith('/organizator-panel/tarayici/')
+  ) {
+    const target = new URL(getGirisUrl('/tarayici'));
+    request.nextUrl.searchParams.forEach((value, key) => {
+      target.searchParams.set(key, value);
+    });
+    return NextResponse.redirect(target, 308);
+  }
 
+  // Ana siteden gelen diğer /organizator-panel/* yolları panel'e gider.
   const cleanPath =
     pathname.replace(/^\/organizator-panel/, '') || '/baslangic';
   return NextResponse.redirect(getPanelUrl(cleanPath), 308);
@@ -262,6 +274,19 @@ function handleOrganizerPanelSubdomain(
     return NextResponse.redirect(new URL('/baslangic', request.url));
   }
 
+  if (
+    pathname === '/tarayici' ||
+    pathname.startsWith('/tarayici/') ||
+    pathname === '/organizator-panel/tarayici' ||
+    pathname.startsWith('/organizator-panel/tarayici/')
+  ) {
+    const target = new URL(getGirisUrl('/tarayici'));
+    request.nextUrl.searchParams.forEach((value, key) => {
+      target.searchParams.set(key, value);
+    });
+    return NextResponse.redirect(target, 308);
+  }
+
   // panel.biletfeed.com/giris → organizatör giriş sayfası
   if (pathname === '/giris' || pathname.startsWith('/giris/')) {
     const rewriteUrl = new URL('/organizator-panel/giris', request.url);
@@ -360,6 +385,28 @@ function handleAdminSubdomain(
     return NextResponse.next();
   }
 
+  // Hesap / yasal sayfalar yalnızca ana sitede — admin.biletfeed.com/profil → biletfeed.com/profil
+  if (isMainSiteOnlyPath(pathname) || pathname === '/giris' || pathname.startsWith('/giris/')) {
+    const absolute = siteHref(pathname);
+    if (absolute.startsWith('http')) {
+      const url = new URL(absolute);
+      request.nextUrl.searchParams.forEach((value, key) => {
+        url.searchParams.set(key, value);
+      });
+      return NextResponse.redirect(url);
+    }
+    // Local: admin.localhost:3000/profil → localhost:3000/profil
+    const url = new URL(request.url);
+    if (url.hostname.endsWith('.localhost')) {
+      url.hostname = 'localhost';
+    }
+    url.pathname = pathname;
+    request.nextUrl.searchParams.forEach((value, key) => {
+      url.searchParams.set(key, value);
+    });
+    return NextResponse.redirect(url);
+  }
+
   const session = request.cookies.get(SESSION_COOKIE_NAME);
   if (!session?.value) {
     const loginTarget = siteHref('/giris');
@@ -378,7 +425,11 @@ function handleAdminSubdomain(
     pathname === '/admin' ||
     pathname.startsWith('/admin/')
   ) {
-    return NextResponse.next();
+    const target = new URL(getAdminUrl(normalizeAdminPath(pathname)));
+    request.nextUrl.searchParams.forEach((value, key) => {
+      target.searchParams.set(key, value);
+    });
+    return NextResponse.redirect(target, 308);
   }
 
   if (pathname === '/') {

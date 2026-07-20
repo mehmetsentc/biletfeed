@@ -79,21 +79,22 @@ export function checkInResultLabel(result: string): string {
   }
 }
 
+/** Açık + koyu temada WCAG AA kontrastlı rozet sınıfları */
 export function entryCategoryBadgeClass(category: EntryCategory): string {
   switch (category) {
     case 'genel':
-      return 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/30';
+      return 'bg-emerald-500/15 text-emerald-800 ring-emerald-600/25 dark:bg-emerald-500/20 dark:text-emerald-300 dark:ring-emerald-400/35';
     case 'bistro':
-      return 'bg-violet-500/15 text-violet-400 ring-violet-500/30';
+      return 'bg-violet-500/15 text-violet-800 ring-violet-600/25 dark:bg-violet-500/20 dark:text-violet-300 dark:ring-violet-400/35';
     case 'loca':
-      return 'bg-amber-500/15 text-amber-400 ring-amber-500/30';
+      return 'bg-amber-500/15 text-amber-900 ring-amber-600/30 dark:bg-amber-500/20 dark:text-amber-300 dark:ring-amber-400/35';
     default:
-      return 'bg-white/10 text-white/70 ring-white/20';
+      return 'bg-muted text-foreground ring-border dark:bg-white/10 dark:text-white/85 dark:ring-white/20';
   }
 }
 
 export function entryKindBadgeClass(kind: EntryTicketKind): string {
   return kind === 'davetiye'
-    ? 'bg-primary/15 text-primary ring-primary/30'
-    : 'bg-sky-500/15 text-sky-400 ring-sky-500/30';
+    ? 'bg-primary/20 text-[var(--bf-neon-on)] ring-primary/40 dark:bg-primary/20 dark:text-primary dark:ring-primary/40'
+    : 'bg-sky-500/15 text-sky-800 ring-sky-600/25 dark:bg-sky-500/20 dark:text-sky-300 dark:ring-sky-400/35';
 }

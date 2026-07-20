@@ -216,7 +216,7 @@ export default async function ArtistPage({ params }: Props) {
                   </p>
                   <p className="text-xs text-muted-foreground">{event.city.name}</p>
                   {role && (
-                    <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="inline-block rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-[var(--bf-accent-ink)]">
                       {role}
                     </span>
                   )}

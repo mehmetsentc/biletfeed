@@ -12,12 +12,14 @@ import {
 import { useTranslations } from '@/components/providers';
 import {
   accountSiteHref,
+  isOnAdminHost,
   isOnOrganizerPanelHost
 } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
-function resolveMenuHref(path: string, onPanelHost: boolean): string {
-  return onPanelHost ? accountSiteHref(path) : path;
+/** Panel / admin alt alanında hesap sayfaları ana siteye (biletfeed.com) gider */
+function resolveMenuHref(path: string, onRemoteHost: boolean): string {
+  return onRemoteHost ? accountSiteHref(path) : path;
 }
 
 type AccountMenuListProps = {
@@ -38,14 +40,15 @@ export function AccountMenuList({
   const accountMenuGroups = getAccountMenuGroups(t);
   const accountYardimMenuItem = getAccountYardimMenuItem(t);
   const isSidebar = variant === 'sidebar';
-  const onPanelHost = useMemo(
+  const onRemoteHost = useMemo(
     () =>
       typeof window !== 'undefined' &&
-      isOnOrganizerPanelHost(window.location.hostname),
+      (isOnOrganizerPanelHost(window.location.hostname) ||
+        isOnAdminHost(window.location.hostname)),
     []
   );
 
-  const yardimHref = resolveMenuHref(accountYardimMenuItem.href, onPanelHost);
+  const yardimHref = resolveMenuHref(accountYardimMenuItem.href, onRemoteHost);
   const yardimActive =
     accountYardimMenuItem.isActive?.(pathname) ?? pathname === yardimHref;
   const YardimIcon = accountYardimMenuItem.icon;
@@ -72,7 +75,7 @@ export function AccountMenuList({
             .map((item) => {
               const active = item.isActive?.(pathname) ?? pathname === item.href;
               const Icon = item.icon;
-              const href = resolveMenuHref(item.href, onPanelHost);
+              const href = resolveMenuHref(item.href, onRemoteHost);
 
               return (
                 <Link

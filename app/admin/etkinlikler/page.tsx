@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EventFilters } from '@/components/admin/event-filters';
 import { CancelEventButton } from '@/components/admin/cancel-event-button';
+import { adminHref } from '@/lib/config/domain';
 
 export default async function AdminEventsPage({
   searchParams
@@ -49,7 +50,7 @@ export default async function AdminEventsPage({
           </p>
         </div>
         <Button variant="outline" asChild>
-          <Link href="/admin/etkinlikler">Yaklaşanlar</Link>
+          <Link href={adminHref('/etkinlikler')}>Yaklaşanlar</Link>
         </Button>
       </div>
 
@@ -94,7 +95,7 @@ export default async function AdminEventsPage({
                           href={`/etkinlik/${event.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline"
+                          className="text-xs text-foreground/80 underline-offset-2 hover:text-[var(--bf-accent-ink)] hover:underline"
                         >
                           Sitede gör
                         </a>
@@ -125,7 +126,7 @@ export default async function AdminEventsPage({
                   <td className="p-3">
                     <div className="flex items-center gap-1.5">
                       <Button size="sm" variant="outline" asChild>
-                        <Link href={`/admin/etkinlikler/${event.id}`}>Düzenle</Link>
+                        <Link href={adminHref(`/etkinlikler/${event.id}`)}>Düzenle</Link>
                       </Button>
                       {event.status !== 'cancelled' && (
                         <CancelEventButton eventId={event.id} eventTitle={event.title} />
@@ -146,7 +147,7 @@ export default async function AdminEventsPage({
                   {!searching && (
                     <p className="mt-2 text-xs">
                       Onay bekleyenler için{' '}
-                      <Link href="/admin/etkinlik-onay" className="text-primary hover:underline">
+                      <Link href={adminHref('/etkinlik-onay')} className="text-foreground underline-offset-2 hover:text-[var(--bf-accent-ink)] hover:underline">
                         Etkinlik Onay
                       </Link>
                       {' · '}Geçmiş etkinlikler için kategori veya arama kullanın

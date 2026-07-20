@@ -22,13 +22,13 @@ export default async function OrganizatorHomePage() {
     getOrganizerSalesStats(organizer.id),
     getOrganizerCheckInStats(organizer.id)
   ]);
-  const gateTerminalUrl = getGirisUrl('/');
+  const gateTerminalUrl = getGirisUrl('/tarayici');
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-primary">{t.dashboard.title}</p>
+          <p className="text-sm font-medium text-muted-foreground">{t.dashboard.title}</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-foreground">
             {t.dashboard.salesSummaryTitle}
           </h1>
@@ -38,10 +38,10 @@ export default async function OrganizatorHomePage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild size="lg" className="gap-2 font-semibold shadow-sm">
-            <Link href="/organizator-panel/tarayici">
+            <a href={gateTerminalUrl} target="_blank" rel="noopener noreferrer">
               <ScanLine className="size-5" strokeWidth={2} />
               {t.organizerNav.scanner}
-            </Link>
+            </a>
           </Button>
           <Button asChild variant="outline" size="lg" className="font-semibold">
             <Link href="/organizator-panel/etkinlik/yeni">

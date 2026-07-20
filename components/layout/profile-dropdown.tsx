@@ -13,7 +13,7 @@ import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTranslations } from '@/components/providers';
 import { isAccountAreaActive } from '@/lib/account/navigation';
-import { panelHref, PANEL_EXTERNAL_LINK_PROPS } from '@/lib/config/domain';
+import { panelHref, PANEL_EXTERNAL_LINK_PROPS, siteHref } from '@/lib/config/domain';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { resolveProfileDisplayName } from '@/lib/account/display-name';
 import { cn } from '@/lib/utils';
@@ -60,7 +60,7 @@ export function ProfileDropdown() {
   async function handleSignOut() {
     setOpen(false);
     await signOut();
-    window.location.assign('/giris');
+    window.location.assign(siteHref('/giris'));
   }
 
   return (

@@ -14,9 +14,9 @@ const buttonVariants = cva(
         destructive:
           'rounded-[var(--radius-button)] bg-destructive text-destructive-foreground shadow-[var(--shadow-sm)] hover:bg-destructive/90 active:scale-[0.98]',
         outline:
-          'rounded-[var(--radius-button)] border border-[var(--bf-gray-200)] dark:border-[var(--bf-gray-700)] bg-transparent text-foreground hover:bg-[var(--bf-gray-100)] dark:hover:bg-[var(--bf-gray-800)] active:scale-[0.98]',
+          'rounded-[var(--radius-button)] border border-[var(--bf-gray-300)] dark:border-[var(--bf-gray-600)] bg-transparent text-foreground hover:bg-[var(--bf-gray-100)] dark:hover:bg-[var(--bf-gray-800)] active:scale-[0.98]',
         secondary:
-          'rounded-[var(--radius-button)] border border-[var(--bf-gray-200)] dark:border-[var(--bf-gray-700)] bg-[var(--bf-white)] dark:bg-[var(--bf-gray-900)] text-foreground shadow-[var(--shadow-xs)] hover:bg-[var(--bf-gray-100)] dark:hover:bg-[var(--bf-gray-800)] active:scale-[0.98]',
+          'rounded-[var(--radius-button)] border border-[var(--bf-gray-300)] dark:border-[var(--bf-gray-600)] bg-[var(--bf-white)] dark:bg-[var(--bf-gray-900)] text-foreground shadow-[var(--shadow-xs)] hover:bg-[var(--bf-gray-100)] dark:hover:bg-[var(--bf-gray-800)] active:scale-[0.98]',
         ghost:
           'rounded-[var(--radius-button)] text-foreground hover:bg-[var(--bf-gray-100)] dark:hover:bg-[var(--bf-gray-800)] active:scale-[0.98]',
         link:

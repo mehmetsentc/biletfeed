@@ -306,7 +306,7 @@ function EmptyState({
         <button
           type="button"
           onClick={onShowAll}
-          className="mt-4 text-sm font-medium text-primary hover:underline"
+          className="mt-4 text-sm font-medium text-foreground underline-offset-2 hover:text-[var(--bf-accent-ink)] hover:underline"
         >
           {cityName === turkeyLabel
             ? t.events.clearSearch

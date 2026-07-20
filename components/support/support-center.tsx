@@ -39,7 +39,7 @@ const categoryIcons: Record<SupportCategory['icon'], typeof HelpCircle> = {
 function CategoryIcon({ icon }: { icon: SupportCategory['icon'] }) {
   const Icon = categoryIcons[icon];
   return (
-    <div className="flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 transition-colors group-hover:bg-primary/10 group-hover:text-[var(--bf-neon-pressed)]">
+    <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-[var(--bf-accent-ink)]">
       <Icon className="size-6" strokeWidth={1.75} />
     </div>
   );
@@ -70,7 +70,7 @@ export function SupportHome({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Makale ara…"
-              className="h-11 border-0 bg-white pl-9 text-zinc-900 shadow-sm"
+              className="h-11 border-0 bg-white pl-9 text-zinc-900 shadow-sm placeholder:text-zinc-400"
             />
           </div>
         </div>
@@ -78,8 +78,8 @@ export function SupportHome({
       </div>
 
       {query.trim() && (
-        <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <h2 className="font-semibold text-zinc-900">
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <h2 className="font-semibold text-foreground">
             {results.length > 0
               ? `${results.length} sonuç bulundu`
               : 'Sonuç bulunamadı'}
@@ -89,10 +89,10 @@ export function SupportHome({
               <li key={a.slug}>
                 <Link
                   href={supportHref(`/makale/${a.slug}`)}
-                  className="block rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
+                  className="block rounded-lg px-3 py-2 text-sm hover:bg-muted"
                 >
-                  <span className="font-medium text-zinc-900">{a.title}</span>
-                  <span className="mt-0.5 block text-xs text-zinc-500">
+                  <span className="font-medium text-foreground">{a.title}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
                     {a.summary}
                   </span>
                 </Link>
@@ -106,16 +106,16 @@ export function SupportHome({
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
             href="#bilgi-tabani"
-            className="group flex gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-[var(--bf-orange-border)] hover:shadow-md"
+            className="group flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:border-[var(--bf-orange-border)] hover:shadow-md"
           >
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 transition-colors group-hover:bg-[var(--bf-orange-surface)] group-hover:text-[var(--bf-neon-pressed)]">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-[var(--bf-orange-surface)] group-hover:text-[var(--bf-accent-ink)]">
               <BookOpen className="size-5" />
             </div>
             <div>
-              <p className="font-semibold text-zinc-900 group-hover:text-[var(--bf-accent-ink)]">
+              <p className="font-semibold text-foreground group-hover:text-[var(--bf-accent-ink)]">
                 Makalelere göz atın
               </p>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Bilgi tabanımızdan bilet, ödeme ve hesap konularında cevaplar
                 bulun.
               </p>
@@ -123,16 +123,16 @@ export function SupportHome({
           </Link>
           <Link
             href={supportHref('/destek-talebi')}
-            className="group flex gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-[var(--bf-orange-border)] hover:shadow-md"
+            className="group flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:border-[var(--bf-orange-border)] hover:shadow-md"
           >
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 transition-colors group-hover:bg-primary/10 group-hover:text-[var(--bf-neon-pressed)]">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-[var(--bf-accent-ink)]">
               <MessageSquarePlus className="size-5" />
             </div>
             <div>
-              <p className="font-semibold text-zinc-900 group-hover:text-[var(--bf-accent-ink)]">
+              <p className="font-semibold text-foreground group-hover:text-[var(--bf-accent-ink)]">
                 Destek talebi gönder
               </p>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Sorununuzu formu doldurarak veya e-posta ile iletin.
               </p>
             </div>
@@ -143,8 +143,8 @@ export function SupportHome({
       {!query.trim() && (
         <section id="bilgi-tabani">
           <div className="mb-4">
-            <h2 className="text-lg font-bold text-zinc-900">Bilgi tabanı</h2>
-            <p className="text-sm text-zinc-500">Tüm konuları görüntüleyin</p>
+            <h2 className="text-lg font-bold text-foreground">Bilgi tabanı</h2>
+            <p className="text-sm text-muted-foreground">Tüm konuları görüntüleyin</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {categories.map((cat) => {
@@ -156,15 +156,15 @@ export function SupportHome({
                   key={cat.slug}
                   href={supportHref(`/kategori/${cat.slug}`)}
                   className={cn(
-                    'group flex flex-col items-center rounded-2xl border border-zinc-200 bg-white px-4 py-8 text-center shadow-sm',
+                    'group flex flex-col items-center rounded-2xl border border-border bg-card px-4 py-8 text-center shadow-sm',
                     'transition-all hover:border-[var(--bf-orange-border)] hover:shadow-md'
                   )}
                 >
                   <CategoryIcon icon={cat.icon} />
-                  <p className="mt-4 text-xs font-bold uppercase tracking-wide text-zinc-800">
+                  <p className="mt-4 text-xs font-bold uppercase tracking-wide text-foreground">
                     {cat.title}
                   </p>
-                  <p className="mt-2 text-xs text-zinc-500">{count} makale</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{count} makale</p>
                 </Link>
               );
             })}
@@ -175,12 +175,12 @@ export function SupportHome({
       {!query.trim() && (
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-zinc-900">
+            <h2 className="text-lg font-bold text-foreground">
               En popüler makaleler
             </h2>
             <Link
               href={supportHref('/kategori/sss')}
-              className="text-sm font-medium text-zinc-700 hover:text-[var(--bf-neon-pressed)] hover:underline"
+              className="text-sm font-medium text-foreground/80 hover:text-[var(--bf-accent-ink)] hover:underline"
             >
               Tüm makaleler
             </Link>
@@ -190,12 +190,12 @@ export function SupportHome({
               <Link
                 key={article.slug}
                 href={supportHref(`/makale/${article.slug}`)}
-                className="group flex items-start gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-colors hover:border-[var(--bf-orange-border)] hover:bg-[var(--bf-orange-surface)]/30"
+                className="group flex items-start gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-[var(--bf-orange-border)] hover:bg-[var(--bf-orange-surface)]/30"
               >
-                <BookOpen className="mt-0.5 size-4 shrink-0 text-zinc-500 transition-colors group-hover:text-[var(--bf-neon-pressed)]" />
+                <BookOpen className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-[var(--bf-accent-ink)]" />
                 <div className="min-w-0">
-                  <p className="font-medium text-zinc-900">{article.title}</p>
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="font-medium text-foreground">{article.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Güncellendi:{' '}
                     {new Date(article.updatedAt).toLocaleDateString('tr-TR', {
                       day: 'numeric',
@@ -210,11 +210,11 @@ export function SupportHome({
         </section>
       )}
 
-      <div className="rounded-2xl border border-dashed border-[var(--bf-orange-border)] bg-primary/5 px-5 py-4 text-center text-sm text-zinc-600">
+      <div className="rounded-2xl border border-dashed border-[var(--bf-orange-border)] bg-primary/5 px-5 py-4 text-center text-sm text-muted-foreground">
         BiletFeed destek merkezi —{' '}
         <a
           href={`mailto:${companyLegal.email}`}
-          className="font-medium text-zinc-700 hover:text-[var(--bf-neon-pressed)] hover:underline"
+          className="font-medium text-foreground/80 hover:text-[var(--bf-accent-ink)] hover:underline"
         >
           {companyLegal.email}
         </a>
@@ -229,15 +229,15 @@ export function SupportArticleView({ article }: { article: SupportArticle }) {
       <div>
         <Link
           href={supportHref(`/kategori/${article.categorySlug}`)}
-          className="text-sm font-medium text-zinc-700 hover:text-[var(--bf-neon-pressed)] hover:underline"
+          className="text-sm font-medium text-foreground/80 hover:text-[var(--bf-accent-ink)] hover:underline"
         >
           ← Kategoriye dön
         </Link>
-        <h1 className="mt-4 text-2xl font-bold tracking-tight text-zinc-900 md:text-3xl">
+        <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
           {article.title}
         </h1>
-        <p className="mt-2 text-sm text-zinc-500">{article.summary}</p>
-        <p className="mt-1 text-xs text-zinc-400">
+        <p className="mt-2 text-sm text-muted-foreground">{article.summary}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           Son güncelleme:{' '}
           {new Date(article.updatedAt).toLocaleDateString('tr-TR', {
             day: 'numeric',
@@ -247,21 +247,21 @@ export function SupportArticleView({ article }: { article: SupportArticle }) {
         </p>
       </div>
 
-      <div className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
         {article.sections.map((section, i) => (
           <div key={i} className="space-y-3">
             {section.heading && (
-              <h2 className="text-lg font-semibold text-zinc-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 {section.heading}
               </h2>
             )}
             {(section.paragraphs ?? []).map((p, j) => (
-              <p key={j} className="text-sm leading-relaxed text-zinc-600">
+              <p key={j} className="text-sm leading-relaxed text-muted-foreground">
                 {p}
               </p>
             ))}
             {section.bullets && section.bullets.length > 0 && (
-              <ul className="list-disc space-y-1.5 pl-5 text-sm text-zinc-600">
+              <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
                 {section.bullets.map((b, k) => (
                   <li key={k}>{b}</li>
                 ))}
@@ -274,7 +274,7 @@ export function SupportArticleView({ article }: { article: SupportArticle }) {
       <div className="flex flex-wrap gap-3">
         <Link
           href={supportHref('/')}
-          className="inline-flex h-9 items-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-medium hover:bg-zinc-50"
+          className="inline-flex h-9 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
         >
           Destek ana sayfa
         </Link>
@@ -301,33 +301,33 @@ export function SupportCategoryView({
       <div>
         <Link
           href={supportHref('/')}
-          className="text-sm font-medium text-zinc-700 hover:text-[var(--bf-neon-pressed)] hover:underline"
+          className="text-sm font-medium text-foreground/80 hover:text-[var(--bf-accent-ink)] hover:underline"
         >
           ← Destek merkezi
         </Link>
-        <h1 className="mt-4 text-2xl font-bold text-zinc-900">
+        <h1 className="mt-4 text-2xl font-bold text-foreground">
           {category.title}
         </h1>
-        <p className="mt-2 text-sm text-zinc-500">{category.description}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
       </div>
 
-      <ul className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <ul className="divide-y divide-zinc-100 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         {articles.map((a) => (
           <li key={a.slug}>
             <Link
               href={supportHref(`/makale/${a.slug}`)}
-              className="group flex items-center gap-3 px-5 py-4 transition-colors hover:bg-zinc-50"
+              className="group flex items-center gap-3 px-5 py-4 transition-colors hover:bg-muted"
             >
-              <BookOpen className="size-4 shrink-0 text-zinc-500 transition-colors group-hover:text-[var(--bf-neon-pressed)]" />
+              <BookOpen className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-[var(--bf-accent-ink)]" />
               <div>
-                <p className="font-medium text-zinc-900">{a.title}</p>
-                <p className="text-xs text-zinc-500">{a.summary}</p>
+                <p className="font-medium text-foreground">{a.title}</p>
+                <p className="text-xs text-muted-foreground">{a.summary}</p>
               </div>
             </Link>
           </li>
         ))}
         {articles.length === 0 && (
-          <li className="px-5 py-10 text-center text-sm text-zinc-500">
+          <li className="px-5 py-10 text-center text-sm text-muted-foreground">
             Bu kategoride henüz makale yok.
           </li>
         )}
@@ -335,10 +335,10 @@ export function SupportCategoryView({
 
       {category.slug === 'etkinlik-olusturma' && (
         <div className="rounded-2xl border border-[var(--bf-orange-border)] bg-[var(--bf-orange-surface)]/80 px-5 py-5">
-          <p className="text-sm font-semibold text-zinc-900">
+          <p className="text-sm font-semibold text-foreground">
             Rehberi okuduktan sonra etkinlik oluşturmaya hazır mısınız?
           </p>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             Organizatör panelinden yeni etkinlik sihirbazını başlatabilirsiniz.
           </p>
           <a
