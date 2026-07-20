@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Ban,
   Copy,
   Download,
   FileText,
@@ -54,6 +55,7 @@ export function InvitationsPanel({
   const [invitations, setInvitations] = useState<InvitationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [lastInvite, setLastInvite] = useState<InvitationRow | null>(null);
@@ -304,6 +306,46 @@ export function InvitationsPanel({
 
   function downloadPdf(invite: InvitationRow) {
     window.open(invite.pdfUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  async function cancelInvitation(invite: InvitationRow) {
+    if (invite.status === 'cancelled') return;
+    const confirmed = window.confirm(
+      `"${invite.guestName}" davetiyesini iptal etmek istiyor musunuz?\n\nQR kod geçersiz olur, kontenjan geri açılır. Bu işlem geri alınamaz.`
+    );
+    if (!confirmed) return;
+
+    setCancellingId(invite.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(`/api/organizer/invitations/${invite.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        invitation?: InvitationRow;
+      };
+      if (!res.ok) {
+        throw new Error(data.error || 'Davetiye iptal edilemedi');
+      }
+      const updated = data.invitation;
+      if (updated) {
+        setInvitations((prev) =>
+          prev.map((row) => (row.id === updated.id ? updated : row))
+        );
+        setLastInvite((prev) =>
+          prev?.id === updated.id ? null : prev
+        );
+      }
+      setSuccess(`"${invite.guestName}" davetiyesi iptal edildi.`);
+      if (eventId) void loadEventData(eventId);
+    } catch (err) {
+      setError(invitationFetchErrorMessage(err, 'Davetiye iptal edilemedi'));
+    } finally {
+      setCancellingId(null);
+    }
   }
 
   async function sharePdfsDirect(invites: InvitationRow[]) {
@@ -625,12 +667,18 @@ export function InvitationsPanel({
               </p>
             ) : (
               <ul className="mt-4 max-h-96 space-y-3 overflow-y-auto">
-                {invitations.map((invite) => (
+                {invitations.map((invite) => {
+                  const isCancelled = invite.status === 'cancelled';
+                  const isCancelling = cancellingId === invite.id;
+                  return (
                   <li
                     key={invite.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5"
+                    className={cn(
+                      'flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5',
+                      isCancelled && 'opacity-60'
+                    )}
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate font-medium text-foreground">
                           {invite.guestName}
@@ -639,10 +687,17 @@ export function InvitationsPanel({
                           variant="outline"
                           className={cn(
                             'shrink-0 text-[10px]',
-                            invite.status === 'viewed' && 'border-emerald-500/50 text-emerald-700'
+                            invite.status === 'viewed' &&
+                              'border-emerald-500/50 text-emerald-700',
+                            isCancelled &&
+                              'border-red-500/50 text-red-700'
                           )}
                         >
-                          {invite.status === 'viewed' ? 'Görüldü' : 'Gönderildi'}
+                          {isCancelled
+                            ? 'İptal'
+                            : invite.status === 'viewed'
+                              ? 'Görüldü'
+                              : 'Gönderildi'}
                         </Badge>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
@@ -654,25 +709,48 @@ export function InvitationsPanel({
                         </p>
                       )}
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => downloadPdf(invite)}
-                      title="PDF indir"
-                    >
-                      <FileText className="size-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyInviteLink(invite.inviteUrl)}
-                    >
-                      <Copy className="size-4" />
-                    </Button>
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      {!isCancelled && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => downloadPdf(invite)}
+                            title="PDF indir"
+                          >
+                            <FileText className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyInviteLink(invite.inviteUrl)}
+                            title="Linki kopyala"
+                          >
+                            <Copy className="size-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void cancelInvitation(invite)}
+                            disabled={isCancelling}
+                            title="Davetiyeyi iptal et"
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          >
+                            {isCancelling ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <Ban className="size-4" />
+                            )}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>

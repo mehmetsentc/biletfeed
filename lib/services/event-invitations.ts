@@ -349,6 +349,80 @@ export async function createEventInvitation(params: {
   return { ...result, emailStatus, emailError };
 }
 
+/**
+ * Yanlış oluşturulan davetiyeyi iptal eder.
+ * Bilet(ler) CANCELLED + soft-delete → kontenjan geri açılır.
+ * Kapıda kullanılmış (USED) bilet varsa iptal edilmez.
+ */
+export async function cancelEventInvitation(
+  invitationId: string,
+  organizerId: string
+): Promise<InvitationRow> {
+  await ensureDbConnection();
+
+  const row = await prisma.eventInvitation.findFirst({
+    where: { id: invitationId, organizerId, deletedAt: null },
+    include: {
+      purchasedTicket: {
+        select: { id: true, orderId: true, status: true }
+      }
+    }
+  });
+
+  if (!row) throw new Error('Davetiye bulunamadı');
+  if (row.status === 'cancelled') {
+    throw new Error('Davetiye zaten iptal edilmiş');
+  }
+
+  const usedTicket = await prisma.purchasedTicket.findFirst({
+    where: {
+      orderId: row.purchasedTicket.orderId,
+      status: 'USED',
+      deletedAt: null
+    },
+    select: { id: true }
+  });
+  if (usedTicket) {
+    throw new Error('Giriş yapılmış davetiye iptal edilemez');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.eventInvitation.update({
+      where: { id: invitationId },
+      data: { status: 'cancelled' }
+    });
+
+    await tx.purchasedTicket.updateMany({
+      where: {
+        orderId: row.purchasedTicket.orderId,
+        deletedAt: null,
+        status: { not: 'CANCELLED' }
+      },
+      data: {
+        status: 'CANCELLED',
+        deletedAt: new Date()
+      }
+    });
+
+    await tx.order.update({
+      where: { id: row.purchasedTicket.orderId },
+      data: { status: 'cancelled' }
+    });
+
+    await tx.ticketType.updateMany({
+      where: { id: row.ticketTypeId, sold: { gt: 0 } },
+      data: { sold: { decrement: 1 } }
+    });
+  });
+
+  const updated = await prisma.eventInvitation.findFirst({
+    where: { id: invitationId, organizerId },
+    include: invitationInclude
+  });
+  if (!updated) throw new Error('Davetiye bulunamadı');
+  return mapInvitation(updated);
+}
+
 export async function getPublicInvitation(token: string) {
   await ensureDbConnection();
   const row = await prisma.eventInvitation.findFirst({
