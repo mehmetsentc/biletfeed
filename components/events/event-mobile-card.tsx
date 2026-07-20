@@ -22,7 +22,7 @@ export function EventMobileCard({ event }: EventMobileCardProps) {
         eventId={event.id}
       />
       <Link href={`/etkinlik/${event.slug}`} className="block">
-        <div className="relative aspect-[16/10] w-full overflow-hidden">
+        <div className="relative aspect-video w-full overflow-hidden">
           <Image
             src={event.coverImage}
             alt={event.title}

@@ -52,7 +52,7 @@ export function OrganizerProfileEventCard({
         href={href}
         className="block overflow-hidden rounded-2xl border bg-card transition-all hover:shadow-lg"
       >
-        <div className="relative aspect-[4/3] overflow-hidden">
+        <div className="relative aspect-video overflow-hidden">
           {statusBadge(event.status)}
           <Image
             src={event.coverImage}

@@ -73,7 +73,7 @@ export function EventCard({
           className
         )}
       >
-        <div className="relative aspect-[4/5]">
+        <div className="relative aspect-video">
           <Image
             src={event.coverImage}
             alt={event.title}
@@ -115,7 +115,7 @@ export function EventCard({
       )}
     >
       <Link href={`/etkinlik/${event.slug}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-t-[var(--radius-image)]">
+        <div className="relative aspect-video overflow-hidden rounded-t-[var(--radius-image)]">
           <Image
             src={event.coverImage}
             alt={event.title}

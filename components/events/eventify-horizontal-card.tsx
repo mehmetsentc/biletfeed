@@ -36,7 +36,7 @@ export function EventifyHorizontalCard({
         href={`/etkinlik/${event.slug}`}
         className="flex flex-col sm:flex-row"
       >
-        <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-[220px] md:w-[260px]">
+        <div className="relative aspect-video w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-[220px] md:w-[260px]">
           <Image
             src={event.coverImage}
             alt={event.title}

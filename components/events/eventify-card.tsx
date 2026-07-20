@@ -42,7 +42,7 @@ export function EventifyCard({
         initialActive={isFavorite}
       />
       <Link href={`/etkinlik/${event.slug}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-t-[var(--radius-image)]">
+        <div className="relative aspect-video overflow-hidden rounded-t-[var(--radius-image)]">
           <Image
             src={event.coverImage}
             alt={event.title}

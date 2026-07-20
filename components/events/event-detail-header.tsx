@@ -46,18 +46,19 @@ export async function EventDetailHeader({
         } as React.CSSProperties
       }
     >
-      <div className="grid gap-0 md:grid-cols-[220px_1fr] lg:grid-cols-[260px_1fr_300px]">
-        <div className="relative aspect-[4/5] w-full bg-muted md:aspect-auto md:min-h-[320px]">
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className="object-cover"
-            priority
-            sizes="(max-width: 768px) 100vw, 260px"
-          />
-        </div>
+      {/* Kapak: wizard ile aynı 16:9 (1920×1080) — dikey kırpma yok */}
+      <div className="relative aspect-video w-full bg-muted">
+        <Image
+          src={event.coverImage}
+          alt={event.title}
+          fill
+          className="object-cover"
+          priority
+          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1120px"
+        />
+      </div>
 
+      <div className="grid gap-0 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col justify-between gap-5 p-5 md:p-6 lg:pr-4">
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-3">
@@ -65,7 +66,10 @@ export async function EventDetailHeader({
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide"
-                    style={{ backgroundColor: theme.accent, color: theme.accentForeground }}
+                    style={{
+                      backgroundColor: theme.accent,
+                      color: theme.accentForeground
+                    }}
                   >
                     {theme.label}
                   </span>
@@ -128,7 +132,7 @@ export async function EventDetailHeader({
           )}
         </div>
 
-        <div className="hidden border-t border-border p-5 md:col-span-2 md:block lg:col-span-1 lg:border-l lg:border-t-0">
+        <div className="hidden border-t border-border p-5 lg:block lg:border-l lg:border-t-0">
           <EventPurchaseCard
             event={event}
             purchasable={purchasable}
