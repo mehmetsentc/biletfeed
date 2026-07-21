@@ -62,7 +62,7 @@ export function SalesStatsGrid({
       <DashboardStatCard
         label="Satılan Loca Sayısı"
         value={String(stats.locaSold)}
-        hint="Loca / VIP kategorisi"
+        hint="Adında loca / loğe geçen kategoriler"
         icon={Building2}
         href={panelHref('/biletler?category=loca')}
       />
@@ -76,14 +76,14 @@ export function SalesStatsGrid({
       <DashboardStatCard
         label="Bilet Satış Geliri"
         value={formatMoney(stats.ticketRevenue)}
-        hint="Bilet siparişleri"
+        hint="Standart, VIP, bistro vb."
         icon={Wallet}
         href={panelHref('/siparisler?category=ticket')}
       />
       <DashboardStatCard
         label="Loca Satış Geliri"
         value={formatMoney(stats.locaRevenue)}
-        hint="Loca siparişleri"
+        hint="Loca kategorili siparişler"
         icon={Gem}
         href={panelHref('/siparisler?category=loca')}
       />

@@ -10,6 +10,7 @@ import {
   resolveOrganizerTicketsFilter
 } from '@/lib/services/organizer-ticket-filters';
 import { getOrganizerTickets } from '@/lib/services/organizer-dashboard';
+import type { SalesCategoryFilter } from '@/lib/services/ticket-type-category';
 import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';
 import { OrganizerTicketActions } from '@/components/organizator-panel/organizer-ticket-actions';
 import { OrganizerTicketEventFilter } from '@/components/organizator-panel/organizer-ticket-event-filter';
@@ -29,6 +30,11 @@ function ticketTypeLabel(name: string): string {
   return idx >= 0 ? name.slice(0, idx).trim() : name.trim();
 }
 
+function parseSalesCategory(raw?: string): SalesCategoryFilter | null {
+  if (raw === 'ticket' || raw === 'loca') return raw;
+  return null;
+}
+
 export default async function OrganizatorTicketsPage({ searchParams }: PageProps) {
   const session = await requireOrganizer();
   const organizer = await getOrganizerForSession(session.uid, session.email);
@@ -36,7 +42,8 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
 
   const params = await searchParams;
   const eventId = params.event?.trim() || undefined;
-  const rawTypeKey = params.type ?? params.category;
+  const salesCategory = parseSalesCategory(params.category);
+  const rawTypeKey = salesCategory ? undefined : params.type ?? params.category;
 
   const events = await getOrganizerTicketEvents(organizer.id);
   const activeEvent = eventId
@@ -51,21 +58,32 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
   const { filter, active } = resolveOrganizerTicketsFilter(rawTypeKey, filterOptions);
 
   const [tickets, checkInStats] = await Promise.all([
-    getOrganizerTickets(organizer.id, filter, eventId),
+    getOrganizerTickets(
+      organizer.id,
+      salesCategory ?? filter,
+      eventId
+    ),
     getOrganizerCheckInStats(organizer.id, eventId)
   ]);
 
+  const salesCategoryLabel =
+    salesCategory === 'loca' ? 'Loca' : salesCategory === 'ticket' ? 'Bilet' : null;
+
   const pageTitle = activeEvent
-    ? active.kind === 'all'
-      ? activeEvent.title
-      : active.kind === 'invitation'
-        ? `${activeEvent.title} · Davetiyeler`
-        : `${activeEvent.title} · ${active.label}`
-    : active.kind === 'all'
-      ? 'Tüm Biletler'
-      : active.kind === 'invitation'
-        ? 'Davetiyeler'
-        : active.label;
+    ? salesCategoryLabel
+      ? `${activeEvent.title} · ${salesCategoryLabel}`
+      : active.kind === 'all'
+        ? activeEvent.title
+        : active.kind === 'invitation'
+          ? `${activeEvent.title} · Davetiyeler`
+          : `${activeEvent.title} · ${active.label}`
+    : salesCategoryLabel
+      ? `${salesCategoryLabel} Kategorisi`
+      : active.kind === 'all'
+        ? 'Tüm Biletler'
+        : active.kind === 'invitation'
+          ? 'Davetiyeler'
+          : active.label;
 
   const csvHref = eventId
     ? `/api/organizer/tickets/export?eventId=${encodeURIComponent(eventId)}`

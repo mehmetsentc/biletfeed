@@ -152,13 +152,26 @@ export default async function OrganizatorOrdersPage({ searchParams }: PageProps)
               <tr>
                 <th className="p-3 font-medium">Tarih</th>
                 {!selectedEvent && <th className="p-3 font-medium">Etkinlik</th>}
+                <th className="p-3 font-medium">Kategori</th>
                 <th className="p-3 font-medium">Müşteri</th>
                 <th className="p-3 font-medium">Tutar</th>
                 <th className="p-3 font-medium">Durum</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
+              {orders.map((order) => {
+                const categoryNames = [
+                  ...new Set(
+                    order.items.map((item) => {
+                      const name = item.ticketType.name.trim();
+                      const sep = ' — ';
+                      const idx = name.indexOf(sep);
+                      return idx >= 0 ? name.slice(0, idx).trim() : name;
+                    })
+                  )
+                ].filter(Boolean);
+
+                return (
                 <tr key={order.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="p-3 whitespace-nowrap text-muted-foreground">
                     {order.createdAt.toLocaleDateString('tr-TR')}
@@ -166,6 +179,9 @@ export default async function OrganizatorOrdersPage({ searchParams }: PageProps)
                   {!selectedEvent && (
                     <td className="p-3 font-medium">{order.event.title}</td>
                   )}
+                  <td className="p-3 text-muted-foreground">
+                    {categoryNames.length > 0 ? categoryNames.join(', ') : '—'}
+                  </td>
                   <td className="p-3 text-muted-foreground">{order.user.displayName}</td>
                   <td className="p-3 font-semibold">₺{order.total.toLocaleString('tr-TR')}</td>
                   <td className="p-3">
@@ -174,10 +190,11 @@ export default async function OrganizatorOrdersPage({ searchParams }: PageProps)
                     </Badge>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={selectedEvent ? 4 : 5} className="p-10 text-center text-muted-foreground">
+                  <td colSpan={selectedEvent ? 5 : 6} className="p-10 text-center text-muted-foreground">
                     {selectedEvent
                       ? `"${selectedEvent.title}" için sipariş bulunamadı.`
                       : 'Henüz sipariş yok.'}

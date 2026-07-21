@@ -7,6 +7,7 @@ import {
   type OrganizerEventExtras
 } from '@/lib/organizator/event-metadata';
 import { sessionSlugDateSuffix } from '@/lib/organizator/event-series-meta';
+import { inferTicketTypeEnum } from '@/lib/services/ticket-type-category';
 
 export interface TicketCategoryInput {
   id?: string;
@@ -197,12 +198,12 @@ async function createEventRecord(
       onlineUrl: params.extras.onlineUrl,
       ticketTypes: {
         create: (params.ticketCategories && params.ticketCategories.length > 0
-          ? params.ticketCategories.map((cat, i) => {
+          ? params.ticketCategories.map((cat) => {
               const { name, description } = normalizeTicketCategoryFields(cat);
               return {
                 name,
                 description,
-                type: i === 0 ? ('general' as const) : ('vip' as const),
+                type: inferTicketTypeEnum(name),
                 price: params.isFree ? 0 : cat.price,
                 currency: 'TRY',
                 quantity: cat.capacity,
@@ -456,7 +457,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
     if (input.ticketCategories) {
       const keptIds = new Set<string>();
 
-      for (const [index, cat] of input.ticketCategories.entries()) {
+      for (const cat of input.ticketCategories) {
         const { name: ticketName, description: ticketDescription } =
           normalizeTicketCategoryFields(cat);
         const price = input.isFree ?? event.isFree ? 0 : cat.price;
@@ -480,7 +481,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
               capacity: cat.capacity,
               quantity: cat.capacity,
               seatsPerUnit: Math.max(1, cat.seatsPerUnit ?? 1),
-              type: index === 0 ? 'general' : 'vip',
+              type: inferTicketTypeEnum(ticketName),
               showLowStockBadge: cat.showLowStockBadge ?? false
             }
           });
@@ -491,7 +492,7 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
               eventId: input.eventId,
               name: ticketName,
               description: ticketDescription,
-              type: index === 0 ? 'general' : 'vip',
+              type: inferTicketTypeEnum(ticketName),
               price,
               currency: 'TRY',
               quantity: cat.capacity,
