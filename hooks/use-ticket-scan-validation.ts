@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import type { EntryCategory, EntryTicketKind } from '@/lib/tickets/entry-display';
 
 export type ScanStatus =
   | 'VALID'
@@ -18,8 +19,8 @@ export type ScanResult = {
     eventTitle: string;
     ticketType: string;
     categoryLabel?: string;
-    entryCategory?: 'genel' | 'bistro' | 'loca' | 'diger';
-    ticketKind?: 'bilet' | 'davetiye';
+    entryCategory?: EntryCategory;
+    ticketKind?: EntryTicketKind;
     holderName: string;
     entryCount?: number;
     isInvitation?: boolean;

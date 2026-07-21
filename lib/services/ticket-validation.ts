@@ -5,7 +5,9 @@ import {
   entryCategoryLabel,
   resolveEntryCategory,
   resolveTicketKind,
-  ticketTypeDisplayLabel
+  ticketTypeDisplayLabel,
+  type EntryCategory,
+  type EntryTicketKind
 } from '@/lib/tickets/entry-display';
 import type { UserRole } from '@/types';
 import type { EntryPolicy, TicketTypeEnum } from '@prisma/client';
@@ -24,8 +26,8 @@ export interface TicketSummary {
   eventTitle: string;
   ticketType: string;
   categoryLabel: string;
-  entryCategory: 'genel' | 'bistro' | 'loca' | 'diger';
-  ticketKind: 'bilet' | 'davetiye';
+  entryCategory: EntryCategory;
+  ticketKind: EntryTicketKind;
   holderName: string;
   scannedAt: string | null;
   entryCount: number;
