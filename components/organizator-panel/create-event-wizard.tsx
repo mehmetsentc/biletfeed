@@ -103,6 +103,62 @@ function newTicketCategory(): TicketCategory {
   };
 }
 
+/** Sol ikona tıklayınca native date/time picker açılır */
+function DateTimeField({
+  type,
+  icon: Icon,
+  value,
+  onChange,
+  min,
+  required
+}: {
+  type: 'date' | 'time';
+  icon: React.ElementType;
+  value: string;
+  onChange: (value: string) => void;
+  min?: string;
+  required?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const openPicker = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    try {
+      if (typeof el.showPicker === 'function') {
+        el.showPicker();
+      }
+    } catch {
+      // showPicker bazı ortamlarda güvenlik nedeniyle fırlatabilir
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={type === 'date' ? 'Takvimi aç' : 'Saat seçiciyi aç'}
+        onClick={openPicker}
+        className="absolute left-2 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-[var(--bf-accent-ink)]/80 hover:bg-muted hover:text-[var(--bf-accent-ink)]"
+      >
+        <Icon className="size-4" />
+      </button>
+      <Input
+        ref={inputRef}
+        type={type}
+        value={value}
+        min={min}
+        required={required}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={openPicker}
+        className="h-11 cursor-pointer rounded-lg pl-10"
+      />
+    </div>
+  );
+}
+
 function isValidTicketCategory(c: TicketCategory): boolean {
   const name = c.name.trim();
   const capacityRaw = String(c.capacity ?? '').trim();
@@ -913,61 +969,52 @@ export function CreateOrganizerEventWizard({
                             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                               Başlangıç Tarihi<span className="text-destructive">*</span>
                             </label>
-                            <div className="relative">
-                              <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--bf-accent-ink)]/70" />
-                              <Input
-                                type="date"
-                                value={session.startDate}
-                                onChange={(e) => updateSession(session.id, 'startDate', e.target.value)}
-                                className="h-11 rounded-lg pl-10"
-                              />
-                            </div>
+                            <DateTimeField
+                              type="date"
+                              icon={Calendar}
+                              value={session.startDate}
+                              onChange={(v) => updateSession(session.id, 'startDate', v)}
+                              required
+                            />
                           </div>
                           {/* Bitiş Tarihi */}
                           <div>
                             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                               Bitiş Tarihi{isFestival && <span className="text-destructive">*</span>}
                             </label>
-                            <div className="relative">
-                              <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--bf-accent-ink)]/70" />
-                              <Input
-                                type="date"
-                                value={session.endDate}
-                                min={session.startDate || undefined}
-                                onChange={(e) => updateSession(session.id, 'endDate', e.target.value)}
-                                className="h-11 rounded-lg pl-10"
-                              />
-                            </div>
+                            <DateTimeField
+                              type="date"
+                              icon={Calendar}
+                              value={session.endDate}
+                              min={session.startDate || undefined}
+                              onChange={(v) => updateSession(session.id, 'endDate', v)}
+                              required={isFestival}
+                            />
                           </div>
                           {/* Başlangıç Saati */}
                           <div>
                             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                               Başlangıç Saati<span className="text-destructive">*</span>
                             </label>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--bf-accent-ink)]/70" />
-                              <Input
-                                type="time"
-                                value={session.startTime}
-                                onChange={(e) => updateSession(session.id, 'startTime', e.target.value)}
-                                className="h-11 rounded-lg pl-10"
-                              />
-                            </div>
+                            <DateTimeField
+                              type="time"
+                              icon={Clock}
+                              value={session.startTime}
+                              onChange={(v) => updateSession(session.id, 'startTime', v)}
+                              required
+                            />
                           </div>
                           {/* Bitiş Saati */}
                           <div>
                             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                               Bitiş Saati
                             </label>
-                            <div className="relative">
-                              <Clock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--bf-accent-ink)]/70" />
-                              <Input
-                                type="time"
-                                value={session.endTime}
-                                onChange={(e) => updateSession(session.id, 'endTime', e.target.value)}
-                                className="h-11 rounded-lg pl-10"
-                              />
-                            </div>
+                            <DateTimeField
+                              type="time"
+                              icon={Clock}
+                              value={session.endTime}
+                              onChange={(v) => updateSession(session.id, 'endTime', v)}
+                            />
                             {session.endTime && session.startTime &&
                               session.endTime <= session.startTime && (
                               <p className="mt-1.5 flex items-center gap-1 text-xs text-amber-500">

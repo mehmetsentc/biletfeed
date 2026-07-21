@@ -373,6 +373,18 @@
     color-scheme: light;
   }
 
+  .organizer-surface input[type="date"]::-webkit-calendar-picker-indicator,
+  .organizer-surface input[type="time"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.55;
+    margin-left: 0.25rem;
+  }
+
+  .organizer-surface input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  .organizer-surface input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
   /* EventJoy — organizer-surface ile aynı açık tema (organizer-surface kullanılır) */
 
   .ticket-card-notch {
