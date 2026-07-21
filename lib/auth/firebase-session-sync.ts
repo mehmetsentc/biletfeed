@@ -1,6 +1,7 @@
 import { signInWithCustomToken, type Auth, type User as FirebaseUser } from 'firebase/auth';
 import { isPanelAuthContext } from '@/lib/auth/panel-auth-context';
 import { isExplicitLogoutActive } from '@/lib/auth/logout-cleanup';
+import { isGlobalLogoutActive } from '@/lib/auth/global-logout';
 import {
   fetchPanelSessionUser,
   fetchSessionUser
@@ -43,7 +44,11 @@ export async function alignFirebaseWithSessionCookie(
   auth: Auth,
   firebaseUser: FirebaseUser | null
 ): Promise<FirebaseUser | null> {
-  if (isExplicitLogoutActive()) {
+  if (isExplicitLogoutActive() || isGlobalLogoutActive()) {
+    if (firebaseUser) {
+      const { signOut } = await import('firebase/auth');
+      await signOut(auth);
+    }
     return null;
   }
 
@@ -53,6 +58,12 @@ export async function alignFirebaseWithSessionCookie(
     : await fetchSessionUser();
 
   if (!sessionUser) {
+    // Çerez yok ama Firebase hâlâ doluysa (başka alt alandan çıkış) → oturumu kapat
+    if (firebaseUser && isGlobalLogoutActive()) {
+      const { signOut } = await import('firebase/auth');
+      await signOut(auth);
+      return null;
+    }
     return firebaseUser;
   }
 

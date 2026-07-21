@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { buildSignedSessionToken } from '@/lib/auth/session-crypto';
 import {
+  PANEL_SESSION_COOKIE_NAME,
   SESSION_COOKIE_NAME,
   getSessionCookieOptions
 } from '@/lib/auth/session-cookie';
@@ -64,11 +65,25 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const response = NextResponse.json({ success: true });
-  response.cookies.set(
-    SESSION_COOKIE_NAME,
-    '',
-    getSessionCookieOptions(0)
+  // Tek yüzey silinse bile tüm auth çerezlerini temizle (çapraz alt alan sızıntısı)
+  const { SCANNER_GATE_SCOPE_COOKIE } = await import(
+    '@/lib/auth/scanner-gate-scope'
   );
+  const response = NextResponse.json({ success: true });
+  const shared = getSessionCookieOptions(0);
+  for (const name of [
+    SESSION_COOKIE_NAME,
+    PANEL_SESSION_COOKIE_NAME,
+    SCANNER_GATE_SCOPE_COOKIE
+  ]) {
+    response.cookies.set(name, '', shared);
+    response.cookies.set(name, '', {
+      maxAge: 0,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/'
+    });
+  }
   return response;
 }

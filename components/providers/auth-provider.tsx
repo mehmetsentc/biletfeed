@@ -33,6 +33,11 @@ import {
 } from '@/lib/auth/client-session';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
 import { clearAuthTransientStorage, clearExplicitLogoutMark, isExplicitLogoutActive, markExplicitLogout } from '@/lib/auth/logout-cleanup';
+import {
+  clearGlobalLogoutMarker,
+  isGlobalLogoutActive,
+  markGlobalLogout
+} from '@/lib/auth/global-logout';
 import { clearAllServerSessions } from '@/lib/auth/clear-server-sessions';
 import { alignFirebaseWithSessionCookie } from '@/lib/auth/firebase-session-sync';
 import { isPanelAuthContext } from '@/lib/auth/panel-auth-context';
@@ -110,7 +115,7 @@ async function handleSignedInUser(
   fbUser: FirebaseUser,
   opts?: { isSigningOut?: () => boolean }
 ): Promise<{ profile: User; sessionReady: boolean; sessionError?: string }> {
-  if (opts?.isSigningOut?.() || isExplicitLogoutActive()) {
+  if (opts?.isSigningOut?.() || isExplicitLogoutActive() || isGlobalLogoutActive()) {
     return { profile: buildFallbackUser(fbUser), sessionReady: false };
   }
 
@@ -129,6 +134,7 @@ async function handleSignedInUser(
   if (existingSession?.uid === fbUser.uid) {
     const profile = await fetchUserProfile(fbUser, profileEndpoint);
     clearExplicitLogoutMark();
+    clearGlobalLogoutMarker();
     return { profile, sessionReady: true };
   }
 
@@ -142,6 +148,7 @@ async function handleSignedInUser(
     }
     const profile = await fetchUserProfile(fbUser, profileEndpoint);
     clearExplicitLogoutMark();
+    clearGlobalLogoutMarker();
     return { profile, sessionReady: true };
   } catch (err) {
     const isRateLimited =
@@ -244,7 +251,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
-          if (isExplicitLogoutActive()) {
+          if (isExplicitLogoutActive() || isGlobalLogoutActive()) {
             if (fbUser) {
               try {
                 await firebaseSignOut(readyAuth);
@@ -372,6 +379,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     clearExplicitLogoutMark();
+    clearGlobalLogoutMarker();
     signingOutRef.current = false;
     const auth = await ensureAuthReady();
     await signInWithEmailAndPassword(auth, email, password);
@@ -380,6 +388,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(
     async (email: string, password: string, displayName: string) => {
       clearExplicitLogoutMark();
+      clearGlobalLogoutMarker();
       signingOutRef.current = false;
       const auth = await ensureAuthReady();
       const credential = await createUserWithEmailAndPassword(
@@ -394,6 +403,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     clearExplicitLogoutMark();
+    clearGlobalLogoutMarker();
     signingOutRef.current = false;
     const auth = await ensureAuthReady();
     const { signInWithGoogle: googleSignIn } = await import(
@@ -404,6 +414,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithApple = useCallback(async () => {
     clearExplicitLogoutMark();
+    clearGlobalLogoutMarker();
     signingOutRef.current = false;
     const auth = await ensureAuthReady();
     const { signInWithApple: appleSignIn } = await import(
@@ -442,6 +453,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signingOutRef.current = true;
     authGenerationRef.current += 1;
     markExplicitLogout();
+    markGlobalLogout();
     setUser(null);
     setFirebaseUser(null);
     setSessionReady(false);
@@ -457,7 +469,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore
     } finally {
       setTimeout(() => {
-        if (!isExplicitLogoutActive()) {
+        if (!isExplicitLogoutActive() && !isGlobalLogoutActive()) {
           signingOutRef.current = false;
         }
       }, 3000);
@@ -468,6 +480,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signingOutRef.current = true;
     authGenerationRef.current += 1;
     markExplicitLogout();
+    markGlobalLogout();
     setUser(null);
     setFirebaseUser(null);
     setSessionReady(false);
@@ -483,7 +496,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore
     } finally {
       setTimeout(() => {
-        if (!isExplicitLogoutActive()) {
+        if (!isExplicitLogoutActive() && !isGlobalLogoutActive()) {
           signingOutRef.current = false;
         }
       }, 3000);
