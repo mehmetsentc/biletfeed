@@ -36,43 +36,48 @@ async function signInWithSessionCustomToken(
   }
 }
 
+async function forceSignOut(auth: Auth): Promise<null> {
+  const { signOut } = await import('firebase/auth');
+  await signOut(auth);
+  return null;
+}
+
 /**
- * panel.biletfeed.com ve biletfeed.com ayrı Firebase persistence kullanır.
- * İlgili oturum çerezi ile bu origin'deki Firebase kullanıcısını hizalar.
+ * panel.biletfeed.com / admin. / ana site ayrı Firebase IndexedDB kullanır.
+ * Çerez (.biletfeed.com) kaynak gerçektir: session VEYA panel_session → Firebase hizala.
+ * Çerez yoksa Firebase sessizce yeni çerez üretemez (çapraz çıkış).
  */
 export async function alignFirebaseWithSessionCookie(
   auth: Auth,
   firebaseUser: FirebaseUser | null
 ): Promise<FirebaseUser | null> {
   if (isExplicitLogoutActive() || isGlobalLogoutActive()) {
-    if (firebaseUser) {
-      const { signOut } = await import('firebase/auth');
-      await signOut(auth);
-    }
+    if (firebaseUser) return forceSignOut(auth);
     return null;
   }
 
   const panelContext = isPanelAuthContext();
-  const sessionUser = panelContext
+  const primary = panelContext
     ? await fetchPanelSessionUser()
     : await fetchSessionUser();
+  const fallback = primary
+    ? null
+    : panelContext
+      ? await fetchSessionUser()
+      : await fetchPanelSessionUser();
+  const sessionUser = primary ?? fallback;
 
   if (!sessionUser) {
-    // Çerez yok ama Firebase hâlâ doluysa (başka alt alandan çıkış) → oturumu kapat
-    if (firebaseUser && isGlobalLogoutActive()) {
-      const { signOut } = await import('firebase/auth');
-      await signOut(auth);
-      return null;
-    }
-    return firebaseUser;
+    // Hiçbir SSO çerezi yok → bu origin'deki Firebase'i de kapat
+    if (firebaseUser) return forceSignOut(auth);
+    return null;
   }
 
   if (firebaseUser?.uid === sessionUser.uid) {
     return firebaseUser;
   }
 
-  // Canlı Firebase kullanıcısı varsa (yeni Google/Apple seçimi) eski çereze zorlama.
-  // handleSignedInUser yeni panel_session / session yazar.
+  // Yeni OAuth kullanıcıyı çerezden eski uid'e zorlama
   if (firebaseUser) {
     return firebaseUser;
   }

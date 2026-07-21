@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { verifySessionCookie } from '@/lib/auth/session';
+import {
+  verifyPanelSessionCookie,
+  verifySessionCookie
+} from '@/lib/auth/session';
 import {
   getAdminAuth,
   isFirebaseAdminConfigured
@@ -8,6 +11,11 @@ import {
 import { rateLimitOrNull } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+/** session VEYA panel_session — alt alanlar arası Firebase hizalama */
+async function verifyAnyAuthCookie() {
+  return (await verifySessionCookie()) ?? (await verifyPanelSessionCookie());
+}
 
 export async function POST(request: NextRequest) {
   const limited = rateLimitOrNull(request, 'auth-custom-token', 90, 60_000);
@@ -17,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const session = await verifySessionCookie();
+  const session = await verifyAnyAuthCookie();
   if (!session) {
     return NextResponse.json({ error: 'Oturum gerekli' }, { status: 401 });
   }

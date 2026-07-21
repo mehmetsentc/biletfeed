@@ -1,29 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
-import { buildSignedSessionToken } from '@/lib/auth/session-crypto';
+import { setUnifiedAuthCookies } from '@/lib/auth/unified-session-cookies';
+import { SESSION_EXPIRES_MS } from '@/lib/auth/session';
 import {
   PANEL_SESSION_COOKIE_NAME,
   SESSION_COOKIE_NAME,
   getSessionCookieOptions
 } from '@/lib/auth/session-cookie';
-import { SESSION_EXPIRES_MS } from '@/lib/auth/session';
 import { syncUserToDB } from '@/lib/auth/sync-user';
 import { verifyIdTokenViaRestApi } from '@/lib/auth/verify-id-token';
 import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
-
-function buildSessionCookie(
-  uid: string,
-  email: string,
-  role: string,
-  expiresMs: number
-): string {
-  return buildSignedSessionToken({
-    uid,
-    email,
-    role,
-    exp: Date.now() + expiresMs
-  });
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,14 +28,9 @@ export async function POST(request: NextRequest) {
 
     const { uid, email } = await verifyIdTokenViaRestApi(idToken);
     const role = await syncUserToDB(uid, email);
-    const sessionCookie = buildSessionCookie(uid, email, role, SESSION_EXPIRES_MS);
 
     const response = NextResponse.json({ success: true, role });
-    response.cookies.set(
-      SESSION_COOKIE_NAME,
-      sessionCookie,
-      getSessionCookieOptions(SESSION_EXPIRES_MS / 1000)
-    );
+    setUnifiedAuthCookies(response, uid, email, role, SESSION_EXPIRES_MS);
     return response;
   } catch (err) {
     const message =
@@ -65,7 +46,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  // Tek yüzey silinse bile tüm auth çerezlerini temizle (çapraz alt alan sızıntısı)
   const { SCANNER_GATE_SCOPE_COOKIE } = await import(
     '@/lib/auth/scanner-gate-scope'
   );

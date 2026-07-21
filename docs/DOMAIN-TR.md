@@ -83,7 +83,9 @@ Vercel → **biletfeed** → **Settings** → **Domains** → `panel.biletfeed.c
 
 - `https://panel.biletfeed.com` → organizatör paneli (`/organizator-panel/baslangic`)
 - `https://biletfeed.com/organizator-panel/*` → otomatik `panel.biletfeed.com` yönlendirmesi (production)
-- Oturum çerezi `.biletfeed.com` — ana site ve panel arasında paylaşılır
+- Oturum çerezleri (`.biletfeed.com`): girişte `session` + `panel_session` birlikte yazılır — ana site, panel ve admin SSO
+- Çıkış herhangi bir yüzeyden → `logout-all` + `bf_global_logout` (24s); diğer alt alanlar Firebase ile sessiz yeniden giriş yapamaz
+
 
 ### Lokal geliştirme
 

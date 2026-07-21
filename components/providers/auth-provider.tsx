@@ -286,15 +286,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
+          // align kaynak gerçek — eski fbUser referansına düşme (çıkış sonrası diriliş)
           if (alignedUser && fbUser && alignedUser.uid !== fbUser.uid) {
             return;
           }
 
-          const activeUser = alignedUser ?? fbUser;
+          const activeUser = alignedUser;
           const panelContext = isPanelAuthContext();
           const sessionUser = panelContext
             ? await fetchPanelSessionUser()
             : await fetchSessionUser();
+          // Diğer yüzeyde kalan SSO çerezi
+          const anySessionUser =
+            sessionUser ??
+            (panelContext
+              ? await fetchSessionUser()
+              : await fetchPanelSessionUser());
 
           if (signingOutRef.current) {
             if (!readyAuth.currentUser) {
@@ -308,7 +315,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
-          if (!activeUser && sessionUser) {
+          if (!activeUser && anySessionUser) {
             if (isExplicitLogoutActive()) {
               await clearAllServerSessions();
               authGenerationRef.current += 1;
@@ -330,7 +337,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setLoading(false);
               return;
             }
-            setUser(sessionUser);
+            setUser(anySessionUser);
             setSessionReady(true);
             setSessionError(null);
             setLoading(false);
@@ -376,6 +383,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe?.();
     };
   }, [isConfigured, isStaleAuth]);
+
+  // Diğer sekme/alt alandan çıkış — görünür olunca çerez durumunu kontrol et
+  useEffect(() => {
+    if (!isConfigured) return;
+
+    const syncLogoutFromCookies = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (signingOutRef.current) return;
+      if (isExplicitLogoutActive() || isGlobalLogoutActive()) {
+        void (async () => {
+          signingOutRef.current = true;
+          try {
+            const auth = getFirebaseAuth();
+            if (auth.currentUser) await firebaseSignOut(auth);
+          } catch {
+            // ignore
+          }
+          authGenerationRef.current += 1;
+          setFirebaseUser(null);
+          setUser(null);
+          setSessionReady(false);
+          setSessionError(null);
+          setLoading(false);
+          setTimeout(() => {
+            signingOutRef.current = false;
+          }, 500);
+        })();
+        return;
+      }
+
+      void (async () => {
+        const panelContext = isPanelAuthContext();
+        const me = panelContext
+          ? await fetchPanelSessionUser()
+          : await fetchSessionUser();
+        const other = me
+          ? null
+          : panelContext
+            ? await fetchSessionUser()
+            : await fetchPanelSessionUser();
+        if (!me && !other && (user || firebaseUser)) {
+          try {
+            const auth = getFirebaseAuth();
+            if (auth.currentUser) await firebaseSignOut(auth);
+          } catch {
+            // ignore
+          }
+          authGenerationRef.current += 1;
+          setFirebaseUser(null);
+          setUser(null);
+          setSessionReady(false);
+          setSessionError(null);
+        }
+      })();
+    };
+
+    document.addEventListener('visibilitychange', syncLogoutFromCookies);
+    window.addEventListener('focus', syncLogoutFromCookies);
+    return () => {
+      document.removeEventListener('visibilitychange', syncLogoutFromCookies);
+      window.removeEventListener('focus', syncLogoutFromCookies);
+    };
+  }, [isConfigured, user, firebaseUser]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     signingOutRef.current = false;

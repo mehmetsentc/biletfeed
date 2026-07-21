@@ -3,7 +3,8 @@ import { getCookieDomain } from '@/lib/config/domain';
 /** Alt alanlar arası paylaşılan çıkış işareti (httpOnly değil — client okur) */
 export const GLOBAL_LOGOUT_COOKIE = 'bf_global_logout';
 
-const GLOBAL_LOGOUT_TTL_MS = 10 * 60 * 1000;
+/** Çıkış sonrası diğer origin'lerin sessiz yeniden girişini engeller */
+const GLOBAL_LOGOUT_TTL_MS = 24 * 60 * 60 * 1000;
 const GLOBAL_LOGOUT_TTL_SEC = Math.floor(GLOBAL_LOGOUT_TTL_MS / 1000);
 
 function cookieDomainAttr(): string {
@@ -43,7 +44,6 @@ export function clearGlobalLogoutMarker(): void {
     `; path=/; max-age=0; SameSite=Lax` +
     secureAttr() +
     cookieDomainAttr();
-  // Host-only kopyayı da sil (domain'siz set edilmiş olabilir)
   document.cookie = `${GLOBAL_LOGOUT_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
 }
 
