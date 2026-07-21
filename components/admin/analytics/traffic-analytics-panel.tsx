@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Area,
   AreaChart,
@@ -28,7 +29,6 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { adminHref } from '@/lib/config/domain';
 import type { TrafficAnalyticsBundle, AnalyticsRangeKey } from '@/lib/services/site-analytics';
 import { useTranslations } from '@/components/providers';
 
@@ -143,6 +143,8 @@ export function TrafficAnalyticsPanel({
 }) {
   const t = useTranslations();
   const ap = t.admin.analyticsPage;
+  const pathname = usePathname();
+  const base = pathname.startsWith('/admin') ? '/admin/analitik' : '/analitik';
 
   const channels = useMemo(
     () => data.ga4Channels ?? data.channels,
@@ -181,7 +183,7 @@ export function TrafficAnalyticsPanel({
             size="sm"
             variant={rangeKey === key ? 'default' : 'outline'}
           >
-            <Link href={adminHref(`/analitik?tab=traffic&range=${key}`)}>
+            <Link href={`${base}?tab=traffic&range=${key}`}>
               {rangeLabels[key]}
             </Link>
           </Button>

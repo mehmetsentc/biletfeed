@@ -238,6 +238,13 @@ function isStaticAssetPath(pathname: string): boolean {
   );
 }
 
+/** Rewrite pathname while preserving ?query (new URL('/path', req.url) drops search). */
+function rewritePath(request: NextRequest, pathname: string): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  return NextResponse.rewrite(url);
+}
+
 function handleSupportSubdomain(
   request: NextRequest,
   pathname: string
@@ -259,7 +266,7 @@ function handleSupportSubdomain(
   const supportPath = pathname.startsWith('/')
     ? `/destek${pathname}`
     : `/destek/${pathname}`;
-  return NextResponse.rewrite(new URL(supportPath, request.url));
+  return rewritePath(request, supportPath);
 }
 
 function handleOrganizerPanelSubdomain(
@@ -327,7 +334,7 @@ function handleOrganizerPanelSubdomain(
   const panelPath = pathname.startsWith('/')
     ? `/organizator-panel${pathname}`
     : `/organizator-panel/${pathname}`;
-  return NextResponse.rewrite(new URL(panelPath, request.url));
+  return rewritePath(request, panelPath);
 }
 
 /** Kapı terminali — sadece login + tarayıcı */
@@ -443,13 +450,13 @@ function handleAdminSubdomain(
   }
 
   if (pathname === '/') {
-    return NextResponse.rewrite(new URL('/admin', request.url));
+    return rewritePath(request, '/admin');
   }
 
   const adminPath = pathname.startsWith('/')
     ? `/admin${pathname}`
     : `/admin/${pathname}`;
-  return NextResponse.rewrite(new URL(adminPath, request.url));
+  return rewritePath(request, adminPath);
 }
 
 export async function middleware(request: NextRequest) {
