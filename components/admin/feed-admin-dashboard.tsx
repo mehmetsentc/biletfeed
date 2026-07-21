@@ -6,7 +6,7 @@ import { Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { EditorialQueueItem } from '@/lib/feed/types';
-import { adminHref } from '@/lib/config/domain';
+import { adminHref, siteHref } from '@/lib/config/domain';
 
 type FeedStats = {
   published: number;
@@ -192,7 +192,7 @@ export function FeedAdminDashboard() {
                       )}
                       {post.status === 'published' && (
                         <a
-                          href={`/feed/${post.slug}`}
+                          href={siteHref(`/feed/${post.slug}`)}
                           className="inline-flex h-8 items-center text-sm text-[var(--bf-accent-ink)] underline"
                           target="_blank"
                           rel="noreferrer"

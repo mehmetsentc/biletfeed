@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
 import type { AdminFeedPostEditor, FeedMediaInput } from '@/lib/services/feed';
 import type { FeedPostStatus, FeedPostType } from '@prisma/client';
-import { adminHref } from '@/lib/config/domain';
+import { adminHref, siteHref } from '@/lib/config/domain';
 
 type CategoryOption = { id: string; slug: string; name: string };
 
@@ -485,7 +485,7 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
         {props.mode === 'edit' && (
           <>
             <Button type="button" variant="outline" asChild>
-              <a href={`/feed/${props.post.slug}`} target="_blank" rel="noreferrer">
+              <a href={siteHref(`/feed/${props.post.slug}`)} target="_blank" rel="noreferrer">
                 Önizle
               </a>
             </Button>

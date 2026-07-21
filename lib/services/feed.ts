@@ -514,6 +514,10 @@ export async function listFeedCategoriesForAdmin() {
 
 export async function getAdminFeedPostById(id: string): Promise<AdminFeedPostEditor | null> {
   await ensureDbConnection();
+  // Admin route /admin/feed/[id] — slug gelirse Prisma UUID hatası vermesin
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    return null;
+  }
   const row = await prisma.feedPost.findFirst({
     where: { id, deletedAt: null },
     include: { media: { orderBy: { sortOrder: 'asc' } } }
