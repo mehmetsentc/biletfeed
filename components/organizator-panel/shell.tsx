@@ -38,7 +38,7 @@ export function OrganizatorShell({
 
   if (isWizard) {
     return (
-      <AuthGuard requiredRole="ROLE_ORGANIZER">
+      <AuthGuard requiredRole="ROLE_USER" fallbackUrl="/giris">
         <div className="organizer-surface min-h-screen bg-organizer-shell p-4 md:p-6 lg:p-8">
           {children}
         </div>
@@ -47,7 +47,7 @@ export function OrganizatorShell({
   }
 
   return (
-    <AuthGuard requiredRole="ROLE_ORGANIZER">
+    <AuthGuard requiredRole="ROLE_USER" fallbackUrl="/giris">
       <div className="organizer-surface bg-organizer-shell flex min-h-screen">
         {/* Sidebar — masaüstünde tam yükseklik, logo burada tek */}
         <OrganizatorSidebar

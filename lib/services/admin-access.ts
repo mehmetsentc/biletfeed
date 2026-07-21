@@ -210,8 +210,18 @@ export async function revokeAdminAccess(params: {
     throw new Error('Süper admin yetkisi kaldırılamaz.');
   }
 
+  // Organizatör hesabı varsa admin düşürülünce ROLE_USER yapılmamalı —
+  // aksi halde panel AuthGuard siyah ekran / yönlendirme döngüsü verir.
+  const ownsOrganizer = await prisma.organizer.findFirst({
+    where: { ownerId: user.id, deletedAt: null },
+    select: { id: true }
+  });
+
   await prisma.user.update({
     where: { id: user.id },
-    data: { role: ROLES.USER, adminPermissions: [] }
+    data: {
+      role: ownsOrganizer ? ROLES.ORGANIZER : ROLES.USER,
+      adminPermissions: []
+    }
   });
 }

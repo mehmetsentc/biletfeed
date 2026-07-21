@@ -33,7 +33,31 @@ export async function syncUserToDB(uid: string, email: string): Promise<string> 
           where: { id: existing.id },
           data: { role: ROLES.SUPER_ADMIN }
         });
-      } else if (!existing.firebaseUid && uid) {
+        return ROLES.SUPER_ADMIN;
+      }
+
+      // Organizatör sahibi ama rol USER kaldıysa (admin iptali sonrası) paneli aç
+      if (existing.role === ROLES.USER) {
+        const ownsOrganizer = await prisma.organizer.findFirst({
+          where: { ownerId: existing.id, deletedAt: null },
+          select: { id: true }
+        });
+        if (ownsOrganizer) {
+          await prisma.user.update({
+            where: { id: existing.id },
+            data: { role: ROLES.ORGANIZER }
+          });
+          if (!existing.firebaseUid && uid) {
+            await prisma.user.update({
+              where: { id: existing.id },
+              data: { firebaseUid: uid }
+            });
+          }
+          return ROLES.ORGANIZER;
+        }
+      }
+
+      if (!existing.firebaseUid && uid) {
         await prisma.user.update({
           where: { id: existing.id },
           data: { firebaseUid: uid }
