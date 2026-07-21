@@ -71,9 +71,10 @@ export async function alignFirebaseWithSessionCookie(
     return firebaseUser;
   }
 
+  // Canlı Firebase kullanıcısı varsa (yeni Google/Apple seçimi) eski çereze zorlama.
+  // handleSignedInUser yeni panel_session / session yazar.
   if (firebaseUser) {
-    const { signOut } = await import('firebase/auth');
-    await signOut(auth);
+    return firebaseUser;
   }
 
   const tokenEndpoint = panelContext

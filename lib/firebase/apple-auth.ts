@@ -140,7 +140,10 @@ export async function finishAppleRedirectSignIn(
 
     if (result?.user) { clearAppleRedirectPending(); return null; }
 
-    if (await waitForAuthUser(auth)) { clearAppleRedirectPending(); return null; }
+    if (pending && (await waitForAuthUser(auth))) {
+      clearAppleRedirectPending();
+      return null;
+    }
 
     if (pending) {
       clearAppleRedirectPending();
@@ -160,14 +163,12 @@ export async function finishAppleRedirectSignIn(
  * - Web: önce popup, engellenirse redirect
  */
 export async function signInWithApple(auth: Auth): Promise<AppleSignInResult> {
-  if (auth.currentUser) return { mode: 'popup', completed: true };
-
   // ── Capacitor: native Sign In with Apple ──────────────────────────────────
   if (isCapacitor()) {
     return signInWithAppleNative(auth);
   }
 
-  // ── Web: popup → redirect fallback ───────────────────────────────────────
+  // ── Web: popup → redirect fallback (hesap değiştirmede currentUser'ı atlama) ─
   const provider = createAppleProvider();
 
   try {

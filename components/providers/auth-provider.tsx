@@ -378,10 +378,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isConfigured, isStaleAuth]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    clearExplicitLogoutMark();
-    clearGlobalLogoutMarker();
     signingOutRef.current = false;
     const auth = await ensureAuthReady();
+    await clearAllServerSessions();
+    if (auth.currentUser) {
+      try {
+        await firebaseSignOut(auth);
+      } catch {
+        // ignore
+      }
+    }
+    clearExplicitLogoutMark();
+    clearGlobalLogoutMarker();
     await signInWithEmailAndPassword(auth, email, password);
   }, []);
 
@@ -402,10 +410,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithGoogle = useCallback(async () => {
-    clearExplicitLogoutMark();
-    clearGlobalLogoutMarker();
     signingOutRef.current = false;
     const auth = await ensureAuthReady();
+    // Eski IndexedDB + stale panel_session yeni hesabı ezmesin
+    await clearAllServerSessions();
+    if (auth.currentUser) {
+      try {
+        await firebaseSignOut(auth);
+      } catch {
+        // ignore
+      }
+    }
+    clearExplicitLogoutMark();
+    clearGlobalLogoutMarker();
     const { signInWithGoogle: googleSignIn } = await import(
       '@/lib/firebase/google-auth'
     );
@@ -413,10 +430,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithApple = useCallback(async () => {
-    clearExplicitLogoutMark();
-    clearGlobalLogoutMarker();
     signingOutRef.current = false;
     const auth = await ensureAuthReady();
+    await clearAllServerSessions();
+    if (auth.currentUser) {
+      try {
+        await firebaseSignOut(auth);
+      } catch {
+        // ignore
+      }
+    }
+    clearExplicitLogoutMark();
+    clearGlobalLogoutMarker();
     const { signInWithApple: appleSignIn } = await import(
       '@/lib/firebase/apple-auth'
     );

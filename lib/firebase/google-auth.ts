@@ -110,7 +110,8 @@ export async function finishGoogleRedirectSignIn(
       return null;
     }
 
-    if (await waitForAuthUser(auth)) {
+    // Yalnızca gerçek redirect dönüşünde beklenen currentUser'ı başarı say
+    if (pending && (await waitForAuthUser(auth))) {
       clearGoogleRedirectPending();
       return null;
     }
@@ -129,12 +130,9 @@ export async function finishGoogleRedirectSignIn(
 
 /**
  * Önce popup dener (COOP: same-origin-allow-popups). Popup engellenirse redirect'e düşer.
+ * Mevcut currentUser olsa bile Google hesap seçiciyi açar (hesap değiştirme).
  */
 export async function signInWithGoogle(auth: Auth): Promise<GoogleSignInResult> {
-  if (auth.currentUser) {
-    return { mode: 'popup', completed: true };
-  }
-
   const provider = createGoogleProvider();
 
   try {
