@@ -1,9 +1,26 @@
 import { getAdminAnalytics } from '@/lib/services/admin-dashboard';
+import {
+  getTrafficAnalyticsBundle,
+  type AnalyticsRangeKey
+} from '@/lib/services/site-analytics';
 import { Users, CalendarDays, ShoppingCart, TrendingUp, Ticket, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AnalyticsTabs } from '@/components/admin/analytics/analytics-tabs';
+import { TrafficAnalyticsPanel } from '@/components/admin/analytics/traffic-analytics-panel';
+import { getServerTranslations } from '@/lib/i18n/server';
 
-function StatCard({ label, value, sub, icon: Icon, accent }: {
-  label: string; value: string; sub?: string; icon: React.ElementType; accent?: boolean;
+function StatCard({
+  label,
+  value,
+  sub,
+  icon: Icon,
+  accent
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  icon: React.ElementType;
+  accent?: boolean;
 }) {
   return (
     <Card>
@@ -21,35 +38,76 @@ function StatCard({ label, value, sub, icon: Icon, accent }: {
   );
 }
 
-export default async function AdminAnalyticsPage() {
-  const a = await getAdminAnalytics();
+function parseRange(raw?: string): AnalyticsRangeKey {
+  if (raw === 'today' || raw === '7d' || raw === '30d' || raw === '90d') return raw;
+  return '7d';
+}
 
-  return (
+interface PageProps {
+  searchParams: Promise<{ tab?: string; range?: string }>;
+}
+
+export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const { t } = await getServerTranslations();
+  const tab = params.tab === 'traffic' ? 'traffic' : 'business';
+  const rangeKey = parseRange(params.range);
+
+  const [a, traffic] = await Promise.all([
+    getAdminAnalytics(),
+    tab === 'traffic'
+      ? getTrafficAnalyticsBundle(rangeKey)
+      : Promise.resolve(null)
+  ]);
+
+  const business = (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Analitik</h1>
-        <p className="text-muted-foreground">Platform metrikleri</p>
-      </div>
-
-      {/* KPI Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="Toplam Kullanıcı" value={a.totalUsers.toLocaleString('tr-TR')}
-          sub={`+${a.newUsers30d} son 30 günde`} icon={Users} />
-        <StatCard label="Toplam Etkinlik" value={a.totalEvents.toLocaleString('tr-TR')}
-          sub={`${a.activeEvents} aktif/yaklaşan`} icon={CalendarDays} />
-        <StatCard label="Toplam Sipariş" value={a.totalOrders.toLocaleString('tr-TR')}
-          sub={`${a.paidOrders} ödenmiş · %${a.conversionRate} dönüşüm`} icon={ShoppingCart} />
-        <StatCard label="Toplam Gelir" value={`₺${a.revenueAll.toLocaleString('tr-TR')}`}
-          sub="Tüm zamanlar" icon={TrendingUp} accent />
-        <StatCard label="Son 30 Gün Geliri" value={`₺${a.revenue30d.toLocaleString('tr-TR')}`}
-          sub={a.revenueGrowth !== null ? `${a.revenueGrowth >= 0 ? '+' : ''}${a.revenueGrowth}% önceki 30 güne göre` : undefined}
-          icon={TrendingUp} accent />
-        <StatCard label="Satılan Bilet" value={a.totalTickets.toLocaleString('tr-TR')}
-          sub="Toplam verilen bilet" icon={Ticket} />
+        <StatCard
+          label="Toplam Kullanıcı"
+          value={a.totalUsers.toLocaleString('tr-TR')}
+          sub={`+${a.newUsers30d} son 30 günde`}
+          icon={Users}
+        />
+        <StatCard
+          label="Toplam Etkinlik"
+          value={a.totalEvents.toLocaleString('tr-TR')}
+          sub={`${a.activeEvents} aktif/yaklaşan`}
+          icon={CalendarDays}
+        />
+        <StatCard
+          label="Toplam Sipariş"
+          value={a.totalOrders.toLocaleString('tr-TR')}
+          sub={`${a.paidOrders} ödenmiş · %${a.conversionRate} dönüşüm`}
+          icon={ShoppingCart}
+        />
+        <StatCard
+          label="Toplam Gelir"
+          value={`₺${a.revenueAll.toLocaleString('tr-TR')}`}
+          sub="Tüm zamanlar"
+          icon={TrendingUp}
+          accent
+        />
+        <StatCard
+          label="Son 30 Gün Geliri"
+          value={`₺${a.revenue30d.toLocaleString('tr-TR')}`}
+          sub={
+            a.revenueGrowth !== null
+              ? `${a.revenueGrowth >= 0 ? '+' : ''}${a.revenueGrowth}% önceki 30 güne göre`
+              : undefined
+          }
+          icon={TrendingUp}
+          accent
+        />
+        <StatCard
+          label="Satılan Bilet"
+          value={a.totalTickets.toLocaleString('tr-TR')}
+          sub="Toplam verilen bilet"
+          icon={Ticket}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Category distribution */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -80,7 +138,6 @@ export default async function AdminAnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* City distribution */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -111,6 +168,27 @@ export default async function AdminAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">{t.admin.analyticsPage.title}</h1>
+        <p className="text-muted-foreground">{t.admin.analyticsPage.subtitle}</p>
+      </div>
+
+      <AnalyticsTabs
+        active={tab}
+        business={business}
+        traffic={
+          traffic ? (
+            <TrafficAnalyticsPanel data={traffic} rangeKey={rangeKey} />
+          ) : (
+            <p className="text-sm text-muted-foreground">…</p>
+          )
+        }
+      />
     </div>
   );
 }

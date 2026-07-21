@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   EventsFeedHeader,
@@ -25,6 +25,7 @@ import {
   type EventSortOption
 } from '@/lib/events/sort-events';
 import { isUpcomingEvent } from '@/lib/events/upcoming';
+import { trackClientSearch } from '@/lib/analytics/track-client-search';
 
 type CategoryItem = {
   slug: string;
@@ -385,6 +386,15 @@ export default function EventsPageClient({
     initialOnline,
     mockEvents
   ]);
+
+  useEffect(() => {
+    const q = textQuery.trim();
+    if (!q) return;
+    const timer = window.setTimeout(() => {
+      trackClientSearch(q, filteredEvents.length);
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [textQuery, filteredEvents.length]);
 
   const sortSelect = (
     <SortSelect

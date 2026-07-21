@@ -562,7 +562,36 @@ export const ru: TranslationKeys = {
     eventApproval: 'Одобрение событий',
     feed: 'Лента',
     accounting: 'Бухгалтерия',
-    adminManagement: 'Управление админами'
+    adminManagement: 'Управление админами',
+    analyticsPage: {
+      title: 'Аналитика',
+      subtitle: 'Бизнес-метрики и трафик / поведение на сайте',
+      tabBusiness: 'Бизнес-метрики',
+      tabTraffic: 'Трафик',
+      rangeToday: 'Сегодня',
+      range7d: '7 дней',
+      range30d: '30 дней',
+      range90d: '90 дней',
+      pageviews: 'Просмотры',
+      uniqueVisitors: 'Уник. посетители',
+      sessions: 'Сессии',
+      avgSession: 'Ср. сессия',
+      bounceRate: 'Отказы',
+      activeNow: 'Сейчас онлайн',
+      dailyTraffic: 'Дневной трафик',
+      trafficSources: 'Источники трафика',
+      socialSources: 'Соцсети / источники',
+      topPages: 'Топ страниц',
+      topContent: 'Топ контента',
+      devices: 'Устройства',
+      geo: 'География (город)',
+      webVitals: 'Скорость / Core Web Vitals',
+      funnel: 'Воронка продаж билетов',
+      siteSearch: 'Поиск по сайту',
+      notFound: '404 / битые ссылки',
+      ga4Missing:
+        'GA4 не подключён — добавьте GA4_PROPERTY_ID и GOOGLE_ANALYTICS_CREDENTIALS для каналов/гео.'
+    }
   },
   status: {
     draft: 'Черновик',

@@ -565,7 +565,36 @@ export const tr = {
     eventApproval: 'Etkinlik Onay',
     feed: 'Feed',
     accounting: 'Muhasebe',
-    adminManagement: 'Admin Yönetimi'
+    adminManagement: 'Admin Yönetimi',
+    analyticsPage: {
+      title: 'Analitik',
+      subtitle: 'İş metrikleri ve site trafik / davranış analizi',
+      tabBusiness: 'İş Metrikleri',
+      tabTraffic: 'Trafik Analitiği',
+      rangeToday: 'Bugün',
+      range7d: '7 Gün',
+      range30d: '30 Gün',
+      range90d: '90 Gün',
+      pageviews: 'Sayfa Görüntülenme',
+      uniqueVisitors: 'Tekil Ziyaretçi',
+      sessions: 'Oturum',
+      avgSession: 'Ort. Oturum',
+      bounceRate: 'Hemen Çıkma',
+      activeNow: 'Şu An Aktif',
+      dailyTraffic: 'Günlük Trafik',
+      trafficSources: 'Trafik Kaynakları',
+      socialSources: 'Sosyal Medya / Kaynak',
+      topPages: 'En Çok Ziyaret Edilen Sayfalar',
+      topContent: 'En Çok Okunan İçerikler',
+      devices: 'Cihaz Dağılımı',
+      geo: 'Coğrafya (Şehir)',
+      webVitals: 'Hız / Core Web Vitals',
+      funnel: 'Bilet Satış Hunisi',
+      siteSearch: 'Site İçi Arama',
+      notFound: '404 / Bozuk Linkler',
+      ga4Missing:
+        'GA4 bağlantısı yok — kanal/coğrafya için GA4_PROPERTY_ID ve GOOGLE_ANALYTICS_CREDENTIALS ekleyin.'
+    }
   },
   status: {
     draft: 'Taslak',

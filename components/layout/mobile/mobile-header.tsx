@@ -14,6 +14,7 @@ import {
   PANEL_EXTERNAL_LINK_PROPS
 } from '@/lib/config/domain';
 import { corporateMobileLinks } from '@/lib/layout/corporate-links';
+import { trackClientSearch } from '@/lib/analytics/track-client-search';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const q = query.trim();
+    if (q) trackClientSearch(q);
     router.push(q ? `/etkinlikler?q=${encodeURIComponent(q)}` : '/etkinlikler');
   }
 

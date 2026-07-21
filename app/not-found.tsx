@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { Home, Search } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { Button } from '@/components/ui/button';
+import { NotFoundTracker } from '@/components/analytics/not-found-tracker';
 import { siteConfig } from '@/lib/config/site';
 
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <NotFoundTracker />
       <Logo variant="auto" className="mb-10" />
       <p className="text-6xl font-extrabold text-primary">404</p>
       <h1 className="mt-4 text-2xl font-bold">Sayfa bulunamadı</h1>

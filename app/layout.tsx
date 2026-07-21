@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { GeistSans } from 'geist/font/sans';
 import { AppSpeedInsights } from '@/components/analytics/speed-insights';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
+import { SiteTracker } from '@/components/analytics/site-tracker';
 import { Providers } from '@/components/providers';
 import { ThemeInitScript } from '@/components/theme/theme-init-script';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
@@ -12,6 +13,7 @@ import { getServerLocale } from '@/lib/i18n/server';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { buildOrganizationSchema, buildWebsiteSchema } from '@/lib/seo/schemas';
+import { Suspense } from 'react';
 import './globals.css';
 
 const inter = Inter({
@@ -68,6 +70,9 @@ export default async function RootLayout({
           data={[buildOrganizationSchema(), buildWebsiteSchema()]}
         />
         <Providers locale={locale}>{children}</Providers>
+        <Suspense fallback={null}>
+          <SiteTracker />
+        </Suspense>
         <AppSpeedInsights />
         <GoogleAnalytics />
       </body>

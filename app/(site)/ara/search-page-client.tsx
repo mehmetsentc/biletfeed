@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { PageHero } from '@/components/layout/page-hero';
 import { EventCard } from '@/components/events/event-card';
 import { Input } from '@/components/ui/input';
 import type { MockEvent } from '@/lib/data/mock-events';
+import { trackClientSearch } from '@/lib/analytics/track-client-search';
 
 function SearchResults({ events }: { events: MockEvent[] }) {
   const searchParams = useSearchParams();
@@ -24,6 +25,15 @@ function SearchResults({ events }: { events: MockEvent[] }) {
         e.venue.toLowerCase().includes(lower)
     );
   }, [query, events]);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    const timer = window.setTimeout(() => {
+      trackClientSearch(trimmed, results.length);
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [query, results.length]);
 
   return (
     <>

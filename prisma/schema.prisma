@@ -1529,3 +1529,115 @@ model ScannerGateCode {
   @@index([expiresAt])
   @@map("scanner_gate_codes")
 }
+
+// ─── Site analytics (trafik / davranış) ─────────────────────────────────────
+// TODO: yüksek hacimde DailyTrafficStat rollup + eski PageView partition/cleanup cron
+
+enum AnalyticsReferrerChannel {
+  organic
+  direct
+  social
+  paid
+  referral
+  email
+  app
+}
+
+enum AnalyticsDeviceType {
+  mobile
+  desktop
+  tablet
+  unknown
+}
+
+enum WebVitalName {
+  LCP
+  INP
+  CLS
+  TTFB
+}
+
+enum WebVitalRating {
+  good
+  needs_improvement
+  poor
+}
+
+model PageView {
+  id          String              @id @default(uuid()) @db.Uuid
+  path        String
+  referrer    String?
+  utmSource   String?             @map("utm_source")
+  utmMedium   String?             @map("utm_medium")
+  utmCampaign String?             @map("utm_campaign")
+  userAgent   String?             @map("user_agent")
+  deviceType  AnalyticsDeviceType @default(unknown) @map("device_type")
+  country     String?
+  city        String?
+  sessionId   String              @map("session_id")
+  userId      String?             @map("user_id")
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  @@index([path])
+  @@index([createdAt])
+  @@index([sessionId])
+  @@map("page_views")
+}
+
+model AnalyticsSession {
+  id              String                   @id @default(uuid()) @db.Uuid
+  sessionId       String                   @unique @map("session_id")
+  firstPath       String                   @map("first_path")
+  referrerChannel AnalyticsReferrerChannel @default(direct) @map("referrer_channel")
+  utmSource       String?                  @map("utm_source")
+  utmMedium       String?                  @map("utm_medium")
+  utmCampaign     String?                  @map("utm_campaign")
+  deviceType      AnalyticsDeviceType      @default(unknown) @map("device_type")
+  country         String?
+  city            String?
+  startedAt       DateTime                 @default(now()) @map("started_at")
+  lastSeenAt      DateTime                 @default(now()) @map("last_seen_at")
+  pageViewCount   Int                      @default(1) @map("page_view_count")
+  userId          String?                  @map("user_id")
+
+  @@index([startedAt])
+  @@index([referrerChannel])
+  @@map("analytics_sessions")
+}
+
+model WebVitalMetric {
+  id        String          @id @default(uuid()) @db.Uuid
+  path      String
+  metric    WebVitalName
+  value     Float
+  rating    WebVitalRating
+  sessionId String?         @map("session_id")
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([path, metric, createdAt])
+  @@index([metric, createdAt])
+  @@map("web_vital_metrics")
+}
+
+model SiteSearchQuery {
+  id          String   @id @default(uuid()) @db.Uuid
+  query       String
+  resultCount Int      @default(0) @map("result_count")
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([query])
+  @@map("site_search_queries")
+}
+
+model NotFoundLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  path      String
+  referrer  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([path])
+  @@index([createdAt])
+  @@map("not_found_logs")
+}

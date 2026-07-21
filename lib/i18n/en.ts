@@ -562,7 +562,36 @@ export const en: TranslationKeys = {
     eventApproval: 'Event Approval',
     feed: 'Feed',
     accounting: 'Accounting',
-    adminManagement: 'Admin Management'
+    adminManagement: 'Admin Management',
+    analyticsPage: {
+      title: 'Analytics',
+      subtitle: 'Business metrics and site traffic / behavior analysis',
+      tabBusiness: 'Business Metrics',
+      tabTraffic: 'Traffic Analytics',
+      rangeToday: 'Today',
+      range7d: '7 Days',
+      range30d: '30 Days',
+      range90d: '90 Days',
+      pageviews: 'Pageviews',
+      uniqueVisitors: 'Unique Visitors',
+      sessions: 'Sessions',
+      avgSession: 'Avg. Session',
+      bounceRate: 'Bounce Rate',
+      activeNow: 'Active Now',
+      dailyTraffic: 'Daily Traffic',
+      trafficSources: 'Traffic Sources',
+      socialSources: 'Social / Sources',
+      topPages: 'Top Pages',
+      topContent: 'Top Content',
+      devices: 'Devices',
+      geo: 'Geography (City)',
+      webVitals: 'Speed / Core Web Vitals',
+      funnel: 'Ticket Sales Funnel',
+      siteSearch: 'On-site Search',
+      notFound: '404 / Broken Links',
+      ga4Missing:
+        'GA4 is not connected — add GA4_PROPERTY_ID and GOOGLE_ANALYTICS_CREDENTIALS for channel/geo.'
+    }
   },
   status: {
     draft: 'Draft',
