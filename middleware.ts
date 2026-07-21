@@ -388,8 +388,15 @@ function handleAdminSubdomain(
     return NextResponse.next();
   }
 
-  // Hesap / yasal sayfalar yalnızca ana sitede — admin.biletfeed.com/profil → biletfeed.com/profil
-  if (isMainSiteOnlyPath(pathname) || pathname === '/giris' || pathname.startsWith('/giris/')) {
+  // Hesap / yasal / public feed — yalnızca ana sitede
+  // admin.biletfeed.com/feed/slug yanlışlıkla /admin/feed/[id] edit sayfasına düşmesin
+  if (
+    isMainSiteOnlyPath(pathname) ||
+    pathname === '/giris' ||
+    pathname.startsWith('/giris/') ||
+    pathname === '/feed' ||
+    pathname.startsWith('/feed/')
+  ) {
     const absolute = siteHref(pathname);
     if (absolute.startsWith('http')) {
       const url = new URL(absolute);
