@@ -120,7 +120,7 @@ export async function listPublishedFeedPosts(params: {
         ...(params.featured ? { isFeatured: true } : {})
       },
       select: postCardSelect,
-      orderBy: [{ isFeatured: 'desc' }, { publishedAt: 'desc' }],
+      orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
       take: limit + 1,
       ...(params.cursor
         ? {
@@ -335,7 +335,7 @@ export async function searchFeedPosts(query: string, limit = 12): Promise<FeedPo
         ]
       },
       select: postCardSelect,
-      orderBy: { publishedAt: 'desc' },
+      orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
       take: limit
     });
     return rows.map(mapPostCard);
@@ -458,7 +458,7 @@ export async function listAdminFeedPosts(status?: FeedPostStatus) {
       createdAt: true,
       isFeatured: true
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
     take: 100
   });
 }
