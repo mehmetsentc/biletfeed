@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { MockEvent } from '@/lib/data/mock-events';
+import { adminHref } from '@/lib/config/domain';
 
 function toDatetimeLocalValue(iso: string): string {
   const d = new Date(iso);
@@ -123,7 +124,7 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
         throw new Error(detail || data.error || 'Kaydedilemedi');
       }
 
-      router.push('/admin/etkinlikler');
+      router.push(adminHref('/etkinlikler'));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hata oluştu');
@@ -135,7 +136,7 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
   async function handleDelete() {
     if (!confirm('Bu etkinlik silinsin mi?')) return;
     await fetch(`/api/admin/events/${event.id}`, { method: 'DELETE' });
-    router.push('/admin/etkinlikler');
+    router.push(adminHref('/etkinlikler'));
     router.refresh();
   }
 

@@ -3,6 +3,7 @@ import { formatEventDate } from '@/lib/data/mock-events';
 import type { AdminEventSalesRow } from '@/lib/services/admin-dashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { adminHref } from '@/lib/config/domain';
 
 function formatMoney(amount: number): string {
   return `₺${amount.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}`;
@@ -22,7 +23,7 @@ export function AdminEventsSalesTable({ rows }: { rows: AdminEventSalesRow[] }) 
           </p>
         </div>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/admin/etkinlik-onay">Onay bekleyenler</Link>
+          <Link href={adminHref('/etkinlik-onay')}>Onay bekleyenler</Link>
         </Button>
       </CardHeader>
       <CardContent className="p-0">
@@ -56,7 +57,7 @@ export function AdminEventsSalesTable({ rows }: { rows: AdminEventSalesRow[] }) 
                   </td>
                   <td className="p-3">
                     <Button size="sm" variant="ghost" asChild>
-                      <Link href={`/admin/etkinlikler/${row.id}`}>Detay</Link>
+                      <Link href={adminHref(`/etkinlikler/${row.id}`)}>Detay</Link>
                     </Button>
                   </td>
                 </tr>

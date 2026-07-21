@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { getAccountingOrganizerEventDetail } from '@/lib/services/accounting-admin';
+import { adminHref } from '@/lib/config/domain';
 
 function money(amount: number, currency = 'TRY') {
   return `${currency === 'TRY' ? '₺' : currency + ' '}${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
@@ -19,7 +20,7 @@ export default async function AdminAccountingOrganizerEventDetailPage({
   return (
     <div className="space-y-8">
       <div className="space-y-1">
-        <Link href={`/admin/muhasebe/${organizerId}`} className="text-sm text-muted-foreground hover:underline">
+        <Link href={adminHref(`/muhasebe/${organizerId}`)} className="text-sm text-muted-foreground hover:underline">
           ← Organizatör Detayı
         </Link>
         <h1 className="text-2xl font-bold">{detail.event.title}</h1>

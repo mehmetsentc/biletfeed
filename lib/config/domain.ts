@@ -170,12 +170,14 @@ export function getSupportUrl(path = ''): string {
 
 /** Kapı tarama terminali — https://giris.biletfeed.com/... */
 export function getGirisUrl(path = ''): string {
-  const girisHost = buildSubdomainHost(GIRIS_SUBDOMAIN);
+  const configuredBase = process.env.NEXT_PUBLIC_GIRIS_URL?.replace(/\/$/, '');
+  const girisBase =
+    configuredBase ?? `${protocol}://${buildSubdomainHost(GIRIS_SUBDOMAIN)}`;
   if (!path || path === '/') {
-    return `${protocol}://${girisHost}/`;
+    return `${girisBase}/`;
   }
   const normalized = path.startsWith('/') ? path : `/${path}`;
-  return `${protocol}://${girisHost}${normalized}`;
+  return `${girisBase}${normalized}`;
 }
 
 /** `/admin` önekini kaldırır — admin.biletfeed.com temiz path için */
@@ -190,12 +192,14 @@ export function normalizeAdminPath(path: string): string {
 
 /** Üretim admin URL'si — https://admin.biletfeed.com/... */
 export function getAdminUrl(path = ''): string {
-  const adminHost = buildSubdomainHost(ADMIN_SUBDOMAIN);
+  const configuredBase = process.env.NEXT_PUBLIC_ADMIN_URL?.replace(/\/$/, '');
+  const adminBase =
+    configuredBase ?? `${protocol}://${buildSubdomainHost(ADMIN_SUBDOMAIN)}`;
   if (!path || path === '/') {
-    return `${protocol}://${adminHost}/`;
+    return `${adminBase}/`;
   }
   const normalized = normalizeAdminPath(path);
-  return `${protocol}://${adminHost}${normalized === '/' ? '/' : normalized}`;
+  return `${adminBase}${normalized === '/' ? '/' : normalized}`;
 }
 
 /** Kapı girişi / tarayıcı linki — production'da giris alt alanı */

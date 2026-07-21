@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { FeedAdminDashboard } from '@/components/admin/feed-admin-dashboard';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { adminHref } from '@/lib/config/domain';
 
 export const metadata = {
   title: 'Feed Yönetimi'
@@ -18,7 +19,7 @@ export default function AdminFeedPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/admin/feed/yeni">
+          <Link href={adminHref('/feed/yeni')}>
             <Plus className="mr-2 size-4" />
             Yeni Haber
           </Link>

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { FeedEditorForm } from '@/components/admin/feed-editor-form';
 import { getAdminFeedPostById, listFeedCategoriesForAdmin } from '@/lib/services/feed';
+import { adminHref } from '@/lib/config/domain';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -31,7 +32,7 @@ export default async function AdminFeedEditPage({ params }: PageProps) {
           <p className="text-sm text-muted-foreground">{post.slug}</p>
         </div>
         <Button variant="outline" asChild>
-          <Link href="/admin/feed">← Feed listesi</Link>
+          <Link href={adminHref('/feed')}>← Feed listesi</Link>
         </Button>
       </div>
       <FeedEditorForm mode="edit" post={post} categories={categories} />

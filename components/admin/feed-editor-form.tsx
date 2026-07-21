@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
 import type { AdminFeedPostEditor, FeedMediaInput } from '@/lib/services/feed';
 import type { FeedPostStatus, FeedPostType } from '@prisma/client';
+import { adminHref } from '@/lib/config/domain';
 
 type CategoryOption = { id: string; slug: string; name: string };
 
@@ -157,7 +158,7 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
         });
         const data = (await res.json()) as { id?: string; error?: string };
         if (!res.ok) throw new Error(data.error ?? 'Oluşturulamadı');
-        router.push(`/admin/feed/${data.id}`);
+        router.push(adminHref(`/feed/${data.id}`));
         router.refresh();
         return;
       }
@@ -169,7 +170,7 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? 'Kaydedilemedi');
-      router.push('/admin/feed');
+      router.push(adminHref('/feed'));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Hata oluştu');
@@ -182,7 +183,7 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     if (props.mode !== 'edit') return;
     if (!confirm('Bu haber silinsin mi?')) return;
     await fetch(`/api/admin/feed/${props.post.id}`, { method: 'DELETE' });
-    router.push('/admin/feed');
+    router.push(adminHref('/feed'));
     router.refresh();
   }
 
@@ -479,7 +480,7 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
           {saving ? 'Kaydediliyor…' : props.mode === 'create' ? 'Haber Oluştur' : 'Güncelle'}
         </Button>
         <Button type="button" variant="outline" asChild>
-          <Link href="/admin/feed">İptal</Link>
+          <Link href={adminHref('/feed')}>İptal</Link>
         </Button>
         {props.mode === 'edit' && (
           <>

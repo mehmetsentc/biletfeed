@@ -3,6 +3,7 @@ import { ArrowLeft, Shield } from 'lucide-react';
 import { AppIcon } from '@/components/ui/app-icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { adminHref } from '@/lib/config/domain';
 
 interface AdminPlaceholderPageProps {
   title: string;
@@ -23,7 +24,7 @@ export function AdminPlaceholderPage({ title, description }: AdminPlaceholderPag
             Yönetim modülü yakında aktif olacak. Şimdilik genel panel
             istatistiklerini görüntüleyebilirsiniz.
           </p>
-          <Link href="/admin" className="mt-6">
+          <Link href={adminHref('/')} className="mt-6">
             <Button variant="outline" className="gap-2">
               <ArrowLeft className="size-4" />
               Yönetim Paneline Dön

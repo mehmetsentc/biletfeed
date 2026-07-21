@@ -18,10 +18,46 @@ Mevcut `@` ve `www` kayıtlarını silin veya düzenleyin, şunları ekleyin:
 | **A** | `@` | `76.76.21.21` | DNS only (gri bulut) |
 | **CNAME** | `www` | `cname.vercel-dns.com` | DNS only (gri bulut) |
 | **CNAME** | `panel` | `cname.vercel-dns.com` | Proxied veya DNS only |
+| **CNAME** | `giris` | `cname.vercel-dns.com` | Proxied veya DNS only |
+| **CNAME** | `admin` | `cname.vercel-dns.com` | Proxied veya DNS only |
 
 > **Organizatör paneli:** `panel.biletfeed.com` — OtelEvent `panel.otelevent.com` ile aynı model. Vercel'e domain ekleyin, Cloudflare'de `panel` CNAME kaydı oluşturun.
 
 DNS yayılımı 5–30 dk sürebilir. Vercel dashboard'da domain yeşil olunca hazır.
+
+---
+
+## Kapı ve admin alt alanları
+
+Tek Next.js projesi, host tabanlı rewrite ile iki ayrı yüzey sunar:
+
+- `https://giris.biletfeed.com` → kapı kodu girişi ve QR tarayıcı
+- `https://admin.biletfeed.com` → yönetim paneli
+- `https://panel.biletfeed.com/giris` → organizatör Firebase girişi olarak kalır
+
+Vercel projesine alanları ekleyin:
+
+```bash
+npx vercel domains add giris.biletfeed.com
+npx vercel domains add admin.biletfeed.com
+```
+
+Production env:
+
+```bash
+NEXT_PUBLIC_GIRIS_URL=https://giris.biletfeed.com
+NEXT_PUBLIC_ADMIN_URL=https://admin.biletfeed.com
+```
+
+Lokal geliştirme:
+
+```bash
+open http://giris.localhost:3000
+open http://admin.localhost:3000
+```
+
+Eski `/organizator-panel/tarayici` ve `panel.biletfeed.com/tarayici`
+yolları production'da `giris.biletfeed.com/tarayici` adresine yönlendirilir.
 
 ---
 
@@ -61,6 +97,8 @@ open http://panel.localhost:3000
 Firebase Console → Authentication → Authorized domains:
 
 - `panel.biletfeed.com`
+- `giris.biletfeed.com`
+- `admin.biletfeed.com`
 - `organizer.biletfeed.com` (eski alias, isteğe bağlı)
 
 ### Env (opsiyonel)
@@ -93,6 +131,8 @@ Namecheap, GoDaddy, Cloudflare vb.
 npx vercel domains add biletfeed.com
 npx vercel domains add www.biletfeed.com
 npx vercel domains add panel.biletfeed.com
+npx vercel domains add giris.biletfeed.com
+npx vercel domains add admin.biletfeed.com
 ```
 
 Vercel dashboard → **biletfeed** → **Settings** → **Domains** → DNS kayıtlarını kopyala.
@@ -113,6 +153,9 @@ Firebase Console → Authentication → Settings → Authorized domains:
 - `biletfeed.com`
 - `www.biletfeed.com`
 - `panel.biletfeed.com`
+- `giris.biletfeed.com`
+- `admin.biletfeed.com`
+- `destek.biletfeed.com`
 
 ---
 

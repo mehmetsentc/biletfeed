@@ -26,7 +26,9 @@ export function OrganizatorShell({
     pathname === '/organizator-panel/etkinlik/yeni' ||
     pathname === '/etkinlik/yeni';
   const isScanner =
-    pathname === '/organizator-panel/tarayici' || pathname === '/tarayici';
+    pathname === '/organizator-panel/tarayici' ||
+    pathname === '/tarayici' ||
+    pathname.startsWith('/giris-terminal/tarayici');
 
   if (isScanner) {
     // Server layout already verified panel session — client AuthGuard causes

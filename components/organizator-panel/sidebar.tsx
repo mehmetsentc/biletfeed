@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/brand/logo';
 import { useTranslations } from '@/components/providers';
 import type { LucideIcon } from 'lucide-react';
+import { girisHref } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
 export const ORGANIZATOR_BRAND = 'Biletfeed Organizatör';
@@ -48,7 +49,12 @@ export function OrganizatorSidebar({
     (): NavItem[] => [
       { href: '/organizator-panel/baslangic', label: t.organizerNav.overview, icon: Home },
       { href: '/organizator-panel/etkinlikler', label: t.organizerNav.events, icon: Calendar },
-      { href: '/organizator-panel/tarayici', label: t.organizerNav.scanner, icon: ScanLine },
+      {
+        href: girisHref('/tarayici'),
+        label: t.organizerNav.scanner,
+        icon: ScanLine,
+        external: true
+      },
       { href: '/organizator-panel/siparisler', label: t.organizerNav.sales, icon: ShoppingBag },
       { href: '/organizator-panel/biletler', label: t.organizerNav.tickets, icon: Ticket },
       { href: '/organizator-panel/davetiyeler', label: t.organizerNav.invitations, icon: Send },

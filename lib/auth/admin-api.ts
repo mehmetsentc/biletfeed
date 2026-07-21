@@ -13,6 +13,7 @@ import {
   type AdminAccessContext
 } from '@/lib/auth/admin-permissions';
 import { getAdminAccessByFirebaseUid } from '@/lib/services/admin-access';
+import { adminHref, siteHref } from '@/lib/config/domain';
 
 export async function requireAdminSession(): Promise<SessionUser | null> {
   const session = await verifySessionCookie();
@@ -67,12 +68,16 @@ export function adminForbidden() {
 export async function enforceAdminPageAccess(pathname: string): Promise<AdminAccessContext> {
   const ctx = await requireAdminAccessContext();
   if (!ctx) {
-    redirect('/giris?redirect=/admin&error=admin_required');
+    redirect(
+      siteHref(
+        `/giris?redirect=${encodeURIComponent(adminHref('/'))}&error=admin_required`
+      )
+    );
   }
 
   const permission = resolveAdminPathPermission(pathname);
   if (permission && !hasAdminPermission(ctx.access, permission)) {
-    redirect('/admin?error=forbidden');
+    redirect(adminHref('/?error=forbidden'));
   }
 
   return ctx.access;
@@ -82,6 +87,6 @@ export async function enforceAdminPageAccess(pathname: string): Promise<AdminAcc
 export async function enforceSuperAdminPageAccess(): Promise<void> {
   const session = await requireSuperAdminSession();
   if (!session) {
-    redirect('/admin?error=forbidden');
+    redirect(adminHref('/?error=forbidden'));
   }
 }

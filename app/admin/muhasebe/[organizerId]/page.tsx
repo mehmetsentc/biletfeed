@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getAccountingOrganizerDetail } from '@/lib/services/accounting-admin';
 import { Badge } from '@/components/ui/badge';
+import { adminHref } from '@/lib/config/domain';
 
 function money(amount: number, currency = 'TRY') {
   return `${currency === 'TRY' ? '₺' : currency + ' '}${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
@@ -57,7 +58,7 @@ function EventFinanceTable({
                 <td className="p-3">
                   <Link
                     className="font-semibold hover:underline"
-                    href={`/admin/muhasebe/${organizerId}/etkinlik/${row.eventId}`}
+                    href={adminHref(`/muhasebe/${organizerId}/etkinlik/${row.eventId}`)}
                   >
                     {row.eventTitle}
                   </Link>
@@ -107,7 +108,7 @@ export default async function AdminAccountingOrganizerDetailPage({
   return (
     <div className="space-y-8">
       <div className="space-y-1">
-        <Link href="/admin/muhasebe" className="text-sm text-muted-foreground hover:underline">
+        <Link href={adminHref('/muhasebe')} className="text-sm text-muted-foreground hover:underline">
           ← Muhasebe
         </Link>
         <h1 className="text-2xl font-bold">{detail.organizer.name}</h1>

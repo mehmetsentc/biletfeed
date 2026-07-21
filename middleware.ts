@@ -343,12 +343,8 @@ function handleGirisSubdomain(
     return NextResponse.next();
   }
 
-  // Kapı kodu giriş sayfası
-  if (
-    GIRIS_PUBLIC_PATHS.has(pathname) ||
-    pathname === '/giris-terminal' ||
-    pathname.startsWith('/giris-terminal/')
-  ) {
+  // Kapı kodu giriş sayfası (kök + /giris + /giris-terminal)
+  if (GIRIS_PUBLIC_PATHS.has(pathname) || pathname === '/giris-terminal') {
     const rewriteUrl = new URL('/giris-terminal', request.url);
     request.nextUrl.searchParams.forEach((value, key) => {
       rewriteUrl.searchParams.set(key, value);
@@ -357,7 +353,14 @@ function handleGirisSubdomain(
   }
 
   // QR tarayıcı — panel layout'undan bağımsız
-  if (pathname === '/tarayici' || pathname.startsWith('/tarayici/')) {
+  // /tarayici (prod path) veya /giris-terminal/tarayici (dev / lokal path)
+  const isScannerPath =
+    pathname === '/tarayici' ||
+    pathname.startsWith('/tarayici/') ||
+    pathname === '/giris-terminal/tarayici' ||
+    pathname.startsWith('/giris-terminal/tarayici/');
+
+  if (isScannerPath) {
     const panelSession = request.cookies.get(PANEL_SESSION_COOKIE_NAME);
     if (!panelSession?.value) {
       const loginUrl = new URL('/', request.url);

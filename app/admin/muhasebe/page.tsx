@@ -10,6 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { formatCompanyTaxLine } from '@/lib/config/company';
 import Link from 'next/link';
+import { adminHref } from '@/lib/config/domain';
 
 function money(amount: number, currency = 'TRY') {
   return `${currency === 'TRY' ? '₺' : currency + ' '}${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
@@ -147,7 +148,7 @@ export default async function AdminAccountingPage() {
               {organizers.map((org) => (
                 <tr key={org.organizerId} className="border-b last:border-0 hover:bg-muted/20">
                   <td className="p-3">
-                    <Link href={`/admin/muhasebe/${org.organizerId}`} className="font-semibold hover:underline">
+                    <Link href={adminHref(`/muhasebe/${org.organizerId}`)} className="font-semibold hover:underline">
                       {org.organizerName}
                     </Link>
                     <p className="text-xs text-muted-foreground">{org.ownerEmail}</p>

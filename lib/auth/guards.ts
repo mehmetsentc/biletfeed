@@ -4,7 +4,7 @@ import {
   verifyOrganizerPanelSession,
   sessionHasRole
 } from '@/lib/auth/session';
-import { panelLoginHref } from '@/lib/config/domain';
+import { adminHref, panelLoginHref, siteHref } from '@/lib/config/domain';
 import { getAdminAccessByFirebaseUid } from '@/lib/services/admin-access';
 
 function loginRedirect(returnPath?: string): never {
@@ -36,17 +36,21 @@ export async function requireAuth(
   const session = await verifySessionCookie();
   if (!session) {
     if (returnPath) {
-      redirect(`/giris?redirect=${encodeURIComponent(returnPath)}`);
+      redirect(
+        siteHref(`/giris?redirect=${encodeURIComponent(returnPath)}`)
+      );
     }
-    redirect('/giris');
+    redirect(siteHref('/giris'));
   }
   if (!sessionHasRole(session, requiredRole)) {
     if (returnPath) {
       redirect(
-        `/giris?redirect=${encodeURIComponent(returnPath)}&error=admin_required`
+        siteHref(
+          `/giris?redirect=${encodeURIComponent(returnPath)}&error=admin_required`
+        )
       );
     }
-    redirect('/?error=unauthorized');
+    redirect(`${siteHref('/')}?error=unauthorized`);
   }
   return session;
 }
@@ -56,10 +60,10 @@ export async function requireOrganizer() {
 }
 
 export async function requireAdmin() {
-  const session = await requireAuth('ROLE_ADMIN', '/admin');
+  const session = await requireAuth('ROLE_ADMIN', adminHref('/'));
   const access = await getAdminAccessByFirebaseUid(session.uid, session.email);
   if (!access || (!access.isSuperAdmin && access.permissions.length === 0)) {
-    redirect('/?error=unauthorized');
+    redirect(`${siteHref('/')}?error=unauthorized`);
   }
   return session;
 }

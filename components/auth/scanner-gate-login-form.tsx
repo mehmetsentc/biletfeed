@@ -14,6 +14,14 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { useTranslations } from '@/components/providers';
+import { girisHref, isOnGirisHost } from '@/lib/config/domain';
+
+function defaultScannerRedirect(): string {
+  if (typeof window !== 'undefined' && isOnGirisHost(window.location.hostname)) {
+    return '/tarayici';
+  }
+  return girisHref('/tarayici');
+}
 
 function normalizeGateInput(value: string): string {
   const trimmed = value.trim();
@@ -69,7 +77,10 @@ export function ScannerGateLoginForm() {
         }
 
         const redirect =
-          searchParams.get('redirect') || data.redirect || '/tarayici';
+          searchParams.get('redirect') ||
+          (data.redirect === '/tarayici' || !data.redirect
+            ? defaultScannerRedirect()
+            : data.redirect);
         window.location.replace(redirect);
       } catch {
         setError(t.gate.connectionError);

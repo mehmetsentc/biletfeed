@@ -7,6 +7,7 @@ import { CancelEventButton } from '@/components/admin/cancel-event-button';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 import { Ticket, Users, TrendingUp, Ban } from 'lucide-react';
+import { adminHref } from '@/lib/config/domain';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -74,7 +75,7 @@ export default async function AdminEventEditPage({ params }: PageProps) {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" asChild>
-            <Link href="/admin/etkinlikler">← Listeye dön</Link>
+            <Link href={adminHref('/etkinlikler')}>← Listeye dön</Link>
           </Button>
           {!isCancelled && (
             <CancelEventButton eventId={id} eventTitle={mock.title} variant="detail" />
