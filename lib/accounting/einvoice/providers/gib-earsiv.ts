@@ -149,7 +149,7 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
       return {
         malHizmet: line.description.slice(0, 200),
         miktar: qty,
-        birim: 'C62',
+        birim: 'ADET',
         birimFiyat: money(Math.abs(line.unitPriceNet)),
         fiyat: money(lineNet),
         iskontoOrani: 0,
@@ -170,7 +170,10 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
     const issued = payload.issuedAt;
 
     return {
-      faturaUuid: payload.ettn,
+      // GİB (2026): yeni taslakta faturaUuid DOLU gönderilirse
+      // "Ettn ya eksik ya boş ya da 36 uzunluk sınırına uymuyor" hatası veriyor.
+      // Boş bırakılır; UUID portal tarafından atanır, sonra listeden okunur.
+      faturaUuid: '',
       belgeNumarasi: '',
       faturaTarihi: formatTrDate(issued),
       saat: formatTrTime(issued),
@@ -224,6 +227,49 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
     };
   }
 
+  async function resolveCreatedEttn(
+    token: string,
+    buyerTaxOrId: string,
+    issued: Date
+  ): Promise<string | null> {
+    const day = formatTrDate(issued);
+    const listRes = await dispatch(
+      token,
+      'EARSIV_PORTAL_TASLAKLARI_GETIR',
+      'RG_TASLAKLAR',
+      {
+        baslangic: day,
+        bitis: day,
+        hangiTip: '5000/30000',
+        table: []
+      }
+    );
+    const rows = Array.isArray(listRes.data) ? listRes.data : [];
+    const tax = buyerTaxOrId.replace(/\D/g, '');
+
+    const matches = rows
+      .map((row) => asRecord(row))
+      .filter((row) => {
+        const alici =
+          typeof row.aliciVknTckn === 'string'
+            ? row.aliciVknTckn.replace(/\D/g, '')
+            : '';
+        const onay =
+          typeof row.onayDurumu === 'string' ? row.onayDurumu : '';
+        if (onay === 'Silinmiş') return false;
+        if (tax && alici && alici !== tax) return false;
+        return true;
+      });
+
+    const first = matches[0] ?? asRecord(rows[0]);
+    const ettn =
+      (typeof first.ettn === 'string' && first.ettn) ||
+      (typeof first.faturaUuid === 'string' && first.faturaUuid) ||
+      (typeof first.ettnId === 'string' && first.ettnId) ||
+      null;
+    return ettn && ettn.length === 36 ? ettn : ettn;
+  }
+
   return {
     name: 'gib',
 
@@ -257,18 +303,24 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
             return {
               ok: false,
               status: 'rejected',
-              ettn: payload.ettn,
               error: err,
               raw: res
             };
           }
 
-          // Download URL (taslak — Onaylanmadı); SMS imza sonrası Onaylandı olur
+          const taxDigits = (payload.buyer.taxNumber ?? '').replace(/\D/g, '');
+          const resolved =
+            (await resolveCreatedEttn(
+              token,
+              taxDigits || '11111111111',
+              payload.issuedAt
+            )) ?? payload.ettn;
+
           const pdfUrl =
             `${base}/earsiv-services/download?` +
             new URLSearchParams({
               token,
-              ettn: payload.ettn,
+              ettn: resolved,
               belgeTip: 'FATURA',
               onayDurumu: 'Onaylanmadı',
               cmd: 'EARSIV_PORTAL_BELGE_INDIR'
@@ -277,8 +329,8 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
           return {
             ok: true,
             status: 'submitted',
-            uuid: payload.ettn,
-            ettn: payload.ettn,
+            uuid: resolved,
+            ettn: resolved,
             pdfUrl,
             providerRef: payload.invoiceNumber,
             raw: {
@@ -292,7 +344,6 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
         return {
           ok: false,
           status: 'failed',
-          ettn: payload.ettn,
           error: err instanceof Error ? err.message : String(err)
         };
       }

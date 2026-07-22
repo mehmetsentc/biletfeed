@@ -115,7 +115,7 @@ Modül: `lib/accounting/einvoice/`
 
 Akış: `processOrderAccounting` → iç fatura → `submitInvoiceToGib` → e-posta.
 
-**GİB portal notu:** `FATURA_OLUSTUR` taslak oluşturur. Resmi “Onaylandı” için admin muhasebe panelinden SMS gönder + kod gir (`sms-start` / `sms-confirm`).
+**GİB portal notu:** Yeni taslakta `faturaUuid` **boş** gönderilir (2026 GİB kuralı; dolu UUID “36 uzunluk” hatası verir). Portal UUID atar; biz listeden okuruz. Resmi “Onaylandı” için admin panelinden SMS.
 
 Admin:
 - Liste + aksiyonlar: `/admin/muhasebe`
