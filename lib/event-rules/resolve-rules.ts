@@ -148,8 +148,10 @@ export function groupRulesIntoSections(
       slug: `custom-${idx}`,
       categorySlug: 'custom',
       categoryTitle: locale === 'en' ? 'Custom' : 'Özel',
+      // Title holds the full rule text; leave description empty so public UI
+      // does not render the same line twice (dark title + muted description).
       title: text,
-      description: text,
+      description: '',
       icon: null,
       displayText: text
     }));

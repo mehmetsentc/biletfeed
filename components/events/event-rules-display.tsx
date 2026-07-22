@@ -71,7 +71,7 @@ function SectionCard({
         {visible.map((item) => (
           <li key={item.id} className="text-muted-foreground">
             <p className="font-medium text-foreground">{item.title}</p>
-            {item.description ? (
+            {item.description && item.description !== item.title ? (
               <p className="mt-0.5 leading-relaxed">{item.description}</p>
             ) : null}
             {item.parameterLabel ? (
@@ -195,7 +195,7 @@ export function EventRulesAcceptanceList({
                 <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
                 <span>
                   <span className="font-medium text-foreground">{item.title}</span>
-                  {item.displayText ? (
+                  {item.displayText && item.displayText !== item.title ? (
                     <span className="text-muted-foreground"> — {item.displayText}</span>
                   ) : null}
                 </span>
