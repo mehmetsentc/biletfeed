@@ -93,26 +93,59 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
 
     const token = typeof data.token === 'string' ? data.token : '';
     if (!token) {
+      const msgs = Array.isArray(data.messages)
+        ? data.messages
+            .map((m) => {
+              if (m && typeof m === 'object' && 'text' in m) {
+                return String((m as { text: unknown }).text);
+              }
+              return typeof m === 'string' ? m : '';
+            })
+            .filter(Boolean)
+            .join(' ')
+        : '';
       const msg =
-        (typeof data.error === 'string' && data.error) ||
-        (typeof data.messages === 'string' && data.messages) ||
-        JSON.stringify(data.messages ?? data) ||
-        'GİB giriş başarısız';
+        msgs ||
+        (typeof data.error === 'string' && data.error !== '1'
+          ? data.error
+          : '') ||
+        'GİB giriş başarısız (oturum çakışması olabilir — portalda Güvenli Çıkış yapın)';
       throw new Error(msg);
     }
     cachedToken = token;
     return token;
   }
 
-  async function withToken<T>(fn: (token: string) => Promise<T>): Promise<T> {
-    const token = cachedToken ?? (await login());
+  async function logout(token: string): Promise<void> {
     try {
-      return await fn(token);
-    } catch (err) {
-      // token süresi dolmuş olabilir — bir kez yenile
-      cachedToken = null;
-      const fresh = await login();
-      return fn(fresh);
+      await postForm('/earsiv-services/assos-login', {
+        assoscmd: 'logout',
+        rtype: 'json',
+        token
+      });
+    } catch {
+      // ignore
+    } finally {
+      if (cachedToken === token) cachedToken = null;
+    }
+  }
+
+  async function withToken<T>(fn: (token: string) => Promise<T>): Promise<T> {
+    let token = await login();
+    try {
+      try {
+        return await fn(token);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const authRelated =
+          /giriş|oturum|token|unauthorized|401|aynı anda/i.test(msg);
+        if (!authRelated) throw err;
+        await logout(token);
+        token = await login();
+        return await fn(token);
+      }
+    } finally {
+      await logout(token);
     }
   }
 
