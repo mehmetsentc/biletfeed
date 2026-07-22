@@ -4,6 +4,7 @@ import { reconcilePayment } from '@/lib/accounting/reconciliation';
 import { scheduleOrganizerPayout } from '@/lib/accounting/commission';
 import { deferRevenueRecognition } from '@/lib/accounting/revenue';
 import { sendInvoiceEmail } from '@/lib/accounting/email';
+import { submitInvoiceToGib } from '@/lib/accounting/einvoice';
 
 /**
  * Ödeme tamamlandıktan sonra muhasebe işlemlerini çalıştırır.
@@ -49,6 +50,12 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
       quantity: item.quantity,
       unitPriceGross: item.unitPrice
     }))
+  });
+
+  // GİB e-belge gönderimi (entegratör / mock). Hata siparişi bozmaz (failSoft).
+  await submitInvoiceToGib({
+    invoiceId: invoice.id,
+    buyerEmail: order.user.email ?? order.attendeeEmail
   });
 
   await reconcilePayment({

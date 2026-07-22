@@ -127,7 +127,10 @@ export async function createCreditNoteForRefund(orderId: string) {
       vatAmount: -original.vatAmount,
       totalGross: -original.totalGross,
       currency: original.currency,
-      metadata: { originalInvoiceId: original.id },
+      metadata: {
+        originalInvoiceId: original.id,
+        originalInvoiceNumber: original.invoiceNumber
+      },
       lines: {
         create: original.lines.map((line) => ({
           description: `İade: ${line.description}`,
@@ -147,6 +150,14 @@ export async function createCreditNoteForRefund(orderId: string) {
     entityId: credit.id,
     after: { creditNote: invoiceNumber, originalInvoice: original.invoiceNumber }
   });
+
+  // GİB kredi notu / iptal — failSoft; sipariş iadesini engellemez
+  try {
+    const { submitInvoiceToGib } = await import('@/lib/accounting/einvoice');
+    await submitInvoiceToGib({ invoiceId: credit.id });
+  } catch {
+    // ignore — audit submit içinde
+  }
 
   return credit;
 }

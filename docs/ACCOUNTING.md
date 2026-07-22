@@ -18,8 +18,8 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 
 ### Temel modüller
 
-1. **Otomatik Fatura Motoru** — `lib/accounting/invoice.ts`  
-   Bilet satışı sonrası `BF{YIL}{6 hane}` numaralı e-Arşiv (bireysel) veya e-Fatura (10 haneli VKN). Satıcı bilgisi `companyLegal` metadata içinde.
+1. **Otomatik Fatura Motoru** — `lib/accounting/invoice.ts` + `lib/accounting/einvoice/`  
+   Bilet satışı sonrası `BF{YIL}{6 hane}` numaralı e-Arşiv (bireysel) veya e-Fatura (10 haneli VKN). Satıcı bilgisi `companyLegal` metadata içinde. UBL-TR üretilir; GİB gönderimi entegratör adapter ile yapılır (`eInvoiceUuid`).
 
 2. **Ödeme Geçidi Mutabakatı** — `lib/accounting/reconciliation.ts`  
    iyzico / PayTR / Stripe / mock için beklenen vs alınan tutar, tahmini komisyon, `reconciled` / `mismatch` durumu.
@@ -90,6 +90,35 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 | `RESEND_FROM_EMAIL` | Varsayılan gönderen (tickets@biletfeed.com) |
 | `RESEND_INVOICE_FROM` | Fatura gönderen (fatura@biletfeed.com) |
 | `CRON_SECRET` | Gelir tanıma cron yetkisi |
+| `EINVOICE_PROVIDER` | `mock` \| `gib` \| `http` \| `none` — **`gib` = GİB e-Arşiv Portal** |
+| `EINVOICE_ENABLED` | `true` / `false` — gönderimi aç/kapa |
+| `EINVOICE_USERNAME` | IVD / e-Arşiv kullanıcı kodu (GİB) |
+| `EINVOICE_PASSWORD` | IVD şifresi |
+| `EINVOICE_SANDBOX` | `true` = test portal; `gib` için varsayılan `false` (canlı) |
+| `EINVOICE_API_BASE_URL` | Yalnızca `http` provider |
+| `EINVOICE_API_KEY` | Bearer token (`http`) |
+| `EINVOICE_FAIL_SOFT` | GİB hatası siparişi bozmasın (varsayılan true) |
+
+---
+
+## e-Fatura / e-Arşiv (GİB)
+
+Modül: `lib/accounting/einvoice/`
+
+| Parça | Rol |
+|-------|-----|
+| `providers/gib-earsiv.ts` | **GİB e-Arşiv Portal** — login + taslak fatura |
+| `ubl.ts` | Invoice → UBL-TR 1.2 XML + ETTN (yedek / http provider) |
+| `providers/mock.ts` | Credential yokken simülasyon |
+| `providers/http.ts` | Genel REST entegratör köprüsü |
+| `submit.ts` | DB güncelleme (`eInvoiceUuid`, `metadata.einvoice`) |
+
+Akış: `processOrderAccounting` → iç fatura → `submitInvoiceToGib` → e-posta.
+
+**GİB portal notu:** `FATURA_OLUSTUR` taslak oluşturur. Resmi “Onaylandı” için portalda SMS/imza gerekir (`needsSmsSign`). İmzalanmış belge indirme: `onayDurumu=Onaylandı`.
+
+Admin yeniden gönderim: `POST /api/admin/accounting/invoices/[invoiceId]/submit-einvoice`  
+(`accounting.manage`, body: `{ "force": true }`).
 
 ---
 
