@@ -184,16 +184,13 @@ export function PersonalInfoPageClient() {
 
         <ProfileField label={t.account.phoneNumber} icon={Phone}>
           <div className="flex h-12 overflow-hidden rounded-xl bg-muted/70 ring-1 ring-border/60 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/40">
-            <div className="flex shrink-0 items-center gap-2 border-r border-border/60 bg-muted/90 px-3 text-sm text-muted-foreground">
-              <span aria-hidden>🇹🇷</span>
-              <span className="font-medium text-foreground">+90</span>
-            </div>
             <input
               type="tel"
               inputMode="tel"
               value={profile.phone}
               onChange={(e) => updateProfile('phone', e.target.value)}
-              placeholder="5XX XXX XX XX"
+              placeholder="05XX… veya +49…"
+              maxLength={20}
               className="min-w-0 flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground"
             />
             <Button

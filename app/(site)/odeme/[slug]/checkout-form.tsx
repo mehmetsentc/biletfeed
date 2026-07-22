@@ -34,7 +34,7 @@ import {
   type CheckoutBillingFormState
 } from '@/lib/validation/checkout-billing';
 import { useTranslations } from '@/components/providers';
-import { normalizeTrPhone } from '@/lib/validation/tr-phone';
+import { sanitizePhoneInput } from '@/lib/validation/phone';
 
 type TicketTypeRow = {
   id: string;
@@ -458,13 +458,13 @@ export function CheckoutForm({
                       inputMode="tel"
                       value={attendeePhone}
                       onChange={(e) => {
-                        setAttendeePhone(normalizeTrPhone(e.target.value));
+                        setAttendeePhone(sanitizePhoneInput(e.target.value));
                         if (attendeeErrors.attendeePhone) {
                           setAttendeeErrors((p) => ({ ...p, attendeePhone: '' }));
                         }
                       }}
-                      placeholder="05XX XXX XX XX"
-                      maxLength={15}
+                      placeholder="05XX… veya +49…"
+                      maxLength={20}
                       autoComplete="tel"
                       className="h-11 rounded-xl"
                     />

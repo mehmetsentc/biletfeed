@@ -28,7 +28,7 @@ import {
   type CheckoutBillingInput
 } from '@/lib/validation/checkout-billing';
 import { useTranslations } from '@/components/providers';
-import { normalizeTrPhone } from '@/lib/validation/tr-phone';
+import { sanitizePhoneInput } from '@/lib/validation/phone';
 
 interface PurchaseCheckoutFormProps {
   event: MockEvent;
@@ -222,16 +222,16 @@ export function PurchaseCheckoutForm({
               label={t.purchase.phone}
               value={attendeePhone}
               onChange={(v) => {
-                setAttendeePhone(normalizeTrPhone(v));
+                setAttendeePhone(sanitizePhoneInput(v));
                 if (attendeeErrors.attendeePhone) {
                   setAttendeeErrors((prev) => ({ ...prev, attendeePhone: '' }));
                 }
               }}
-              placeholder="05XX XXX XX XX"
+              placeholder="05XX… veya +49…"
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              maxLength={15}
+              maxLength={20}
               error={attendeeErrors.attendeePhone}
               required
             />

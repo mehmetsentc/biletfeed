@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isValidTrPhone, normalizeTrPhone } from '@/lib/validation/tr-phone';
+import { isValidPhone, normalizePhone } from '@/lib/validation/phone';
 
 export const checkoutAttendeeSchema = z.object({
   attendeeName: z
@@ -10,8 +10,11 @@ export const checkoutAttendeeSchema = z.object({
   attendeeEmail: z.string().trim().email('Geçerli bir e-posta adresi girin'),
   attendeePhone: z
     .string()
-    .transform(normalizeTrPhone)
-    .refine((v) => isValidTrPhone(v), 'Geçerli bir cep telefonu girin (05XX XXX XX XX)')
+    .transform(normalizePhone)
+    .refine(
+      (v) => isValidPhone(v),
+      'Geçerli bir telefon girin (05XX… veya +ülke kodu, örn. +49…)'
+    )
 });
 
 export type CheckoutAttendeeInput = z.infer<typeof checkoutAttendeeSchema>;
