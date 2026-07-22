@@ -45,7 +45,8 @@ export async function startInvoiceSmsSign(invoiceId: string): Promise<{
 }> {
   const config = getEInvoiceConfig();
   const provider = getEInvoiceProvider(config);
-  if (!provider?.startSmsSign) {
+  const startSmsSign = provider?.startSmsSign;
+  if (!startSmsSign) {
     return { ok: false, error: 'Bu provider SMS imzayı desteklemiyor' };
   }
 
@@ -58,7 +59,7 @@ export async function startInvoiceSmsSign(invoiceId: string): Promise<{
     return { ok: false, error: 'GİB ETTN yok — önce taslağı gönderin' };
   }
 
-  const result = await withGibSessionLock(() => provider.startSmsSign([ettn]));
+  const result = await withGibSessionLock(() => startSmsSign([ettn]));
   if (!result.ok || !result.oid) {
     return { ok: false, error: result.error ?? 'SMS başlatılamadı' };
   }
