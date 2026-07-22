@@ -1,0 +1,16 @@
+{
+  "$comment": "Scoped tsconfig for quickly type-checking the Capacitor auth/tracking code (Apple/Google native sign-in, ATT) without running a full monorepo tsc pass. Usage: npx tsc --noEmit -p tsconfig.check.json",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "lib/firebase/apple-auth.ts",
+    "lib/firebase/google-auth.ts",
+    "lib/firebase/oauth-redirect.ts",
+    "lib/firebase/auth-errors.ts",
+    "lib/tracking/att.ts",
+    "components/analytics/google-analytics.tsx"
+  ]
+}

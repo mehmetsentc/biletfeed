@@ -1,5 +1,6 @@
 import {
   GoogleAuthProvider,
+  signInWithCredential,
   signInWithPopup,
   signInWithRedirect,
   type Auth,
@@ -7,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import { getFirebaseAuthErrorMessage } from '@/lib/firebase/auth-errors';
+import { isCapacitor } from '@/lib/firebase/apple-auth';
 import {
   consumeOAuthRedirectResult,
   resetRedirectResultCache as resetOAuthRedirectResultCache
@@ -14,7 +16,7 @@ import {
 
 export { resetRedirectResultCache } from '@/lib/firebase/oauth-redirect';
 
-export type GoogleSignInMode = 'popup' | 'redirect';
+export type GoogleSignInMode = 'popup' | 'redirect' | 'native';
 
 export type GoogleSignInResult = {
   mode: GoogleSignInMode;
@@ -100,6 +102,9 @@ async function waitForAuthUser(auth: Auth, ms = 1200): Promise<boolean> {
 export async function finishGoogleRedirectSignIn(
   auth: Auth
 ): Promise<string | null> {
+  // Capacitor'da redirect akışı kullanılmaz
+  if (isCapacitor()) return null;
+
   const pending = wasGoogleRedirectPending();
 
   try {
@@ -129,10 +134,38 @@ export async function finishGoogleRedirectSignIn(
 }
 
 /**
- * Önce popup dener (COOP: same-origin-allow-popups). Popup engellenirse redirect'e düşer.
- * Mevcut currentUser olsa bile Google hesap seçiciyi açar (hesap değiştirme).
+ * Capacitor native Google Sign In — @capacitor-firebase/authentication
+ * Google'ın native Sign-In SDK'sını kullanır. Firebase JS SDK'nın web
+ * popup/redirect akışı Capacitor'ın WKWebView'ında Google tarafından
+ * engellendiği (disallowed_useragent) için burada asla web akışına düşülmez.
+ */
+async function signInWithGoogleNative(auth: Auth): Promise<GoogleSignInResult> {
+  const { FirebaseAuthentication } = await import(
+    '@capacitor-firebase/authentication'
+  );
+
+  const result = await FirebaseAuthentication.signInWithGoogle();
+
+  const idToken = result.credential?.idToken;
+  if (!idToken) throw new Error('Google idToken alınamadı');
+
+  const credential = GoogleAuthProvider.credential(idToken);
+  await signInWithCredential(auth, credential);
+  return { mode: 'native', completed: true };
+}
+
+/**
+ * Ana giriş fonksiyonu:
+ * - Capacitor (iOS/Android uygulama): native Google Sign-In — WKWebView'a hiç girmez
+ * - Web: önce popup, engellenirse redirect
  */
 export async function signInWithGoogle(auth: Auth): Promise<GoogleSignInResult> {
+  // ── Capacitor: native Google Sign In ──────────────────────────────────────
+  if (isCapacitor()) {
+    return signInWithGoogleNative(auth);
+  }
+
+  // ── Web: popup → redirect fallback (COOP: same-origin-allow-popups) ───────
   const provider = createGoogleProvider();
 
   try {

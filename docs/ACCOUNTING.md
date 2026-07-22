@@ -115,7 +115,8 @@ Modül: `lib/accounting/einvoice/`
 
 Akış: `processOrderAccounting` → iç fatura → `submitInvoiceToGib` → e-posta.
 
-**GİB portal notu:** Yeni taslakta `faturaUuid` **boş** gönderilir (2026 GİB kuralı; dolu UUID “36 uzunluk” hatası verir). Portal UUID atar; biz listeden okuruz. Resmi “Onaylandı” için admin panelinden SMS.
+**GİB portal notu:** Yeni taslakta `faturaUuid` **boş** gönderilir. Resmi onay için SMS.  
+**GEÇİŞ kullanıcısı:** Bazı hesaplar yalnızca GİB’in verdiği kısa tarih aralığında fatura kesebilir (ör. `08/07/2026–15/07/2026`). Bu aralık dışındaki tarihler reddedilir — muhasebeci / GİB ile e-Arşiv yetkisinin genişletilmesi gerekir.
 
 Admin:
 - Liste + aksiyonlar: `/admin/muhasebe`

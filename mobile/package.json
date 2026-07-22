@@ -10,6 +10,7 @@
     "assets:generate": "npx @capacitor/assets generate --assetPath assets --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#000000' --splashBackgroundColorDark '#000000'"
   },
   "dependencies": {
+    "@capacitor-firebase/authentication": "^6.3.1",
     "@capacitor/android": "^6.2.0",
     "@capacitor/app": "^6.0.2",
     "@capacitor/browser": "^6.0.3",
@@ -17,7 +18,8 @@
     "@capacitor/ios": "^6.2.0",
     "@capacitor/share": "^6.0.3",
     "@capacitor/splash-screen": "^6.0.3",
-    "@capacitor/status-bar": "^6.0.2"
+    "@capacitor/status-bar": "^6.0.2",
+    "capacitor-app-tracking-transparency": "^3.0.0"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
@@ -26,5 +28,13 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "overrides": {
+    "capacitor-app-tracking-transparency": {
+      "@capacitor/core": "$@capacitor/core"
+    },
+    "@capacitor-firebase/authentication": {
+      "@capacitor/core": "$@capacitor/core"
+    }
   }
 }

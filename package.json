@@ -42,7 +42,10 @@
     "seed:event-rules": "dotenv -e .env.local -- tsx scripts/seed-event-rules.ts"
   },
   "dependencies": {
+    "@capacitor/core": "^6.2.0",
+    "@capacitor-firebase/authentication": "^6.3.1",
     "@google-analytics/data": "^6.1.0",
+    "capacitor-app-tracking-transparency": "^3.0.0",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-accordion": "^1.2.15",
@@ -105,6 +108,13 @@
     "seed": "tsx prisma/seed.ts"
   },
   "overrides": {
-    "jose": "^4.15.9"
+    "jose": "^4.15.9",
+    "capacitor-app-tracking-transparency": {
+      "@capacitor/core": "$@capacitor/core"
+    },
+    "@capacitor-firebase/authentication": {
+      "@capacitor/core": "$@capacitor/core",
+      "firebase": "$firebase"
+    }
   }
 }

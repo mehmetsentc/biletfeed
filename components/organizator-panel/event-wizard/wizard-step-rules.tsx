@@ -612,12 +612,17 @@ export function WizardStepRules({
             <WizardFormRow label="Başlık">
               <Input
                 value={ann.titleTr}
+                placeholder="Duyuru başlığı (zorunlu)"
+                className={ann.titleTr.trim() === '' ? 'border-destructive/60 focus-visible:ring-destructive/30' : ''}
                 onChange={(e) => {
                   const next = [...ruleSet.announcements];
                   next[idx] = { ...ann, titleTr: e.target.value };
                   onRuleSetChange({ ...ruleSet, announcements: next });
                 }}
               />
+              {ann.titleTr.trim() === '' && (
+                <p className="mt-1 text-xs text-destructive">Başlık zorunludur — boş bırakılan duyurular kaydedilmez.</p>
+              )}
             </WizardFormRow>
             <RichTextEditor
               value={ann.contentTr}

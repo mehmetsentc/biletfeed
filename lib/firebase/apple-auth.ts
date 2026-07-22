@@ -63,7 +63,7 @@ export function markAppleRedirectPending() {
 }
 
 /** Capacitor ortamında mı çalışıyor? */
-function isCapacitor(): boolean {
+export function isCapacitor(): boolean {
   return typeof window !== 'undefined' &&
     !!(window as unknown as Record<string, unknown>)['Capacitor'];
 }
@@ -95,30 +95,31 @@ async function waitForAuthUser(auth: Auth, ms = 1200): Promise<boolean> {
 }
 
 /**
- * Capacitor native Apple Sign In — @capacitor-community/apple-sign-in
- * Apple'ın ASAuthorizationAppleIDRequest API'sını kullanır.
+ * Capacitor native Apple Sign In — @capacitor-firebase/authentication
+ * Apple'ın ASAuthorizationAppleIDRequest API'sını (Firebase iOS SDK üzerinden) kullanır.
  * Tarayıcı AÇILMAZ — App Store Guideline 4 ile uyumlu.
+ *
+ * Not: skipNativeAuth: true kullanılıyor çünkü bu kombinasyon (Firebase JS SDK'nın
+ * kendi oturumuna geçmek) Apple Sign-In'de yalnızca bu şekilde güvenilir çalışıyor
+ * (bkz. capacitor-firebase paketi "Quirks" notu).
  */
 async function signInWithAppleNative(auth: Auth): Promise<AppleSignInResult> {
-  // Dynamic import — web build'de bundle'a girmez
-  const { SignInWithApple } = await import(
-    /* webpackIgnore: true */
-    '@capacitor-community/apple-sign-in'
+  // Dynamic import — web build'de ayrı bir chunk'a alınır, native olmayan
+  // ortamlarda hiç çalıştırılmaz.
+  const { FirebaseAuthentication } = await import(
+    '@capacitor-firebase/authentication'
   );
 
-  const result = await SignInWithApple.authorize({
-    clientId: 'com.biletfeed.app',
-    redirectURI: 'https://biletfeed.com',
-    scopes: 'email name',
-    state: crypto.randomUUID(),
-    nonce: crypto.randomUUID()
+  const result = await FirebaseAuthentication.signInWithApple({
+    skipNativeAuth: true
   });
 
-  const { identityToken } = result.response;
-  if (!identityToken) throw new Error('Apple identityToken alınamadı');
+  const idToken = result.credential?.idToken;
+  const rawNonce = result.credential?.nonce;
+  if (!idToken) throw new Error('Apple idToken alınamadı');
 
   const provider = new OAuthProvider('apple.com');
-  const credential = provider.credential({ idToken: identityToken });
+  const credential = provider.credential({ idToken, rawNonce });
   await signInWithCredential(auth, credential);
   return { mode: 'native', completed: true };
 }

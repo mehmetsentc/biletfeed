@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+*.p8
+AuthKey_*
 
 # debug
 npm-debug.log*
@@ -47,3 +49,4 @@ next-env.d.ts
 # generated ticket preview (npm run preview:ticket)
 public/ticket-preview/*.html
 public/ticket-preview/reference-iticket.png
+biletfeed-*.json

@@ -2,6 +2,7 @@ import type { Invoice, InvoiceLine, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { logAccountingAudit } from '@/lib/accounting/audit';
 import { getEInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import { withGibSessionLock } from '@/lib/accounting/einvoice/gib-lock';
 import { getEInvoiceProvider } from '@/lib/accounting/einvoice/provider';
 import { buildEInvoicePayload } from '@/lib/accounting/einvoice/ubl';
 import type {
@@ -134,7 +135,7 @@ export async function submitInvoiceToGib(params: {
 
   let result;
   try {
-    result = await provider.submit(payload);
+    result = await withGibSessionLock(() => provider.submit(payload));
   } catch (err) {
     result = {
       ok: false as const,

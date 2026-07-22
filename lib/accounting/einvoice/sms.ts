@@ -2,6 +2,7 @@ import type { Invoice, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { logAccountingAudit } from '@/lib/accounting/audit';
 import { getEInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import { withGibSessionLock } from '@/lib/accounting/einvoice/gib-lock';
 import { getEInvoiceProvider } from '@/lib/accounting/einvoice/provider';
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 import type { InvoiceEInvoiceMeta } from '@/lib/accounting/einvoice/types';
@@ -57,7 +58,7 @@ export async function startInvoiceSmsSign(invoiceId: string): Promise<{
     return { ok: false, error: 'GİB ETTN yok — önce taslağı gönderin' };
   }
 
-  const result = await provider.startSmsSign([ettn]);
+  const result = await withGibSessionLock(() => provider.startSmsSign([ettn]));
   if (!result.ok || !result.oid) {
     return { ok: false, error: result.error ?? 'SMS başlatılamadı' };
   }
