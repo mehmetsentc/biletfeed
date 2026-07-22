@@ -141,6 +141,8 @@ export async function sendInvoiceEmail(params: {
   buyerName?: string;
   eventTitle?: string;
   issuedAt?: Date;
+  gibSigned?: boolean;
+  gibStatusNote?: string;
 }) {
   const html = buildInvoiceEmail({
     buyerName: params.buyerName ?? 'Değerli Müşterimiz',
@@ -149,13 +151,21 @@ export async function sendInvoiceEmail(params: {
     currency: params.currency,
     eventTitle: params.eventTitle,
     orderNumber: params.orderId.slice(0, 8).toUpperCase(),
-    issuedAt: params.issuedAt
+    issuedAt: params.issuedAt,
+    gibSigned: params.gibSigned,
+    gibStatusNote:
+      params.gibStatusNote ??
+      (params.gibSigned
+        ? undefined
+        : 'Faturanız sistemimizde oluşturuldu; GİB e-Arşiv onayı muhasebe sürecinde tamamlanır.')
   });
 
   return queueEmail({
     to: params.to,
-    subject: `Faturanız — ${params.invoiceNumber}`,
-    template: 'invoice_issued',
+    subject: params.gibSigned
+      ? `e-Arşiv onaylandı — ${params.invoiceNumber}`
+      : `Faturanız — ${params.invoiceNumber}`,
+    template: params.gibSigned ? 'invoice_gib_signed' : 'invoice_issued',
     html,
     orderId: params.orderId,
     invoiceId: params.invoiceId,

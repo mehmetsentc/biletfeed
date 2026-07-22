@@ -331,7 +331,7 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
       }
     },
 
-    async getPdf(uuid: string) {
+    async getPdf(uuid: string, opts?: { signed?: boolean }) {
       try {
         return await withToken(async (token) => {
           const pdfUrl =
@@ -340,7 +340,7 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
               token,
               ettn: uuid,
               belgeTip: 'FATURA',
-              onayDurumu: 'Onaylanmadı',
+              onayDurumu: opts?.signed ? 'Onaylandı' : 'Onaylanmadı',
               cmd: 'EARSIV_PORTAL_BELGE_INDIR'
             }).toString();
           return { ok: true, pdfUrl };
@@ -351,8 +351,109 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
           error: err instanceof Error ? err.message : String(err)
         };
       }
+    },
+
+    async startSmsSign(ettns: string[]) {
+      try {
+        return await withToken(async (token) => {
+          const phoneRes = await dispatch(
+            token,
+            'EARSIV_PORTAL_TELEFONNO_SORGULA',
+            'RG_BASITTASLAKLAR',
+            {}
+          );
+          const phoneData = asRecord(phoneRes.data);
+          const phone =
+            typeof phoneData.telefon === 'string' ? phoneData.telefon : '';
+          if (!phone) {
+            return {
+              ok: false,
+              error: 'GİB portalda kayıtlı telefon bulunamadı'
+            };
+          }
+
+          const smsRes = await dispatch(
+            token,
+            'EARSIV_PORTAL_SMSSIFRE_GONDER',
+            'RG_SMSONAY',
+            { CEPTEL: phone, KCEPTEL: false, TIP: '' }
+          );
+          const smsData = asRecord(smsRes.data);
+          const oid = typeof smsData.oid === 'string' ? smsData.oid : '';
+          if (!oid) {
+            return {
+              ok: false,
+              error:
+                (typeof smsRes.error === 'string' && smsRes.error) ||
+                'SMS gönderilemedi',
+              phoneMasked: maskPhone(phone)
+            };
+          }
+
+          void ettns;
+          return {
+            ok: true,
+            oid,
+            phoneMasked: maskPhone(phone)
+          };
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err)
+        };
+      }
+    },
+
+    async completeSmsSign(params: {
+      oid: string;
+      code: string;
+      ettns: string[];
+    }) {
+      try {
+        return await withToken(async (token) => {
+          const data = params.ettns.map((ettn) => ({
+            belgeTuru: 'FATURA',
+            ettn
+          }));
+          const res = await dispatch(token, '0lhozfib5410mp', 'RG_SMSONAY', {
+            DATA: data,
+            SIFRE: params.code,
+            OID: params.oid,
+            OPR: 1
+          });
+          const payload = asRecord(res.data);
+          const sonuc =
+            payload.sonuc === '1' ||
+            payload.sonuc === 1 ||
+            (typeof res.data === 'string' &&
+              res.data.toLowerCase().includes('başarı'));
+
+          if (!sonuc) {
+            return {
+              ok: false,
+              error:
+                (typeof res.error === 'string' && res.error) ||
+                (typeof payload.mesaj === 'string' && payload.mesaj) ||
+                'SMS doğrulama başarısız — kodu kontrol edin'
+            };
+          }
+          return { ok: true };
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err)
+        };
+      }
     }
   };
+}
+
+function maskPhone(phone: string): string {
+  const d = phone.replace(/\D/g, '');
+  if (d.length < 4) return '****';
+  return `${d.slice(0, 3)}****${d.slice(-2)}`;
 }
 
 /** Credential smoke test — token alıp kullanıcı bilgisi çeker */

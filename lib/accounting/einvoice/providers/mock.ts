@@ -24,7 +24,7 @@ export function createMockEInvoiceProvider(): EInvoiceProvider {
         uuid,
         ettn: uuid,
         providerRef: `mock-${uuid.slice(0, 8)}`,
-        raw: { mock: true }
+        raw: { mock: true, needsSmsSign: false }
       };
     },
     async getStatus(uuid: string): Promise<EInvoiceSubmitResult> {
@@ -35,6 +35,12 @@ export function createMockEInvoiceProvider(): EInvoiceProvider {
         ok: false,
         error: `Mock provider PDF üretmez (${uuid.slice(0, 8)}…)`
       };
+    },
+    async startSmsSign() {
+      return { ok: true, oid: `mock-oid-${Date.now()}`, phoneMasked: '555****00' };
+    },
+    async completeSmsSign() {
+      return { ok: true };
     }
   };
 }

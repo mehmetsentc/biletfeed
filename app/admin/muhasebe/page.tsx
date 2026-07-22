@@ -11,9 +11,37 @@ import { Badge } from '@/components/ui/badge';
 import { formatCompanyTaxLine } from '@/lib/config/company';
 import Link from 'next/link';
 import { adminHref } from '@/lib/config/domain';
+import {
+  InvoiceGibTable,
+  type InvoiceGibRow
+} from '@/components/admin/invoice-gib-table';
+import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 
 function money(amount: number, currency = 'TRY') {
   return `${currency === 'TRY' ? '₺' : currency + ' '}${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
+}
+
+function toGibRows(
+  invoices: Awaited<ReturnType<typeof getAccountingInvoices>>
+): InvoiceGibRow[] {
+  return invoices.map((inv) => {
+    const einv = readEInvoiceMeta(inv.metadata);
+    return {
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      issuedAtLabel: inv.issuedAt.toLocaleDateString('tr-TR'),
+      buyerName: inv.buyerName,
+      eventTitle: inv.order.event?.title ?? '—',
+      amountLabel: money(inv.totalGross, inv.currency),
+      type: inv.type,
+      status: inv.status,
+      gibStatus: einv.status ?? (inv.eInvoiceUuid ? 'submitted' : '—'),
+      needsSmsSign: Boolean(einv.needsSmsSign),
+      eInvoiceUuid: inv.eInvoiceUuid ?? einv.uuid ?? einv.ettn ?? null,
+      lastError: einv.lastError ?? null,
+      phoneMasked: einv.smsPhoneMasked ?? null
+    };
+  });
 }
 
 export default async function AdminAccountingPage() {
@@ -43,12 +71,15 @@ export default async function AdminAccountingPage() {
         : 'Muhasebe verileri yüklenemedi. Veritabanı migrasyonu uygulanmış olmalı.';
   }
 
+  const gibRows = toGibRows(invoices);
+  const pendingSms = gibRows.filter((r) => r.needsSmsSign || r.gibStatus === 'submitted').length;
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Muhasebe</h1>
         <p className="text-muted-foreground">
-          Fatura, mutabakat, hakediş ve e-posta izleme — {summary?.company.tradeName}
+          Fatura, GİB e-Arşiv, mutabakat, hakediş ve e-posta izleme — {summary?.company.tradeName}
         </p>
         {summary && (
           <p className="mt-1 text-xs text-muted-foreground">{formatCompanyTaxLine()}</p>
@@ -62,8 +93,13 @@ export default async function AdminAccountingPage() {
       )}
 
       {summary && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard label="Kesilen fatura" value={String(summary.invoiceCount)} sub={money(summary.invoiceTotal)} />
+          <StatCard
+            label="GİB SMS / taslak"
+            value={String(pendingSms)}
+            sub="Onay bekleyen e-Arşiv"
+          />
           <StatCard
             label="Bekleyen hakediş"
             value={String(summary.pendingPayoutCount)}
@@ -82,20 +118,11 @@ export default async function AdminAccountingPage() {
         </div>
       )}
 
-      <Section title="Faturalar" description="e-Arşiv / e-Fatura ve iade faturaları">
-        <DataTable
-          headers={['No', 'Tarih', 'Alıcı', 'Etkinlik', 'Tutar', 'Tip', 'Durum']}
-          rows={invoices.map((inv) => [
-            inv.invoiceNumber,
-            inv.issuedAt.toLocaleDateString('tr-TR'),
-            inv.buyerName,
-            inv.order.event?.title ?? '—',
-            money(inv.totalGross, inv.currency),
-            inv.type,
-            inv.status
-          ])}
-          empty="Henüz fatura yok."
-        />
+      <Section
+        title="Faturalar"
+        description="BiletFeed faturası + GİB e-Arşiv: taslak gönder, SMS ile imzala"
+      >
+        <InvoiceGibTable rows={gibRows} />
       </Section>
 
       <Section title="Ödeme mutabakatı" description="Stripe, iyzico, PayTR ve mock ödemeler">

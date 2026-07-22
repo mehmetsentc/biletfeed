@@ -21,6 +21,8 @@ export interface InvoiceEmailParams {
   eventTitle?: string;
   orderNumber?: string;
   issuedAt?: Date;
+  gibSigned?: boolean;
+  gibStatusNote?: string;
 }
 
 /** e-Arşiv / e-Fatura bildirim e-postası — profesyonel HTML */
@@ -77,6 +79,17 @@ export function buildInvoiceEmail(params: InvoiceEmailParams): string {
         </p>
       </td>
     </tr>
+    ${
+      params.gibStatusNote
+        ? `<tr>
+      <td style="padding:0 28px 20px;">
+        <p style="margin:0;padding:12px 14px;border-radius:10px;background:${params.gibSigned ? '#ecfdf5' : '#fffbeb'};font-size:13px;color:${EMAIL_BRAND.text};line-height:1.6;">
+          ${esc(params.gibStatusNote)}
+        </p>
+      </td>
+    </tr>`
+        : ''
+    }
     <tr>
       <td style="padding:0 28px 28px;">
         <p style="margin:0;font-size:14px;color:${EMAIL_BRAND.textMuted};line-height:1.65;">
@@ -86,7 +99,11 @@ export function buildInvoiceEmail(params: InvoiceEmailParams): string {
         </p>
       </td>
     </tr>
-    ${emailFooter({ note: 'Bu e-posta bilgilendirme amaçlıdır; resmi e-Arşiv kaydınız muhasebe sistemimizde saklanmaktadır.' })}`;
+    ${emailFooter({
+      note: params.gibSigned
+        ? 'Bu e-posta GİB e-Arşiv onayı sonrası bilgilendirme amaçlıdır.'
+        : 'Bu e-posta bilgilendirme amaçlıdır; resmi e-Arşiv onayı muhasebe sürecinde tamamlanır.'
+    })}`;
 
   return emailShell(content, preheader);
 }

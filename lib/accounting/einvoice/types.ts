@@ -84,7 +84,22 @@ export interface EInvoiceProvider {
   readonly name: EInvoiceProviderName;
   submit(payload: EInvoicePayload): Promise<EInvoiceSubmitResult>;
   getStatus?(uuid: string): Promise<EInvoiceSubmitResult>;
-  getPdf?(uuid: string): Promise<{ ok: boolean; pdfUrl?: string; pdfBase64?: string; error?: string }>;
+  getPdf?(
+    uuid: string,
+    opts?: { signed?: boolean }
+  ): Promise<{ ok: boolean; pdfUrl?: string; pdfBase64?: string; error?: string }>;
+  /** GİB SMS imza — OID döner */
+  startSmsSign?(ettns: string[]): Promise<{
+    ok: boolean;
+    oid?: string;
+    phoneMasked?: string;
+    error?: string;
+  }>;
+  completeSmsSign?(params: {
+    oid: string;
+    code: string;
+    ettns: string[];
+  }): Promise<{ ok: boolean; error?: string }>;
 }
 
 export interface InvoiceEInvoiceMeta {
@@ -95,9 +110,13 @@ export interface InvoiceEInvoiceMeta {
   pdfUrl?: string;
   providerRef?: string;
   submittedAt?: string;
+  signedAt?: string;
   lastError?: string;
   /** true → canlı GİB değil, mock/dev */
   mock?: boolean;
   /** GİB taslak; SMS/imza onayı bekliyor */
   needsSmsSign?: boolean;
+  /** SMS operasyon id (kod girilene kadar) */
+  smsOid?: string;
+  smsPhoneMasked?: string;
 }

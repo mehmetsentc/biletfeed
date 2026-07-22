@@ -115,10 +115,13 @@ Modül: `lib/accounting/einvoice/`
 
 Akış: `processOrderAccounting` → iç fatura → `submitInvoiceToGib` → e-posta.
 
-**GİB portal notu:** `FATURA_OLUSTUR` taslak oluşturur. Resmi “Onaylandı” için portalda SMS/imza gerekir (`needsSmsSign`). İmzalanmış belge indirme: `onayDurumu=Onaylandı`.
+**GİB portal notu:** `FATURA_OLUSTUR` taslak oluşturur. Resmi “Onaylandı” için admin muhasebe panelinden SMS gönder + kod gir (`sms-start` / `sms-confirm`).
 
-Admin yeniden gönderim: `POST /api/admin/accounting/invoices/[invoiceId]/submit-einvoice`  
-(`accounting.manage`, body: `{ "force": true }`).
+Admin:
+- Liste + aksiyonlar: `/admin/muhasebe`
+- Yeniden gönderim: `POST /api/admin/accounting/invoices/[invoiceId]/submit-einvoice`
+- SMS başlat: `POST .../sms-start`
+- SMS onay: `POST .../sms-confirm` body `{ "code": "123456" }`
 
 ---
 
