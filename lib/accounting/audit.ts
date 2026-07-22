@@ -12,6 +12,14 @@ export type AuditAction =
   | 'email.sent'
   | 'email.failed';
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function asUuidOrNull(value?: string | null): string | null {
+  if (!value) return null;
+  return UUID_RE.test(value) ? value : null;
+}
+
 export async function logAccountingAudit(params: {
   action: AuditAction | string;
   entityType: string;
@@ -27,7 +35,7 @@ export async function logAccountingAudit(params: {
       action: params.action,
       entityType: params.entityType,
       entityId: params.entityId,
-      actorId: params.actorId ?? null,
+      actorId: asUuidOrNull(params.actorId),
       actorRole: params.actorRole ?? 'system',
       before: params.before ? (params.before as object) : undefined,
       after: params.after ? (params.after as object) : undefined,

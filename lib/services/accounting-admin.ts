@@ -3,6 +3,10 @@ import { companyLegal } from '@/lib/config/company';
 import { formatCommissionRatePercent } from '@/lib/config/commission';
 import { splitGrossAmount } from '@/lib/accounting/tax';
 import { resolveOrganizerCommissionRate } from '@/lib/services/commission';
+import {
+  listAccountingExpenses,
+  getEventProfitAndLoss
+} from '@/lib/accounting/expenses';
 
 export async function getAccountingSummary() {
   await ensureDbConnection();
@@ -77,6 +81,10 @@ export async function getAccountingPayouts(limit = 50) {
       event: { select: { title: true } }
     }
   });
+}
+
+export async function getAccountingExpenses(limit = 50) {
+  return listAccountingExpenses({ limit });
 }
 
 export async function getAccountingReconciliations(limit = 50) {
@@ -431,7 +439,7 @@ export async function getAccountingOrganizerEventDetail(organizerId: string, eve
   );
   const vatRate = companyLegal.defaultVatRate;
 
-  const [orders, payouts, reconciliations, invitationsByType, paidTicketsByType] =
+  const [orders, payouts, reconciliations, invitationsByType, paidTicketsByType, pnl, expenses] =
     await Promise.all([
       prisma.order.findMany({
         where: { organizerId, eventId, status: 'paid', deletedAt: null },
@@ -467,7 +475,9 @@ export async function getAccountingOrganizerEventDetail(organizerId: string, eve
           invitation: { is: null }
         },
         _count: { _all: true }
-      })
+      }),
+      getEventProfitAndLoss(eventId),
+      listAccountingExpenses({ eventId, limit: 50 })
     ]);
 
   const inviteCountMap = new Map(invitationsByType.map((r) => [r.ticketTypeId, r._count._all]));
@@ -561,6 +571,8 @@ export async function getAccountingOrganizerEventDetail(organizerId: string, eve
       status: row.status,
       scheduledAt: row.scheduledAt,
       paidAt: row.paidAt,
+      paymentRef: row.paymentRef,
+      ibanSnapshot: row.ibanSnapshot,
       createdAt: row.createdAt
     })),
     reconciliations: reconciliations.map((row) => ({
@@ -572,6 +584,30 @@ export async function getAccountingOrganizerEventDetail(organizerId: string, eve
       status: row.status,
       reconciledAt: row.reconciledAt,
       createdAt: row.createdAt
+    })),
+    pnl: pnl
+      ? {
+          revenue: pnl.revenue,
+          commission: pnl.commission,
+          payoutNet: pnl.payoutNet,
+          payoutPaid: pnl.payoutPaid,
+          payoutPending: pnl.payoutPending,
+          expenseTotal: pnl.expenseTotal,
+          expenseVat: pnl.expenseVat,
+          expenseByCategory: pnl.expenseByCategory,
+          platformNet: pnl.platformNet,
+          organizerNet: pnl.organizerNet,
+          discounts: pnl.discounts
+        }
+      : null,
+    expenses: expenses.map((row) => ({
+      id: row.id,
+      category: row.category,
+      description: row.description,
+      amount: row.amount,
+      vatAmount: row.vatAmount,
+      currency: row.currency,
+      incurredAt: row.incurredAt
     }))
   };
 }

@@ -56,3 +56,41 @@ export async function reconcilePayment(params: {
 
   return row;
 }
+
+/** İade sonrası mutabakat kaydını işaretle (tutarlar korunur, metadata + mismatch) */
+export async function markReconciliationRefunded(orderId: string) {
+  const row = await prisma.paymentReconciliation.findFirst({
+    where: { orderId }
+  });
+  if (!row) return null;
+
+  const prevMeta =
+    typeof row.metadata === 'object' &&
+    row.metadata !== null &&
+    !Array.isArray(row.metadata)
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+
+  const updated = await prisma.paymentReconciliation.update({
+    where: { id: row.id },
+    data: {
+      status: 'mismatch',
+      metadata: {
+        ...prevMeta,
+        refunded: true,
+        refundedAt: new Date().toISOString(),
+        originalStatus: row.status
+      }
+    }
+  });
+
+  await logAccountingAudit({
+    action: 'reconciliation.refunded',
+    entityType: 'payment_reconciliation',
+    entityId: updated.id,
+    before: { status: row.status },
+    after: { status: 'mismatch', refunded: true }
+  });
+
+  return updated;
+}

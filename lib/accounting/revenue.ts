@@ -58,3 +58,31 @@ export async function recognizeDueRevenue(): Promise<number> {
 
   return due.length;
 }
+
+/** İade: ertelenmiş veya tanınmış geliri reversed durumuna alır */
+export async function reverseRevenueForOrder(orderId: string) {
+  const entries = await prisma.revenueRecognition.findMany({
+    where: {
+      orderId,
+      status: { in: ['deferred', 'recognized'] }
+    }
+  });
+
+  const now = new Date();
+  const results = [];
+  for (const entry of entries) {
+    const updated = await prisma.revenueRecognition.update({
+      where: { id: entry.id },
+      data: { status: 'reversed' }
+    });
+    await logAccountingAudit({
+      action: 'revenue.reversed',
+      entityType: 'revenue_recognition',
+      entityId: entry.id,
+      before: { status: entry.status, amount: entry.amount },
+      after: { status: 'reversed', reversedAt: now.toISOString() }
+    });
+    results.push(updated);
+  }
+  return results;
+}

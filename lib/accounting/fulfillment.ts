@@ -1,7 +1,10 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { createSaleInvoice } from '@/lib/accounting/invoice';
 import { reconcilePayment } from '@/lib/accounting/reconciliation';
-import { scheduleOrganizerPayout } from '@/lib/accounting/commission';
+import {
+  computePayoutAmounts,
+  scheduleOrganizerPayout
+} from '@/lib/accounting/commission';
 import { deferRevenueRecognition } from '@/lib/accounting/revenue';
 import { sendInvoiceEmail } from '@/lib/accounting/email';
 import { submitInvoiceToGib } from '@/lib/accounting/einvoice';
@@ -65,12 +68,18 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
     expectedAmount: order.total
   });
 
+  const payoutAmounts = computePayoutAmounts({
+    subtotal: order.subtotal,
+    total: order.total,
+    commission: order.commission
+  });
+
   await scheduleOrganizerPayout({
     orderId: order.id,
     organizerId: order.organizerId,
     eventId: order.eventId,
-    grossAmount: order.subtotal,
-    commissionAmount: order.commission
+    grossAmount: payoutAmounts.grossAmount,
+    commissionAmount: payoutAmounts.commissionAmount
   });
 
   await deferRevenueRecognition({
@@ -95,5 +104,6 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
 }
 
 export { createCreditNoteForRefund } from '@/lib/accounting/invoice';
+export { processOrderRefundAccounting } from '@/lib/accounting/refund';
 export { recognizeDueRevenue } from '@/lib/accounting/revenue';
 export { logAccountingAudit } from '@/lib/accounting/audit';

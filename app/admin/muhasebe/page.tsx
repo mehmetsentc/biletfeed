@@ -5,7 +5,8 @@ import {
   getAccountingPayouts,
   getAccountingReconciliations,
   getAccountingAuditLogs,
-  getAccountingOrganizersOverview
+  getAccountingOrganizersOverview,
+  getAccountingExpenses
 } from '@/lib/services/accounting-admin';
 import { Badge } from '@/components/ui/badge';
 import { formatCompanyTaxLine } from '@/lib/config/company';
@@ -15,6 +16,15 @@ import {
   InvoiceGibTable,
   type InvoiceGibRow
 } from '@/components/admin/invoice-gib-table';
+import {
+  PayoutActionsTable,
+  type PayoutActionRow
+} from '@/components/admin/payout-actions-table';
+import { AccountingExportButtons } from '@/components/admin/accounting-export-buttons';
+import {
+  AccountingExpensesPanel,
+  type ExpenseRow
+} from '@/components/admin/accounting-expenses-panel';
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 
 function money(amount: number, currency = 'TRY') {
@@ -44,6 +54,36 @@ function toGibRows(
   });
 }
 
+function toPayoutRows(
+  payouts: Awaited<ReturnType<typeof getAccountingPayouts>>
+): PayoutActionRow[] {
+  return payouts.map((p) => ({
+    id: p.id,
+    organizerName: p.organizer.name,
+    eventTitle: p.event.title,
+    grossLabel: money(p.grossAmount, p.currency),
+    commissionLabel: money(p.commissionAmount, p.currency),
+    netLabel: money(p.netAmount, p.currency),
+    status: p.status,
+    paymentRef: p.paymentRef
+  }));
+}
+
+function toExpenseRows(
+  expenses: Awaited<ReturnType<typeof getAccountingExpenses>>
+): ExpenseRow[] {
+  return expenses.map((e) => ({
+    id: e.id,
+    category: e.category,
+    description: e.description,
+    amountLabel: money(e.amount, e.currency),
+    vatLabel: money(e.vatAmount, e.currency),
+    eventTitle: e.event?.title ?? '—',
+    organizerName: e.organizer?.name ?? '—',
+    incurredAtLabel: e.incurredAt.toLocaleDateString('tr-TR')
+  }));
+}
+
 export default async function AdminAccountingPage() {
   let loadError: string | null = null;
   let summary: Awaited<ReturnType<typeof getAccountingSummary>> | null = null;
@@ -53,17 +93,20 @@ export default async function AdminAccountingPage() {
   let reconciliations: Awaited<ReturnType<typeof getAccountingReconciliations>> = [];
   let auditLogs: Awaited<ReturnType<typeof getAccountingAuditLogs>> = [];
   let organizers: Awaited<ReturnType<typeof getAccountingOrganizersOverview>> = [];
+  let expenses: Awaited<ReturnType<typeof getAccountingExpenses>> = [];
 
   try {
-    [summary, invoices, emails, payouts, reconciliations, auditLogs, organizers] = await Promise.all([
-      getAccountingSummary(),
-      getAccountingInvoices(),
-      getAccountingEmailDeliveries(),
-      getAccountingPayouts(),
-      getAccountingReconciliations(),
-      getAccountingAuditLogs(),
-      getAccountingOrganizersOverview()
-    ]);
+    [summary, invoices, emails, payouts, reconciliations, auditLogs, organizers, expenses] =
+      await Promise.all([
+        getAccountingSummary(),
+        getAccountingInvoices(),
+        getAccountingEmailDeliveries(),
+        getAccountingPayouts(),
+        getAccountingReconciliations(),
+        getAccountingAuditLogs(),
+        getAccountingOrganizersOverview(),
+        getAccountingExpenses()
+      ]);
   } catch (e) {
     loadError =
       e instanceof Error
@@ -72,18 +115,24 @@ export default async function AdminAccountingPage() {
   }
 
   const gibRows = toGibRows(invoices);
+  const payoutRows = toPayoutRows(payouts);
+  const expenseRows = toExpenseRows(expenses);
   const pendingSms = gibRows.filter((r) => r.needsSmsSign || r.gibStatus === 'submitted').length;
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Muhasebe</h1>
-        <p className="text-muted-foreground">
-          Fatura, GİB e-Arşiv, mutabakat, hakediş ve e-posta izleme — {summary?.company.tradeName}
-        </p>
-        {summary && (
-          <p className="mt-1 text-xs text-muted-foreground">{formatCompanyTaxLine()}</p>
-        )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Muhasebe</h1>
+          <p className="text-muted-foreground">
+            Fatura, GİB e-Arşiv, mutabakat, hakediş, gider ve e-posta izleme —{' '}
+            {summary?.company.tradeName}
+          </p>
+          {summary && (
+            <p className="mt-1 text-xs text-muted-foreground">{formatCompanyTaxLine()}</p>
+          )}
+        </div>
+        <AccountingExportButtons />
       </div>
 
       {loadError && (
@@ -140,22 +189,24 @@ export default async function AdminAccountingPage() {
         />
       </Section>
 
-      <Section title="Organizatör hakedişleri" description="Etkinlik sonrası ödeme planı">
-        <DataTable
-          headers={['Organizatör', 'Etkinlik', 'Brüt', 'Komisyon', 'Net', 'Durum']}
-          rows={payouts.map((p) => [
-            p.organizer.name,
-            p.event.title,
-            money(p.grossAmount, p.currency),
-            money(p.commissionAmount, p.currency),
-            money(p.netAmount, p.currency),
-            p.status
-          ])}
-          empty="Hakediş kaydı yok."
-        />
+      <Section
+        title="Organizatör hakedişleri"
+        description="Ödeme referansı ile ödendi işaretle veya iptal et"
+      >
+        <PayoutActionsTable rows={payoutRows} />
       </Section>
 
-      <Section title="Organizatör finans görünümü" description="Organizatöre tıklayıp geçmiş/gelecek etkinlik ve detay finansları açın">
+      <Section
+        title="Giderler"
+        description="Platform / etkinlik giderleri — P&L hesaplamasına dahil"
+      >
+        <AccountingExpensesPanel rows={expenseRows} />
+      </Section>
+
+      <Section
+        title="Organizatör finans görünümü"
+        description="Organizatöre tıklayıp geçmiş/gelecek etkinlik ve detay finansları açın"
+      >
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full min-w-[1100px] text-sm">
             <thead className="border-b bg-muted/50 text-left">
@@ -175,7 +226,10 @@ export default async function AdminAccountingPage() {
               {organizers.map((org) => (
                 <tr key={org.organizerId} className="border-b last:border-0 hover:bg-muted/20">
                   <td className="p-3">
-                    <Link href={adminHref(`/muhasebe/${org.organizerId}`)} className="font-semibold hover:underline">
+                    <Link
+                      href={adminHref(`/muhasebe/${org.organizerId}`)}
+                      className="font-semibold hover:underline"
+                    >
                       {org.organizerName}
                     </Link>
                     <p className="text-xs text-muted-foreground">{org.ownerEmail}</p>
@@ -191,7 +245,9 @@ export default async function AdminAccountingPage() {
                   <td className="p-3">{money(org.grossSales)}</td>
                   <td className="p-3">
                     {money(org.serviceFee)}
-                    <span className="ml-1 text-xs text-muted-foreground">(%{org.commissionRatePercent})</span>
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      (%{org.commissionRatePercent})
+                    </span>
                   </td>
                   <td className="p-3">
                     {money(org.vatAmount)}
@@ -299,9 +355,18 @@ function DataTable({
             <tr key={i} className="border-b last:border-0">
               {row.map((cell, j) => (
                 <td key={j} className="p-3">
-                  {j === row.length - 1 && ['issued', 'reconciled', 'sent', 'recognized'].includes(cell) ? (
+                  {j === row.length - 1 &&
+                  ['issued', 'reconciled', 'sent', 'recognized', 'paid'].includes(cell) ? (
                     <Badge variant="success">{cell}</Badge>
-                  ) : j === row.length - 1 && ['failed', 'mismatch', 'pending', 'deferred'].includes(cell) ? (
+                  ) : j === row.length - 1 &&
+                    [
+                      'failed',
+                      'mismatch',
+                      'pending',
+                      'deferred',
+                      'cancelled',
+                      'scheduled'
+                    ].includes(cell) ? (
                     <Badge variant="secondary">{cell}</Badge>
                   ) : (
                     cell

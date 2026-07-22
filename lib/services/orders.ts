@@ -13,7 +13,7 @@ import {
 import { startPaymentCheckout } from '@/lib/payments/process';
 import { createPaymentAccessToken } from '@/lib/payments/payment-access-token';
 import { processOrderAccounting } from '@/lib/accounting/fulfillment';
-import { createCreditNoteForRefund } from '@/lib/accounting/invoice';
+import { processOrderRefundAccounting } from '@/lib/accounting/refund';
 // Email modülleri dynamic import — statik importlar webpack'i client bundle'a
 // fs/Node.js built-in çekebileceğinden, runtime'da yüklenir
 import { validateCoupon, incrementCouponUsage } from '@/lib/services/coupons';
@@ -805,8 +805,8 @@ export async function requestOrderRefund(params: {
     }
   });
 
-  void createCreditNoteForRefund(order.id).catch((err) => {
-    console.error('[accounting] refund credit note', order.id, err);
+  void processOrderRefundAccounting(order.id).catch((err) => {
+    console.error('[accounting] refund reverse entries', order.id, err);
   });
 
   void import('@/lib/email/send-refund-email').then(({ sendRefundNotificationEmail }) =>

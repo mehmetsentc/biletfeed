@@ -7,7 +7,7 @@ Tek ticari kaynak: `lib/config/company.ts` (KSD ORGANİZASYON, VKN 5901381024).
 | Olay | Servis | Açıklama |
 |------|--------|----------|
 | Sipariş ödendi (ücretsiz/ücretli) | `processOrderAccounting` | Fatura, mutabakat, hakediş, gelir erteleme, e-posta |
-| Admin iade | `createCreditNoteForRefund` | İade faturası (credit note) |
+| Admin iade | `processOrderRefundAccounting` | Credit note + hakediş iptal + gelir reverse + mutabakat |
 | Cron `GET /api/cron/accounting` | `recognizeDueRevenue` | Etkinlik tarihi geçen ertelenmiş geliri tanır |
 
 Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` başlığı.
@@ -28,7 +28,7 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
    Varsayılan KDV %20 (`ACCOUNTING_VAT_RATE`). Brüt tutardan net + KDV ayrıştırma.
 
 4. **Gelir Tanıma** — `lib/accounting/revenue.ts`  
-   Satışta `deferred`, etkinlik `endDate` geçince cron ile `recognized`.
+   Satışta `deferred`, etkinlik `endDate` geçince cron ile `recognized`. İadede `reversed`.
 
 ### Bildirim katmanı
 
@@ -39,43 +39,47 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
    `queued` → `sent` / `failed`; ileride webhook ile `delivered` / `opened`.
 
 7. **Admin İzleme Paneli** — `/admin/muhasebe`  
-   Fatura, mutabakat, hakediş, e-posta ve audit log listeleri.
+   Fatura, mutabakat, hakediş (ödendi/iptal), gider CRUD, CSV export, e-posta ve audit log.
 
 ### Finansal operasyonlar
 
-8. **İade & Chargeback** — `createCreditNoteForRefund`  
-   Orijinal faturanın negatif kopyası; sipariş `refunded` olduğunda tetiklenir.
+8. **İade & Chargeback** — `processOrderRefundAccounting`  
+   Credit note + bekleyen hakediş iptali + gelir `reversed` + mutabakat `refunded` metadata.
 
 9. **Organizatör Hakedişi** — `lib/accounting/commission.ts`  
-   `subtotal - commission` net hakediş; etkinlik bitişine göre `pending` planlanır.
+   Brüt = `order.total` (tahsilat); komisyon `total/subtotal` ile ölçeklenir (indirim fazla ödeme yapmaz).  
+   `markPayoutPaid` (paymentRef + IBAN snapshot) / `cancelPayout`.
 
 10. **Çoklu Para Birimi** — Prisma `Currency` enum (TRY/USD/EUR)  
     Kur farkı muhasebesi için altyapı hazır; canlı kur API entegrasyonu sonraki aşama.
 
 11. **Komisyon Modülü** — `Order.commission` + payout satırı  
-    Platform komisyonu sipariş oluşturulurken hesaplanır; hakedişte net/brüt ayrışır.
+    Platform komisyonu sipariş oluşturulurken hesaplanır; hakedişte tahsilata orantılanır.
+
+12. **Gider & Etkinlik P&L** — `lib/accounting/expenses.ts` + `accounting_expenses`  
+    Kategori bazlı gider; etkinlik detayında gelir / komisyon / hakediş / gider / net.
 
 ### Raporlama & uyum
 
-12. **Mali Tablolar** — Admin özet kartları + fatura toplamları  
+13. **Mali Tablolar** — Admin özet kartları + etkinlik P&L  
     Tam bilanço / nakit akışı ERP köprüsü ile tamamlanacak.
 
-13. **Vergi Beyanname Hazırlığı** — Fatura + KDV satırları export edilebilir  
-    BA/BS ve KDV beyanı için `invoices` + `invoice_lines` kaynak tablo.
+14. **Vergi Beyanname Hazırlığı** — CSV export  
+    `GET /api/admin/accounting/export?type=kdv|ba-bs|hakedis` — Türkçe başlıklı CSV (UTF-8 BOM).
 
-14. **Denetim İzi** — `lib/accounting/audit.ts` → `accounting_audit_logs`  
-    Her fatura, mutabakat, gelir tanıma ve e-posta işlemi loglanır.
+15. **Denetim İzi** — `lib/accounting/audit.ts` → `accounting_audit_logs`  
+    Her fatura, mutabakat, gelir tanıma, hakediş, gider ve e-posta işlemi loglanır.
 
-15. **ERP Köprüsü** — Metadata + REST API hazır  
+16. **ERP Köprüsü** — Metadata + REST API hazır  
     Logo / Luca / SAP / QuickBooks için webhook veya CSV export eklenecek.
 
 ### Güvenlik & altyapı
 
-16. **PCI-DSS** — Kart verisi ödeme sağlayıcısında; platform yalnızca `paymentId` saklar.
+17. **PCI-DSS** — Kart verisi ödeme sağlayıcısında; platform yalnızca `paymentId` saklar.
 
-17. **RBAC** — Admin paneli `requireAdminSession`; muhasebeci rolü genişletilebilir.
+18. **RBAC** — Admin paneli `accounting.manage`; muhasebeci rolü genişletilebilir.
 
-18. **API-First** — Cron endpoint, admin API'ler; webhook altyapısı mevcut pattern ile genişletilir.
+19. **API-First** — Cron endpoint, admin API'ler; webhook altyapısı mevcut pattern ile genişletilir.
 
 ---
 
@@ -123,13 +127,19 @@ Admin:
 - Yeniden gönderim: `POST /api/admin/accounting/invoices/[invoiceId]/submit-einvoice`
 - SMS başlat: `POST .../sms-start`
 - SMS onay: `POST .../sms-confirm` body `{ "code": "123456" }`
+- Hakediş öde: `POST /api/admin/accounting/payouts/[payoutId]/mark-paid` `{ "paymentRef": "..." }`
+- Hakediş iptal: `POST /api/admin/accounting/payouts/[payoutId]/cancel`
+- Giderler: `GET|POST /api/admin/accounting/expenses`, `PATCH|DELETE .../expenses/[expenseId]`
+- CSV: `GET /api/admin/accounting/export?type=kdv|ba-bs|hakedis`
 
 ---
 
 ## Veritabanı
 
-Migrasyon: `prisma/migrations/20260624000000_accounting_infrastructure/`
+Migrasyonlar:
+- `prisma/migrations/20260624000000_accounting_infrastructure/`
+- `prisma/migrations/20260723010000_accounting_ops_package/` — hakediş ödeme alanları, `cancelled`/`reversed`, `accounting_expenses`
 
-Tablolar: `invoices`, `invoice_lines`, `payment_reconciliations`, `email_deliveries`, `organizer_payouts`, `revenue_recognitions`, `accounting_audit_logs`, `user_billing_profiles`.
+Tablolar: `invoices`, `invoice_lines`, `payment_reconciliations`, `email_deliveries`, `organizer_payouts`, `revenue_recognitions`, `accounting_audit_logs`, `user_billing_profiles`, `accounting_expenses`.
 
 Üretimde: `npm run db:migrate:deploy` (Neon pooler URL ile `npx prisma migrate deploy` takılabilir)

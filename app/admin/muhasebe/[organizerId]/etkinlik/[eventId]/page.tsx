@@ -55,6 +55,71 @@ export default async function AdminAccountingOrganizerEventDetailPage({
         <MetricCard label="Gönderilen davetiye" value={String(detail.metrics.invitationsSent)} />
       </div>
 
+      {detail.pnl && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold">Etkinlik P&amp;L</h2>
+            <p className="text-sm text-muted-foreground">
+              Tahsilat, komisyon, hakediş ve giderlerden net
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard label="Gelir (tahsilat)" value={money(detail.pnl.revenue)} />
+            <MetricCard
+              label="İndirim"
+              value={money(detail.pnl.discounts)}
+              hint="Kupon / indirim toplamı"
+            />
+            <MetricCard label="Komisyon" value={money(detail.pnl.commission)} />
+            <MetricCard label="Gider toplamı" value={money(detail.pnl.expenseTotal)} />
+            <MetricCard label="Ödenen hakediş" value={money(detail.pnl.payoutPaid)} />
+            <MetricCard label="Bekleyen hakediş" value={money(detail.pnl.payoutPending)} />
+            <MetricCard
+              label="Platform net"
+              value={money(detail.pnl.platformNet)}
+              hint="Komisyon − giderler"
+            />
+            <MetricCard
+              label="Organizatör net"
+              value={money(detail.pnl.organizerNet)}
+              hint="Hakediş − giderler"
+            />
+          </div>
+        </section>
+      )}
+
+      {detail.expenses.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold">Etkinlik giderleri</h2>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="border-b bg-muted/50 text-left">
+                <tr>
+                  <th className="p-3 font-medium">Tarih</th>
+                  <th className="p-3 font-medium">Kategori</th>
+                  <th className="p-3 font-medium">Açıklama</th>
+                  <th className="p-3 font-medium">Tutar</th>
+                  <th className="p-3 font-medium">KDV</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.expenses.map((row) => (
+                  <tr key={row.id} className="border-b last:border-0">
+                    <td className="p-3">{row.incurredAt.toLocaleDateString('tr-TR')}</td>
+                    <td className="p-3">
+                      <Badge variant="secondary">{row.category}</Badge>
+                    </td>
+                    <td className="p-3">{row.description}</td>
+                    <td className="p-3 font-medium">{money(row.amount, row.currency)}</td>
+                    <td className="p-3">{money(row.vatAmount, row.currency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <section className="space-y-3">
         <div>
           <h2 className="text-lg font-semibold">Bilet / davetiye kategorileri</h2>
@@ -173,8 +238,15 @@ export default async function AdminAccountingOrganizerEventDetailPage({
                   <td className="p-3">
                     <Badge variant="secondary">{row.status}</Badge>
                   </td>
-                  <td className="p-3">{row.scheduledAt ? row.scheduledAt.toLocaleDateString('tr-TR') : '—'}</td>
-                  <td className="p-3">{row.paidAt ? row.paidAt.toLocaleDateString('tr-TR') : '—'}</td>
+                  <td className="p-3">
+                    {row.scheduledAt ? row.scheduledAt.toLocaleDateString('tr-TR') : '—'}
+                  </td>
+                  <td className="p-3">
+                    {row.paidAt ? row.paidAt.toLocaleDateString('tr-TR') : '—'}
+                    {row.paymentRef ? (
+                      <p className="text-xs text-muted-foreground">Ref: {row.paymentRef}</p>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
               {detail.payouts.length === 0 && (
