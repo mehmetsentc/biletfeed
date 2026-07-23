@@ -3,6 +3,7 @@ import type {
   EFaturaChannelConfig,
   EInvoiceConfig
 } from '@/lib/accounting/einvoice/config';
+import { queryTaxpayerHeuristic } from '@/lib/accounting/einvoice/taxpayer';
 import type {
   EInvoicePayload,
   EInvoiceProvider,
@@ -230,6 +231,20 @@ export function createGibEfaturaProvider(
     },
 
     async submitDraft(payload) {
+      return provider.createDraft?.(payload) ?? provider.submit(payload);
+    },
+
+    async createDraft(payload) {
+      const result = await provider.submit(payload);
+      if (!result.ok) return result;
+      return {
+        ...result,
+        status: 'submitted',
+        dispatchStatus: result.dispatchStatus ?? 'queued'
+      };
+    },
+
+    async send(payload) {
       return provider.submit(payload);
     },
 
@@ -293,17 +308,25 @@ export function createGibEfaturaProvider(
       }
     },
 
-    async cancel(uuid: string) {
+    async cancel(uuid: string, opts?: { reason?: string }) {
+      // Mock / endpoint yok: yerel iptal işaretine izin ver (Paraşüt UI parity)
       if (ch.mock || !ch.baseUrl) {
-        return {
-          ok: false,
-          error: `e-Fatura iptali mock kanalda desteklenmiyor (${uuid.slice(0, 8)}…)`
-        };
+        if (process.env.NODE_ENV !== 'production') {
+          console.info('[einvoice:gib-efatura:mock] cancel', {
+            uuid: uuid.slice(0, 8),
+            reason: opts?.reason
+          });
+        }
+        return { ok: true, mock: true };
       }
       try {
         const res = await fetch(
           `${ch.baseUrl}${pathWithUuid(ch.cancelPath, uuid)}`,
-          { method: 'POST', headers: authHeaders() }
+          {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ reason: opts?.reason ?? 'cancel' })
+          }
         );
         if (!res.ok) {
           const data = await parseJson(res);
@@ -314,13 +337,38 @@ export function createGibEfaturaProvider(
               `İptal HTTP ${res.status}`
           };
         }
-        return { ok: true };
+        return { ok: true, mock: false };
       } catch (err) {
         return {
           ok: false,
           error: err instanceof Error ? err.message : 'İptal başarısız'
         };
       }
+    },
+
+    async queryTaxpayer(taxId: string) {
+      return queryTaxpayerHeuristic(taxId);
+    },
+
+    async startSmsSign() {
+      return {
+        ok: false,
+        error: 'e-Fatura kanalında SMS imza (e-Arşiv portal) kullanılmaz'
+      };
+    },
+    async completeSmsSign() {
+      return {
+        ok: false,
+        error: 'e-Fatura kanalında SMS imza kullanılmaz'
+      };
+    },
+    async signSmsStart(ettns) {
+      return provider.startSmsSign?.(ettns) ?? { ok: false, error: 'SMS yok' };
+    },
+    async signSmsComplete(params) {
+      return (
+        provider.completeSmsSign?.(params) ?? { ok: false, error: 'SMS yok' }
+      );
     },
 
     async getPdf(uuid, opts) {

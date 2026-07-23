@@ -5,6 +5,17 @@ export {
   resolveProviderForKind
 } from '@/lib/accounting/einvoice/provider';
 export { submitInvoiceToGib } from '@/lib/accounting/einvoice/submit';
+export { cancelInvoiceOnChannel } from '@/lib/accounting/einvoice/cancel';
+export { downloadInvoicePdf } from '@/lib/accounting/einvoice/download-pdf';
+export {
+  checkInvoiceTaxpayer,
+  queryTaxpayerHeuristic
+} from '@/lib/accounting/einvoice/taxpayer';
+export {
+  resolveLifecycleStatus,
+  LIFECYCLE_LABELS,
+  lifecycleBadgeVariant
+} from '@/lib/accounting/einvoice/lifecycle';
 export { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 export {
   classifyGibError,
@@ -33,9 +44,11 @@ export type {
   EInvoiceSubmitResult,
   InvoiceEInvoiceMeta,
   EInvoiceChannelId,
-  EInvoiceDispatchStatus
+  EInvoiceDispatchStatus,
+  TaxpayerQueryResult
 } from '@/lib/accounting/einvoice/types';
 export type {
   GibErrorCategory,
   ClassifiedGibError
 } from '@/lib/accounting/einvoice/gib-errors';
+export type { InvoiceLifecycleStatus } from '@/lib/accounting/einvoice/lifecycle';

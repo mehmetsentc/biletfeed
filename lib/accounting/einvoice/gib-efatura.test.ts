@@ -107,4 +107,11 @@ describe('createGibEfaturaProvider', () => {
     expect(result.dispatchStatus).toBe('pending_channel');
     expect(result.error).toContain('yapılandırılmadı');
   });
+
+  it('mock cancel succeeds for UI parity', async () => {
+    const p = createGibEfaturaProvider(baseConfig({ mock: true }));
+    const cancel = await p.cancel!('00000000-0000-0000-0000-000000000001');
+    expect(cancel.ok).toBe(true);
+    expect(cancel.mock).toBe(true);
+  });
 });

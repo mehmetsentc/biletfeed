@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { EInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import { queryTaxpayerHeuristic } from '@/lib/accounting/einvoice/taxpayer';
 import type {
   EInvoicePayload,
   EInvoiceProvider,
@@ -546,11 +547,99 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
       return provider.submit(payload);
     },
 
-    async cancel() {
-      return {
+    async createDraft(payload) {
+      return provider.submit(payload);
+    },
+
+    async send(payload) {
+      return provider.submit(payload);
+    },
+
+    async signSmsStart(ettns) {
+      return provider.startSmsSign?.(ettns) ?? {
         ok: false,
-        error: 'e-Arşiv portal iptali bu sürümde desteklenmiyor — GİB portalından iptal edin'
+        error: 'SMS imza desteklenmiyor'
       };
+    },
+
+    async signSmsComplete(params) {
+      return (
+        provider.completeSmsSign?.(params) ?? {
+          ok: false,
+          error: 'SMS imza desteklenmiyor'
+        }
+      );
+    },
+
+    /**
+     * Taslak silme (EARSIV_PORTAL_FATURA_SIL) — imzasız.
+     * Resmileşmiş e-Arşiv için 7 gün kuralı: canlı iptal portal komutu
+     * değişkendir; başarısızsa açık hata döner.
+     */
+    async cancel(uuid, opts?: { reason?: string; signed?: boolean }) {
+      try {
+        return await withToken(async (token) => {
+          if (opts?.signed) {
+            // İmzalı iptal — portal komutu ortamdan ortama değişir; dene + net hata
+            const iptal = await dispatch(
+              token,
+              'EARSIV_PORTAL_FATURA_IPTAL',
+              'RG_FATURALAR',
+              { ettn: uuid, aciklama: opts.reason ?? 'iptal' }
+            );
+            const iptalOk =
+              iptal.status === 'success' ||
+              (typeof iptal.data === 'string' &&
+                iptal.data.toLowerCase().includes('başarı'));
+            if (iptalOk) return { ok: true, mock: false };
+            return {
+              ok: false,
+              error:
+                (typeof iptal.error === 'string' && iptal.error) ||
+                'İmzalı e-Arşiv iptali portalda başarısız — GİB e-Arşiv Portal’dan 7 gün içinde iptal edin'
+            };
+          }
+
+          const sil = await dispatch(
+            token,
+            'EARSIV_PORTAL_FATURA_SIL',
+            'RG_TASLAKLAR',
+            { belgeler: [{ ettn: uuid }] }
+          );
+          const silOk =
+            sil.status === 'success' ||
+            (typeof sil.data === 'string' &&
+              (sil.data.toLowerCase().includes('başarı') ||
+                sil.data.toLowerCase().includes('silindi')));
+          if (silOk) return { ok: true, mock: false };
+
+          // Alternatif tek ettn payload
+          const sil2 = await dispatch(
+            token,
+            'EARSIV_PORTAL_FATURA_SIL',
+            'RG_BASITTASLAKLAR',
+            { ettn: uuid }
+          );
+          const sil2Ok =
+            sil2.status === 'success' ||
+            (typeof sil2.data === 'string' &&
+              sil2.data.toLowerCase().includes('başarı'));
+          if (sil2Ok) return { ok: true, mock: false };
+
+          return {
+            ok: false,
+            error:
+              (typeof sil.error === 'string' && sil.error) ||
+              (typeof sil2.error === 'string' && sil2.error) ||
+              'Taslak silinemedi — GİB portalından kontrol edin'
+          };
+        });
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err)
+        };
+      }
     },
 
     async downloadPdf(uuid, opts) {
@@ -558,6 +647,11 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
         ok: false,
         error: 'PDF alınamadı'
       };
+    },
+
+    async queryTaxpayer(taxId: string) {
+      // Canlı GİB mükellef listesi yok — heuristic + ileride cache
+      return queryTaxpayerHeuristic(taxId);
     }
   };
 

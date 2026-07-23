@@ -32,6 +32,7 @@ import {
   describeEFaturaChannel,
   isEFaturaChannelReady
 } from '@/lib/accounting/einvoice/config';
+import { resolveLifecycleStatus } from '@/lib/accounting/einvoice/lifecycle';
 import {
   canEditInvoiceIssuedAt,
   suggestedDocumentType
@@ -73,6 +74,15 @@ function toGibRows(
       gibStatus === '—' ? undefined : gibStatus
     );
     const suggested = suggestedDocumentType(inv.buyerTaxNumber);
+    const lifecycle = resolveLifecycleStatus({
+      invoiceStatus: inv.status,
+      einvoice: einv,
+      eInvoiceUuid: inv.eInvoiceUuid
+    });
+    const meta =
+      inv.metadata && typeof inv.metadata === 'object' && !Array.isArray(inv.metadata)
+        ? (inv.metadata as Record<string, unknown>)
+        : {};
 
     return {
       id: inv.id,
@@ -80,31 +90,63 @@ function toGibRows(
       issuedAtLabel: inv.issuedAt.toLocaleDateString('tr-TR'),
       issuedAtDate: toIssuedAtDateInput(inv.issuedAt),
       buyerName: inv.buyerName,
+      buyerTaxNumber: inv.buyerTaxNumber,
       eventTitle: inv.order.event?.title ?? '—',
       amountLabel: money(inv.totalGross, inv.currency),
       type: inv.type,
       suggestedType: suggested,
       status: inv.status,
       gibStatus,
+      lifecycle,
       needsSmsSign: Boolean(einv.needsSmsSign),
       eInvoiceUuid: inv.eInvoiceUuid ?? einv.uuid ?? null,
+      ettn: typeof einv.ettn === 'string' ? einv.ettn : null,
+      envelopeUuid:
+        typeof einv.envelopeUuid === 'string' ? einv.envelopeUuid : null,
       lastError,
       phoneMasked: einv.smsPhoneMasked ?? null,
       errorCategory: classified?.category ?? null,
       errorTitle: classified?.title ?? null,
       errorExplanation: classified?.explanation ?? null,
-      sendDisabled: !eligibility.canSend,
-      sendDisabledReason: eligibility.blockReason ?? null,
-      canEditIssuedAt: canEdit,
-      canEditDocumentType: canEdit && (inv.type === 'e_arsiv' || inv.type === 'e_fatura'),
+      sendDisabled: !eligibility.canSend || inv.status === 'cancelled',
+      sendDisabledReason:
+        inv.status === 'cancelled'
+          ? 'Fatura iptal edilmiş'
+          : (eligibility.blockReason ?? null),
+      canEditIssuedAt: canEdit && inv.status !== 'cancelled',
+      canEditDocumentType:
+        canEdit &&
+        inv.status !== 'cancelled' &&
+        (inv.type === 'e_arsiv' || inv.type === 'e_fatura'),
       issuedOutsideGecis: Boolean(eligibility.issuedOutsideGecis),
       gecisRangeLabel: eligibility.gecisRange
         ? `${eligibility.gecisRange.fromLabel} – ${eligibility.gecisRange.toLabel}`
         : null,
       isRetry,
       channelLabel: eligibility.channelLabel ?? einv.channel ?? null,
-      channelId: eligibility.channelId ?? (typeof einv.channel === 'string' ? einv.channel : null),
-      efaturaChannelReady: efaturaReady
+      channelId:
+        eligibility.channelId ??
+        (typeof einv.channel === 'string' ? einv.channel : null),
+      efaturaChannelReady: efaturaReady,
+      mock: Boolean(einv.mock),
+      isCreditNote: inv.type === 'credit_note',
+      originalInvoiceNumber:
+        typeof meta.originalInvoiceNumber === 'string'
+          ? meta.originalInvoiceNumber
+          : null,
+      subtotalNet: inv.subtotalNet,
+      vatRate: inv.vatRate,
+      vatAmount: inv.vatAmount,
+      totalGross: inv.totalGross,
+      currency: inv.currency,
+      lines: inv.lines.map((l) => ({
+        description: l.description,
+        quantity: l.quantity,
+        unitPriceNet: l.unitPriceNet,
+        vatRate: l.vatRate,
+        vatAmount: l.vatAmount,
+        totalGross: l.totalGross
+      }))
     };
   });
 }
@@ -297,7 +339,7 @@ export default async function AdminAccountingPage() {
 
       <Section
         title="Faturalar"
-        description="Belge tipi seçin (e-Arşiv / e-Fatura) → ilgili kanala gönderin"
+        description="Paraşüt-benzeri akış: tip → gönder → SMS/kabul → PDF / iptal. İade (credit note) satırları listede görünür."
       >
         <InvoiceGibTable rows={gibRows} />
       </Section>

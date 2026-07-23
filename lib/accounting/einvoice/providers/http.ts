@@ -1,4 +1,5 @@
 import type { EInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import { queryTaxpayerHeuristic } from '@/lib/accounting/einvoice/taxpayer';
 import type {
   EInvoicePayload,
   EInvoiceProvider,
@@ -13,12 +14,15 @@ import type {
  *   POST {base}/invoices
  *   GET  {base}/invoices/{uuid}
  *   GET  {base}/invoices/{uuid}/pdf
+ *   POST {base}/invoices/{uuid}/cancel
  */
 export function createHttpEInvoiceProvider(config: EInvoiceConfig): EInvoiceProvider {
   const submitPath = process.env.EINVOICE_SUBMIT_PATH ?? '/invoices';
   const statusPathTpl =
     process.env.EINVOICE_STATUS_PATH ?? '/invoices/{uuid}';
   const pdfPathTpl = process.env.EINVOICE_PDF_PATH ?? '/invoices/{uuid}/pdf';
+  const cancelPathTpl =
+    process.env.EINVOICE_CANCEL_PATH ?? '/invoices/{uuid}/cancel';
 
   function authHeaders(): HeadersInit {
     const headers: Record<string, string> = {
@@ -59,7 +63,7 @@ export function createHttpEInvoiceProvider(config: EInvoiceConfig): EInvoiceProv
     return undefined;
   }
 
-  return {
+  const provider: EInvoiceProvider = {
     name: 'http',
     supports: ['e_arsiv', 'e_fatura'],
     channelId: 'http',
@@ -213,6 +217,56 @@ export function createHttpEInvoiceProvider(config: EInvoiceConfig): EInvoiceProv
           error: err instanceof Error ? err.message : String(err)
         };
       }
+    },
+
+    async downloadPdf(uuid, opts) {
+      return provider.getPdf?.(uuid, opts) ?? { ok: false, error: 'PDF yok' };
+    },
+
+    async createDraft(payload) {
+      return provider.submit(payload);
+    },
+
+    async send(payload) {
+      return provider.submit(payload);
+    },
+
+    async submitDraft(payload) {
+      return provider.submit(payload);
+    },
+
+    async cancel(uuid: string, opts?: { reason?: string }) {
+      if (!config.apiBaseUrl) {
+        return { ok: false, error: 'API base URL yok' };
+      }
+      const path = cancelPathTpl.replace('{uuid}', encodeURIComponent(uuid));
+      try {
+        const res = await fetch(`${config.apiBaseUrl}${path}`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ reason: opts?.reason ?? 'cancel' })
+        });
+        if (!res.ok) {
+          const data = await parseJson(res);
+          return {
+            ok: false,
+            error:
+              pickString(data, ['error', 'message']) ?? `HTTP ${res.status}`
+          };
+        }
+        return { ok: true, mock: false };
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err)
+        };
+      }
+    },
+
+    async queryTaxpayer(taxId: string) {
+      return queryTaxpayerHeuristic(taxId);
     }
   };
+
+  return provider;
 }

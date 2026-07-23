@@ -51,12 +51,13 @@ export async function getAccountingSummary() {
   };
 }
 
-export async function getAccountingInvoices(limit = 50) {
+export async function getAccountingInvoices(limit = 100) {
   await ensureDbConnection();
   return prisma.invoice.findMany({
     orderBy: { issuedAt: 'desc' },
     take: limit,
     include: {
+      lines: true,
       order: { select: { id: true, event: { select: { title: true } } } },
       user: { select: { email: true, displayName: true } }
     }

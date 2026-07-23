@@ -168,11 +168,49 @@ Kanal kapalıysa panel ve API: **"e-Fatura gönderimi için entegratör/kanal ya
 
 | Endpoint | Açıklama |
 |----------|----------|
+| `GET .../invoices/[id]` | Fatura detay (satırlar, GİB meta, lifecycle) |
 | `POST .../submit-einvoice` | Gönder / tekrar dene; body: `{ force?, documentType?, overrideConfirmed? }` |
 | `PATCH .../document-type` | `{ "type": "e_arsiv" \| "e_fatura", "overrideConfirmed?" }` — audit log |
 | `PATCH .../issued-at` | `{ "issuedAt": "ISO" }` — yalnızca hata/draft/none |
 | `POST .../sms-start` | SMS imza başlat (e-Arşiv) |
 | `POST .../sms-confirm` | `{ "code": "..." }` |
+| `GET .../pdf` | PDF indir (kanal veya yerel pdfkit) |
+| `POST .../cancel` | Kanal iptal + `status=cancelled` |
+| `POST .../taxpayer-check` | Mükellef / tip önerisi (heuristic + metadata cache) |
+
+---
+
+## Paraşüt parity map
+
+BiletFeed **Paraşüt API’sine bağlanmaz**; satış e-fatura yüzeyini kendi sisteminde taklit eder.
+GİB özel entegratör lisansı bu tabloda “done” olsa bile yasal yetkiyi vermez.
+
+| Paraşüt özelliği | BiletFeed | Durum | Not |
+|------------------|-----------|-------|-----|
+| e-Fatura / e-Arşiv belge tipi | `Invoice.type` + admin seçici | **done** | VKN→e_fatura, TCKN→e_arsiv önerisi |
+| Mükellefiyete göre yönlendirme | `suggestedDocumentType` + taxpayer stub | **partial** | Canlı GİB mükellef listesi yok; heuristic + cache |
+| Taslak oluştur | `submit` / `createDraft` (e-Arşiv portal) | **done** | e-Arşiv canlı portal; e-Fatura mock/HTTP |
+| Gönder / resmileştir | Admin Gönder + SMS (e-Arşiv) | **done** | e-Arşiv: SMS; e-Fatura: kanal send |
+| SMS imza (interaktif e-Arşiv) | `sms-start` / `sms-confirm` | **done** | Yalnızca gib-earsiv |
+| Durum yaşam döngüsü | `lifecycle` (taslak…iptal) | **done** | Panel badge + filtre |
+| PDF indir / paylaş | `GET .../pdf` + yerel pdfkit | **done** | Kanal URL veya dahili PDF |
+| İptal (e-Arşiv 7 gün) | `POST .../cancel` | **partial** | Taslak sil + iptal denemesi; imzalı için portal fallback |
+| e-Fatura iptal / red | cancel stub + status | **partial** | Temel e-fatura için karşı taraf iadesi gerekir (Paraşüt ile aynı kural) |
+| İade / credit note | `createCreditNoteForRefund` + panel | **done** | İade satırları listede + gönder |
+| Seri / numara | `BF{YIL}{6 hane}` | **done** | Panelde ETTN/UUID/zarf |
+| Gelen kutusu (alış) | — | **planned** | Ticket SaaS çıkış odaklı; alış yok |
+| Etiket / etiketleme | — | **planned** | İhtiyaç halinde metadata |
+| Temel vs Ticari e-Fatura | UBL profil | **partial** | UBL TEMELFATURA; ticari profil seçimi yok |
+| e-İrsaliye / e-SMM / stok / cari | — | **out of scope** | ERP değil |
+| Canlı e-Fatura GİB SOAP | `gib-efatura` HTTP gateway | **mock / stub** | Endpoint + mock; lisans sonrası canlı |
+
+### Mock vs canlı
+
+| Kanal | Canlı mı? |
+|-------|-----------|
+| GİB e-Arşiv Portal (`gib-earsiv`) | Evet — IVD kullanıcı/şifre ile |
+| BiletFeed e-Fatura (`gib-efatura`) | Mock veya kendi HTTP gateway; GİB lisanslı uç olmadan üretim yok |
+| `EINVOICE_PROVIDER=mock` | Geliştirme simülasyonu |
 
 ---
 
@@ -186,7 +224,7 @@ EINVOICE_USERNAME=...
 EINVOICE_PASSWORD=...
 ```
 
-Admin’de tipi **e-Arşiv** bırak → GİB gönder → taslak + SMS.
+Admin’de tipi **e-Arşiv** bırak → Gönder → taslak + SMS → PDF → (gerekirse) İptal.
 
 ### e-Fatura mock (kendi kanal)
 
@@ -202,7 +240,7 @@ veya tamamen lokal:
 EINVOICE_PROVIDER=mock
 ```
 
-Admin’de tipi **e-Fatura** seç → GİB gönder → `metadata.einvoice.channel=gib-efatura` (veya mock), `dispatchStatus=sent`. e-Arşiv portal çağrılmaz.
+Admin’de tipi **e-Fatura** seç → Gönder → `metadata.einvoice.channel=gib-efatura` (veya mock), `dispatchStatus=sent`. e-Arşiv portal çağrılmaz. PDF yerel üretilir. İptal mock’ta yerel `cancelled`.
 
 ### e-Fatura HTTP stub
 
@@ -211,6 +249,14 @@ EINVOICE_EFATURA_ENABLED=true
 EINVOICE_EFATURA_BASE_URL=https://your-gateway.example
 EINVOICE_EFATURA_API_KEY=...
 ```
+
+### Panel kontrol listesi
+
+1. `/admin/muhasebe` → Faturalar: tip/durum/tarih/arama filtreleri
+2. Detay drawer: satırlar, KDV, ETTN, kanal
+3. PDF indir
+4. Mükellef kontrol (VKN→e-Fatura önerisi)
+5. İade faturası (iade siparişi sonrası `credit_note` satırı)
 
 ---
 
@@ -223,8 +269,10 @@ EINVOICE_EFATURA_API_KEY=...
 | `lib/services/user-billing.ts` | Profil upsert |
 | `lib/accounting/fulfillment.ts` | Ödeme sonrası fatura tetikleyici |
 | `lib/accounting/invoice.ts` | Fatura + tip/tarih düzeltme |
-| `lib/accounting/einvoice/` | Provider’lar, router, guard, UBL |
+| `lib/accounting/einvoice/` | Provider’lar, router, guard, UBL, PDF, iptal, mükellef |
 | `lib/accounting/einvoice/providers/gib-efatura.ts` | BiletFeed e-Fatura kanalı |
-| `components/admin/invoice-gib-table.tsx` | Tip seçici + kanal + gönder |
+| `lib/accounting/einvoice/lifecycle.ts` | Paraşüt-benzeri durum etiketleri |
+| `lib/accounting/einvoice/invoice-pdf.ts` | Yerel fatura PDF |
+| `components/admin/invoice-gib-table.tsx` | Filtre + detay + PDF + iptal |
 | `lib/accounting/email.ts` | Fatura e-postası |
 | `prisma/schema.prisma` | `UserBillingProfile`, `Invoice` |

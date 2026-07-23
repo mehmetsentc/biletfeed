@@ -106,6 +106,36 @@ export interface EInvoiceSubmitResult {
   payloadHash?: string;
 }
 
+/** GİB mükellef / alıcı tip sorgusu sonucu (canlı API yoksa heuristic) */
+export type TaxpayerEfaturaUser = 'yes' | 'no' | 'unknown';
+
+export interface TaxpayerQueryResult {
+  ok: boolean;
+  taxId: string | null;
+  taxIdKind: 'vkn' | 'tckn' | 'unknown' | 'missing';
+  suggestedDocumentType: 'e_arsiv' | 'e_fatura';
+  efaturaUser: TaxpayerEfaturaUser;
+  source: 'heuristic' | 'gib' | 'cache';
+  checkedAt: string;
+  note?: string;
+  error?: string;
+}
+
+export interface TaxpayerCheckCache {
+  taxId: string | null;
+  taxIdKind: TaxpayerQueryResult['taxIdKind'];
+  suggestedDocumentType: 'e_arsiv' | 'e_fatura';
+  efaturaUser: TaxpayerEfaturaUser;
+  source: TaxpayerQueryResult['source'];
+  checkedAt: string;
+  note?: string;
+}
+
+/**
+ * Paraşüt-benzeri kanal operasyonları.
+ * createDraft / send / signSms* / getPdf / cancel / queryTaxpayer —
+ * gateway bağlanınca UI aynı kalır.
+ */
 export interface EInvoiceProvider {
   readonly name: EInvoiceProviderName;
   /** Bu provider hangi belge türlerini taşıyabilir */
@@ -115,8 +145,15 @@ export interface EInvoiceProvider {
   submit(payload: EInvoicePayload): Promise<EInvoiceSubmitResult>;
   /** Alias — bazı kanallar taslak oluşturur (e-Arşiv) */
   submitDraft?(payload: EInvoicePayload): Promise<EInvoiceSubmitResult>;
+  /** Paraşüt parity: createDraft ≡ submitDraft ?? submit */
+  createDraft?(payload: EInvoicePayload): Promise<EInvoiceSubmitResult>;
+  /** Paraşüt parity: send ≡ submit */
+  send?(payload: EInvoicePayload): Promise<EInvoiceSubmitResult>;
   getStatus?(uuid: string): Promise<EInvoiceSubmitResult>;
-  cancel?(uuid: string): Promise<{ ok: boolean; error?: string }>;
+  cancel?(
+    uuid: string,
+    opts?: { reason?: string; signed?: boolean }
+  ): Promise<{ ok: boolean; error?: string; mock?: boolean }>;
   getPdf?(
     uuid: string,
     opts?: { signed?: boolean }
@@ -137,6 +174,20 @@ export interface EInvoiceProvider {
     code: string;
     ettns: string[];
   }): Promise<{ ok: boolean; error?: string }>;
+  /** Alias: signSmsStart / signSmsComplete */
+  signSmsStart?(ettns: string[]): Promise<{
+    ok: boolean;
+    oid?: string;
+    phoneMasked?: string;
+    error?: string;
+  }>;
+  signSmsComplete?(params: {
+    oid: string;
+    code: string;
+    ettns: string[];
+  }): Promise<{ ok: boolean; error?: string }>;
+  /** Alıcı mükellef sorgusu (stub veya canlı) */
+  queryTaxpayer?(taxId: string): Promise<TaxpayerQueryResult>;
 }
 
 export interface InvoiceEInvoiceMeta {
@@ -164,4 +215,9 @@ export interface InvoiceEInvoiceMeta {
   envelopeUuid?: string;
   /** Son gönderilen UBL/payload özeti */
   lastPayloadHash?: string;
+  /** Kanal iptal zamanı (ISO) */
+  cancelledAt?: string;
+  cancelReason?: string;
+  /** Mükellef / belge tipi kontrol önbelleği */
+  taxpayerCheck?: TaxpayerCheckCache;
 }
