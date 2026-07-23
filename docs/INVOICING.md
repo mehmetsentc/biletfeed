@@ -19,21 +19,39 @@ Admin `/admin/muhasebe` satırında belge tipi (e-Arşiv | e-Fatura) seçilebili
 
 ### Checkout fatura toplama
 
-Ücretli siparişlerde kullanıcı checkout sırasında fatura bilgilerini girer:
+Ücretli siparişlerde varsayılan **B2C / nihai tüketici** satıştır (market kart ödemesi gibi — vergi no istenmez):
 
-| Alan | Bireysel | Kurumsal |
-|------|----------|----------|
-| Ad / unvan | İsteğe bağlı (katılımcı adı yedek) | Zorunlu |
-| TCKN / VKN | TCKN isteğe bağlı | VKN (10 hane) zorunlu |
+| Alan | Bireysel (varsayılan) | Kurumsal (opt-in) |
+|------|----------------------|------------------|
+| Ad / unvan | Bilet sahibi adı kullanılır | Zorunlu |
+| TCKN / VKN | **İstenmez** | VKN (10 hane) zorunlu |
 | Vergi dairesi | — | Zorunlu |
-| Fatura adresi | İsteğe bağlı | Zorunlu |
+| Fatura adresi | — | Zorunlu |
+
+Checkout’ta yalnızca **“Kurumsal fatura istiyorum”** açılırsa VKN + unvan + vergi dairesi + adres istenir.
 
 Kayıt: `POST /api/orders/checkout` → `upsertUserBillingProfile` → `user_billing_profiles`.
+Bireysel profilde `taxNumber` null saklanır (eski TCKN temizlenir).
 
-Fatura tipi (`resolveInvoiceType` — rakam dışı karakterler strip edilir):
+### Nihai tüketici (GİB)
 
-- 10 haneli VKN → `e_fatura` (varsayılan; admin override edebilir)
-- 11 haneli TCKN / yok → `e_arsiv`
+Vergi kimliği yokken:
+
+| Katman | Değer |
+|--------|--------|
+| DB `Invoice.buyerTaxNumber` | `null` |
+| `Invoice.type` | `e_arsiv` |
+| `metadata.buyerKind` | `nihai_tuketici` |
+| GİB e-Arşiv / UBL `vknTckn` | **`11111111111`** (`GIB_NIHAI_TUKETICI_TAX_ID`) |
+
+Sabit ve yardımcılar: `lib/accounting/einvoice/nihai-tuketici.ts`.
+
+Fatura tipi (`resolveInvoiceType`):
+
+- 10 haneli VKN → `e_fatura` (kurumsal)
+- boş / TCKN / nihai tüketici → `e_arsiv`
+
+Ödeme sonrası `processOrderAccounting` → `createSaleInvoice` → `submitInvoiceToGib` (failSoft; GİB hatası siparişi bozmaz).
 
 ---
 

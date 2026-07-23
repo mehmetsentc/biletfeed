@@ -329,9 +329,12 @@ export const de: TranslationKeys = {
     billingTaxId: 'Steuernummer (VKN)',
     billingTitle: 'Rechnungsdaten',
     billingNote:
-      'Nach der Zahlung wird automatisch eine e-Rechnung erstellt und per E-Mail gesendet.',
-    billingCorporate: 'Firmenrechnung',
-    billingCorporateHint: 'E-Rechnung mit Firmenname und Steuernummer.',
+      'Nach der Zahlung wird automatisch eine e-Arşiv-Rechnung erstellt und per E-Mail gesendet. Keine Steuernummer nötig.',
+    billingCorporate: 'Firmenrechnung benötigt',
+    billingCorporateHint:
+      'E-Rechnung mit Firmenname und 10-stelliger Steuernummer (VKN).',
+    billingRetailHint:
+      'Endkundenverkauf: e-Arşiv als Endverbraucher; Name vom Ticketinhaber.',
     billingTradeName: 'Handelsname',
     billingTaxOffice: 'Finanzamt',
     billingAddress: 'Rechnungsadresse',

@@ -52,6 +52,9 @@ describe('einvoice UBL', () => {
     expect(xml).toContain('BF2026000001');
     expect(xml).toContain('Konser bileti');
     expect(xml).toContain('120.00');
+    // Nihai tüketici: boş tax → GİB 11111111111
+    expect(xml).toContain('11111111111');
+    expect(xml).toContain('schemeID="TCKN"');
   });
 
   it('marks corporate buyer as e-fatura profile', () => {

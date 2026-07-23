@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { companyLegal } from '@/lib/config/company';
+import { effectiveGibBuyerTaxId } from '@/lib/accounting/einvoice/nihai-tuketici';
 import type {
   EInvoiceBuyer,
   EInvoiceDocumentKind,
@@ -71,10 +72,8 @@ function buildSellerParty(seller: EInvoiceSeller): string {
 }
 
 function buildBuyerParty(buyer: EInvoiceBuyer): string {
-  const taxId = (buyer.taxNumber ?? '').replace(/\D/g, '');
-  const scheme =
-    taxId.length === 11 ? 'TCKN' : taxId.length === 10 ? 'VKN' : 'TCKN';
-  const idValue = taxId || '11111111111';
+  const idValue = effectiveGibBuyerTaxId(buyer.taxNumber);
+  const scheme = idValue.length === 10 ? 'VKN' : 'TCKN';
 
   return `
     <cac:AccountingCustomerParty>

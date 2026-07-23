@@ -326,9 +326,12 @@ export const ru: TranslationKeys = {
     billingTaxId: 'Налоговый номер (VKN)',
     billingTitle: 'Платёжные данные',
     billingNote:
-      'После оплаты e-Arşiv или e-Fatura будет автоматически оформлен и отправлен на email.',
-    billingCorporate: 'Корпоративный счёт',
-    billingCorporateHint: 'E-Fatura оформляется с названием компании и VKN.',
+      'После оплаты e-Arşiv оформляется автоматически и отправляется на email. Налоговый номер не требуется.',
+    billingCorporate: 'Нужен корпоративный счёт',
+    billingCorporateHint:
+      'E-Fatura оформляется с названием компании и 10-значным VKN.',
+    billingRetailHint:
+      'Розничная продажа: e-Arşiv как конечный потребитель; имя берётся у владельца билета.',
     billingTradeName: 'Торговое наименование',
     billingTaxOffice: 'Налоговая инспекция',
     billingAddress: 'Адрес для счёта',

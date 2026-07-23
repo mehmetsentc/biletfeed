@@ -4,6 +4,19 @@ import { companyLegal } from '@/lib/config/company';
 import { splitGrossAmount } from '@/lib/accounting/tax';
 import { logAccountingAudit } from '@/lib/accounting/audit';
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
+import {
+  normalizeTaxIdDigits,
+  resolveBuyerInvoiceKind
+} from '@/lib/accounting/einvoice/nihai-tuketici';
+
+export {
+  normalizeTaxIdDigits,
+  GIB_NIHAI_TUKETICI_TAX_ID,
+  isNihaiTuketiciTaxId,
+  effectiveGibBuyerTaxId,
+  resolveBuyerInvoiceKind,
+  buyerInvoiceKindLabel
+} from '@/lib/accounting/einvoice/nihai-tuketici';
 
 async function nextInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
@@ -19,13 +32,10 @@ async function nextInvoiceNumber(): Promise<string> {
   return `${prefix}${String(seq).padStart(6, '0')}`;
 }
 
-/** VKN/TCKN: yalnızca rakamlar; 10 hane → e-Fatura adayı */
-export function normalizeTaxIdDigits(
-  buyerTaxNumber?: string | null
-): string {
-  return (buyerTaxNumber ?? '').replace(/\D/g, '');
-}
-
+/**
+ * Belge tipi: 10 haneli VKN → e_fatura; aksi (boş / TCKN / nihai tüketici) → e_arsiv.
+ * B2C perakende varsayılanı e-Arşiv’dir; TCKN zorunlu değildir.
+ */
 export function resolveInvoiceType(
   buyerTaxNumber?: string | null
 ): InvoiceType {
@@ -155,6 +165,12 @@ export async function createSaleInvoice(input: CreateSaleInvoiceInput) {
   const tax = splitGrossAmount(input.totalGross);
   const invoiceNumber = await nextInvoiceNumber();
   const type = resolveInvoiceType(input.buyerTaxNumber);
+  const buyerKind = resolveBuyerInvoiceKind(input.buyerTaxNumber);
+  // DB'de nihai tüketici için null tutulur; GİB katmanı 11111111111 kullanır.
+  const storedTax =
+    buyerKind === 'nihai_tuketici'
+      ? null
+      : (input.buyerTaxNumber?.replace(/\D/g, '') || null);
 
   const invoice = await prisma.invoice.create({
     data: {
@@ -164,7 +180,7 @@ export async function createSaleInvoice(input: CreateSaleInvoiceInput) {
       type,
       status: 'issued',
       buyerName: input.buyerName,
-      buyerTaxNumber: input.buyerTaxNumber ?? null,
+      buyerTaxNumber: storedTax,
       buyerTaxOffice: input.buyerTaxOffice ?? null,
       buyerAddress: input.buyerAddress ?? null,
       subtotalNet: tax.subtotalNet,
@@ -173,6 +189,7 @@ export async function createSaleInvoice(input: CreateSaleInvoiceInput) {
       totalGross: tax.totalGross,
       currency: input.currency ?? 'TRY',
       metadata: {
+        buyerKind,
         seller: {
           tradeName: companyLegal.tradeName,
           taxNumber: companyLegal.taxNumber,

@@ -327,9 +327,12 @@ export const tr = {
     billingTaxId: 'Vergi numarası (VKN)',
     billingTitle: 'Fatura bilgileri',
     billingNote:
-      'Ödeme sonrası e-Arşiv veya e-Fatura otomatik düzenlenir ve e-postanıza gönderilir.',
-    billingCorporate: 'Kurumsal fatura',
-    billingCorporateHint: 'Şirket unvanı ve VKN ile e-Fatura kesilir.',
+      'Ödeme sonrası e-Arşiv faturanız otomatik kesilir ve e-postanıza gönderilir. Vergi numarası gerekmez.',
+    billingCorporate: 'Kurumsal fatura istiyorum',
+    billingCorporateHint:
+      'Şirket unvanı ve 10 haneli VKN ile e-Fatura düzenlenir.',
+    billingRetailHint:
+      'Bireysel satış: nihai tüketici olarak e-Arşiv kesilir; alıcı bilgisi bilet sahibinden alınır.',
     billingTradeName: 'Ticari unvan',
     billingTaxOffice: 'Vergi dairesi',
     billingAddress: 'Fatura adresi',

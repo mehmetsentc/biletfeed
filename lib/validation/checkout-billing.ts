@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { validateTaxNumber } from '@/lib/services/organizer-billing';
-import { isValidTcKimlik, normalizeTcKimlik } from '@/lib/validation/tc-kimlik';
 
+/**
+ * B2C varsayılan: kurumsal toggle kapalı → VKN/TCKN yok (nihai tüketici e-Arşiv).
+ * Kurumsal: VKN (10) + unvan + vergi dairesi + adres zorunlu.
+ */
 export const checkoutBillingSchema = z
   .object({
     isCorporate: z.boolean(),
@@ -11,47 +14,53 @@ export const checkoutBillingSchema = z
     billingAddress: z.string().trim().max(500).optional()
   })
   .superRefine((data, ctx) => {
-    if (data.isCorporate) {
-      if (!data.companyName || data.companyName.length < 2) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Ticari unvan zorunludur',
-          path: ['companyName']
-        });
-      }
-      const digits = (data.taxNumber ?? '').replace(/\D/g, '');
-      if (!validateTaxNumber(digits) || digits.length !== 10) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Vergi numarası (VKN) 10 haneli olmalıdır',
-          path: ['taxNumber']
-        });
-      }
-      if (!data.taxOffice || data.taxOffice.length < 2) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Vergi dairesi zorunludur',
-          path: ['taxOffice']
-        });
-      }
-      if (!data.billingAddress || data.billingAddress.length < 10) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Fatura adresi zorunludur',
-          path: ['billingAddress']
-        });
-      }
-      return;
-    }
+    if (!data.isCorporate) return;
 
-    const tc = normalizeTcKimlik(data.taxNumber ?? '');
-    if (tc && !isValidTcKimlik(tc)) {
+    if (!data.companyName || data.companyName.length < 2) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Geçerli bir T.C. kimlik numarası girin',
+        message: 'Ticari unvan zorunludur',
+        path: ['companyName']
+      });
+    }
+    const digits = (data.taxNumber ?? '').replace(/\D/g, '');
+    if (!validateTaxNumber(digits) || digits.length !== 10) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Vergi numarası (VKN) 10 haneli olmalıdır',
         path: ['taxNumber']
       });
     }
+    if (!data.taxOffice || data.taxOffice.length < 2) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Vergi dairesi zorunludur',
+        path: ['taxOffice']
+      });
+    }
+    if (!data.billingAddress || data.billingAddress.length < 10) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Fatura adresi zorunludur',
+        path: ['billingAddress']
+      });
+    }
+  })
+  .transform((data) => {
+    if (data.isCorporate) {
+      return {
+        ...data,
+        taxNumber: (data.taxNumber ?? '').replace(/\D/g, '').slice(0, 10)
+      };
+    }
+    // Bireysel: vergi kimliği saklanmaz (nihai tüketici)
+    return {
+      isCorporate: false,
+      companyName: data.companyName?.trim() || undefined,
+      taxNumber: undefined,
+      taxOffice: undefined,
+      billingAddress: data.billingAddress?.trim() || undefined
+    };
   });
 
 export type CheckoutBillingInput = z.infer<typeof checkoutBillingSchema>;

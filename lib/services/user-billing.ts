@@ -19,22 +19,28 @@ export async function upsertUserBillingProfile(
   }
 
   const data = parsed.data;
-  const taxNumber = data.taxNumber?.replace(/\D/g, '') || null;
+  const taxNumber = data.isCorporate
+    ? data.taxNumber?.replace(/\D/g, '') || null
+    : null;
 
   return prisma.userBillingProfile.upsert({
     where: { userId },
     create: {
       userId,
       isCorporate: data.isCorporate,
-      companyName: data.companyName?.trim() || null,
-      taxOffice: data.taxOffice?.trim() || null,
+      companyName: data.isCorporate
+        ? data.companyName?.trim() || null
+        : data.companyName?.trim() || null,
+      taxOffice: data.isCorporate ? data.taxOffice?.trim() || null : null,
       taxNumber,
       billingAddress: data.billingAddress?.trim() || null
     },
     update: {
       isCorporate: data.isCorporate,
-      companyName: data.companyName?.trim() || null,
-      taxOffice: data.taxOffice?.trim() || null,
+      companyName: data.isCorporate
+        ? data.companyName?.trim() || null
+        : data.companyName?.trim() || null,
+      taxOffice: data.isCorporate ? data.taxOffice?.trim() || null : null,
       taxNumber,
       billingAddress: data.billingAddress?.trim() || null
     }

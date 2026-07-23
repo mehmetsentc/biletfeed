@@ -1,4 +1,8 @@
-export { getEInvoiceConfig, describeEFaturaChannel, isEFaturaChannelReady } from '@/lib/accounting/einvoice/config';
+export {
+  getEInvoiceConfig,
+  describeEFaturaChannel,
+  isEFaturaChannelReady
+} from '@/lib/accounting/einvoice/config';
 export {
   getEInvoiceProvider,
   getEFaturaProvider,
@@ -38,6 +42,14 @@ export {
 } from '@/lib/accounting/einvoice/ubl';
 export { verifyGibEarsivLogin } from '@/lib/accounting/einvoice/providers/gib-earsiv';
 export { createGibEfaturaProvider } from '@/lib/accounting/einvoice/providers/gib-efatura';
+export {
+  GIB_NIHAI_TUKETICI_TAX_ID,
+  isNihaiTuketiciTaxId,
+  effectiveGibBuyerTaxId,
+  resolveBuyerInvoiceKind,
+  buyerInvoiceKindLabel
+} from '@/lib/accounting/einvoice/nihai-tuketici';
+export type { BuyerInvoiceKind } from '@/lib/accounting/einvoice/nihai-tuketici';
 export type {
   EInvoicePayload,
   EInvoiceProvider,

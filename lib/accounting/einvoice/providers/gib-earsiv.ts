@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { EInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import { effectiveGibBuyerTaxId } from '@/lib/accounting/einvoice/nihai-tuketici';
 import { queryTaxpayerHeuristic } from '@/lib/accounting/einvoice/taxpayer';
 import type {
   EInvoicePayload,
@@ -170,11 +171,8 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
     const isCorporate = payload.buyer.isCorporate || taxDigits.length === 10;
     const { adi, soyadi } = splitPersonName(payload.buyer.name);
 
-    // Bireysel / yabancı: GİB sıkça 11111111111 kabul eder
-    const vknTckn =
-      taxDigits.length === 10 || taxDigits.length === 11
-        ? taxDigits
-        : '11111111111';
+    // Bireysel / nihai tüketici: GİB 11111111111 (TCKN scheme) kabul eder
+    const vknTckn = effectiveGibBuyerTaxId(payload.buyer.taxNumber);
 
     const lines = payload.lines.map((line) => {
       const qty = Math.max(1, Math.abs(line.quantity));
@@ -352,11 +350,10 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
             };
           }
 
-          const taxDigits = (payload.buyer.taxNumber ?? '').replace(/\D/g, '');
           const resolved =
             (await resolveCreatedEttn(
               token,
-              taxDigits || '11111111111',
+              effectiveGibBuyerTaxId(payload.buyer.taxNumber),
               payload.issuedAt
             )) ?? payload.ettn;
 

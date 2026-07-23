@@ -33,19 +33,30 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
   if (alreadyInvoiced) return;
 
   const profile = order.user.billingProfile;
-  const buyerName =
-    profile?.companyName?.trim() ||
-    order.attendeeName?.trim() ||
-    order.user.displayName?.trim() ||
-    'Bireysel Müşteri';
+  const isCorporate =
+    profile?.isCorporate === true &&
+    (profile.taxNumber ?? '').replace(/\D/g, '').length === 10;
 
+  const buyerName = isCorporate
+    ? profile?.companyName?.trim() ||
+      order.attendeeName?.trim() ||
+      order.user.displayName?.trim() ||
+      'Kurumsal Müşteri'
+    : order.attendeeName?.trim() ||
+      profile?.companyName?.trim() ||
+      order.user.displayName?.trim() ||
+      'Bireysel Müşteri';
+
+  // Bireysel / nihai tüketici: vergi no DB'de null; GİB katmanı 11111111111 kullanır
   const invoice = await createSaleInvoice({
     orderId: order.id,
     userId: order.userId,
     buyerName,
-    buyerTaxNumber: profile?.taxNumber,
-    buyerTaxOffice: profile?.taxOffice,
-    buyerAddress: profile?.billingAddress,
+    buyerTaxNumber: isCorporate ? profile?.taxNumber : null,
+    buyerTaxOffice: isCorporate ? profile?.taxOffice : null,
+    buyerAddress: isCorporate
+      ? profile?.billingAddress
+      : (profile?.billingAddress ?? null),
     totalGross: order.total,
     currency: 'TRY',
     lines: order.items.map((item) => ({

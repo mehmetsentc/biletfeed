@@ -20,6 +20,11 @@ import {
   LIFECYCLE_LABELS,
   lifecycleBadgeVariant
 } from '@/lib/accounting/einvoice/lifecycle';
+import {
+  buyerInvoiceKindLabel,
+  isNihaiTuketiciTaxId,
+  resolveBuyerInvoiceKind
+} from '@/lib/accounting/einvoice/nihai-tuketici';
 
 export type InvoiceDocumentTypeChoice = 'e_arsiv' | 'e_fatura';
 
@@ -528,10 +533,24 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                   </td>
                   <td className="p-3">
                     <div>{row.buyerName}</div>
-                    {row.buyerTaxNumber && (
-                      <p className="font-mono text-[10px] text-muted-foreground">
-                        {row.buyerTaxNumber}
+                    {isNihaiTuketiciTaxId(row.buyerTaxNumber) ? (
+                      <p className="text-[10px] text-muted-foreground">
+                        {buyerInvoiceKindLabel('nihai_tuketici')}
+                        {row.type === 'e_arsiv' ? ' · e-Arşiv' : ''}
                       </p>
+                    ) : (
+                      <>
+                        {row.buyerTaxNumber && (
+                          <p className="font-mono text-[10px] text-muted-foreground">
+                            {row.buyerTaxNumber}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground">
+                          {buyerInvoiceKindLabel(
+                            resolveBuyerInvoiceKind(row.buyerTaxNumber)
+                          )}
+                        </p>
+                      </>
                     )}
                   </td>
                   <td className="p-3">{row.eventTitle}</td>
@@ -874,7 +893,13 @@ function DetailBody({
         <dt className="text-muted-foreground">Alıcı</dt>
         <dd>{String(data.buyerName ?? '')}</dd>
         <dt className="text-muted-foreground">VKN/TCKN</dt>
-        <dd className="font-mono">{String(data.buyerTaxNumber ?? '—')}</dd>
+        <dd className="font-mono">
+          {isNihaiTuketiciTaxId(
+            typeof data.buyerTaxNumber === 'string' ? data.buyerTaxNumber : null
+          )
+            ? `${buyerInvoiceKindLabel('nihai_tuketici')} (GİB: 11111111111)`
+            : String(data.buyerTaxNumber ?? '—')}
+        </dd>
         <dt className="text-muted-foreground">Kanal</dt>
         <dd>
           {String(data.channel ?? '—')}

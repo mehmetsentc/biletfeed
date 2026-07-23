@@ -326,9 +326,12 @@ export const en: TranslationKeys = {
     billingTaxId: 'Tax ID (VKN)',
     billingTitle: 'Billing details',
     billingNote:
-      'An e-Archive or e-Invoice will be issued automatically after payment and sent to your email.',
-    billingCorporate: 'Corporate invoice',
-    billingCorporateHint: 'E-Invoice is issued with company name and tax ID.',
+      'An e-Archive invoice is issued automatically after payment and emailed to you. No tax ID required.',
+    billingCorporate: 'I need a corporate invoice',
+    billingCorporateHint:
+      'E-Invoice is issued with company name and 10-digit tax ID (VKN).',
+    billingRetailHint:
+      'Retail sale: e-Archive as final consumer; buyer name comes from the ticket holder.',
     billingTradeName: 'Trade name',
     billingTaxOffice: 'Tax office',
     billingAddress: 'Billing address',
