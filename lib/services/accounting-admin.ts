@@ -7,6 +7,9 @@ import {
   listAccountingExpenses,
   getEventProfitAndLoss
 } from '@/lib/accounting/expenses';
+import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
+import { classifyGibError } from '@/lib/accounting/einvoice/gib-errors';
+import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
 
 export async function getAccountingSummary() {
   await ensureDbConnection();
@@ -17,7 +20,8 @@ export async function getAccountingSummary() {
     pendingPayouts,
     deferredRevenue,
     emailFailed,
-    reconciledCount
+    reconciledCount,
+    mismatchCount
   ] = await Promise.all([
     prisma.invoice.count({ where: { status: 'issued', type: { not: 'credit_note' } } }),
     prisma.invoice.aggregate({
@@ -35,7 +39,8 @@ export async function getAccountingSummary() {
       _count: true
     }),
     prisma.emailDelivery.count({ where: { status: 'failed' } }),
-    prisma.paymentReconciliation.count({ where: { status: 'reconciled' } })
+    prisma.paymentReconciliation.count({ where: { status: 'reconciled' } }),
+    prisma.paymentReconciliation.count({ where: { status: 'mismatch' } })
   ]);
 
   return {
@@ -47,7 +52,75 @@ export async function getAccountingSummary() {
     deferredRevenueAmount: deferredRevenue._sum.amount ?? 0,
     deferredRevenueCount: deferredRevenue._count,
     emailFailed,
-    reconciledCount
+    reconciledCount,
+    mismatchCount
+  };
+}
+
+/** Hafif fatura taraması — sekme rozeti (SMS bekleyen + GEÇİŞ hatası). */
+export async function getAccountingInvoiceAlertCounts(limit = 100) {
+  await ensureDbConnection();
+
+  const invoices = await prisma.invoice.findMany({
+    where: { status: { not: 'cancelled' } },
+    orderBy: { issuedAt: 'desc' },
+    take: limit,
+    select: {
+      eInvoiceUuid: true,
+      metadata: true,
+      issuedAt: true,
+      buyerTaxNumber: true,
+      type: true
+    }
+  });
+
+  let smsPending = 0;
+  let gecisErrors = 0;
+
+  for (const inv of invoices) {
+    const einv = readEInvoiceMeta(inv.metadata);
+    const gibStatus = einv.status ?? (inv.eInvoiceUuid ? 'submitted' : '—');
+    const lastError = einv.lastError ?? null;
+    const classified = classifyGibError(lastError);
+    const eligibility = evaluateGibSendEligibility({
+      issuedAt: inv.issuedAt,
+      invoiceType: inv.type,
+      buyerTaxNumber: inv.buyerTaxNumber,
+      lastError
+    });
+
+    if (Boolean(einv.needsSmsSign) || gibStatus === 'submitted') {
+      smsPending += 1;
+    }
+    if (classified?.category === 'gecis_tarih' || eligibility.issuedOutsideGecis) {
+      gecisErrors += 1;
+    }
+  }
+
+  return {
+    smsPending,
+    gecisErrors,
+    /** Rozet: SMS + GEÇİŞ birleşik uyarı sayısı */
+    faturalarBadge: smsPending + gecisErrors
+  };
+}
+
+/** Vergi sekmesi için kısa KDV özeti. */
+export async function getAccountingVatSummary() {
+  await ensureDbConnection();
+
+  const issued = await prisma.invoice.aggregate({
+    where: { status: 'issued', type: { not: 'credit_note' } },
+    _sum: { subtotalNet: true, vatAmount: true, totalGross: true },
+    _count: true
+  });
+
+  return {
+    invoiceCount: issued._count,
+    subtotalNet: issued._sum.subtotalNet ?? 0,
+    vatAmount: issued._sum.vatAmount ?? 0,
+    totalGross: issued._sum.totalGross ?? 0,
+    defaultVatRate: companyLegal.defaultVatRate
   };
 }
 

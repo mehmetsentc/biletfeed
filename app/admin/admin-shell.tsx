@@ -60,15 +60,19 @@ function AdminNavLinks({
             key={link.href}
             href={adminHref(link.href)}
             onClick={onNavigate}
+            aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex min-h-11 items-center gap-3 rounded-[var(--radius-button)] px-3 py-2.5 text-sm font-semibold transition-colors duration-[var(--duration-fast)]',
+              'flex min-h-11 items-center gap-3 rounded-[var(--radius-button)] px-3 py-2.5 text-sm transition-colors duration-[var(--duration-fast)]',
               active
-                ? 'bg-[var(--admin-sidebar-active)] text-[var(--bf-neon-on)] shadow-[var(--shadow-sm)]'
-                : 'hover:bg-[var(--admin-sidebar-hover)]'
+                ? 'bg-primary font-bold text-primary-foreground shadow-[var(--shadow-sm)]'
+                : 'font-semibold text-[var(--admin-sidebar-fg)] hover:bg-[var(--admin-sidebar-hover)] hover:text-[var(--admin-sidebar-fg-active)]'
             )}
-            style={active ? undefined : { color: 'var(--admin-sidebar-fg)' }}
           >
-            <link.icon className="size-[18px]" strokeWidth={2} />
+            <link.icon
+              className="size-[18px] shrink-0"
+              strokeWidth={active ? 2.5 : 2}
+              aria-hidden
+            />
             {link.label}
           </Link>
         );

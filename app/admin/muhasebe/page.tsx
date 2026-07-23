@@ -6,7 +6,9 @@ import {
   getAccountingReconciliations,
   getAccountingAuditLogs,
   getAccountingOrganizersOverview,
-  getAccountingExpenses
+  getAccountingExpenses,
+  getAccountingInvoiceAlertCounts,
+  getAccountingVatSummary
 } from '@/lib/services/accounting-admin';
 import { Badge } from '@/components/ui/badge';
 import { formatCompanyTaxLine } from '@/lib/config/company';
@@ -25,6 +27,10 @@ import {
   AccountingExpensesPanel,
   type ExpenseRow
 } from '@/components/admin/accounting-expenses-panel';
+import {
+  MuhasebeTabs,
+  type MuhasebeTabKey
+} from '@/components/admin/muhasebe-tabs';
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 import { classifyGibError } from '@/lib/accounting/einvoice/gib-errors';
 import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
@@ -49,6 +55,19 @@ function toIssuedAtDateInput(d: Date): string {
     month: '2-digit',
     day: '2-digit'
   }).format(d);
+}
+
+function parseMuhasebeTab(raw?: string): MuhasebeTabKey {
+  if (
+    raw === 'faturalar' ||
+    raw === 'hakedis' ||
+    raw === 'vergi' ||
+    raw === 'operasyon' ||
+    raw === 'izleme'
+  ) {
+    return raw;
+  }
+  return 'satis';
 }
 
 function toGibRows(
@@ -181,9 +200,18 @@ function toExpenseRows(
   }));
 }
 
-export default async function AdminAccountingPage() {
+interface PageProps {
+  searchParams: Promise<{ tab?: string }>;
+}
+
+export default async function AdminAccountingPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const tab = parseMuhasebeTab(params.tab);
+
   let loadError: string | null = null;
   let summary: Awaited<ReturnType<typeof getAccountingSummary>> | null = null;
+  let invoiceAlerts: Awaited<ReturnType<typeof getAccountingInvoiceAlertCounts>> | null =
+    null;
   let invoices: Awaited<ReturnType<typeof getAccountingInvoices>> = [];
   let emails: Awaited<ReturnType<typeof getAccountingEmailDeliveries>> = [];
   let payouts: Awaited<ReturnType<typeof getAccountingPayouts>> = [];
@@ -191,19 +219,80 @@ export default async function AdminAccountingPage() {
   let auditLogs: Awaited<ReturnType<typeof getAccountingAuditLogs>> = [];
   let organizers: Awaited<ReturnType<typeof getAccountingOrganizersOverview>> = [];
   let expenses: Awaited<ReturnType<typeof getAccountingExpenses>> = [];
+  let vatSummary: Awaited<ReturnType<typeof getAccountingVatSummary>> | null = null;
 
   try {
-    [summary, invoices, emails, payouts, reconciliations, auditLogs, organizers, expenses] =
-      await Promise.all([
-        getAccountingSummary(),
-        getAccountingInvoices(),
-        getAccountingEmailDeliveries(),
-        getAccountingPayouts(),
-        getAccountingReconciliations(),
-        getAccountingAuditLogs(),
-        getAccountingOrganizersOverview(),
-        getAccountingExpenses()
-      ]);
+    // Özet + rozetler her zaman; sekme gövdesi yalnızca aktif tab için
+    switch (tab) {
+      case 'satis': {
+        const [summaryResult, alertResult, orgs] = await Promise.all([
+          getAccountingSummary(),
+          getAccountingInvoiceAlertCounts(),
+          getAccountingOrganizersOverview()
+        ]);
+        summary = summaryResult;
+        invoiceAlerts = alertResult;
+        organizers = orgs;
+        break;
+      }
+      case 'faturalar': {
+        const [summaryResult, invs] = await Promise.all([
+          getAccountingSummary(),
+          getAccountingInvoices()
+        ]);
+        summary = summaryResult;
+        invoices = invs;
+        break;
+      }
+      case 'hakedis': {
+        const [summaryResult, alertResult, pays] = await Promise.all([
+          getAccountingSummary(),
+          getAccountingInvoiceAlertCounts(),
+          getAccountingPayouts()
+        ]);
+        summary = summaryResult;
+        invoiceAlerts = alertResult;
+        payouts = pays;
+        break;
+      }
+      case 'vergi': {
+        const [summaryResult, alertResult, vat] = await Promise.all([
+          getAccountingSummary(),
+          getAccountingInvoiceAlertCounts(),
+          getAccountingVatSummary()
+        ]);
+        summary = summaryResult;
+        invoiceAlerts = alertResult;
+        vatSummary = vat;
+        break;
+      }
+      case 'operasyon': {
+        const [summaryResult, alertResult, recs, exps] = await Promise.all([
+          getAccountingSummary(),
+          getAccountingInvoiceAlertCounts(),
+          getAccountingReconciliations(),
+          getAccountingExpenses()
+        ]);
+        summary = summaryResult;
+        invoiceAlerts = alertResult;
+        reconciliations = recs;
+        expenses = exps;
+        break;
+      }
+      case 'izleme': {
+        const [summaryResult, alertResult, mail, logs] = await Promise.all([
+          getAccountingSummary(),
+          getAccountingInvoiceAlertCounts(),
+          getAccountingEmailDeliveries(),
+          getAccountingAuditLogs()
+        ]);
+        summary = summaryResult;
+        invoiceAlerts = alertResult;
+        emails = mail;
+        auditLogs = logs;
+        break;
+      }
+    }
   } catch (e) {
     loadError =
       e instanceof Error
@@ -214,32 +303,47 @@ export default async function AdminAccountingPage() {
   const gibRows = toGibRows(invoices);
   const payoutRows = toPayoutRows(payouts);
   const expenseRows = toExpenseRows(expenses);
-  const pendingSms = gibRows.filter((r) => r.needsSmsSign || r.gibStatus === 'submitted').length;
-  const gecisIssueCount = gibRows.filter(
-    (r) => r.errorCategory === 'gecis_tarih' || r.issuedOutsideGecis
-  ).length;
+
+  const pendingSms =
+    tab === 'faturalar'
+      ? gibRows.filter((r) => r.needsSmsSign || r.gibStatus === 'submitted').length
+      : (invoiceAlerts?.smsPending ?? 0);
+  const gecisIssueCount =
+    tab === 'faturalar'
+      ? gibRows.filter(
+          (r) => r.errorCategory === 'gecis_tarih' || r.issuedOutsideGecis
+        ).length
+      : (invoiceAlerts?.gecisErrors ?? 0);
+  const faturalarBadge =
+    tab === 'faturalar'
+      ? pendingSms + gecisIssueCount
+      : (invoiceAlerts?.faturalarBadge ?? 0);
+
   const efaturaSellerCount = gibRows.filter(
     (r) => r.errorCategory === 'efatura_satici'
   ).length;
   const efaturaTypeCount = gibRows.filter((r) => r.type === 'e_fatura').length;
   const efaturaChannel = describeEFaturaChannel();
-  const showEfaturaSetup =
-    efaturaTypeCount > 0 && !efaturaChannel.ready;
+  const showEfaturaSetup = efaturaTypeCount > 0 && !efaturaChannel.ready;
+
+  const badges: Partial<Record<MuhasebeTabKey, number>> = {
+    faturalar: faturalarBadge,
+    hakedis: summary?.pendingPayoutCount ?? 0,
+    izleme: summary?.emailFailed ?? 0,
+    operasyon: summary?.mismatchCount ?? 0
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Muhasebe</h1>
-          <p className="text-muted-foreground">
-            Fatura, GİB e-Arşiv, mutabakat, hakediş, gider ve e-posta izleme —{' '}
-            {summary?.company.tradeName}
-          </p>
-          {summary && (
-            <p className="mt-1 text-xs text-muted-foreground">{formatCompanyTaxLine()}</p>
-          )}
-        </div>
-        <AccountingExportButtons />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Muhasebe</h1>
+        <p className="text-muted-foreground">
+          Fatura, GİB e-Arşiv, mutabakat, hakediş, gider ve e-posta izleme
+          {summary ? ` — ${summary.company.tradeName}` : ''}
+        </p>
+        {summary && (
+          <p className="mt-1 text-xs text-muted-foreground">{formatCompanyTaxLine()}</p>
+        )}
       </div>
 
       {loadError && (
@@ -248,223 +352,262 @@ export default async function AdminAccountingPage() {
         </div>
       )}
 
-      {(gecisIssueCount > 0 || efaturaSellerCount > 0 || showEfaturaSetup) && (
-        <div className="space-y-2">
-          {gecisIssueCount > 0 && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-              <p className="font-medium">
-                GİB GEÇİŞ penceresi — {gecisIssueCount} fatura
-              </p>
-              <p className="mt-1 text-amber-900/90">
-                Bu faturalar GİB’in izin verdiği tarih aralığı dışında veya GEÇİŞ
-                hatası almış. Muhasebeci IVD’den e-Arşiv yetkisi/tarih açmalı;
-                gerekirse aşağıdaki listeden fatura tarihini pencere içine
-                taşıyın. Opsiyonel env:{' '}
-                <code className="rounded bg-amber-100 px-1 text-xs">
-                  EINVOICE_GECIS_DATE_FROM
-                </code>{' '}
-                /{' '}
-                <code className="rounded bg-amber-100 px-1 text-xs">
-                  EINVOICE_GECIS_DATE_TO
-                </code>
-              </p>
-            </div>
-          )}
-          {efaturaSellerCount > 0 && (
-            <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 text-sm text-orange-950">
-              <p className="font-medium">
-                Satıcı e-Fatura / geçiş çakışması — {efaturaSellerCount} fatura
-              </p>
-              <p className="mt-1 text-orange-900/90">
-                Satıcı VKN e-Fatura kullanıcısı olarak görünüyor olabilir.
-                e-Arşiv portal gönderimi bu satırlar için kapatıldı — muhasebeciye
-                danışın veya belge tipini e-Fatura kanalına alın.
-              </p>
-            </div>
-          )}
-          {showEfaturaSetup && (
-            <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-800">
-              <p className="font-medium">
-                BiletFeed e-Fatura kanalı yapılandırılmadı — {efaturaTypeCount}{' '}
-                fatura
-              </p>
-              <p className="mt-1 text-zinc-600">
-                e-Fatura satırları e-Arşiv portalına gönderilmez. Kanalı açmak
-                için:{' '}
-                <code className="rounded bg-zinc-200 px-1 text-xs">
-                  EINVOICE_EFATURA_ENABLED=true
-                </code>
-                {', '}
-                geliştirme için{' '}
-                <code className="rounded bg-zinc-200 px-1 text-xs">
-                  EINVOICE_EFATURA_MOCK=true
-                </code>{' '}
-                veya canlı endpoint{' '}
-                <code className="rounded bg-zinc-200 px-1 text-xs">
-                  EINVOICE_EFATURA_BASE_URL
-                </code>
-                . GİB özel entegratör lisansı ayrı yasal süreçtir — yazılım
-                kanalı hazır olsa da lisans olmadan üretim gönderimi yapılamaz.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      <MuhasebeTabs active={tab} badges={badges}>
+        {tab === 'satis' && (
+          <div className="space-y-6">
+            {summary && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:max-w-xl">
+                <StatCard
+                  label="Ertelenmiş gelir"
+                  value={String(summary.deferredRevenueCount)}
+                  sub={money(summary.deferredRevenueAmount)}
+                />
+              </div>
+            )}
+            <Section
+              title="Organizatör finans görünümü"
+              description="Organizatöre tıklayıp geçmiş/gelecek etkinlik ve detay finansları açın"
+            >
+              <OrganizerFinanceTable organizers={organizers} />
+            </Section>
+          </div>
+        )}
 
-      {summary && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard label="Kesilen fatura" value={String(summary.invoiceCount)} sub={money(summary.invoiceTotal)} />
-          <StatCard
-            label="GİB SMS / taslak"
-            value={String(pendingSms)}
-            sub="Onay bekleyen e-Arşiv"
-          />
-          <StatCard
-            label="Bekleyen hakediş"
-            value={String(summary.pendingPayoutCount)}
-            sub={money(summary.pendingPayoutAmount)}
-          />
-          <StatCard
-            label="Ertelenmiş gelir"
-            value={String(summary.deferredRevenueCount)}
-            sub={money(summary.deferredRevenueAmount)}
-          />
-          <StatCard
-            label="Mutabakat / E-posta hata"
-            value={String(summary.reconciledCount)}
-            sub={`${summary.emailFailed} başarısız mail`}
-          />
-        </div>
-      )}
-
-      <Section
-        title="Faturalar"
-        description="Paraşüt-benzeri akış: tip → gönder → SMS/kabul → PDF / iptal. İade (credit note) satırları listede görünür."
-      >
-        <InvoiceGibTable rows={gibRows} />
-      </Section>
-
-      <Section title="Ödeme mutabakatı" description="Stripe, iyzico, PayTR ve mock ödemeler">
-        <DataTable
-          headers={['Sipariş', 'Sağlayıcı', 'Beklenen', 'Alınan', 'Net', 'Durum']}
-          rows={reconciliations.map((r) => [
-            r.orderId.slice(0, 8),
-            r.provider,
-            money(r.expectedAmount, r.currency),
-            money(r.receivedAmount, r.currency),
-            money(r.netAmount, r.currency),
-            r.status
-          ])}
-          empty="Mutabakat kaydı yok."
-        />
-      </Section>
-
-      <Section
-        title="Organizatör hakedişleri"
-        description="Ödeme referansı ile ödendi işaretle veya iptal et"
-      >
-        <PayoutActionsTable rows={payoutRows} />
-      </Section>
-
-      <Section
-        title="Giderler"
-        description="Platform / etkinlik giderleri — P&L hesaplamasına dahil"
-      >
-        <AccountingExpensesPanel rows={expenseRows} />
-      </Section>
-
-      <Section
-        title="Organizatör finans görünümü"
-        description="Organizatöre tıklayıp geçmiş/gelecek etkinlik ve detay finansları açın"
-      >
-        <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[1100px] text-sm">
-            <thead className="border-b bg-muted/50 text-left">
-              <tr>
-                <th className="p-3 font-medium">Organizatör</th>
-                <th className="p-3 font-medium">Komisyon</th>
-                <th className="p-3 font-medium">Etkinlik</th>
-                <th className="p-3 font-medium">Ödenen Sipariş</th>
-                <th className="p-3 font-medium">Satış</th>
-                <th className="p-3 font-medium">Hizmet Bedeli</th>
-                <th className="p-3 font-medium">KDV</th>
-                <th className="p-3 font-medium">Ödeme Alındı</th>
-                <th className="p-3 font-medium">Bekleyen Hakediş</th>
-              </tr>
-            </thead>
-            <tbody>
-              {organizers.map((org) => (
-                <tr key={org.organizerId} className="border-b last:border-0 hover:bg-muted/20">
-                  <td className="p-3">
-                    <Link
-                      href={adminHref(`/muhasebe/${org.organizerId}`)}
-                      className="font-semibold hover:underline"
-                    >
-                      {org.organizerName}
-                    </Link>
-                    <p className="text-xs text-muted-foreground">{org.ownerEmail}</p>
-                  </td>
-                  <td className="p-3">
-                    <span className="font-medium">%{org.commissionRatePercent}</span>
-                    <p className="text-xs text-muted-foreground">
-                      {org.commissionRateCustom ? 'Özel' : 'Varsayılan'}
+        {tab === 'faturalar' && (
+          <div className="space-y-6">
+            {(gecisIssueCount > 0 || efaturaSellerCount > 0 || showEfaturaSetup) && (
+              <div className="space-y-2">
+                {gecisIssueCount > 0 && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+                    <p className="font-medium">
+                      GİB GEÇİŞ penceresi — {gecisIssueCount} fatura
                     </p>
-                  </td>
-                  <td className="p-3">{org.eventCount}</td>
-                  <td className="p-3">{org.paidOrderCount}</td>
-                  <td className="p-3">{money(org.grossSales)}</td>
-                  <td className="p-3">
-                    {money(org.serviceFee)}
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      (%{org.commissionRatePercent})
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    {money(org.vatAmount)}
-                    <span className="ml-1 text-xs text-muted-foreground">(%{org.vatRate})</span>
-                  </td>
-                  <td className="p-3">{money(org.paymentReceived)}</td>
-                  <td className="p-3">{money(org.payoutPending)}</td>
-                </tr>
-              ))}
-              {organizers.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
-                    Organizatör kaydı bulunamadı.
-                  </td>
-                </tr>
+                    <p className="mt-1 text-amber-900/90">
+                      Bu faturalar GİB’in izin verdiği tarih aralığı dışında veya GEÇİŞ
+                      hatası almış. Muhasebeci IVD’den e-Arşiv yetkisi/tarih açmalı;
+                      gerekirse aşağıdaki listeden fatura tarihini pencere içine
+                      taşıyın. Opsiyonel env:{' '}
+                      <code className="rounded bg-amber-100 px-1 text-xs">
+                        EINVOICE_GECIS_DATE_FROM
+                      </code>{' '}
+                      /{' '}
+                      <code className="rounded bg-amber-100 px-1 text-xs">
+                        EINVOICE_GECIS_DATE_TO
+                      </code>
+                    </p>
+                  </div>
+                )}
+                {efaturaSellerCount > 0 && (
+                  <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 text-sm text-orange-950">
+                    <p className="font-medium">
+                      Satıcı e-Fatura / geçiş çakışması — {efaturaSellerCount} fatura
+                    </p>
+                    <p className="mt-1 text-orange-900/90">
+                      Satıcı VKN e-Fatura kullanıcısı olarak görünüyor olabilir.
+                      e-Arşiv portal gönderimi bu satırlar için kapatıldı — muhasebeciye
+                      danışın veya belge tipini e-Fatura kanalına alın.
+                    </p>
+                  </div>
+                )}
+                {showEfaturaSetup && (
+                  <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-800">
+                    <p className="font-medium">
+                      BiletFeed e-Fatura kanalı yapılandırılmadı — {efaturaTypeCount}{' '}
+                      fatura
+                    </p>
+                    <p className="mt-1 text-zinc-600">
+                      e-Fatura satırları e-Arşiv portalına gönderilmez. Kanalı açmak
+                      için:{' '}
+                      <code className="rounded bg-zinc-200 px-1 text-xs">
+                        EINVOICE_EFATURA_ENABLED=true
+                      </code>
+                      {', '}
+                      geliştirme için{' '}
+                      <code className="rounded bg-zinc-200 px-1 text-xs">
+                        EINVOICE_EFATURA_MOCK=true
+                      </code>{' '}
+                      veya canlı endpoint{' '}
+                      <code className="rounded bg-zinc-200 px-1 text-xs">
+                        EINVOICE_EFATURA_BASE_URL
+                      </code>
+                      . GİB özel entegratör lisansı ayrı yasal süreçtir — yazılım
+                      kanalı hazır olsa da lisans olmadan üretim gönderimi yapılamaz.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {summary && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <StatCard
+                  label="Kesilen fatura"
+                  value={String(summary.invoiceCount)}
+                  sub={money(summary.invoiceTotal)}
+                />
+                <StatCard
+                  label="GİB SMS / taslak"
+                  value={String(pendingSms)}
+                  sub="Onay bekleyen e-Arşiv"
+                />
+                <StatCard
+                  label="GEÇİŞ uyarısı"
+                  value={String(gecisIssueCount)}
+                  sub="Tarih penceresi / hata"
+                />
+              </div>
+            )}
+
+            <Section
+              title="Faturalar"
+              description="Paraşüt-benzeri akış: tip → gönder → SMS/kabul → PDF / iptal. İade (credit note) satırları listede görünür."
+            >
+              <InvoiceGibTable rows={gibRows} />
+            </Section>
+          </div>
+        )}
+
+        {tab === 'hakedis' && (
+          <div className="space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {summary ? (
+                <div className="grid flex-1 gap-4 sm:grid-cols-2 lg:max-w-md">
+                  <StatCard
+                    label="Bekleyen hakediş"
+                    value={String(summary.pendingPayoutCount)}
+                    sub={money(summary.pendingPayoutAmount)}
+                  />
+                </div>
+              ) : (
+                <div />
               )}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+              <AccountingExportButtons types={['hakedis']} />
+            </div>
+            <Section
+              title="Organizatör hakedişleri"
+              description="Ödeme referansı ile ödendi işaretle veya iptal et"
+            >
+              <PayoutActionsTable rows={payoutRows} />
+            </Section>
+          </div>
+        )}
 
-      <Section title="E-posta teslimatı" description="Fatura ve bilet onay mailleri">
-        <DataTable
-          headers={['Alıcı', 'Konu', 'Şablon', 'Durum', 'Tarih']}
-          rows={emails.map((e) => [
-            e.to,
-            e.subject,
-            e.template,
-            e.status,
-            (e.sentAt ?? e.createdAt).toLocaleString('tr-TR')
-          ])}
-          empty="E-posta kaydı yok."
-        />
-      </Section>
+        {tab === 'vergi' && (
+          <div className="space-y-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Vergi & raporlar</h2>
+                <p className="text-sm text-muted-foreground">
+                  KDV ve BA/BS dışa aktarımları
+                </p>
+              </div>
+              <AccountingExportButtons types={['kdv', 'ba-bs']} />
+            </div>
+            {vatSummary && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                  label="Varsayılan KDV"
+                  value={`%${vatSummary.defaultVatRate}`}
+                  sub="ACCOUNTING_VAT_RATE"
+                />
+                <StatCard
+                  label="Matrah (net)"
+                  value={money(vatSummary.subtotalNet)}
+                  sub={`${vatSummary.invoiceCount} kesilen fatura`}
+                />
+                <StatCard
+                  label="KDV tutarı"
+                  value={money(vatSummary.vatAmount)}
+                  sub="Kesilen faturalar"
+                />
+                <StatCard
+                  label="Brüt toplam"
+                  value={money(vatSummary.totalGross)}
+                  sub="KDV dahil"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
-      <Section title="Denetim izi" description="Değişmez muhasebe işlem logu">
-        <DataTable
-          headers={['Tarih', 'İşlem', 'Varlık', 'ID']}
-          rows={auditLogs.map((a) => [
-            a.createdAt.toLocaleString('tr-TR'),
-            a.action,
-            a.entityType,
-            a.entityId.slice(0, 8)
-          ])}
-          empty="Audit log boş."
-        />
-      </Section>
+        {tab === 'operasyon' && (
+          <div className="space-y-6">
+            {summary && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <StatCard
+                  label="Mutabakat (eşleşen)"
+                  value={String(summary.reconciledCount)}
+                  sub="reconciled"
+                />
+                <StatCard
+                  label="Uyumsuzluk"
+                  value={String(summary.mismatchCount)}
+                  sub="mismatch"
+                />
+              </div>
+            )}
+            <Section title="Ödeme mutabakatı" description="Stripe, iyzico, PayTR ve mock ödemeler">
+              <DataTable
+                headers={['Sipariş', 'Sağlayıcı', 'Beklenen', 'Alınan', 'Net', 'Durum']}
+                rows={reconciliations.map((r) => [
+                  r.orderId.slice(0, 8),
+                  r.provider,
+                  money(r.expectedAmount, r.currency),
+                  money(r.receivedAmount, r.currency),
+                  money(r.netAmount, r.currency),
+                  r.status
+                ])}
+                empty="Mutabakat kaydı yok."
+              />
+            </Section>
+            <Section
+              title="Giderler"
+              description="Platform / etkinlik giderleri — P&L hesaplamasına dahil"
+            >
+              <AccountingExpensesPanel rows={expenseRows} />
+            </Section>
+          </div>
+        )}
+
+        {tab === 'izleme' && (
+          <div className="space-y-6">
+            {summary && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:max-w-md">
+                <StatCard
+                  label="Başarısız e-posta"
+                  value={String(summary.emailFailed)}
+                  sub="failed"
+                />
+              </div>
+            )}
+            <Section title="E-posta teslimatı" description="Fatura ve bilet onay mailleri">
+              <DataTable
+                headers={['Alıcı', 'Konu', 'Şablon', 'Durum', 'Tarih']}
+                rows={emails.map((e) => [
+                  e.to,
+                  e.subject,
+                  e.template,
+                  e.status,
+                  (e.sentAt ?? e.createdAt).toLocaleString('tr-TR')
+                ])}
+                empty="E-posta kaydı yok."
+              />
+            </Section>
+            <Section title="Denetim izi" description="Değişmez muhasebe işlem logu">
+              <DataTable
+                headers={['Tarih', 'İşlem', 'Varlık', 'ID']}
+                rows={auditLogs.map((a) => [
+                  a.createdAt.toLocaleString('tr-TR'),
+                  a.action,
+                  a.entityType,
+                  a.entityId.slice(0, 8)
+                ])}
+                empty="Audit log boş."
+              />
+            </Section>
+          </div>
+        )}
+      </MuhasebeTabs>
     </div>
   );
 }
@@ -496,6 +639,75 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+function OrganizerFinanceTable({
+  organizers
+}: {
+  organizers: Awaited<ReturnType<typeof getAccountingOrganizersOverview>>;
+}) {
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full min-w-[1100px] text-sm">
+        <thead className="border-b bg-muted/50 text-left">
+          <tr>
+            <th className="p-3 font-medium">Organizatör</th>
+            <th className="p-3 font-medium">Komisyon</th>
+            <th className="p-3 font-medium">Etkinlik</th>
+            <th className="p-3 font-medium">Ödenen Sipariş</th>
+            <th className="p-3 font-medium">Satış</th>
+            <th className="p-3 font-medium">Hizmet Bedeli</th>
+            <th className="p-3 font-medium">KDV</th>
+            <th className="p-3 font-medium">Ödeme Alındı</th>
+            <th className="p-3 font-medium">Bekleyen Hakediş</th>
+          </tr>
+        </thead>
+        <tbody>
+          {organizers.map((org) => (
+            <tr key={org.organizerId} className="border-b last:border-0 hover:bg-muted/20">
+              <td className="p-3">
+                <Link
+                  href={adminHref(`/muhasebe/${org.organizerId}`)}
+                  className="font-semibold hover:underline"
+                >
+                  {org.organizerName}
+                </Link>
+                <p className="text-xs text-muted-foreground">{org.ownerEmail}</p>
+              </td>
+              <td className="p-3">
+                <span className="font-medium">%{org.commissionRatePercent}</span>
+                <p className="text-xs text-muted-foreground">
+                  {org.commissionRateCustom ? 'Özel' : 'Varsayılan'}
+                </p>
+              </td>
+              <td className="p-3">{org.eventCount}</td>
+              <td className="p-3">{org.paidOrderCount}</td>
+              <td className="p-3">{money(org.grossSales)}</td>
+              <td className="p-3">
+                {money(org.serviceFee)}
+                <span className="ml-1 text-xs text-muted-foreground">
+                  (%{org.commissionRatePercent})
+                </span>
+              </td>
+              <td className="p-3">
+                {money(org.vatAmount)}
+                <span className="ml-1 text-xs text-muted-foreground">(%{org.vatRate})</span>
+              </td>
+              <td className="p-3">{money(org.paymentReceived)}</td>
+              <td className="p-3">{money(org.payoutPending)}</td>
+            </tr>
+          ))}
+          {organizers.length === 0 && (
+            <tr>
+              <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                Organizatör kaydı bulunamadı.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
