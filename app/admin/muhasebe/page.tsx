@@ -26,9 +26,21 @@ import {
   type ExpenseRow
 } from '@/components/admin/accounting-expenses-panel';
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
+import { classifyGibError } from '@/lib/accounting/einvoice/gib-errors';
+import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
+import { canEditInvoiceIssuedAt } from '@/lib/accounting/invoice';
 
 function money(amount: number, currency = 'TRY') {
   return `${currency === 'TRY' ? '₺' : currency + ' '}${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
+}
+
+function toIssuedAtDateInput(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d);
 }
 
 function toGibRows(
@@ -36,20 +48,48 @@ function toGibRows(
 ): InvoiceGibRow[] {
   return invoices.map((inv) => {
     const einv = readEInvoiceMeta(inv.metadata);
+    const gibStatus = einv.status ?? (inv.eInvoiceUuid ? 'submitted' : '—');
+    const lastError = einv.lastError ?? null;
+    const classified = classifyGibError(lastError);
+    const eligibility = evaluateGibSendEligibility({
+      issuedAt: inv.issuedAt,
+      invoiceType: inv.type,
+      buyerTaxNumber: inv.buyerTaxNumber,
+      lastError
+    });
+    const isRetry =
+      gibStatus === 'failed' ||
+      gibStatus === 'rejected' ||
+      Boolean(lastError);
+
     return {
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
       issuedAtLabel: inv.issuedAt.toLocaleDateString('tr-TR'),
+      issuedAtDate: toIssuedAtDateInput(inv.issuedAt),
       buyerName: inv.buyerName,
       eventTitle: inv.order.event?.title ?? '—',
       amountLabel: money(inv.totalGross, inv.currency),
       type: inv.type,
       status: inv.status,
-      gibStatus: einv.status ?? (inv.eInvoiceUuid ? 'submitted' : '—'),
+      gibStatus,
       needsSmsSign: Boolean(einv.needsSmsSign),
-      eInvoiceUuid: inv.eInvoiceUuid ?? einv.uuid ?? einv.ettn ?? null,
-      lastError: einv.lastError ?? null,
-      phoneMasked: einv.smsPhoneMasked ?? null
+      eInvoiceUuid: inv.eInvoiceUuid ?? einv.uuid ?? null,
+      lastError,
+      phoneMasked: einv.smsPhoneMasked ?? null,
+      errorCategory: classified?.category ?? null,
+      errorTitle: classified?.title ?? null,
+      errorExplanation: classified?.explanation ?? null,
+      sendDisabled: !eligibility.canSend,
+      sendDisabledReason: eligibility.blockReason ?? null,
+      canEditIssuedAt: canEditInvoiceIssuedAt(
+        gibStatus === '—' ? undefined : gibStatus
+      ),
+      issuedOutsideGecis: Boolean(eligibility.issuedOutsideGecis),
+      gecisRangeLabel: eligibility.gecisRange
+        ? `${eligibility.gecisRange.fromLabel} – ${eligibility.gecisRange.toLabel}`
+        : null,
+      isRetry
     };
   });
 }
@@ -118,6 +158,17 @@ export default async function AdminAccountingPage() {
   const payoutRows = toPayoutRows(payouts);
   const expenseRows = toExpenseRows(expenses);
   const pendingSms = gibRows.filter((r) => r.needsSmsSign || r.gibStatus === 'submitted').length;
+  const gecisIssueCount = gibRows.filter(
+    (r) => r.errorCategory === 'gecis_tarih' || r.issuedOutsideGecis
+  ).length;
+  const efaturaSellerCount = gibRows.filter(
+    (r) => r.errorCategory === 'efatura_satici'
+  ).length;
+  const efaturaBuyerBlocked = gibRows.filter(
+    (r) =>
+      r.sendDisabled &&
+      r.sendDisabledReason?.includes('Alıcı e-Fatura')
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -138,6 +189,55 @@ export default async function AdminAccountingPage() {
       {loadError && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
           {loadError}
+        </div>
+      )}
+
+      {(gecisIssueCount > 0 || efaturaSellerCount > 0 || efaturaBuyerBlocked > 0) && (
+        <div className="space-y-2">
+          {gecisIssueCount > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+              <p className="font-medium">
+                GİB GEÇİŞ penceresi — {gecisIssueCount} fatura
+              </p>
+              <p className="mt-1 text-amber-900/90">
+                Bu faturalar GİB’in izin verdiği tarih aralığı dışında veya GEÇİŞ
+                hatası almış. Muhasebeci IVD’den e-Arşiv yetkisi/tarih açmalı;
+                gerekirse aşağıdaki listeden fatura tarihini pencere içine
+                taşıyın. Opsiyonel env:{' '}
+                <code className="rounded bg-amber-100 px-1 text-xs">
+                  EINVOICE_GECIS_DATE_FROM
+                </code>{' '}
+                /{' '}
+                <code className="rounded bg-amber-100 px-1 text-xs">
+                  EINVOICE_GECIS_DATE_TO
+                </code>
+              </p>
+            </div>
+          )}
+          {efaturaSellerCount > 0 && (
+            <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 text-sm text-orange-950">
+              <p className="font-medium">
+                Satıcı e-Fatura / geçiş çakışması — {efaturaSellerCount} fatura
+              </p>
+              <p className="mt-1 text-orange-900/90">
+                Satıcı VKN e-Fatura kullanıcısı olarak görünüyor olabilir.
+                e-Arşiv portal gönderimi bu satırlar için kapatıldı — muhasebeciye
+                danışın.
+              </p>
+            </div>
+          )}
+          {efaturaBuyerBlocked > 0 && (
+            <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-800">
+              <p className="font-medium">
+                Alıcı e-Fatura mükellefi — {efaturaBuyerBlocked} fatura
+              </p>
+              <p className="mt-1 text-zinc-600">
+                10 haneli VKN / <code className="text-xs">e_fatura</code> tipi
+                e-Arşiv portal ile gönderilemez; özel entegratör / e-Fatura kanalı
+                gerekir.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

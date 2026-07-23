@@ -1,8 +1,9 @@
 import type { InvoiceType } from '@prisma/client';
-import { prisma } from '@/lib/db/prisma';
+import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { companyLegal } from '@/lib/config/company';
 import { splitGrossAmount } from '@/lib/accounting/tax';
 import { logAccountingAudit } from '@/lib/accounting/audit';
+import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 
 async function nextInvoiceNumber(): Promise<string> {
   const year = new Date().getFullYear();
@@ -18,8 +19,17 @@ async function nextInvoiceNumber(): Promise<string> {
   return `${prefix}${String(seq).padStart(6, '0')}`;
 }
 
-function resolveInvoiceType(buyerTaxNumber?: string | null): InvoiceType {
-  if (buyerTaxNumber && buyerTaxNumber.length === 10) return 'e_fatura';
+/** VKN/TCKN: yalnızca rakamlar; 10 hane → e-Fatura adayı */
+export function normalizeTaxIdDigits(
+  buyerTaxNumber?: string | null
+): string {
+  return (buyerTaxNumber ?? '').replace(/\D/g, '');
+}
+
+export function resolveInvoiceType(
+  buyerTaxNumber?: string | null
+): InvoiceType {
+  if (normalizeTaxIdDigits(buyerTaxNumber).length === 10) return 'e_fatura';
   return 'e_arsiv';
 }
 
@@ -160,4 +170,70 @@ export async function createCreditNoteForRefund(orderId: string) {
   }
 
   return credit;
+}
+
+/** GİB başarıyla gönderilmiş / imzalanmış faturalarda tarih düzeltilemez */
+export function canEditInvoiceIssuedAt(
+  gibStatus: string | null | undefined
+): boolean {
+  const s = (gibStatus ?? '').trim();
+  if (!s || s === '—' || s === 'none') return true;
+  return (
+    s === 'failed' ||
+    s === 'rejected' ||
+    s === 'skipped' ||
+    s === 'pending' ||
+    s === 'draft'
+  );
+}
+
+/**
+ * Admin: fatura issuedAt düzeltmesi (GEÇİŞ penceresine taşımak için).
+ * Yalnızca GİB status draft/error/none iken.
+ */
+export async function updateInvoiceIssuedAt(params: {
+  invoiceId: string;
+  issuedAt: Date;
+  actorId?: string | null;
+}): Promise<{ id: string; issuedAt: Date }> {
+  await ensureDbConnection();
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: params.invoiceId },
+    select: { id: true, issuedAt: true, metadata: true, eInvoiceUuid: true }
+  });
+  if (!invoice) {
+    throw new Error('Fatura bulunamadı');
+  }
+
+  const einv = readEInvoiceMeta(invoice.metadata);
+  const gibStatus =
+    einv.status ?? (invoice.eInvoiceUuid ? 'submitted' : undefined);
+  if (!canEditInvoiceIssuedAt(gibStatus)) {
+    throw new Error(
+      'GİB’e gönderilmiş veya onaylı faturada tarih değiştirilemez'
+    );
+  }
+
+  if (Number.isNaN(params.issuedAt.getTime())) {
+    throw new Error('Geçersiz fatura tarihi');
+  }
+
+  const updated = await prisma.invoice.update({
+    where: { id: params.invoiceId },
+    data: { issuedAt: params.issuedAt },
+    select: { id: true, issuedAt: true }
+  });
+
+  await logAccountingAudit({
+    action: 'invoice.issuedAt.updated',
+    entityType: 'invoice',
+    entityId: invoice.id,
+    actorId: params.actorId,
+    actorRole: 'admin',
+    before: { issuedAt: invoice.issuedAt.toISOString() },
+    after: { issuedAt: updated.issuedAt.toISOString() }
+  });
+
+  return updated;
 }

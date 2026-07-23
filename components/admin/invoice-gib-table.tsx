@@ -6,11 +6,14 @@ import { FileDown, RefreshCw, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { GibErrorCategory } from '@/lib/accounting/einvoice/gib-errors';
 
 export type InvoiceGibRow = {
   id: string;
   invoiceNumber: string;
   issuedAtLabel: string;
+  /** date input için YYYY-MM-DD */
+  issuedAtDate: string;
   buyerName: string;
   eventTitle: string;
   amountLabel: string;
@@ -21,6 +24,15 @@ export type InvoiceGibRow = {
   eInvoiceUuid: string | null;
   lastError: string | null;
   phoneMasked: string | null;
+  errorCategory: GibErrorCategory | null;
+  errorTitle: string | null;
+  errorExplanation: string | null;
+  sendDisabled: boolean;
+  sendDisabledReason: string | null;
+  canEditIssuedAt: boolean;
+  issuedOutsideGecis: boolean;
+  gecisRangeLabel: string | null;
+  isRetry: boolean;
 };
 
 export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
@@ -29,11 +41,13 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [info, setInfo] = useState<Record<string, string>>({});
+  const [dates, setDates] = useState<Record<string, string>>({});
 
   async function post(
     invoiceId: string,
     path: string,
-    body?: Record<string, unknown>
+    body?: Record<string, unknown>,
+    method: 'POST' | 'PATCH' = 'POST'
   ) {
     setBusyId(invoiceId);
     setErrors((p) => ({ ...p, [invoiceId]: '' }));
@@ -41,7 +55,7 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
       const res = await fetch(
         `/api/admin/accounting/invoices/${invoiceId}/${path}`,
         {
-          method: 'POST',
+          method,
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: body ? JSON.stringify(body) : undefined
@@ -63,6 +77,12 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
         setInfo((p) => ({
           ...p,
           [invoiceId]: `SMS gönderildi (${data.phoneMasked})`
+        }));
+      }
+      if (path === 'issued-at') {
+        setInfo((p) => ({
+          ...p,
+          [invoiceId]: 'Fatura tarihi güncellendi'
         }));
       }
       router.refresh();
@@ -115,10 +135,54 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                         ? 'Hata'
                         : row.gibStatus || '—';
 
+            const dateValue = dates[row.id] ?? row.issuedAtDate;
+            const sendLabel = row.isRetry ? 'Tekrar dene' : 'GİB gönder';
+
             return (
               <tr key={row.id} className="border-b last:border-0 align-top">
                 <td className="p-3 font-medium">{row.invoiceNumber}</td>
-                <td className="p-3">{row.issuedAtLabel}</td>
+                <td className="p-3">
+                  <div className="space-y-1.5">
+                    <span>{row.issuedAtLabel}</span>
+                    {row.canEditIssuedAt && (
+                      <div className="flex flex-col gap-1">
+                        <Input
+                          type="date"
+                          className="h-8 w-[150px]"
+                          value={dateValue}
+                          onChange={(e) =>
+                            setDates((p) => ({
+                              ...p,
+                              [row.id]: e.target.value
+                            }))
+                          }
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 w-fit px-2 text-xs"
+                          disabled={
+                            busyId === row.id ||
+                            !dateValue ||
+                            dateValue === row.issuedAtDate
+                          }
+                          onClick={() => {
+                            const iso = `${dateValue}T12:00:00.000Z`;
+                            void post(row.id, 'issued-at', { issuedAt: iso }, 'PATCH');
+                          }}
+                        >
+                          Tarihi kaydet
+                        </Button>
+                      </div>
+                    )}
+                    {row.issuedOutsideGecis && row.gecisRangeLabel && (
+                      <p className="max-w-[160px] text-[10px] text-amber-700">
+                        GEÇİŞ dışı (izinli: {row.gecisRangeLabel})
+                      </p>
+                    )}
+                  </div>
+                </td>
                 <td className="p-3">{row.buyerName}</td>
                 <td className="p-3">{row.eventTitle}</td>
                 <td className="p-3 whitespace-nowrap">{row.amountLabel}</td>
@@ -130,7 +194,29 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                       {row.eInvoiceUuid}
                     </p>
                   )}
-                  {row.lastError && (
+                  {row.errorTitle && (
+                    <div className="mt-1.5 max-w-[220px] space-y-0.5">
+                      <p className="text-[11px] font-medium text-destructive">
+                        {row.errorTitle}
+                      </p>
+                      {row.errorExplanation && (
+                        <p className="text-[11px] leading-snug text-muted-foreground">
+                          {row.errorExplanation}
+                        </p>
+                      )}
+                      {row.lastError && (
+                        <p
+                          className="truncate text-[10px] text-zinc-400"
+                          title={row.lastError}
+                        >
+                          {row.lastError.length > 90
+                            ? `${row.lastError.slice(0, 89)}…`
+                            : row.lastError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {!row.errorTitle && row.lastError && (
                     <p className="mt-1 max-w-[180px] text-[11px] text-destructive">
                       {row.lastError}
                     </p>
@@ -144,13 +230,18 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                         size="sm"
                         variant="outline"
                         className="h-8 gap-1 px-2"
-                        disabled={busyId === row.id}
+                        disabled={busyId === row.id || row.sendDisabled}
+                        title={
+                          row.sendDisabled
+                            ? (row.sendDisabledReason ?? undefined)
+                            : undefined
+                        }
                         onClick={() =>
                           void post(row.id, 'submit-einvoice', { force: true })
                         }
                       >
                         <RefreshCw className="size-3.5" />
-                        GİB gönder
+                        {sendLabel}
                       </Button>
                       {(row.needsSmsSign ||
                         row.gibStatus === 'submitted' ||
@@ -174,6 +265,12 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                           </Button>
                         )}
                     </div>
+
+                    {row.sendDisabled && row.sendDisabledReason && (
+                      <p className="text-[11px] leading-snug text-amber-800">
+                        {row.sendDisabledReason}
+                      </p>
+                    )}
 
                     {(row.needsSmsSign || row.gibStatus === 'submitted') && (
                       <div className="space-y-1.5 rounded-md border bg-muted/30 p-2">

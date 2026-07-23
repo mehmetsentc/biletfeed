@@ -19,7 +19,7 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 ### Temel modüller
 
 1. **Otomatik Fatura Motoru** — `lib/accounting/invoice.ts` + `lib/accounting/einvoice/`  
-   Bilet satışı sonrası `BF{YIL}{6 hane}` numaralı e-Arşiv (bireysel) veya e-Fatura (10 haneli VKN). Satıcı bilgisi `companyLegal` metadata içinde. UBL-TR üretilir; GİB gönderimi entegratör adapter ile yapılır (`eInvoiceUuid`).
+   Bilet satışı sonrası `BF{YIL}{6 hane}` numaralı e-Arşiv (bireysel) veya e-Fatura tipi (10 haneli VKN). Satıcı bilgisi `companyLegal` metadata içinde. **GİB e-Arşiv Portal bağlı** (`EINVOICE_PROVIDER=gib`); e-Fatura alıcılar panelde engellenir (entegratör sonraki faz).
 
 2. **Ödeme Geçidi Mutabakatı** — `lib/accounting/reconciliation.ts`  
    iyzico / PayTR / Stripe / mock için beklenen vs alınan tutar, tahmini komisyon, `reconciled` / `mismatch` durumu.
@@ -94,7 +94,7 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 | `RESEND_FROM_EMAIL` | Varsayılan gönderen (tickets@biletfeed.com) |
 | `RESEND_INVOICE_FROM` | Fatura gönderen (fatura@biletfeed.com) |
 | `CRON_SECRET` | Gelir tanıma cron yetkisi |
-| `EINVOICE_PROVIDER` | `mock` \| `gib` \| `http` \| `none` — **`gib` = GİB e-Arşiv Portal** |
+| `EINVOICE_PROVIDER` | `mock` \| `gib` \| `http` \| `none` — **`gib` = GİB e-Arşiv Portal (bağlı)** |
 | `EINVOICE_ENABLED` | `true` / `false` — gönderimi aç/kapa |
 | `EINVOICE_USERNAME` | IVD / e-Arşiv kullanıcı kodu (GİB) |
 | `EINVOICE_PASSWORD` | IVD şifresi |
@@ -102,6 +102,8 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 | `EINVOICE_API_BASE_URL` | Yalnızca `http` provider |
 | `EINVOICE_API_KEY` | Bearer token (`http`) |
 | `EINVOICE_FAIL_SOFT` | GİB hatası siparişi bozmasın (varsayılan true) |
+| `EINVOICE_GECIS_DATE_FROM` | Opsiyonel GEÇİŞ penceresi başlangıç (`dd/MM/yyyy` veya ISO) |
+| `EINVOICE_GECIS_DATE_TO` | Opsiyonel GEÇİŞ penceresi bitiş |
 
 ---
 
@@ -111,20 +113,25 @@ Modül: `lib/accounting/einvoice/`
 
 | Parça | Rol |
 |-------|-----|
-| `providers/gib-earsiv.ts` | **GİB e-Arşiv Portal** — login + taslak fatura |
+| `providers/gib-earsiv.ts` | **GİB e-Arşiv Portal** — login + taslak fatura (bağlı) |
 | `ubl.ts` | Invoice → UBL-TR 1.2 XML + ETTN (yedek / http provider) |
+| `gib-errors.ts` | GİB hata sınıflandırma (GEÇİŞ, satıcı e-Fatura, oturum, ETTN) |
+| `gib-send-guard.ts` | Panel + submit öncesi engel (GEÇİŞ dışı, e-Fatura alıcı/satıcı) |
 | `providers/mock.ts` | Credential yokken simülasyon |
 | `providers/http.ts` | Genel REST entegratör köprüsü |
-| `submit.ts` | DB güncelleme (`eInvoiceUuid`, `metadata.einvoice`) |
+| `submit.ts` | DB güncelleme — `eInvoiceUuid` yalnızca GİB kabulünden sonra |
 
 Akış: `processOrderAccounting` → iç fatura → `submitInvoiceToGib` → e-posta.
 
 **GİB portal notu:** Yeni taslakta `faturaUuid` **boş** gönderilir. Resmi onay için SMS.  
-**GEÇİŞ kullanıcısı:** Bazı hesaplar yalnızca GİB’in verdiği kısa tarih aralığında fatura kesebilir (ör. `08/07/2026–15/07/2026`). Bu aralık dışındaki tarihler reddedilir — muhasebeci / GİB ile e-Arşiv yetkisinin genişletilmesi gerekir.
+**GEÇİŞ kullanıcısı:** Bazı hesaplar yalnızca GİB’in verdiği kısa tarih aralığında fatura kesebilir. Panel hata metninden aralığı okur; fatura tarihi dışarıdaysa gönderimi kapatır. Muhasebeci `/admin/muhasebe` üzerinden tarihi düzeltebilir veya IVD’den yetki açtırır. Env: `EINVOICE_GECIS_DATE_FROM` / `EINVOICE_GECIS_DATE_TO`.  
+**e-Fatura alıcı:** 10 haneli VKN / `type=e_fatura` e-Arşiv ile gönderilmez (entegratör gerekir).  
+**Başarısız create:** Üretilen ETTN `eInvoiceUuid` olarak saklanmaz.
 
 Admin:
-- Liste + aksiyonlar: `/admin/muhasebe`
+- Liste + aksiyonlar: `/admin/muhasebe` (üstte GEÇİŞ / e-Fatura özet banner’ları)
 - Yeniden gönderim: `POST /api/admin/accounting/invoices/[invoiceId]/submit-einvoice`
+- Tarih düzelt: `PATCH /api/admin/accounting/invoices/[invoiceId]/issued-at` `{ "issuedAt": "..." }`
 - SMS başlat: `POST .../sms-start`
 - SMS onay: `POST .../sms-confirm` body `{ "code": "123456" }`
 - Hakediş öde: `POST /api/admin/accounting/payouts/[payoutId]/mark-paid` `{ "paymentRef": "..." }`

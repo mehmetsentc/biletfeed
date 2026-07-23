@@ -1,6 +1,6 @@
 # BiletFeed — Otomatik Fatura (e-Arşiv / e-Fatura)
 
-Bu belge checkout fatura toplama, dahili fatura motoru ve GİB entegratör yol haritasını özetler. Muhasebe modül detayları için `docs/ACCOUNTING.md`.
+Bu belge checkout fatura toplama, dahili fatura motoru ve **GİB e-Arşiv Portal** bağlantısını özetler. Muhasebe modül detayları için `docs/ACCOUNTING.md`.
 
 ## Mevcut Akış
 
@@ -9,6 +9,7 @@ Bu belge checkout fatura toplama, dahili fatura motoru ve GİB entegratör yol h
     → processOrderAccounting (lib/accounting/fulfillment.ts)
         → user_billing_profiles (checkout'ta kaydedilir)
         → createSaleInvoice (BF{YIL}{6 hane})
+        → submitInvoiceToGib (EINVOICE_PROVIDER=gib → e-Arşiv Portal)
         → sendInvoiceEmail (Resend)
 ```
 
@@ -25,10 +26,37 @@ Bu belge checkout fatura toplama, dahili fatura motoru ve GİB entegratör yol h
 
 Kayıt: `POST /api/orders/checkout` → `upsertUserBillingProfile` → `user_billing_profiles`.
 
-Fatura tipi (`lib/accounting/invoice.ts`):
+Fatura tipi (`resolveInvoiceType` — rakam dışı karakterler strip edilir):
 
-- 10 haneli VKN → `e_fatura`
+- 10 haneli VKN → `e_fatura` (**e-Arşiv portal ile gönderilmez**; entegratör gerekir)
 - Diğer → `e_arsiv`
+
+---
+
+## GİB e-Arşiv (bağlı)
+
+`EINVOICE_PROVIDER=gib` iken BiletFeed doğrudan **GİB e-Arşiv Portal** (`earsivportal.efatura.gov.tr`) üzerinden taslak fatura oluşturur.
+
+| Adım | Ne olur |
+|------|---------|
+| Gönder | `EARSIV_PORTAL_FATURA_OLUSTUR` → taslak |
+| UUID | Yalnızca GİB kabulünden / taslak listesinden resolve sonrası `eInvoiceUuid` |
+| İmza | Admin `/admin/muhasebe` → SMS gönder → kod onay |
+| Hata | Sınıflandırılır (GEÇİŞ, satıcı e-Fatura, oturum, ETTN…) — panel Türkçe açıklar |
+
+### GEÇİŞ kullanıcısı
+
+Bazı IVD hesapları yalnızca GİB’in verdiği kısa tarih aralığında fatura kesebilir. Panel:
+
+- Hata metninden aralığı parse eder
+- Fatura tarihi dışarıdaysa **GİB gönder**’i kapatır
+- Muhasebeci tarihi düzeltebilir: `PATCH .../issued-at`
+- Opsiyonel env (deploy’suz pencere): `EINVOICE_GECIS_DATE_FROM` / `EINVOICE_GECIS_DATE_TO` (`dd/MM/yyyy` veya ISO)
+
+### e-Fatura alıcı / satıcı
+
+- **Alıcı 10 hane VKN veya `type=e_fatura`:** e-Arşiv submit engellenir (özel entegratör / e-Fatura SOAP bu repoda yok).
+- **Satıcı “e-Fatura kullanıcısı” hatası:** e-Arşiv gönderimi panelde kapatılır; muhasebeciye danışın.
 
 ---
 
@@ -47,7 +75,7 @@ Fatura tipi (`lib/accounting/invoice.ts`):
 - [ ] `COMPANY_IBAN` — fatura / hakediş IBAN
 - [ ] `COMPANY_MERSIS_NO` — MERSİS (varsa)
 
-### Muhasebe env
+### Muhasebe / e-belge env
 
 | Değişken | Zorunlu | Açıklama |
 |----------|---------|----------|
@@ -56,6 +84,13 @@ Fatura tipi (`lib/accounting/invoice.ts`):
 | `RESEND_INVOICE_FROM` | Hayır | `fatura@biletfeed.com` |
 | `CRON_SECRET` | Evet | Gelir tanıma cron |
 | `DATABASE_URL` | Evet | Neon PostgreSQL |
+| `EINVOICE_PROVIDER` | Evet | `gib` (canlı e-Arşiv) / `mock` / `http` / `none` |
+| `EINVOICE_USERNAME` | gib için | IVD kullanıcı kodu |
+| `EINVOICE_PASSWORD` | gib için | IVD şifresi |
+| `EINVOICE_SANDBOX` | Hayır | `true` = test portal; gib varsayılan canlı |
+| `EINVOICE_FAIL_SOFT` | Hayır | GİB hatası siparişi bozmasın (varsayılan true) |
+| `EINVOICE_GECIS_DATE_FROM` | Hayır | GEÇİŞ penceresi başlangıç |
+| `EINVOICE_GECIS_DATE_TO` | Hayır | GEÇİŞ penceresi bitiş |
 
 ### E-posta
 
@@ -69,61 +104,47 @@ Fatura tipi (`lib/accounting/invoice.ts`):
 - [ ] `invoiceNumber` formatı: `BF2026000001`
 - [ ] Alıcı e-postasına fatura bildirimi gidiyor
 - [ ] Admin `/admin/muhasebe` fatura listesinde görünüyor
-- [ ] Kurumsal sipariş → `type: e_fatura`, bireysel → `e_arsiv`
+- [ ] Bireysel → `e_arsiv` + GİB taslak (veya GEÇİŞ uyarısı)
+- [ ] Kurumsal → `e_fatura`, e-Arşiv gönderimi engelli mesajı
 
 ### Yasal / operasyonel
 
-- [ ] e-Arşiv mükellefiyeti ve entegratör sözleşmesi (aşağıdaki Faz 2)
+- [ ] e-Arşiv mükellefiyeti (IVD) aktif
+- [ ] GEÇİŞ ise muhasebeci tarih/yetki penceresini takip eder
+- [ ] Kurumsal (e-Fatura) alıcılar için entegratör planı
 - [ ] KDV oranı ve fatura satır açıklamaları muhasebeci onayı
 - [ ] İade akışı: `createCreditNoteForRefund` test edildi
 
 ---
 
-## GİB Entegratör Yol Haritası (Faz 2)
+## e-Fatura entegratör (sonraki faz)
 
-Şu an fatura kayıtları dahili veritabanında oluşturulur; GİB'e elektronik gönderim **henüz bağlı değildir**. Üretim e-Arşiv/e-Fatura için aşağıdaki fazlar planlanmıştır.
+GİB e-Arşiv portal **bağlıdır**. Tam **e-Fatura (özel entegratör / SOAP)** henüz yoktur; 10 haneli alıcılar panelde yumuşak engellenir.
 
-### Faz 2A — Entegratör seçimi ve sözleşme
+Planlanan:
 
-1. Özel entegratör veya GİB doğrudan bağlantı değerlendirmesi (Logo e-Fatura, Foriba/Şık, Uyumsoft, Nilvera vb.)
-2. e-Arşiv ve e-Fatura mükellefiyet aktivasyonu
-3. Test ortamı API anahtarları
+- Özel entegratör veya GİB e-Fatura kanalı
+- `e_fatura` tipi için ayrı provider
+- Onaylı PDF + müşteri dashboard
 
-### Faz 2B — Teknik entegrasyon
-
-```
-lib/accounting/gib/
-  client.ts          # Entegratör REST/SOAP istemcisi
-  e-arsiv.ts         # Bireysel fatura gönderimi
-  e-fatura.ts        # Kurumsal fatura (10 hane VKN)
-  status-poll.ts     # GİB onay / red durumu
-```
-
-- `createSaleInvoice` sonrası kuyruk: `invoice.status = draft` → entegratör gönderimi → `issued` + `gibUuid`
-- Webhook veya cron ile durum güncelleme
-- Hata durumunda admin uyarısı ve yeniden deneme
-
-### Faz 2C — PDF ve müşteri deneyimi
-
-- GİB onaylı PDF veya entegratör PDF indirme linki
-- E-posta şablonuna PDF eki (`lib/email/invoice-template.ts`)
-- Kullanıcı dashboard: geçmiş faturalar listesi
-
-### Faz 2D — Uyum ve raporlama
-
-- KDV beyanı export (BA/BS hazırlığı)
-- İptal / iade faturası GİB senkronu (`createCreditNoteForRefund`)
-- `accounting_audit_logs` ile entegratör yanıt logları
-
-### Önerilen env (Faz 2)
+Önerilen env (entegratör fazı):
 
 ```
-GIB_INTEGRATOR_URL=
-GIB_INTEGRATOR_API_KEY=
-GIB_INTEGRATOR_USERNAME=
-GIB_INTEGRATOR_PASSWORD=
-GIB_TEST_MODE=true
+EINVOICE_PROVIDER=http
+EINVOICE_API_BASE_URL=
+EINVOICE_API_KEY=
 ```
+
+---
+
+## Admin API
+
+| Endpoint | Açıklama |
+|----------|----------|
+| `POST .../submit-einvoice` | GİB gönder / tekrar dene (eligibility + CSRF) |
+| `PATCH .../issued-at` | `{ "issuedAt": "ISO" }` — yalnızca hata/draft/none |
+| `POST .../sms-start` | SMS imza başlat |
+| `POST .../sms-confirm` | `{ "code": "..." }` |
 
 ---
 
@@ -135,6 +156,8 @@ GIB_TEST_MODE=true
 | `lib/validation/checkout-billing.ts` | Zod doğrulama |
 | `lib/services/user-billing.ts` | Profil upsert |
 | `lib/accounting/fulfillment.ts` | Ödeme sonrası fatura tetikleyici |
-| `lib/accounting/invoice.ts` | Fatura oluşturma |
+| `lib/accounting/invoice.ts` | Fatura oluşturma + issuedAt düzeltme |
+| `lib/accounting/einvoice/` | GİB provider, hata sınıflandırma, guard |
+| `components/admin/invoice-gib-table.tsx` | Muhasebe GİB tablosu |
 | `lib/accounting/email.ts` | Fatura e-postası |
 | `prisma/schema.prisma` | `UserBillingProfile`, `Invoice` |

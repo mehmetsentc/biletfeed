@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { submitInvoiceToGib } from '@/lib/accounting/einvoice';
+import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
+import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 const bodySchema = z.object({
@@ -25,11 +27,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   await ensureDbConnection();
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
-    include: { user: { select: { email: true } }, order: { select: { attendeeEmail: true } } }
+    include: {
+      user: { select: { email: true } },
+      order: { select: { attendeeEmail: true } }
+    }
   });
 
   if (!invoice) {
     return NextResponse.json({ error: 'Fatura bulunamadı' }, { status: 404 });
+  }
+
+  const einv = readEInvoiceMeta(invoice.metadata);
+  const eligibility = evaluateGibSendEligibility({
+    issuedAt: invoice.issuedAt,
+    invoiceType: invoice.type,
+    buyerTaxNumber: invoice.buyerTaxNumber,
+    lastError: einv.lastError
+  });
+
+  if (!eligibility.canSend) {
+    return NextResponse.json(
+      {
+        error: eligibility.blockReason ?? 'GİB gönderimi engellendi',
+        blocked: true,
+        category: eligibility.errorCategory
+      },
+      { status: 409 }
+    );
   }
 
   const result = await submitInvoiceToGib({

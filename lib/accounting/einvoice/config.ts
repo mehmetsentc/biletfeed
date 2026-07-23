@@ -12,6 +12,12 @@ export interface EInvoiceConfig {
   sandbox: boolean;
   /** Gönderim hataları sipariş akışını bozmasın */
   failSoft: boolean;
+  /**
+   * Ops: mevcut GİB GEÇİŞ fatura tarihi penceresi (dd/MM/yyyy veya ISO).
+   * Deploy olmadan panel disable mantığında kullanılır.
+   */
+  gecisDateFrom: string;
+  gecisDateTo: string;
 }
 
 export function getEInvoiceConfig(): EInvoiceConfig {
@@ -38,6 +44,8 @@ export function getEInvoiceConfig(): EInvoiceConfig {
       process.env.EINVOICE_SANDBOX !== undefined
         ? process.env.EINVOICE_SANDBOX !== 'false'
         : provider !== 'gib',
-    failSoft: process.env.EINVOICE_FAIL_SOFT !== 'false'
+    failSoft: process.env.EINVOICE_FAIL_SOFT !== 'false',
+    gecisDateFrom: process.env.EINVOICE_GECIS_DATE_FROM?.trim() ?? '',
+    gecisDateTo: process.env.EINVOICE_GECIS_DATE_TO?.trim() ?? ''
   };
 }

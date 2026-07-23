@@ -3,6 +3,10 @@ import { prisma } from '@/lib/db/prisma';
 import { logAccountingAudit } from '@/lib/accounting/audit';
 import { getEInvoiceConfig } from '@/lib/accounting/einvoice/config';
 import { withGibSessionLock } from '@/lib/accounting/einvoice/gib-lock';
+import {
+  EFATURA_BUYER_BLOCK_MESSAGE,
+  evaluateGibSendEligibility
+} from '@/lib/accounting/einvoice/gib-send-guard';
 import { getEInvoiceProvider } from '@/lib/accounting/einvoice/provider';
 import { buildEInvoicePayload } from '@/lib/accounting/einvoice/ubl';
 import type {
@@ -63,6 +67,45 @@ export async function submitInvoiceToGib(params: {
     };
   }
 
+  const eligibility = evaluateGibSendEligibility({
+    issuedAt: invoice.issuedAt,
+    invoiceType: invoice.type,
+    buyerTaxNumber: invoice.buyerTaxNumber,
+    lastError: existing.lastError
+  });
+
+  if (!eligibility.canSend) {
+    const blockMeta: InvoiceEInvoiceMeta = {
+      provider: existing.provider ?? config.provider,
+      status: 'failed',
+      ettn: typeof existing.ettn === 'string' ? existing.ettn : undefined,
+      uuid: existing.uuid,
+      pdfUrl: existing.pdfUrl,
+      providerRef: existing.providerRef,
+      submittedAt: existing.submittedAt,
+      lastError: eligibility.blockReason ?? EFATURA_BUYER_BLOCK_MESSAGE,
+      mock: existing.mock,
+      needsSmsSign: existing.needsSmsSign,
+      smsOid: existing.smsOid,
+      smsPhoneMasked: existing.smsPhoneMasked
+    };
+    await persistEInvoiceState(invoice, blockMeta, 'leave');
+    await logAccountingAudit({
+      action: 'einvoice.blocked',
+      entityType: 'invoice',
+      entityId: invoice.id,
+      after: {
+        reason: eligibility.blockReason,
+        category: eligibility.errorCategory
+      }
+    });
+    return {
+      ok: false,
+      status: 'failed',
+      error: eligibility.blockReason
+    };
+  }
+
   const provider = getEInvoiceProvider(config);
   if (!provider) {
     const skippedMeta: InvoiceEInvoiceMeta = {
@@ -70,8 +113,21 @@ export async function submitInvoiceToGib(params: {
       status: 'skipped',
       lastError: 'EINVOICE_PROVIDER=none veya API yapılandırılmadı'
     };
-    await persistEInvoiceState(invoice, skippedMeta);
+    await persistEInvoiceState(invoice, skippedMeta, 'leave');
     return { ok: true, skipped: true, status: 'skipped' };
+  }
+
+  // e-Arşiv portal yalnızca e_arsiv; e_fatura / 10 hane VKN burada ikinci kez engellenir
+  if (
+    provider.name === 'gib' &&
+    (invoice.type === 'e_fatura' ||
+      (invoice.buyerTaxNumber ?? '').replace(/\D/g, '').length === 10)
+  ) {
+    return {
+      ok: false,
+      status: 'failed',
+      error: EFATURA_BUYER_BLOCK_MESSAGE
+    };
   }
 
   const taxDigits = (invoice.buyerTaxNumber ?? '').replace(/\D/g, '');
@@ -147,22 +203,51 @@ export async function submitInvoiceToGib(params: {
   const nextMeta: InvoiceEInvoiceMeta = {
     provider: provider.name,
     status: result.status,
-    ettn: result.ettn ?? payload.ettn,
-    uuid: result.uuid,
-    pdfUrl: result.pdfUrl,
+    // Başarısız create'te üretilen ETTN'yi uuid sanma; yalnızca GİB kabulünden sonra
+    ettn: result.ok
+      ? (result.ettn ?? payload.ettn)
+      : typeof existing.ettn === 'string'
+        ? existing.ettn
+        : undefined,
+    uuid: result.ok ? result.uuid : existing.uuid,
+    pdfUrl: result.ok ? result.pdfUrl : existing.pdfUrl,
     providerRef: result.providerRef,
     submittedAt: new Date().toISOString(),
     lastError: result.error,
     mock: provider.name === 'mock',
-    needsSmsSign:
-      Boolean(
-        result.raw &&
-          typeof result.raw === 'object' &&
-          (result.raw as { needsSmsSign?: boolean }).needsSmsSign
-      ) || result.status === 'submitted'
+    needsSmsSign: result.ok
+      ? Boolean(
+          result.raw &&
+            typeof result.raw === 'object' &&
+            (result.raw as { needsSmsSign?: boolean }).needsSmsSign
+        ) || result.status === 'submitted'
+      : false
   };
 
-  await persistEInvoiceState(invoice, nextMeta, result.uuid ?? payload.ettn);
+  // eInvoiceUuid: yalnızca GİB taslağı kabul edildikten / resolve edildikten sonra
+  let uuidMode: 'set' | 'clear' | 'leave' = 'leave';
+  if (result.ok && result.uuid) {
+    uuidMode = 'set';
+  } else if (!result.ok) {
+    const stored = invoice.eInvoiceUuid;
+    const looksGenerated =
+      stored &&
+      (stored === payload.ettn ||
+        stored === existing.ettn ||
+        stored === existing.uuid);
+    const neverAcceptedByGib =
+      !existing.uuid || existing.uuid === payload.ettn;
+    if (looksGenerated && neverAcceptedByGib) {
+      uuidMode = 'clear';
+    }
+  }
+
+  await persistEInvoiceState(
+    invoice,
+    nextMeta,
+    uuidMode,
+    result.ok ? result.uuid : undefined
+  );
 
   await logAccountingAudit({
     action: result.ok ? 'einvoice.submitted' : 'einvoice.failed',
@@ -170,7 +255,7 @@ export async function submitInvoiceToGib(params: {
     entityId: invoice.id,
     after: {
       status: nextMeta.status,
-      uuid: nextMeta.uuid,
+      uuid: result.ok ? nextMeta.uuid : null,
       provider: provider.name,
       error: result.error
     }
@@ -188,7 +273,7 @@ export async function submitInvoiceToGib(params: {
   return {
     ok: result.ok || config.failSoft,
     status: result.status,
-    uuid: result.uuid ?? payload.ettn,
+    uuid: result.ok ? (result.uuid ?? undefined) : undefined,
     error: result.error
   };
 }
@@ -196,16 +281,24 @@ export async function submitInvoiceToGib(params: {
 async function persistEInvoiceState(
   invoice: InvoiceWithLines | Invoice,
   einvoice: InvoiceEInvoiceMeta,
+  uuidMode: 'set' | 'clear' | 'leave' = 'leave',
   uuid?: string
 ) {
   const meta = asRecord(invoice.metadata);
   meta.einvoice = einvoice;
 
+  const data: Prisma.InvoiceUpdateInput = {
+    metadata: meta as Prisma.InputJsonValue
+  };
+
+  if (uuidMode === 'set' && uuid) {
+    data.eInvoiceUuid = uuid;
+  } else if (uuidMode === 'clear') {
+    data.eInvoiceUuid = null;
+  }
+
   await prisma.invoice.update({
     where: { id: invoice.id },
-    data: {
-      eInvoiceUuid: uuid ?? einvoice.uuid ?? invoice.eInvoiceUuid,
-      metadata: meta as Prisma.InputJsonValue
-    }
+    data
   });
 }
