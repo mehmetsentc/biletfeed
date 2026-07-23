@@ -33,6 +33,103 @@ export function resolveInvoiceType(
   return 'e_arsiv';
 }
 
+/** Admin UI: önerilen tip (override edilebilir) */
+export function suggestedDocumentType(
+  buyerTaxNumber?: string | null
+): 'e_arsiv' | 'e_fatura' {
+  return resolveInvoiceType(buyerTaxNumber) === 'e_fatura'
+    ? 'e_fatura'
+    : 'e_arsiv';
+}
+
+export type EditableInvoiceDocumentType = 'e_arsiv' | 'e_fatura';
+
+/**
+ * Admin: fatura belge tipini e_arsiv / e_fatura olarak kaydet.
+ * GİB’e başarıyla gönderilmiş kayıtlarda tip kilitlenir.
+ */
+export async function updateInvoiceDocumentType(params: {
+  invoiceId: string;
+  type: EditableInvoiceDocumentType;
+  actorId?: string | null;
+  /** Önerilen tip ile farklıysa admin onayı alındı */
+  overrideConfirmed?: boolean;
+}): Promise<{
+  id: string;
+  type: InvoiceType;
+  suggestedType: EditableInvoiceDocumentType;
+}> {
+  await ensureDbConnection();
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: params.invoiceId },
+    select: {
+      id: true,
+      type: true,
+      buyerTaxNumber: true,
+      metadata: true,
+      eInvoiceUuid: true
+    }
+  });
+  if (!invoice) {
+    throw new Error('Fatura bulunamadı');
+  }
+
+  if (invoice.type === 'credit_note' || invoice.type === 'proforma') {
+    throw new Error('Bu fatura tipinde belge türü değiştirilemez');
+  }
+
+  const einv = readEInvoiceMeta(invoice.metadata);
+  const gibStatus =
+    einv.status ?? (invoice.eInvoiceUuid ? 'submitted' : undefined);
+  if (!canEditInvoiceIssuedAt(gibStatus)) {
+    throw new Error(
+      'GİB’e gönderilmiş veya onaylı faturada belge tipi değiştirilemez'
+    );
+  }
+
+  const suggested = suggestedDocumentType(invoice.buyerTaxNumber);
+  if (params.type !== suggested && !params.overrideConfirmed) {
+    throw new Error(
+      `Önerilen tip ${suggested === 'e_fatura' ? 'e-Fatura' : 'e-Arşiv'} — farklı seçim için onay gerekli`
+    );
+  }
+
+  if (invoice.type === params.type) {
+    return {
+      id: invoice.id,
+      type: invoice.type,
+      suggestedType: suggested
+    };
+  }
+
+  const updated = await prisma.invoice.update({
+    where: { id: params.invoiceId },
+    data: { type: params.type },
+    select: { id: true, type: true }
+  });
+
+  await logAccountingAudit({
+    action: 'invoice.documentType.updated',
+    entityType: 'invoice',
+    entityId: invoice.id,
+    actorId: params.actorId,
+    actorRole: 'admin',
+    before: { type: invoice.type },
+    after: {
+      type: updated.type,
+      suggestedType: suggested,
+      overrideConfirmed: Boolean(params.overrideConfirmed)
+    }
+  });
+
+  return {
+    id: updated.id,
+    type: updated.type,
+    suggestedType: suggested
+  };
+}
+
 export interface CreateSaleInvoiceInput {
   orderId: string;
   userId: string;

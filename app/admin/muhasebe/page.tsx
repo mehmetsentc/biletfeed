@@ -28,7 +28,14 @@ import {
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 import { classifyGibError } from '@/lib/accounting/einvoice/gib-errors';
 import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
-import { canEditInvoiceIssuedAt } from '@/lib/accounting/invoice';
+import {
+  describeEFaturaChannel,
+  isEFaturaChannelReady
+} from '@/lib/accounting/einvoice/config';
+import {
+  canEditInvoiceIssuedAt,
+  suggestedDocumentType
+} from '@/lib/accounting/invoice';
 
 function money(amount: number, currency = 'TRY') {
   return `${currency === 'TRY' ? '₺' : currency + ' '}${amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`;
@@ -46,6 +53,7 @@ function toIssuedAtDateInput(d: Date): string {
 function toGibRows(
   invoices: Awaited<ReturnType<typeof getAccountingInvoices>>
 ): InvoiceGibRow[] {
+  const efaturaReady = isEFaturaChannelReady();
   return invoices.map((inv) => {
     const einv = readEInvoiceMeta(inv.metadata);
     const gibStatus = einv.status ?? (inv.eInvoiceUuid ? 'submitted' : '—');
@@ -61,6 +69,10 @@ function toGibRows(
       gibStatus === 'failed' ||
       gibStatus === 'rejected' ||
       Boolean(lastError);
+    const canEdit = canEditInvoiceIssuedAt(
+      gibStatus === '—' ? undefined : gibStatus
+    );
+    const suggested = suggestedDocumentType(inv.buyerTaxNumber);
 
     return {
       id: inv.id,
@@ -71,6 +83,7 @@ function toGibRows(
       eventTitle: inv.order.event?.title ?? '—',
       amountLabel: money(inv.totalGross, inv.currency),
       type: inv.type,
+      suggestedType: suggested,
       status: inv.status,
       gibStatus,
       needsSmsSign: Boolean(einv.needsSmsSign),
@@ -82,14 +95,16 @@ function toGibRows(
       errorExplanation: classified?.explanation ?? null,
       sendDisabled: !eligibility.canSend,
       sendDisabledReason: eligibility.blockReason ?? null,
-      canEditIssuedAt: canEditInvoiceIssuedAt(
-        gibStatus === '—' ? undefined : gibStatus
-      ),
+      canEditIssuedAt: canEdit,
+      canEditDocumentType: canEdit && (inv.type === 'e_arsiv' || inv.type === 'e_fatura'),
       issuedOutsideGecis: Boolean(eligibility.issuedOutsideGecis),
       gecisRangeLabel: eligibility.gecisRange
         ? `${eligibility.gecisRange.fromLabel} – ${eligibility.gecisRange.toLabel}`
         : null,
-      isRetry
+      isRetry,
+      channelLabel: eligibility.channelLabel ?? einv.channel ?? null,
+      channelId: eligibility.channelId ?? (typeof einv.channel === 'string' ? einv.channel : null),
+      efaturaChannelReady: efaturaReady
     };
   });
 }
@@ -164,11 +179,10 @@ export default async function AdminAccountingPage() {
   const efaturaSellerCount = gibRows.filter(
     (r) => r.errorCategory === 'efatura_satici'
   ).length;
-  const efaturaBuyerBlocked = gibRows.filter(
-    (r) =>
-      r.sendDisabled &&
-      r.sendDisabledReason?.includes('Alıcı e-Fatura')
-  ).length;
+  const efaturaTypeCount = gibRows.filter((r) => r.type === 'e_fatura').length;
+  const efaturaChannel = describeEFaturaChannel();
+  const showEfaturaSetup =
+    efaturaTypeCount > 0 && !efaturaChannel.ready;
 
   return (
     <div className="space-y-8">
@@ -192,7 +206,7 @@ export default async function AdminAccountingPage() {
         </div>
       )}
 
-      {(gecisIssueCount > 0 || efaturaSellerCount > 0 || efaturaBuyerBlocked > 0) && (
+      {(gecisIssueCount > 0 || efaturaSellerCount > 0 || showEfaturaSetup) && (
         <div className="space-y-2">
           {gecisIssueCount > 0 && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
@@ -222,19 +236,33 @@ export default async function AdminAccountingPage() {
               <p className="mt-1 text-orange-900/90">
                 Satıcı VKN e-Fatura kullanıcısı olarak görünüyor olabilir.
                 e-Arşiv portal gönderimi bu satırlar için kapatıldı — muhasebeciye
-                danışın.
+                danışın veya belge tipini e-Fatura kanalına alın.
               </p>
             </div>
           )}
-          {efaturaBuyerBlocked > 0 && (
+          {showEfaturaSetup && (
             <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-800">
               <p className="font-medium">
-                Alıcı e-Fatura mükellefi — {efaturaBuyerBlocked} fatura
+                BiletFeed e-Fatura kanalı yapılandırılmadı — {efaturaTypeCount}{' '}
+                fatura
               </p>
               <p className="mt-1 text-zinc-600">
-                10 haneli VKN / <code className="text-xs">e_fatura</code> tipi
-                e-Arşiv portal ile gönderilemez; özel entegratör / e-Fatura kanalı
-                gerekir.
+                e-Fatura satırları e-Arşiv portalına gönderilmez. Kanalı açmak
+                için:{' '}
+                <code className="rounded bg-zinc-200 px-1 text-xs">
+                  EINVOICE_EFATURA_ENABLED=true
+                </code>
+                {', '}
+                geliştirme için{' '}
+                <code className="rounded bg-zinc-200 px-1 text-xs">
+                  EINVOICE_EFATURA_MOCK=true
+                </code>{' '}
+                veya canlı endpoint{' '}
+                <code className="rounded bg-zinc-200 px-1 text-xs">
+                  EINVOICE_EFATURA_BASE_URL
+                </code>
+                . GİB özel entegratör lisansı ayrı yasal süreçtir — yazılım
+                kanalı hazır olsa da lisans olmadan üretim gönderimi yapılamaz.
               </p>
             </div>
           )}
@@ -269,7 +297,7 @@ export default async function AdminAccountingPage() {
 
       <Section
         title="Faturalar"
-        description="BiletFeed faturası + GİB e-Arşiv: taslak gönder, SMS ile imzala"
+        description="Belge tipi seçin (e-Arşiv / e-Fatura) → ilgili kanala gönderin"
       >
         <InvoiceGibTable rows={gibRows} />
       </Section>

@@ -4,10 +4,14 @@ import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { submitInvoiceToGib } from '@/lib/accounting/einvoice';
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
+import { updateInvoiceDocumentType } from '@/lib/accounting/invoice';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 const bodySchema = z.object({
-  force: z.boolean().optional()
+  force: z.boolean().optional(),
+  /** Gönderim öncesi tip kaydı (opsiyonel) */
+  documentType: z.enum(['e_arsiv', 'e_fatura']).optional(),
+  overrideConfirmed: z.boolean().optional()
 });
 
 interface RouteParams {
@@ -22,9 +26,35 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const { invoiceId } = await params;
   const json = await request.json().catch(() => ({}));
   const parsed = bodySchema.safeParse(json);
-  const force = parsed.success ? Boolean(parsed.data.force) : false;
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'Geçersiz istek' },
+      { status: 400 }
+    );
+  }
+  const force = Boolean(parsed.data.force);
 
   await ensureDbConnection();
+
+  if (parsed.data.documentType) {
+    try {
+      await updateInvoiceDocumentType({
+        invoiceId,
+        type: parsed.data.documentType,
+        overrideConfirmed: parsed.data.overrideConfirmed ?? true,
+        actorId: guard.ctx.access.userId
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Tip güncellenemedi';
+      const status = message.includes('bulunamadı')
+        ? 404
+        : message.includes('değiştirilemez')
+          ? 409
+          : 400;
+      return NextResponse.json({ error: message }, { status });
+    }
+  }
+
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: {
@@ -50,7 +80,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       {
         error: eligibility.blockReason ?? 'GİB gönderimi engellendi',
         blocked: true,
-        category: eligibility.errorCategory
+        category: eligibility.errorCategory,
+        channel: eligibility.channelId,
+        channelLabel: eligibility.channelLabel
       },
       { status: 409 }
     );
@@ -69,5 +101,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
-  return NextResponse.json({ success: true, ...result });
+  return NextResponse.json({
+    success: true,
+    channel: eligibility.channelId,
+    channelLabel: eligibility.channelLabel,
+    ...result
+  });
 }

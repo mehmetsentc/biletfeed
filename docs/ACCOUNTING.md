@@ -19,7 +19,7 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 ### Temel modüller
 
 1. **Otomatik Fatura Motoru** — `lib/accounting/invoice.ts` + `lib/accounting/einvoice/`  
-   Bilet satışı sonrası `BF{YIL}{6 hane}` numaralı e-Arşiv (bireysel) veya e-Fatura tipi (10 haneli VKN). Satıcı bilgisi `companyLegal` metadata içinde. **GİB e-Arşiv Portal bağlı** (`EINVOICE_PROVIDER=gib`); e-Fatura alıcılar panelde engellenir (entegratör sonraki faz).
+   Bilet satışı sonrası `BF{YIL}{6 hane}` numaralı e-Arşiv (bireysel) veya e-Fatura tipi (10 haneli VKN). Satıcı bilgisi `companyLegal` metadata içinde. **GİB e-Arşiv Portal bağlı** (`EINVOICE_PROVIDER=gib`); **e-Fatura** BiletFeed kendi kanalına (`gib-efatura`) yönlenir — kanal kapalıysa panel net hata verir, e-Arşiv’e düşmez.
 
 2. **Ödeme Geçidi Mutabakatı** — `lib/accounting/reconciliation.ts`  
    iyzico / PayTR / Stripe / mock için beklenen vs alınan tutar, tahmini komisyon, `reconciled` / `mismatch` durumu.
@@ -104,6 +104,9 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 | `EINVOICE_FAIL_SOFT` | GİB hatası siparişi bozmasın (varsayılan true) |
 | `EINVOICE_GECIS_DATE_FROM` | Opsiyonel GEÇİŞ penceresi başlangıç (`dd/MM/yyyy` veya ISO) |
 | `EINVOICE_GECIS_DATE_TO` | Opsiyonel GEÇİŞ penceresi bitiş |
+| `EINVOICE_EFATURA_ENABLED` | BiletFeed e-Fatura kanalını aç |
+| `EINVOICE_EFATURA_MOCK` | Endpoint’siz mock e-Fatura |
+| `EINVOICE_EFATURA_BASE_URL` | e-Fatura HTTP kök (kendi gateway) |
 
 ---
 
@@ -114,23 +117,28 @@ Modül: `lib/accounting/einvoice/`
 | Parça | Rol |
 |-------|-----|
 | `providers/gib-earsiv.ts` | **GİB e-Arşiv Portal** — login + taslak fatura (bağlı) |
-| `ubl.ts` | Invoice → UBL-TR 1.2 XML + ETTN (yedek / http provider) |
+| `providers/gib-efatura.ts` | **BiletFeed e-Fatura kanalı** — UBL + outbox + HTTP/mock |
+| `provider.ts` | `resolveProviderForKind` — tip → kanal |
+| `ubl.ts` | Invoice → UBL-TR 1.2 XML + ETTN |
 | `gib-errors.ts` | GİB hata sınıflandırma (GEÇİŞ, satıcı e-Fatura, oturum, ETTN) |
-| `gib-send-guard.ts` | Panel + submit öncesi engel (GEÇİŞ dışı, e-Fatura alıcı/satıcı) |
+| `gib-send-guard.ts` | Panel + submit öncesi engel (GEÇİŞ, kanal hazırlığı) |
 | `providers/mock.ts` | Credential yokken simülasyon |
 | `providers/http.ts` | Genel REST entegratör köprüsü |
-| `submit.ts` | DB güncelleme — `eInvoiceUuid` yalnızca GİB kabulünden sonra |
+| `submit.ts` | Tip’e göre kanal + DB güncelleme |
 
-Akış: `processOrderAccounting` → iç fatura → `submitInvoiceToGib` → e-posta.
+Akış: `processOrderAccounting` → iç fatura → `submitInvoiceToGib` → tip’e göre kanal → e-posta.
+
+Detay: `docs/INVOICING.md` — **BiletFeed e-Fatura kanalı (kendi entegratör yapımız)**.
 
 **GİB portal notu:** Yeni taslakta `faturaUuid` **boş** gönderilir. Resmi onay için SMS.  
 **GEÇİŞ kullanıcısı:** Bazı hesaplar yalnızca GİB’in verdiği kısa tarih aralığında fatura kesebilir. Panel hata metninden aralığı okur; fatura tarihi dışarıdaysa gönderimi kapatır. Muhasebeci `/admin/muhasebe` üzerinden tarihi düzeltebilir veya IVD’den yetki açtırır. Env: `EINVOICE_GECIS_DATE_FROM` / `EINVOICE_GECIS_DATE_TO`.  
-**e-Fatura alıcı:** 10 haneli VKN / `type=e_fatura` e-Arşiv ile gönderilmez (entegratör gerekir).  
+**e-Fatura:** `type=e_fatura` → `gib-efatura`; yapılandırılmamışsa net Türkçe hata (e-Arşiv’e düşmez). Admin tip seçer: `PATCH .../document-type`.  
 **Başarısız create:** Üretilen ETTN `eInvoiceUuid` olarak saklanmaz.
 
 Admin:
-- Liste + aksiyonlar: `/admin/muhasebe` (üstte GEÇİŞ / e-Fatura özet banner’ları)
-- Yeniden gönderim: `POST /api/admin/accounting/invoices/[invoiceId]/submit-einvoice`
+- Liste + aksiyonlar: `/admin/muhasebe` (üstte GEÇİŞ / e-Fatura kanal banner’ları)
+- Yeniden gönderim: `POST /api/admin/accounting/invoices/[invoiceId]/submit-einvoice` `{ force?, documentType?, overrideConfirmed? }`
+- Belge tipi: `PATCH .../document-type` `{ "type": "e_arsiv"|"e_fatura", "overrideConfirmed?" }`
 - Tarih düzelt: `PATCH /api/admin/accounting/invoices/[invoiceId]/issued-at` `{ "issuedAt": "..." }`
 - SMS başlat: `POST .../sms-start`
 - SMS onay: `POST .../sms-confirm` body `{ "code": "123456" }`

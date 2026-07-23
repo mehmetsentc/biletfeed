@@ -1,5 +1,9 @@
-export { getEInvoiceConfig } from '@/lib/accounting/einvoice/config';
-export { getEInvoiceProvider } from '@/lib/accounting/einvoice/provider';
+export { getEInvoiceConfig, describeEFaturaChannel, isEFaturaChannelReady } from '@/lib/accounting/einvoice/config';
+export {
+  getEInvoiceProvider,
+  getEFaturaProvider,
+  resolveProviderForKind
+} from '@/lib/accounting/einvoice/provider';
 export { submitInvoiceToGib } from '@/lib/accounting/einvoice/submit';
 export { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 export {
@@ -22,11 +26,14 @@ export {
   createEttn
 } from '@/lib/accounting/einvoice/ubl';
 export { verifyGibEarsivLogin } from '@/lib/accounting/einvoice/providers/gib-earsiv';
+export { createGibEfaturaProvider } from '@/lib/accounting/einvoice/providers/gib-efatura';
 export type {
   EInvoicePayload,
   EInvoiceProvider,
   EInvoiceSubmitResult,
-  InvoiceEInvoiceMeta
+  InvoiceEInvoiceMeta,
+  EInvoiceChannelId,
+  EInvoiceDispatchStatus
 } from '@/lib/accounting/einvoice/types';
 export type {
   GibErrorCategory,

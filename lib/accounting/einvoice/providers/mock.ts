@@ -6,8 +6,10 @@ import type {
 
 /** Credential yokken / lokal geliştirmede GİB simülasyonu */
 export function createMockEInvoiceProvider(): EInvoiceProvider {
-  return {
+  const provider: EInvoiceProvider = {
     name: 'mock',
+    supports: ['e_arsiv', 'e_fatura'],
+    channelId: 'mock',
     async submit(payload: EInvoicePayload): Promise<EInvoiceSubmitResult> {
       const uuid = payload.ettn;
       if (process.env.NODE_ENV !== 'production') {
@@ -41,6 +43,22 @@ export function createMockEInvoiceProvider(): EInvoiceProvider {
     },
     async completeSmsSign() {
       return { ok: true };
+    },
+    async submitDraft(payload) {
+      return provider.submit(payload);
+    },
+    async cancel(uuid) {
+      return {
+        ok: false,
+        error: `Mock iptal desteklenmiyor (${uuid.slice(0, 8)}…)`
+      };
+    },
+    async downloadPdf(uuid, opts) {
+      return provider.getPdf?.(uuid, opts) ?? {
+        ok: false,
+        error: 'Mock PDF yok'
+      };
     }
   };
+  return provider;
 }

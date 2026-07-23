@@ -61,6 +61,8 @@ export function createHttpEInvoiceProvider(config: EInvoiceConfig): EInvoiceProv
 
   return {
     name: 'http',
+    supports: ['e_arsiv', 'e_fatura'],
+    channelId: 'http',
 
     async submit(payload: EInvoicePayload): Promise<EInvoiceSubmitResult> {
       if (!config.apiBaseUrl) {

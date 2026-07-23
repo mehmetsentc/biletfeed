@@ -2,6 +2,9 @@
 
 export type EInvoiceDocumentKind = 'e_fatura' | 'e_arsiv' | 'credit_note';
 
+/** Hangi belge kanalı destekleniyor */
+export type EInvoiceChannelSupport = 'e_arsiv' | 'e_fatura';
+
 export type EInvoiceProviderStatus =
   | 'skipped'
   | 'pending'
@@ -10,8 +13,27 @@ export type EInvoiceProviderStatus =
   | 'rejected'
   | 'failed';
 
-export type EInvoiceProviderName = 'mock' | 'http' | 'gib' | 'none';
+/**
+ * Kanal outbox durumları (özellikle e-Fatura kendi entegratör katmanı).
+ * Invoice.metadata.einvoice.dispatchStatus olarak saklanır.
+ */
+export type EInvoiceDispatchStatus =
+  | 'pending_channel'
+  | 'queued'
+  | 'sent'
+  | 'accepted'
+  | 'rejected'
+  | 'error';
 
+export type EInvoiceProviderName =
+  | 'mock'
+  | 'http'
+  | 'gib'
+  | 'gib-efatura'
+  | 'none';
+
+/** İnsan okunur kanal etiketi (admin UI) */
+export type EInvoiceChannelId = 'gib-earsiv' | 'gib-efatura' | 'mock' | 'http' | 'none';
 
 export interface EInvoiceSeller {
   tradeName: string;
@@ -78,13 +100,28 @@ export interface EInvoiceSubmitResult {
   providerRef?: string;
   raw?: unknown;
   error?: string;
+  /** Outbox / kanal durumu */
+  dispatchStatus?: EInvoiceDispatchStatus;
+  envelopeUuid?: string;
+  payloadHash?: string;
 }
 
 export interface EInvoiceProvider {
   readonly name: EInvoiceProviderName;
+  /** Bu provider hangi belge türlerini taşıyabilir */
+  readonly supports: readonly EInvoiceChannelSupport[];
+  /** İnsan okunur kanal kimliği */
+  readonly channelId: EInvoiceChannelId;
   submit(payload: EInvoicePayload): Promise<EInvoiceSubmitResult>;
+  /** Alias — bazı kanallar taslak oluşturur (e-Arşiv) */
+  submitDraft?(payload: EInvoicePayload): Promise<EInvoiceSubmitResult>;
   getStatus?(uuid: string): Promise<EInvoiceSubmitResult>;
+  cancel?(uuid: string): Promise<{ ok: boolean; error?: string }>;
   getPdf?(
+    uuid: string,
+    opts?: { signed?: boolean }
+  ): Promise<{ ok: boolean; pdfUrl?: string; pdfBase64?: string; error?: string }>;
+  downloadPdf?(
     uuid: string,
     opts?: { signed?: boolean }
   ): Promise<{ ok: boolean; pdfUrl?: string; pdfBase64?: string; error?: string }>;
@@ -119,4 +156,12 @@ export interface InvoiceEInvoiceMeta {
   /** SMS operasyon id (kod girilene kadar) */
   smsOid?: string;
   smsPhoneMasked?: string;
+  /** Kanal kimliği (gib-earsiv | gib-efatura | …) */
+  channel?: EInvoiceChannelId | string;
+  /** e-Fatura outbox durumu */
+  dispatchStatus?: EInvoiceDispatchStatus;
+  /** Zarf / envelope UUID (e-Fatura) */
+  envelopeUuid?: string;
+  /** Son gönderilen UBL/payload özeti */
+  lastPayloadHash?: string;
 }

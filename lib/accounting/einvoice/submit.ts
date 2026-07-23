@@ -1,13 +1,13 @@
 import type { Invoice, InvoiceLine, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { logAccountingAudit } from '@/lib/accounting/audit';
-import { getEInvoiceConfig } from '@/lib/accounting/einvoice/config';
-import { withGibSessionLock } from '@/lib/accounting/einvoice/gib-lock';
 import {
-  EFATURA_BUYER_BLOCK_MESSAGE,
-  evaluateGibSendEligibility
-} from '@/lib/accounting/einvoice/gib-send-guard';
-import { getEInvoiceProvider } from '@/lib/accounting/einvoice/provider';
+  EFATURA_CHANNEL_NOT_CONFIGURED_MESSAGE,
+  getEInvoiceConfig
+} from '@/lib/accounting/einvoice/config';
+import { withGibSessionLock } from '@/lib/accounting/einvoice/gib-lock';
+import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
+import { resolveProviderForKind } from '@/lib/accounting/einvoice/provider';
 import { buildEInvoicePayload } from '@/lib/accounting/einvoice/ubl';
 import type {
   EInvoiceDocumentKind,
@@ -39,6 +39,7 @@ export async function submitInvoiceToGib(params: {
   status: string;
   uuid?: string;
   error?: string;
+  channel?: string;
 }> {
   const config = getEInvoiceConfig();
   const invoice = await prisma.invoice.findUnique({
@@ -63,9 +64,12 @@ export async function submitInvoiceToGib(params: {
       ok: true,
       skipped: true,
       status: existing.status,
-      uuid: invoice.eInvoiceUuid ?? existing.uuid
+      uuid: invoice.eInvoiceUuid ?? existing.uuid,
+      channel: existing.channel
     };
   }
+
+  const kind = mapKind(invoice.type);
 
   const eligibility = evaluateGibSendEligibility({
     issuedAt: invoice.issuedAt,
@@ -83,11 +87,15 @@ export async function submitInvoiceToGib(params: {
       pdfUrl: existing.pdfUrl,
       providerRef: existing.providerRef,
       submittedAt: existing.submittedAt,
-      lastError: eligibility.blockReason ?? EFATURA_BUYER_BLOCK_MESSAGE,
+      lastError:
+        eligibility.blockReason ?? EFATURA_CHANNEL_NOT_CONFIGURED_MESSAGE,
       mock: existing.mock,
       needsSmsSign: existing.needsSmsSign,
       smsOid: existing.smsOid,
-      smsPhoneMasked: existing.smsPhoneMasked
+      smsPhoneMasked: existing.smsPhoneMasked,
+      channel: eligibility.channelId ?? existing.channel,
+      dispatchStatus:
+        kind === 'e_fatura' ? 'pending_channel' : existing.dispatchStatus
     };
     await persistEInvoiceState(invoice, blockMeta, 'leave');
     await logAccountingAudit({
@@ -96,37 +104,59 @@ export async function submitInvoiceToGib(params: {
       entityId: invoice.id,
       after: {
         reason: eligibility.blockReason,
-        category: eligibility.errorCategory
+        category: eligibility.errorCategory,
+        channel: eligibility.channelId,
+        invoiceType: invoice.type
       }
     });
     return {
       ok: false,
       status: 'failed',
-      error: eligibility.blockReason
+      error: eligibility.blockReason,
+      channel: eligibility.channelId
     };
   }
 
-  const provider = getEInvoiceProvider(config);
+  const provider = resolveProviderForKind(kind, config);
   if (!provider) {
+    const isEfatura = kind === 'e_fatura';
     const skippedMeta: InvoiceEInvoiceMeta = {
-      provider: 'none',
+      provider: isEfatura ? 'gib-efatura' : 'none',
       status: 'skipped',
-      lastError: 'EINVOICE_PROVIDER=none veya API yapılandırılmadı'
+      lastError: isEfatura
+        ? EFATURA_CHANNEL_NOT_CONFIGURED_MESSAGE
+        : 'EINVOICE_PROVIDER=none veya API yapılandırılmadı',
+      channel: isEfatura ? 'none' : 'none',
+      dispatchStatus: isEfatura ? 'pending_channel' : undefined
     };
     await persistEInvoiceState(invoice, skippedMeta, 'leave');
-    return { ok: true, skipped: true, status: 'skipped' };
+    if (isEfatura) {
+      return {
+        ok: false,
+        status: 'failed',
+        error: EFATURA_CHANNEL_NOT_CONFIGURED_MESSAGE,
+        channel: 'none'
+      };
+    }
+    return {
+      ok: true,
+      skipped: true,
+      status: 'skipped',
+      channel: 'none'
+    };
   }
 
-  // e-Arşiv portal yalnızca e_arsiv; e_fatura / 10 hane VKN burada ikinci kez engellenir
+  // Güvenlik: e_fatura asla gib-earsiv portalına düşmesin
   if (
-    provider.name === 'gib' &&
-    (invoice.type === 'e_fatura' ||
-      (invoice.buyerTaxNumber ?? '').replace(/\D/g, '').length === 10)
+    kind === 'e_fatura' &&
+    (provider.channelId === 'gib-earsiv' || provider.name === 'gib')
   ) {
     return {
       ok: false,
       status: 'failed',
-      error: EFATURA_BUYER_BLOCK_MESSAGE
+      error:
+        'e-Fatura için e-Arşiv portalı kullanılamaz — BiletFeed e-Fatura kanalı gerekli',
+      channel: provider.channelId
     };
   }
 
@@ -134,7 +164,7 @@ export async function submitInvoiceToGib(params: {
   const payload = buildEInvoicePayload({
     invoiceId: invoice.id,
     invoiceNumber: invoice.invoiceNumber,
-    kind: mapKind(invoice.type),
+    kind,
     issuedAt: invoice.issuedAt,
     currency: invoice.currency,
     subtotalNet: invoice.subtotalNet,
@@ -191,7 +221,12 @@ export async function submitInvoiceToGib(params: {
 
   let result;
   try {
-    result = await withGibSessionLock(() => provider.submit(payload));
+    // e-Arşiv portal oturum kilidi; e-Fatura kanalı kendi HTTP’sini kullanır
+    if (provider.channelId === 'gib-earsiv' || provider.name === 'gib') {
+      result = await withGibSessionLock(() => provider.submit(payload));
+    } else {
+      result = await provider.submit(payload);
+    }
   } catch (err) {
     result = {
       ok: false as const,
@@ -214,14 +249,18 @@ export async function submitInvoiceToGib(params: {
     providerRef: result.providerRef,
     submittedAt: new Date().toISOString(),
     lastError: result.error,
-    mock: provider.name === 'mock',
+    mock: provider.name === 'mock' || Boolean(result.raw && asRecord(result.raw).mock),
     needsSmsSign: result.ok
       ? Boolean(
           result.raw &&
             typeof result.raw === 'object' &&
             (result.raw as { needsSmsSign?: boolean }).needsSmsSign
-        ) || result.status === 'submitted'
-      : false
+        ) || (result.status === 'submitted' && provider.channelId === 'gib-earsiv')
+      : false,
+    channel: provider.channelId,
+    dispatchStatus: result.dispatchStatus,
+    envelopeUuid: result.envelopeUuid,
+    lastPayloadHash: result.payloadHash
   };
 
   // eInvoiceUuid: yalnızca GİB taslağı kabul edildikten / resolve edildikten sonra
@@ -257,6 +296,8 @@ export async function submitInvoiceToGib(params: {
       status: nextMeta.status,
       uuid: result.ok ? nextMeta.uuid : null,
       provider: provider.name,
+      channel: provider.channelId,
+      invoiceType: invoice.type,
       error: result.error
     }
   });
@@ -266,7 +307,8 @@ export async function submitInvoiceToGib(params: {
       ok: false,
       status: result.status,
       uuid: result.uuid,
-      error: result.error
+      error: result.error,
+      channel: provider.channelId
     };
   }
 
@@ -274,7 +316,8 @@ export async function submitInvoiceToGib(params: {
     ok: result.ok || config.failSoft,
     status: result.status,
     uuid: result.ok ? (result.uuid ?? undefined) : undefined,
-    error: result.error
+    error: result.error,
+    channel: provider.channelId
   };
 }
 

@@ -7,7 +7,12 @@ import {
   type GibErrorCategory,
   type ParsedGibDateRange
 } from '@/lib/accounting/einvoice/gib-errors';
-import { getEInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import {
+  describeEFaturaChannel,
+  EFATURA_CHANNEL_NOT_CONFIGURED_MESSAGE,
+  getEInvoiceConfig,
+  isEFaturaChannelReady
+} from '@/lib/accounting/einvoice/config';
 
 export interface GibSendEligibility {
   canSend: boolean;
@@ -19,6 +24,9 @@ export interface GibSendEligibility {
   classified?: ClassifiedGibError | null;
   gecisRange?: ParsedGibDateRange;
   issuedOutsideGecis?: boolean;
+  /** Kullanılacak kanal etiketi */
+  channelLabel?: string;
+  channelId?: string;
 }
 
 function readEnvGecisRange(): ParsedGibDateRange | undefined {
@@ -46,18 +54,22 @@ export function resolveEffectiveGecisRange(
   return readEnvGecisRange();
 }
 
-/** Alıcı e-Fatura mükellefi / 10 hane VKN → e-Arşiv portal kapalı */
+/**
+ * @deprecated Tip seçimi sonrası e_arsiv override mümkün;
+ * e_fatura için kanal hazırlığına bakın (`isEFaturaChannelReady`).
+ * 10 hane VKN → önerilen tip e_fatura (otomatik), engel değil.
+ */
 export function isEFaturaBuyerBlocked(params: {
   invoiceType: string;
   buyerTaxNumber?: string | null;
 }): boolean {
-  if (params.invoiceType === 'e_fatura') return true;
-  const digits = (params.buyerTaxNumber ?? '').replace(/\D/g, '');
-  return digits.length === 10;
+  if (params.invoiceType === 'e_fatura') {
+    return !isEFaturaChannelReady();
+  }
+  return false;
 }
 
-export const EFATURA_BUYER_BLOCK_MESSAGE =
-  'Alıcı e-Fatura mükellefi — e-Arşiv ile gönderilemez; entegratör/e-Fatura kanalı gerekli';
+export const EFATURA_BUYER_BLOCK_MESSAGE = EFATURA_CHANNEL_NOT_CONFIGURED_MESSAGE;
 
 export const GECIS_OUTSIDE_BLOCK_MESSAGE =
   'GİB GEÇİŞ penceresi dışı — muhasebeci IVD’den yetki/tarih açmalı';
@@ -76,27 +88,43 @@ export function evaluateGibSendEligibility(params: {
   lastError?: string | null;
 }): GibSendEligibility {
   const classified = classifyGibError(params.lastError);
+  const invoiceType = params.invoiceType;
 
-  if (
-    isEFaturaBuyerBlocked({
-      invoiceType: params.invoiceType,
-      buyerTaxNumber: params.buyerTaxNumber
-    })
-  ) {
+  // ── e-Fatura kanalı ──────────────────────────────────────────
+  if (invoiceType === 'e_fatura') {
+    const channel = describeEFaturaChannel();
+    if (!channel.ready) {
+      return {
+        canSend: false,
+        blockReason:
+          channel.setupHint ?? EFATURA_CHANNEL_NOT_CONFIGURED_MESSAGE,
+        errorCategory: 'unknown',
+        classified,
+        channelLabel: channel.label,
+        channelId: channel.channelId
+      };
+    }
     return {
-      canSend: false,
-      blockReason: EFATURA_BUYER_BLOCK_MESSAGE,
-      errorCategory: 'unknown',
-      classified
+      canSend: true,
+      classified,
+      channelLabel: channel.label,
+      channelId: channel.channelId
     };
   }
+
+  // ── e-Arşiv (ve credit_note / proforma) ───────────────────────
+  const earsivChannel = {
+    channelLabel: 'GİB e-Arşiv portal',
+    channelId: 'gib-earsiv' as const
+  };
 
   if (classified?.category === 'efatura_satici') {
     return {
       canSend: false,
       blockReason: EFATURA_SELLER_BLOCK_MESSAGE,
       errorCategory: 'efatura_satici',
-      classified
+      classified,
+      ...earsivChannel
     };
   }
 
@@ -113,7 +141,8 @@ export function evaluateGibSendEligibility(params: {
           errorCategory: 'gecis_tarih',
           classified,
           gecisRange,
-          issuedOutsideGecis: true
+          issuedOutsideGecis: true,
+          ...earsivChannel
         };
       }
     }
@@ -129,7 +158,8 @@ export function evaluateGibSendEligibility(params: {
         errorCategory: 'gecis_tarih',
         classified,
         gecisRange: envRange,
-        issuedOutsideGecis: true
+        issuedOutsideGecis: true,
+        ...earsivChannel
       };
     }
     if (!classified.dateRange && !envRange) {
@@ -139,7 +169,8 @@ export function evaluateGibSendEligibility(params: {
           'GİB GEÇİŞ hatası — izinli tarih aralığı okunamadı. Muhasebeci IVD’den yetki/tarih doğrulamalı; EINVOICE_GECIS_DATE_FROM/TO ile pencere tanımlanabilir.',
         errorCategory: 'gecis_tarih',
         classified,
-        issuedOutsideGecis: true
+        issuedOutsideGecis: true,
+        ...earsivChannel
       };
     }
   }
@@ -150,6 +181,7 @@ export function evaluateGibSendEligibility(params: {
     gecisRange,
     issuedOutsideGecis: gecisRange
       ? isDateOutsideRange(params.issuedAt, gecisRange)
-      : false
+      : false,
+    ...earsivChannel
   };
 }

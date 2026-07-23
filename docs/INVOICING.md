@@ -1,6 +1,6 @@
 # BiletFeed — Otomatik Fatura (e-Arşiv / e-Fatura)
 
-Bu belge checkout fatura toplama, dahili fatura motoru ve **GİB e-Arşiv Portal** bağlantısını özetler. Muhasebe modül detayları için `docs/ACCOUNTING.md`.
+Bu belge checkout fatura toplama, dahili fatura motoru, **GİB e-Arşiv Portal** ve **BiletFeed e-Fatura kanalı** (kendi entegratör yapımız) bağlantısını özetler. Muhasebe modül detayları için `docs/ACCOUNTING.md`.
 
 ## Mevcut Akış
 
@@ -8,10 +8,14 @@ Bu belge checkout fatura toplama, dahili fatura motoru ve **GİB e-Arşiv Portal
 Ödeme tamamlandı
     → processOrderAccounting (lib/accounting/fulfillment.ts)
         → user_billing_profiles (checkout'ta kaydedilir)
-        → createSaleInvoice (BF{YIL}{6 hane})
-        → submitInvoiceToGib (EINVOICE_PROVIDER=gib → e-Arşiv Portal)
+        → createSaleInvoice (BF{YIL}{6 hane}, tip: resolveInvoiceType)
+        → submitInvoiceToGib
+              ├─ type=e_arsiv  → gib-earsiv (GİB e-Arşiv Portal)
+              └─ type=e_fatura → gib-efatura (BiletFeed e-Fatura kanalı)
         → sendInvoiceEmail (Resend)
 ```
+
+Admin `/admin/muhasebe` satırında belge tipi (e-Arşiv | e-Fatura) seçilebilir; gönderim seçilen tipe göre kanala yönlenir.
 
 ### Checkout fatura toplama
 
@@ -28,14 +32,14 @@ Kayıt: `POST /api/orders/checkout` → `upsertUserBillingProfile` → `user_bil
 
 Fatura tipi (`resolveInvoiceType` — rakam dışı karakterler strip edilir):
 
-- 10 haneli VKN → `e_fatura` (**e-Arşiv portal ile gönderilmez**; entegratör gerekir)
-- Diğer → `e_arsiv`
+- 10 haneli VKN → `e_fatura` (varsayılan; admin override edebilir)
+- 11 haneli TCKN / yok → `e_arsiv`
 
 ---
 
 ## GİB e-Arşiv (bağlı)
 
-`EINVOICE_PROVIDER=gib` iken BiletFeed doğrudan **GİB e-Arşiv Portal** (`earsivportal.efatura.gov.tr`) üzerinden taslak fatura oluşturur.
+`EINVOICE_PROVIDER=gib` iken BiletFeed doğrudan **GİB e-Arşiv Portal** (`earsivportal.efatura.gov.tr`) üzerinden taslak fatura oluşturur. Yalnızca `type=e_arsiv` (ve credit note) bu kanala gider; `e_fatura` sessizce e-Arşiv’e düşmez.
 
 | Adım | Ne olur |
 |------|---------|
@@ -53,10 +57,49 @@ Bazı IVD hesapları yalnızca GİB’in verdiği kısa tarih aralığında fatu
 - Muhasebeci tarihi düzeltebilir: `PATCH .../issued-at`
 - Opsiyonel env (deploy’suz pencere): `EINVOICE_GECIS_DATE_FROM` / `EINVOICE_GECIS_DATE_TO` (`dd/MM/yyyy` veya ISO)
 
-### e-Fatura alıcı / satıcı
+### Satıcı e-Fatura çakışması (e-Arşiv)
 
-- **Alıcı 10 hane VKN veya `type=e_fatura`:** e-Arşiv submit engellenir (özel entegratör / e-Fatura SOAP bu repoda yok).
-- **Satıcı “e-Fatura kullanıcısı” hatası:** e-Arşiv gönderimi panelde kapatılır; muhasebeciye danışın.
+- **Satıcı “e-Fatura kullanıcısı” hatası:** e-Arşiv gönderimi panelde kapatılır; belge tipini e-Fatura kanalına almak veya muhasebeciye danışmak gerekir.
+
+---
+
+## BiletFeed e-Fatura kanalı (kendi entegratör yapımız)
+
+BiletFeed, üçüncü taraf fatura SaaS’ına (Paraşüt vb.) bağımlı olmadan **kendi e-Fatura integrator katmanını** taşır:
+
+| Katman | Dosya / rol |
+|--------|-------------|
+| Provider arayüzü | `EInvoiceProvider` — `submit` / `submitDraft`, `getStatus`, `cancel`, `downloadPdf`, `supports` |
+| e-Arşiv | `providers/gib-earsiv.ts` — `supports: ['e_arsiv']` |
+| e-Fatura | `providers/gib-efatura.ts` — UBL-TR + outbox metadata + HTTP stub/mock |
+| Router | `resolveProviderForKind` — tip → kanal |
+| Durum | `Invoice.metadata.einvoice` — `channel`, `dispatchStatus`, `envelopeUuid`, `lastPayloadHash` |
+
+### GİB özel entegratör lisansı (dürüst not)
+
+Yazılımın “kendi kanalımız” olarak yapılandırılmış olması, GİB **özel entegratör lisansı** anlamına gelmez. Lisans ayrı bir yasal/sertifikasyon sürecidir. Bu kod:
+
+- UBL-TR üretir, outbox durumu tutar, yapılandırılmış endpoint’e POST eder (veya mock simüle eder)
+- Lisanslı / onaylı bir GİB uç noktası olmadan **canlı e-Fatura üretim gönderimi yapılamaz**
+- Mock / skeleton dürüstçe `mock: true` ve `dispatchStatus` ile işaretlenir
+
+### e-Fatura env
+
+| Değişken | Açıklama |
+|----------|----------|
+| `EINVOICE_EFATURA_ENABLED` | `true` → kanal açık |
+| `EINVOICE_EFATURA_MOCK` | `true` → endpoint olmadan mock gönderim |
+| `EINVOICE_EFATURA_BASE_URL` | Kanal HTTP kökü (lisanslı uç / kendi gateway) |
+| `EINVOICE_EFATURA_API_KEY` | Bearer (opsiyonel) |
+| `EINVOICE_EFATURA_USERNAME` / `PASSWORD` | Basic auth (opsiyonel) |
+| `EINVOICE_EFATURA_SUBMIT_PATH` | Varsayılan `/efatura/submit` |
+| `EINVOICE_EFATURA_STATUS_PATH` | Varsayılan `/efatura/status/{uuid}` |
+| `EINVOICE_EFATURA_CANCEL_PATH` | Varsayılan `/efatura/cancel/{uuid}` |
+| `EINVOICE_EFATURA_PDF_PATH` | Varsayılan `/efatura/pdf/{uuid}` |
+
+`EINVOICE_PROVIDER=mock` iken e-Fatura da mock provider ile kabul edilir (geliştirme).
+
+Kanal kapalıysa panel ve API: **"e-Fatura gönderimi için entegratör/kanal yapılandırılmadı"** — e-Arşiv’e düşmez.
 
 ---
 
@@ -66,6 +109,7 @@ Bazı IVD hesapları yalnızca GİB’in verdiği kısa tarih aralığında fatu
 
 - [ ] `user_billing_profiles` tablosu migrate edildi (`npx prisma migrate deploy`)
 - [ ] `invoices`, `invoice_lines`, `email_deliveries` tabloları mevcut
+- [ ] `Invoice.type` alanı kullanılıyor (`e_arsiv` / `e_fatura`) — ek tablo zorunlu değil (outbox metadata’da)
 
 ### Şirket bilgisi (`lib/config/company.ts`)
 
@@ -91,6 +135,9 @@ Bazı IVD hesapları yalnızca GİB’in verdiği kısa tarih aralığında fatu
 | `EINVOICE_FAIL_SOFT` | Hayır | GİB hatası siparişi bozmasın (varsayılan true) |
 | `EINVOICE_GECIS_DATE_FROM` | Hayır | GEÇİŞ penceresi başlangıç |
 | `EINVOICE_GECIS_DATE_TO` | Hayır | GEÇİŞ penceresi bitiş |
+| `EINVOICE_EFATURA_ENABLED` | e-Fatura için | Kendi kanalı aç |
+| `EINVOICE_EFATURA_MOCK` | Geliştirme | Endpoint’siz mock |
+| `EINVOICE_EFATURA_BASE_URL` | Canlı kanal | HTTP kök |
 
 ### E-posta
 
@@ -105,35 +152,15 @@ Bazı IVD hesapları yalnızca GİB’in verdiği kısa tarih aralığında fatu
 - [ ] Alıcı e-postasına fatura bildirimi gidiyor
 - [ ] Admin `/admin/muhasebe` fatura listesinde görünüyor
 - [ ] Bireysel → `e_arsiv` + GİB taslak (veya GEÇİŞ uyarısı)
-- [ ] Kurumsal → `e_fatura`, e-Arşiv gönderimi engelli mesajı
+- [ ] Kurumsal → `e_fatura` + BiletFeed e-Fatura kanalı (mock veya yapılandırılmış)
 
 ### Yasal / operasyonel
 
 - [ ] e-Arşiv mükellefiyeti (IVD) aktif
 - [ ] GEÇİŞ ise muhasebeci tarih/yetki penceresini takip eder
-- [ ] Kurumsal (e-Fatura) alıcılar için entegratör planı
+- [ ] e-Fatura: yazılım kanalı + (ileride) GİB özel entegratör lisansı planı
 - [ ] KDV oranı ve fatura satır açıklamaları muhasebeci onayı
 - [ ] İade akışı: `createCreditNoteForRefund` test edildi
-
----
-
-## e-Fatura entegratör (sonraki faz)
-
-GİB e-Arşiv portal **bağlıdır**. Tam **e-Fatura (özel entegratör / SOAP)** henüz yoktur; 10 haneli alıcılar panelde yumuşak engellenir.
-
-Planlanan:
-
-- Özel entegratör veya GİB e-Fatura kanalı
-- `e_fatura` tipi için ayrı provider
-- Onaylı PDF + müşteri dashboard
-
-Önerilen env (entegratör fazı):
-
-```
-EINVOICE_PROVIDER=http
-EINVOICE_API_BASE_URL=
-EINVOICE_API_KEY=
-```
 
 ---
 
@@ -141,10 +168,49 @@ EINVOICE_API_KEY=
 
 | Endpoint | Açıklama |
 |----------|----------|
-| `POST .../submit-einvoice` | GİB gönder / tekrar dene (eligibility + CSRF) |
+| `POST .../submit-einvoice` | Gönder / tekrar dene; body: `{ force?, documentType?, overrideConfirmed? }` |
+| `PATCH .../document-type` | `{ "type": "e_arsiv" \| "e_fatura", "overrideConfirmed?" }` — audit log |
 | `PATCH .../issued-at` | `{ "issuedAt": "ISO" }` — yalnızca hata/draft/none |
-| `POST .../sms-start` | SMS imza başlat |
+| `POST .../sms-start` | SMS imza başlat (e-Arşiv) |
 | `POST .../sms-confirm` | `{ "code": "..." }` |
+
+---
+
+## Nasıl test edilir
+
+### e-Arşiv (mevcut)
+
+```
+EINVOICE_PROVIDER=gib
+EINVOICE_USERNAME=...
+EINVOICE_PASSWORD=...
+```
+
+Admin’de tipi **e-Arşiv** bırak → GİB gönder → taslak + SMS.
+
+### e-Fatura mock (kendi kanal)
+
+```
+EINVOICE_PROVIDER=gib   # e-Arşiv ayrı kalır
+EINVOICE_EFATURA_ENABLED=true
+EINVOICE_EFATURA_MOCK=true
+```
+
+veya tamamen lokal:
+
+```
+EINVOICE_PROVIDER=mock
+```
+
+Admin’de tipi **e-Fatura** seç → GİB gönder → `metadata.einvoice.channel=gib-efatura` (veya mock), `dispatchStatus=sent`. e-Arşiv portal çağrılmaz.
+
+### e-Fatura HTTP stub
+
+```
+EINVOICE_EFATURA_ENABLED=true
+EINVOICE_EFATURA_BASE_URL=https://your-gateway.example
+EINVOICE_EFATURA_API_KEY=...
+```
 
 ---
 
@@ -156,8 +222,9 @@ EINVOICE_API_KEY=
 | `lib/validation/checkout-billing.ts` | Zod doğrulama |
 | `lib/services/user-billing.ts` | Profil upsert |
 | `lib/accounting/fulfillment.ts` | Ödeme sonrası fatura tetikleyici |
-| `lib/accounting/invoice.ts` | Fatura oluşturma + issuedAt düzeltme |
-| `lib/accounting/einvoice/` | GİB provider, hata sınıflandırma, guard |
-| `components/admin/invoice-gib-table.tsx` | Muhasebe GİB tablosu |
+| `lib/accounting/invoice.ts` | Fatura + tip/tarih düzeltme |
+| `lib/accounting/einvoice/` | Provider’lar, router, guard, UBL |
+| `lib/accounting/einvoice/providers/gib-efatura.ts` | BiletFeed e-Fatura kanalı |
+| `components/admin/invoice-gib-table.tsx` | Tip seçici + kanal + gönder |
 | `lib/accounting/email.ts` | Fatura e-postası |
 | `prisma/schema.prisma` | `UserBillingProfile`, `Invoice` |

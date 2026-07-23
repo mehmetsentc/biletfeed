@@ -303,10 +303,20 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
     return ettn && ettn.length === 36 ? ettn : ettn;
   }
 
-  return {
+  const provider: EInvoiceProvider = {
     name: 'gib',
+    supports: ['e_arsiv'],
+    channelId: 'gib-earsiv',
 
     async submit(payload: EInvoicePayload): Promise<EInvoiceSubmitResult> {
+      if (payload.kind === 'e_fatura') {
+        return {
+          ok: false,
+          status: 'failed',
+          error:
+            'e-Fatura e-Arşiv portalına gönderilemez — BiletFeed e-Fatura kanalını kullanın'
+        };
+      }
       try {
         return await withToken(async (token) => {
           const body = buildInvoiceBody(payload);
@@ -530,8 +540,28 @@ export function createGibEarsivProvider(config: EInvoiceConfig): EInvoiceProvide
           error: err instanceof Error ? err.message : String(err)
         };
       }
+    },
+
+    async submitDraft(payload) {
+      return provider.submit(payload);
+    },
+
+    async cancel() {
+      return {
+        ok: false,
+        error: 'e-Arşiv portal iptali bu sürümde desteklenmiyor — GİB portalından iptal edin'
+      };
+    },
+
+    async downloadPdf(uuid, opts) {
+      return provider.getPdf?.(uuid, opts) ?? {
+        ok: false,
+        error: 'PDF alınamadı'
+      };
     }
   };
+
+  return provider;
 }
 
 function maskPhone(phone: string): string {
