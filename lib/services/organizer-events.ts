@@ -6,7 +6,7 @@ import {
   buildEventExtrasData,
   type OrganizerEventExtras
 } from '@/lib/organizator/event-metadata';
-import { sessionSlugDateSuffix } from '@/lib/organizator/event-series-meta';
+import { parseEventSeriesMeta, sessionSlugDateSuffix } from '@/lib/organizator/event-series-meta';
 import { inferTicketTypeEnum } from '@/lib/services/ticket-type-category';
 
 export interface TicketCategoryInput {
@@ -543,6 +543,21 @@ export async function updateOrganizerEventStatus(
 
   if (status === 'published') {
     throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+  }
+
+  const series = parseEventSeriesMeta(event.seo);
+  if (series?.seriesId && (status === 'pending' || status === 'draft')) {
+    await prisma.event.updateMany({
+      where: {
+        organizerId,
+        deletedAt: null,
+        seo: { path: ['seriesId'], equals: series.seriesId }
+      },
+      data: { status }
+    });
+    return prisma.event.findFirstOrThrow({
+      where: { id: eventId, organizerId, deletedAt: null }
+    });
   }
 
   return prisma.event.update({

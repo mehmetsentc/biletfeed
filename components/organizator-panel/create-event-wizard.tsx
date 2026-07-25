@@ -47,6 +47,7 @@ import type {
   PerformerRow
 } from '@/components/organizator-panel/event-wizard/types';
 import { cn } from '@/lib/utils';
+import { expandRecurringSessions } from '@/lib/organizator/expand-recurring-sessions';
 import {
   clearEventWizardDraft,
   loadEventWizardDraft,
@@ -578,8 +579,29 @@ export function CreateOrganizerEventWizard({
     ]
   );
 
+  function handleEventTypeModeChange(mode: EventTypeMode) {
+    setEventTypeMode(mode);
+    if (mode === 'recurring') {
+      setSessions((prev) => (prev.length < 2 ? [...prev, newSession()] : prev));
+    } else {
+      setSessions((prev) => prev.slice(0, 1));
+    }
+  }
+
   function goToNextStep() {
     setError(null);
+    if (step === 1 && eventTypeMode === 'recurring') {
+      const expanded = expandRecurringSessions(
+        sessions.filter(isValidSessionRow),
+        { isFestival }
+      );
+      if (expanded.length < 2) {
+        setError(
+          'Tekrarlayan etkinlik için en az iki seans gerekir. İkinci seansı ekleyin veya başlangıç–bitiş tarih aralığı seçin (her gün ayrı seans olur).'
+        );
+        return;
+      }
+    }
     if (step === 4) {
       const categories = ticketCategoriesRef.current;
       const categoryError = ticketCategoryValidationError(categories);
@@ -604,19 +626,23 @@ export function CreateOrganizerEventWizard({
   async function saveEvent(targetStatus?: 'draft' | 'pending') {
     setError(null);
     persistDraftSnapshot();
-    const isFestival = category === 'festival';
+    const isFestivalCategory = category === 'festival';
     const activeSessions =
       eventTypeMode === 'recurring'
-        ? sessions.filter(isValidSessionRow)
-        : sessions.slice(0, 1);
+        ? expandRecurringSessions(sessions.filter(isValidSessionRow), {
+            isFestival: isFestivalCategory
+          })
+        : sessions.slice(0, 1).filter(isValidSessionRow);
 
     if (eventTypeMode === 'recurring' && activeSessions.length < 2) {
-      setError('Tekrarlayan etkinlik için en az iki geçerli seans girin.');
+      setError(
+        'Tekrarlayan etkinlik için en az iki geçerli seans girin. Tarih aralığı seçerseniz her gün ayrı seans oluşturulur.'
+      );
       return;
     }
 
     const sessionDates = activeSessions
-      .map((session) => sessionToDateRange(session, isFestival))
+      .map((session) => sessionToDateRange(session, isFestivalCategory))
       .filter((range): range is { startDate: string; endDate: string } => range !== null);
 
     if (sessionDates.length === 0) {
@@ -926,7 +952,7 @@ export function CreateOrganizerEventWizard({
                 <WizardFormRow label="Etkinlik Türü" required>
                   <WizardOptionCards
                     value={eventTypeMode}
-                    onChange={setEventTypeMode}
+                    onChange={handleEventTypeModeChange}
                     options={[
                       {
                         id: 'single',
@@ -944,7 +970,15 @@ export function CreateOrganizerEventWizard({
 
                 {isFestival && (
                   <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-[var(--bf-accent-ink)]">
-                    🎪 Festival seçildi — birden fazla gün sürebilir. Başlangıç ve bitiş tarihini ayrı girin.
+                    Festival seçildi — birden fazla gün sürebilir. Başlangıç ve bitiş tarihini ayrı girin.
+                  </div>
+                )}
+
+                {eventTypeMode === 'recurring' && !isFestival && (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-[var(--bf-accent-ink)]">
+                    Tekrarlayan: her satır bir seanstır. Bir satırda başlangıç ve bitiş tarihi
+                    aralığı verirseniz <strong>her gün ayrı seans</strong> oluşturulur. İsterseniz
+                    “Seans Ekle” ile farklı saatli seanslar da ekleyebilirsiniz (en az 2 seans).
                   </div>
                 )}
 
