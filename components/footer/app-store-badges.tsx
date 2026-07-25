@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Apple, Play, Smartphone } from 'lucide-react';
 import { mobileAppConfig } from '@/lib/config/mobile-app';
