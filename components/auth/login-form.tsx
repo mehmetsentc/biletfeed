@@ -39,7 +39,12 @@ export function LoginForm() {
     if (sessionError) setError(sessionError);
   }, [sessionError]);
 
-  const showLoginForm = !authLoading && !firebaseUser;
+  // firebaseUser dolu olsa bile (ör. Firebase girişi başarılı ama sunucu
+  // oturumu kurulamadıysa) kullanıcıyı boş bir ekranda bırakmamak için
+  // sessionError varken formu (hata mesajıyla birlikte) göstermeye devam
+  // ediyoruz. Aksi halde "non-responsive" ekran App Store reviewer'ının
+  // karşılaştığı sorunlardan biriydi.
+  const showLoginForm = !authLoading && (!firebaseUser || !!sessionError);
 
   const {
     register,

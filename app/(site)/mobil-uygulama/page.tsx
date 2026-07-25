@@ -111,8 +111,8 @@ export default function MobileAppInfoPage() {
       <section className="mt-10 rounded-xl border border-border bg-muted/30 p-6">
         <h2 className="text-lg font-semibold">App Store İnceleme Notu</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Bu sayfa Apple App Store ve Google Play inceleme ekipleri için
-          destek, gizlilik ve hesap silme bilgilerini tek noktada sunar.
+          Bu sayfa uygulama mağazası inceleme ekipleri için destek, gizlilik ve
+          hesap silme bilgilerini tek noktada sunar.
         </p>
       </section>
     </div>

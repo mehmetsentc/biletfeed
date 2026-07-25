@@ -27,5 +27,13 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "overrides": {
+    "capacitor-app-tracking-transparency": {
+      "@capacitor/core": "$@capacitor/core"
+    },
+    "@capacitor-firebase/authentication": {
+      "@capacitor/core": "$@capacitor/core"
+    }
   }
 }

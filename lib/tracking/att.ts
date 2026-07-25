@@ -10,7 +10,13 @@
  * topluyorsa (GA4 vb.), kullanıcıdan önce bu izni almak zorunludur. İzin
  * verilmezse tracking scriptleri hiç yüklenmemelidir.
  */
-export async function isTrackingAuthorized(): Promise<boolean> {
+// Bu promise'i modül seviyesinde cache'liyoruz ki sayfada birden fazla bileşen
+// (GoogleAnalytics, SiteTracker, AppSpeedInsights, vb.) aynı anda çağırdığında
+// ATT sistem izin diyaloğu yalnızca bir kez gösterilsin ve hepsi aynı sonucu
+// paylaşsın.
+let cachedResult: Promise<boolean> | null = null;
+
+async function checkTrackingAuthorized(): Promise<boolean> {
   const { Capacitor } = await import('@capacitor/core');
   if (Capacitor.getPlatform() !== 'ios') return true;
 
@@ -30,4 +36,11 @@ export async function isTrackingAuthorized(): Promise<boolean> {
     // Plugin çağrısı başarısız olursa güvenli taraf: tracking'i kapalı say
     return false;
   }
+}
+
+export async function isTrackingAuthorized(): Promise<boolean> {
+  if (!cachedResult) {
+    cachedResult = checkTrackingAuthorized();
+  }
+  return cachedResult;
 }

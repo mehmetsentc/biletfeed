@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useReportWebVitals } from 'next/web-vitals';
 import { hasAnalyticsConsent } from '@/lib/cookies/consent';
+import { isTrackingAuthorized } from '@/lib/tracking/att';
 
 const SESSION_KEY = 'bf_analytics_sid';
 
@@ -61,9 +62,19 @@ export function SiteTracker() {
   const lastPathRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const maxScrollRef = useRef(0);
+  // iOS native uygulamada ATT izni alınana kadar hiçbir tracking beacon'ı
+  // gönderilmez (App Store Guideline 5.1.2 / 5.1.1(iv)). Web'de/Android'de
+  // isTrackingAuthorized() her zaman true döner.
+  const [trackingAuthorized, setTrackingAuthorized] = useState(false);
 
   useEffect(() => {
-    if (!hasAnalyticsConsent()) return;
+    isTrackingAuthorized()
+      .then(setTrackingAuthorized)
+      .catch(() => setTrackingAuthorized(false));
+  }, []);
+
+  useEffect(() => {
+    if (!hasAnalyticsConsent() || !trackingAuthorized) return;
     if (!pathname) return;
     if (
       pathname.startsWith('/admin') ||
@@ -98,7 +109,7 @@ export function SiteTracker() {
   }, [pathname, searchParams]);
 
   useEffect(() => {
-    if (!hasAnalyticsConsent()) return;
+    if (!hasAnalyticsConsent() || !trackingAuthorized) return;
     if (!pathname || pathname.startsWith('/admin') || pathname.startsWith('/organizator-panel')) {
       return;
     }
@@ -120,10 +131,10 @@ export function SiteTracker() {
 
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, [pathname]);
+  }, [pathname, trackingAuthorized]);
 
   useReportWebVitals((metric) => {
-    if (!hasAnalyticsConsent()) return;
+    if (!hasAnalyticsConsent() || !trackingAuthorized) return;
     if (!pathname || pathname.startsWith('/admin') || pathname.startsWith('/organizator-panel')) {
       return;
     }

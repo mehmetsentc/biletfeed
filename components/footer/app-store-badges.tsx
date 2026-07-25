@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Apple, Play, Smartphone } from 'lucide-react';
 import { mobileAppConfig } from '@/lib/config/mobile-app';
+import { useIsNativeApp } from '@/lib/tracking/platform';
 import { cn } from '@/lib/utils';
 
 type AppStoreBadgesProps = {
@@ -10,9 +11,16 @@ type AppStoreBadgesProps = {
 };
 
 export function AppStoreBadges({ className, variant = 'light' }: AppStoreBadgesProps) {
+  // Native uygulama (iOS/Android) içindeyken diğer mağazalara (ör. App Store
+  // içindeyken Google Play) referans göstermiyoruz — App Store Guideline
+  // 2.3.10 "Accurate Metadata" bunu üçüncü taraf platform bilgisi olarak
+  // değerlendiriyor. Sadece gerçek web tarayıcısında badge'leri gösteriyoruz.
+  const isNativeApp = useIsNativeApp();
   const iosUrl = mobileAppConfig.storeUrls.ios.trim();
   const androidUrl = mobileAppConfig.storeUrls.android.trim();
   const fallbackUrl = mobileAppConfig.appInfoUrl;
+
+  if (isNativeApp) return null;
 
   const iosSoon = !iosUrl;
   const androidSoon = !androidUrl;

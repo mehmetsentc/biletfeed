@@ -58,6 +58,14 @@ function collectExpectedOrigins(host: string): Set<string> {
 /**
  * Tarayıcı kaynaklı POST/PATCH/DELETE için CSRF koruması.
  * Origin veya Referer zorunlu; ikisi de yoksa istek reddedilir.
+ *
+ * İstisna: modern taraycılar/WKWebView'lar `Sec-Fetch-Site` header'ını
+ * (Fetch Metadata) gönderir ve bu, Origin/Referer'dan daha güvenilirdir —
+ * bazı WKWebView + Capacitor kombinasyonlarında aynı-origin fetch
+ * isteklerinde Origin header'ı taşınmayabiliyor (bkz. App Store review'da
+ * native uygulamada giriş/kayıt sonrası oturumun kurulamaması sorunu).
+ * `same-origin` veya `none` değeri tarayıcı tarafından garanti edildiği
+ * için Origin/Referer eksikse buna güvenmek güvenlidir.
  */
 export function isSameOriginRequest(request: NextRequest): boolean {
   const host = request.headers.get('host');
@@ -76,6 +84,11 @@ export function isSameOriginRequest(request: NextRequest): boolean {
     } catch {
       return false;
     }
+  }
+
+  const secFetchSite = request.headers.get('sec-fetch-site');
+  if (secFetchSite === 'same-origin' || secFetchSite === 'none') {
+    return true;
   }
 
   return false;

@@ -3,7 +3,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,6 @@ import { AppleSignInButton } from '@/components/auth/apple-sign-in-button';
 export function RegisterForm() {
   const t = useTranslations();
   const { signUp, signInWithGoogle, signInWithApple, isConfigured, sessionError } = useAuth();
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -57,8 +55,14 @@ export function RegisterForm() {
     setError(null);
     try {
       await signUp(data.email, data.password, data.displayName);
-      router.push('/ilgi-alanlari');
-      router.refresh();
+      // Burada manuel yönlendirme YAPMIYORUZ: AuthProvider'ın oturumu
+      // (server session cookie) kurması birkaç yüz ms sürebilir. Sunucu
+      // oturumu hazır olmadan /ilgi-alanlari'na geçersek, o sayfanın auth
+      // guard'ı (ProfileLayoutClient) henüz "user" state'i güncellenmediği
+      // için kullanıcıyı tekrar /kayit'a geri atıyordu — App Store
+      // reviewer'ın karşılaştığı "yeni hesapla giriş kayıt ekranına geri
+      // dönüyor" hatası buydu. AuthSessionRedirect (app/(auth)/layout.tsx)
+      // sessionReady=true olduğunda güvenli şekilde yönlendirir.
     } catch (err) {
       setError(
         getFirebaseAuthErrorMessage(
