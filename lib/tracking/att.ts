@@ -18,7 +18,20 @@ let cachedResult: Promise<boolean> | null = null;
 
 async function checkTrackingAuthorized(): Promise<boolean> {
   const { Capacitor } = await import('@capacitor/core');
-  if (Capacitor.getPlatform() !== 'ios') return true;
+  const platform = Capacitor.getPlatform();
+  const isNative = Capacitor.isNativePlatform();
+
+  // Kesin olarak Android ise ATT kavramı yok — doğrudan izinli say.
+  if (platform === 'android') return true;
+
+  // Kesin olarak gerçek web (native shell DEĞİL) ise de izinli say.
+  // Ama platform tespiti belirsizse (ör. native shell içinde olduğu halde
+  // `getPlatform()` yanlışlıkla 'web' dönerse) burada ATT'yi atlamak yerine
+  // aşağıdaki native plugin çağrısına düşüyoruz: plugin native tarafta yoksa
+  // zaten hata fırlatır ve catch bloğu güvenli tarafta (false = tracking kapalı)
+  // kalır. Amaç: platform algılama tek sinyale bağlı kalıp yanlışlıkla "web"
+  // sanıp ATT'yi tamamen atlamasın (Guideline 5.1.1(iv) riski).
+  if (platform === 'web' && !isNative) return true;
 
   try {
     const { AppTrackingTransparency, AppTrackingTransparencyStatus } =
