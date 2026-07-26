@@ -37,12 +37,24 @@ export function getFirebaseAuth(): Auth {
   if (!auth) {
     auth = getAuth(getFirebaseApp());
     if (typeof window !== 'undefined') {
-      // Redirect sonucu persistence kurulumundan önce işlenmeli
-      void import('@/lib/firebase/google-auth').then(
-        ({ consumeGoogleRedirectResult }) => {
-          consumeGoogleRedirectResult(auth!);
-        }
-      );
+      // Redirect sonucu yalnızca gerçek web ortamında işlenmeli. Capacitor
+      // (native iOS/Android) tarafında redirect akışı hiç kullanılmıyor —
+      // native girişler signInWithCredential ile tamamlanıyor. Buna rağmen
+      // getRedirectResult() çağrısı Firebase'in gizli iframe/çerez tabanlı
+      // resolver mekanizmasını (ör. {authDomain}/__/auth/iframe) tetikliyor;
+      // bu da App Tracking Transparency izni reddedilmiş olsa bile devreye
+      // girip App Store Guideline 5.1.1(iv) ihlaline yol açabiliyor. Bu yüzden
+      // native'de bu çağrıyı hiç yapmıyoruz (getFirebaseAuth() en erken
+      // çağrılan yer olduğu için asıl kaçak noktası burasıydı).
+      const isCapacitorNative =
+        !!(window as unknown as Record<string, unknown>)['Capacitor'];
+      if (!isCapacitorNative) {
+        void import('@/lib/firebase/google-auth').then(
+          ({ consumeGoogleRedirectResult }) => {
+            consumeGoogleRedirectResult(auth!);
+          }
+        );
+      }
       persistenceReady = setPersistence(auth, browserLocalPersistence).then(
         () => undefined
       );

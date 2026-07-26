@@ -200,10 +200,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const auth = getFirebaseAuth();
     void Promise.all([
       import('@/lib/firebase/google-auth'),
-      import('@/lib/firebase/apple-auth'),
-      import('@/lib/firebase/oauth-redirect')
-    ]).then(async ([googleAuth, appleAuth, oauthRedirect]) => {
-      oauthRedirect.consumeOAuthRedirectResult(auth);
+      import('@/lib/firebase/apple-auth')
+    ]).then(async ([googleAuth, appleAuth]) => {
+      // Not: consumeOAuthRedirectResult artık burada doğrudan/koşulsuz
+      // çağrılmıyor. finishGoogleRedirectSignIn / finishAppleRedirectSignIn
+      // zaten bunu (oauth-redirect.ts'deki paylaşılan cache üzerinden)
+      // çağırıyor ve Capacitor'da (native) isCapacitor() kontrolüyle
+      // tamamen atlıyor. Burada doğrudan çağırmak, native'de ATT reddedilmiş
+      // olsa bile Firebase'in redirect-resolver iframe/çerez mekanizmasını
+      // tetikleyip App Store Guideline 5.1.1(iv) ihlaline yol açıyordu.
       try {
         const [googleError, appleError] = await Promise.all([
           googleAuth.finishGoogleRedirectSignIn(auth),
