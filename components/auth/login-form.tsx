@@ -36,7 +36,10 @@ export function LoginForm() {
   }, []);
 
   useEffect(() => {
-    if (sessionError) setError(sessionError);
+    if (sessionError) {
+      setError(sessionError);
+      setLoading(false);
+    }
   }, [sessionError]);
 
   // firebaseUser dolu olsa bile (ör. Firebase girişi başarılı ama sunucu
@@ -54,6 +57,14 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema)
   });
 
+  useEffect(() => {
+    // Yönlendirme olmazsa loading sonsuza kadar kalmasın
+    if (firebaseUser && !authLoading) {
+      const timer = window.setTimeout(() => setLoading(false), 12_000);
+      return () => window.clearTimeout(timer);
+    }
+  }, [firebaseUser, authLoading]);
+
   const onSubmit = async (data: LoginInput) => {
     if (!isConfigured) {
       setError('Firebase yapılandırması eksik. .env.local dosyasını kontrol edin.');
@@ -63,10 +74,9 @@ export function LoginForm() {
     setError(null);
     try {
       await signIn(data.email, data.password);
-      // E-posta girişi — AuthProvider oturumu kurar, AuthSessionRedirect yönlendirir
+      // AuthProvider oturumu kurar, AuthSessionRedirect yönlendirir
     } catch (err) {
       setError(getFirebaseAuthErrorMessage(err, 'E-posta veya şifre hatalı'));
-    } finally {
       setLoading(false);
     }
   };
@@ -81,10 +91,9 @@ export function LoginForm() {
     try {
       const result = await signInWithGoogle();
       if (result.mode === 'redirect') {
-        // Sayfa Google'a yönlendirilecek
+        window.setTimeout(() => setLoading(false), 8_000);
         return;
       }
-      // Popup başarılı — AuthProvider oturumu kurar, AuthSessionRedirect yönlendirir
     } catch (err) {
       setError(
         getFirebaseAuthErrorMessage(err, 'Google ile giriş başarısız oldu')
@@ -102,7 +111,10 @@ export function LoginForm() {
     setError(null);
     try {
       const result = await signInWithApple();
-      if (result.mode === 'redirect') return;
+      if (result.mode === 'redirect') {
+        window.setTimeout(() => setLoading(false), 8_000);
+        return;
+      }
     } catch (err) {
       setError(
         getFirebaseAuthErrorMessage(err, 'Apple ile giriş başarısız oldu', 'apple')

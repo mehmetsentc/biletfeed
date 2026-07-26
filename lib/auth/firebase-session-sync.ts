@@ -45,7 +45,11 @@ async function forceSignOut(auth: Auth): Promise<null> {
 /**
  * panel.biletfeed.com / admin. / ana site ayrı Firebase IndexedDB kullanır.
  * Çerez (.biletfeed.com) kaynak gerçektir: session VEYA panel_session → Firebase hizala.
- * Çerez yoksa Firebase sessizce yeni çerez üretemez (çapraz çıkış).
+ *
+ * Çerez yokken Firebase kullanıcısını düşürmeyiz — yeni e-posta/Google/Apple girişinde
+ * çerez henüz yokken forceSignOut çağrılırsa giriş "Yükleniyor…"de takılır veya
+ * anında iptal olur. Çapraz çıkış `isExplicitLogoutActive` / `isGlobalLogoutActive`
+ * ile yönetilir; çerez sonrası hizalama aşağıda custom token ile yapılır.
  */
 export async function alignFirebaseWithSessionCookie(
   auth: Auth,
@@ -68,9 +72,8 @@ export async function alignFirebaseWithSessionCookie(
   const sessionUser = primary ?? fallback;
 
   if (!sessionUser) {
-    // Hiçbir SSO çerezi yok → bu origin'deki Firebase'i de kapat
-    if (firebaseUser) return forceSignOut(auth);
-    return null;
+    // Çerez yok: yeni girişte handleSignedInUser oturumu kuracak.
+    return firebaseUser;
   }
 
   if (firebaseUser?.uid === sessionUser.uid) {
