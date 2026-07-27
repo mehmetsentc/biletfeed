@@ -4,7 +4,6 @@ import { setUnifiedAuthCookies } from '@/lib/auth/unified-session-cookies';
 import { SESSION_EXPIRES_MS } from '@/lib/auth/session';
 import {
   PANEL_SESSION_COOKIE_NAME,
-  SESSION_COOKIE_NAME,
   getSessionCookieOptions
 } from '@/lib/auth/session-cookie';
 import { syncUserToDB } from '@/lib/auth/sync-user';
@@ -49,13 +48,10 @@ export async function DELETE(request: NextRequest) {
   const { SCANNER_GATE_SCOPE_COOKIE } = await import(
     '@/lib/auth/scanner-gate-scope'
   );
+  // Panel oturumu + kapı scope — ana site `session` çerezine dokunma.
   const response = NextResponse.json({ success: true });
   const shared = getSessionCookieOptions(0);
-  for (const name of [
-    SESSION_COOKIE_NAME,
-    PANEL_SESSION_COOKIE_NAME,
-    SCANNER_GATE_SCOPE_COOKIE
-  ]) {
+  for (const name of [PANEL_SESSION_COOKIE_NAME, SCANNER_GATE_SCOPE_COOKIE]) {
     response.cookies.set(name, '', shared);
     response.cookies.set(name, '', {
       maxAge: 0,

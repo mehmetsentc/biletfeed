@@ -40,7 +40,7 @@ import {
 } from '@/lib/auth/global-logout';
 import { clearAllServerSessions } from '@/lib/auth/clear-server-sessions';
 import { alignFirebaseWithSessionCookie } from '@/lib/auth/firebase-session-sync';
-import { isPanelAuthContext } from '@/lib/auth/panel-auth-context';
+import { isGateAuthContext, isPanelAuthContext } from '@/lib/auth/panel-auth-context';
 import {
   fetchPanelSessionUser,
   fetchSessionUser
@@ -272,6 +272,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSessionError(null);
             setLoading(false);
             return;
+          }
+
+          // Kapı terminali: panel_session (kapı kodu) kaynak gerçektir.
+          // Ana site Firebase oturum kurma/silme akışı kapı çerezini bozmasın.
+          if (isGateAuthContext()) {
+            const gateSession = await fetchPanelSessionUser();
+            if (gateSession) {
+              authGenerationRef.current += 1;
+              setFirebaseUser(fbUser);
+              setUser(gateSession);
+              setSessionReady(true);
+              setSessionError(null);
+              setLoading(false);
+              return;
+            }
           }
 
           const alignedUser = await alignFirebaseWithSessionCookie(

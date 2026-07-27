@@ -162,6 +162,15 @@ export function useTicketScanValidation(options: {
           return;
         }
 
+        if (res.status === 403) {
+          setError(
+            data.error === 'Geçersiz istek'
+              ? 'İstek güvenlik kontrolünden geçemedi. Sayfayı yenileyip tekrar deneyin.'
+              : data.message || data.error || 'İstek reddedildi'
+          );
+          return;
+        }
+
         if (res.status === 429) {
           setError(
             data.message ||

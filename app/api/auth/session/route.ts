@@ -3,7 +3,6 @@ import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { setUnifiedAuthCookies } from '@/lib/auth/unified-session-cookies';
 import { SESSION_EXPIRES_MS } from '@/lib/auth/session';
 import {
-  PANEL_SESSION_COOKIE_NAME,
   SESSION_COOKIE_NAME,
   getSessionCookieOptions
 } from '@/lib/auth/session-cookie';
@@ -46,24 +45,17 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz istek' }, { status: 403 });
   }
 
-  const { SCANNER_GATE_SCOPE_COOKIE } = await import(
-    '@/lib/auth/scanner-gate-scope'
-  );
+  // Yalnızca ana site `session` çerezi — panel/kapı oturumuna dokunma.
+  // (Başarısız establish sonrası rollback panel_session'ı silmesin.)
   const response = NextResponse.json({ success: true });
   const shared = getSessionCookieOptions(0);
-  for (const name of [
-    SESSION_COOKIE_NAME,
-    PANEL_SESSION_COOKIE_NAME,
-    SCANNER_GATE_SCOPE_COOKIE
-  ]) {
-    response.cookies.set(name, '', shared);
-    response.cookies.set(name, '', {
-      maxAge: 0,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    });
-  }
+  response.cookies.set(SESSION_COOKIE_NAME, '', shared);
+  response.cookies.set(SESSION_COOKIE_NAME, '', {
+    maxAge: 0,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
   return response;
 }
