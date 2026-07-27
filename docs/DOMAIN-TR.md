@@ -56,8 +56,9 @@ open http://giris.localhost:3000
 open http://admin.localhost:3000
 ```
 
-Eski `/organizator-panel/tarayici` ve `panel.biletfeed.com/tarayici`
-yolları production'da `giris.biletfeed.com/tarayici` adresine yönlendirilir.
+`panel.biletfeed.com/tarayici` organizatör tarafında kalır (kapı kodu oluşturma + tarama).
+Kapı ekibi terminali ayrıdır: `giris.biletfeed.com/tarayici` (kod paneli yok).
+Ana sitedeki eski `/organizator-panel/tarayici` yolu production'da panele yönlendirilir.
 
 ---
 

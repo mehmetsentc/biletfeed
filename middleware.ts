@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from 'next/server';
 import {
   canonicalHost,
   getAdminUrl,
-  getGirisUrl,
   getPanelUrl,
   getSupportUrl,
   isAccountSitePath,
@@ -137,16 +136,13 @@ function redirectOrganizerPanelToSubdomain(
   const subdomain = extractSubdomain(request);
   if (subdomain) return null;
 
-  // Eski tarayıcı yolu artık bağımsız kapı terminaline gider.
+  // Eski ana-site /organizator-panel/tarayici → panel alt alanına (kapı kodu paneli burada).
+  // Kapı ekibi terminali: giris.biletfeed.com — ayrı tutulur.
   if (
     pathname === '/organizator-panel/tarayici' ||
     pathname.startsWith('/organizator-panel/tarayici/')
   ) {
-    const target = new URL(getGirisUrl('/tarayici'));
-    request.nextUrl.searchParams.forEach((value, key) => {
-      target.searchParams.set(key, value);
-    });
-    return NextResponse.redirect(target, 308);
+    return NextResponse.redirect(getPanelUrl('/tarayici'), 308);
   }
 
   // Ana siteden gelen diğer /organizator-panel/* yolları panel'e gider.
@@ -279,19 +275,6 @@ function handleOrganizerPanelSubdomain(
 
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/baslangic', request.url));
-  }
-
-  if (
-    pathname === '/tarayici' ||
-    pathname.startsWith('/tarayici/') ||
-    pathname === '/organizator-panel/tarayici' ||
-    pathname.startsWith('/organizator-panel/tarayici/')
-  ) {
-    const target = new URL(getGirisUrl('/tarayici'));
-    request.nextUrl.searchParams.forEach((value, key) => {
-      target.searchParams.set(key, value);
-    });
-    return NextResponse.redirect(target, 308);
   }
 
   // panel.biletfeed.com/giris → organizatör giriş sayfası

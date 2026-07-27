@@ -813,6 +813,14 @@ export function EventDetailDashboard({
 
         <Widget title="İşlemler">
           <div className="flex flex-col gap-2">
+            {status === 'published' && !isPast && (
+              <Button asChild variant="secondary" size="sm" className="justify-start gap-2">
+                <Link href={`/organizator-panel/tarayici?eventId=${event.id}`}>
+                  <QrCode className="size-3.5" />
+                  Kapı kodu oluştur
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="secondary" size="sm" className="justify-start gap-2">
               <a
                 href={girisHref('/tarayici')}
@@ -820,7 +828,7 @@ export function EventDetailDashboard({
                 rel="noopener noreferrer"
               >
                 <QrCode className="size-3.5" />
-                Bilet tara
+                Kapı terminali (tarama)
               </a>
             </Button>
             <Button asChild variant="secondary" size="sm" className="justify-start gap-2">

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getOrCreateScannerId } from '@/lib/tickets/offline-scan-queue';
@@ -29,8 +30,10 @@ type OrganizerEvent = {
 };
 
 export function TicketEntryScanner() {
+  const searchParams = useSearchParams();
+  const eventIdFromQuery = searchParams.get('eventId');
   const [events, setEvents] = useState<OrganizerEvent[]>([]);
-  const [eventId, setEventId] = useState<string>('all');
+  const [eventId, setEventId] = useState<string>(eventIdFromQuery || 'all');
   const [gateLockedEventId, setGateLockedEventId] = useState<string | null>(null);
   const [gateLockedEventTitle, setGateLockedEventTitle] = useState<string | null>(null);
   const [scannerId, setScannerId] = useState<string | undefined>();
@@ -50,6 +53,10 @@ export function TicketEntryScanner() {
     const timer = window.setTimeout(() => setCameraReady(true), 150);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (eventIdFromQuery) setEventId(eventIdFromQuery);
+  }, [eventIdFromQuery]);
 
   useEffect(() => {
     void fetch('/api/organizer/profile', { credentials: 'include' })
