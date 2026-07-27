@@ -21,13 +21,16 @@ export function CookiePreferencesDialog({
   onOpenChange,
   initialPreferences,
   onSave,
-  onAcceptAll
+  onAcceptAll,
+  trackingBlockedByAtt = false
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialPreferences: CookiePreferences;
   onSave: (preferences: CookiePreferences) => void;
   onAcceptAll: () => void;
+  /** iOS ATT reddedildi — analitik/pazarlama açılamaz */
+  trackingBlockedByAtt?: boolean;
 }) {
   const t = useTranslations();
   const [prefs, setPrefs] = useState(initialPreferences);
@@ -37,6 +40,7 @@ export function CookiePreferencesDialog({
       key: keyof Omit<CookiePreferences, 'necessary'>;
       title: string;
       description: string;
+      lockedOff?: boolean;
     }> => [
       {
         key: 'functional',
@@ -46,20 +50,37 @@ export function CookiePreferencesDialog({
       {
         key: 'analytics',
         title: t.consent.analytics,
-        description: 'Site kullanımını anonim olarak ölçmemize yardımcı olur.'
+        description: trackingBlockedByAtt
+          ? 'App Tracking izni verilmediği için analitik çerezler kapalıdır.'
+          : 'Site kullanımını anonim olarak ölçmemize yardımcı olur.',
+        lockedOff: trackingBlockedByAtt
       },
       {
         key: 'marketing',
         title: t.consent.marketing,
-        description: 'İlgi alanlarınıza uygun içerik ve reklam sunar.'
+        description: trackingBlockedByAtt
+          ? 'App Tracking izni verilmediği için pazarlama çerezleri kapalıdır.'
+          : 'İlgi alanlarınıza uygun içerik ve reklam sunar.',
+        lockedOff: trackingBlockedByAtt
       }
     ],
-    [t]
+    [t, trackingBlockedByAtt]
   );
 
   useEffect(() => {
-    if (open) setPrefs(initialPreferences);
-  }, [open, initialPreferences]);
+    if (open) {
+      setPrefs(
+        trackingBlockedByAtt
+          ? {
+              necessary: true,
+              functional: initialPreferences.functional,
+              analytics: false,
+              marketing: false
+            }
+          : initialPreferences
+      );
+    }
+  }, [open, initialPreferences, trackingBlockedByAtt]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,7 +126,8 @@ export function CookiePreferencesDialog({
               </div>
               <Switch
                 id={`cookie-${category.key}`}
-                checked={prefs[category.key]}
+                checked={category.lockedOff ? false : prefs[category.key]}
+                disabled={category.lockedOff}
                 onCheckedChange={(checked) =>
                   setPrefs((current) => ({ ...current, [category.key]: checked }))
                 }
@@ -118,13 +140,15 @@ export function CookiePreferencesDialog({
           <Button type="button" variant="outline" onClick={() => onSave(prefs)}>
             {t.consent.saveChoices}
           </Button>
-          <Button
-            type="button"
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={onAcceptAll}
-          >
-            {t.consent.acceptAll}
-          </Button>
+          {!trackingBlockedByAtt && (
+            <Button
+              type="button"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={onAcceptAll}
+            >
+              {t.consent.acceptAll}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

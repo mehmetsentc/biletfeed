@@ -1,36 +1,38 @@
 /**
- * iOS App Tracking Transparency (ATT) durumunu native tarafta kontrol eder /
- * gerekirse sistem izin diyaloğunu gösterir.
+ * iOS App Tracking Transparency (ATT) — native shell.
  *
- * Yalnızca Capacitor iOS'ta anlamlıdır. Web'de ve Android'de her zaman `true`
- * döner — Android'de ATT kavramı yok, web'de izleme rızası mevcut çerez onay
- * banner'ı ile yönetiliyor.
- *
- * App Store Guideline 5.1.2(i): Uygulama web içeriğinde tracking amaçlı çerez
- * topluyorsa (GA4 vb.), kullanıcıdan önce bu izni almak zorunludur. İzin
- * verilmezse tracking scriptleri hiç yüklenmemelidir.
+ * Guideline 5.1.1(iv): "Ask App Not to Track" sonrası tracking amaçlı
+ * çerez / analitik toplanmamalı. Bu modül ATT sonucunu cache'ler; reddedilirse
+ * analitik çerezlerini temizler.
  */
-// Bu promise'i modül seviyesinde cache'liyoruz ki sayfada birden fazla bileşen
-// (GoogleAnalytics, SiteTracker, AppSpeedInsights, vb.) aynı anda çağırdığında
-// ATT sistem izin diyaloğu yalnızca bir kez gösterilsin ve hepsi aynı sonucu
-// paylaşsın.
 let cachedResult: Promise<boolean> | null = null;
+let cachedNativeIos: Promise<boolean> | null = null;
+
+export async function isNativeIosApp(): Promise<boolean> {
+  if (!cachedNativeIos) {
+    cachedNativeIos = (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        return (
+          Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
+        );
+      } catch {
+        return false;
+      }
+    })();
+  }
+  return cachedNativeIos;
+}
 
 async function checkTrackingAuthorized(): Promise<boolean> {
   const { Capacitor } = await import('@capacitor/core');
   const platform = Capacitor.getPlatform();
   const isNative = Capacitor.isNativePlatform();
 
-  // Kesin olarak Android ise ATT kavramı yok — doğrudan izinli say.
   if (platform === 'android') return true;
 
-  // Kesin olarak gerçek web (native shell DEĞİL) ise de izinli say.
-  // Ama platform tespiti belirsizse (ör. native shell içinde olduğu halde
-  // `getPlatform()` yanlışlıkla 'web' dönerse) burada ATT'yi atlamak yerine
-  // aşağıdaki native plugin çağrısına düşüyoruz: plugin native tarafta yoksa
-  // zaten hata fırlatır ve catch bloğu güvenli tarafta (false = tracking kapalı)
-  // kalır. Amaç: platform algılama tek sinyale bağlı kalıp yanlışlıkla "web"
-  // sanıp ATT'yi tamamen atlamasın (Guideline 5.1.1(iv) riski).
+  // Gerçek tarayıcı — ATT yok; çerez banner'ı yönetir.
+  // Native shell'de platform yanlışlıkla 'web' görünürse ATT'ye düş (güvenli taraf).
   if (platform === 'web' && !isNative) return true;
 
   try {
@@ -46,7 +48,6 @@ async function checkTrackingAuthorized(): Promise<boolean> {
 
     return status === AppTrackingTransparencyStatus.authorized;
   } catch {
-    // Plugin çağrısı başarısız olursa güvenli taraf: tracking'i kapalı say
     return false;
   }
 }
@@ -56,4 +57,37 @@ export async function isTrackingAuthorized(): Promise<boolean> {
     cachedResult = checkTrackingAuthorized();
   }
   return cachedResult;
+}
+
+/** ATT reddi / tracking kapalıyken tarayıcıda kalmış analitik izlerini sil */
+export function purgeTrackingArtifacts(): void {
+  if (typeof document === 'undefined') return;
+
+  try {
+    localStorage.removeItem('bf_analytics_sid');
+  } catch {
+    /* ignore */
+  }
+
+  const names = document.cookie.split(';').map((c) => c.split('=')[0]?.trim());
+  const trackingNames = names.filter(
+    (n) =>
+      n === '_ga' ||
+      n === '_gid' ||
+      n === '_gat' ||
+      n.startsWith('_ga_') ||
+      n.startsWith('_gid') ||
+      n.startsWith('_gat')
+  );
+
+  for (const name of trackingNames) {
+    if (!name) continue;
+    document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+    document.cookie = `${name}=; path=/; domain=${window.location.hostname}; max-age=0; SameSite=Lax`;
+    const parts = window.location.hostname.split('.');
+    if (parts.length >= 2) {
+      const root = parts.slice(-2).join('.');
+      document.cookie = `${name}=; path=/; domain=.${root}; max-age=0; SameSite=Lax`;
+    }
+  }
 }

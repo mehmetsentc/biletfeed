@@ -106,7 +106,7 @@ export function SiteTracker() {
       sessionId: sessionIdRef.current,
       width: typeof window !== 'undefined' ? window.innerWidth : null
     });
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, trackingAuthorized]);
 
   useEffect(() => {
     if (!hasAnalyticsConsent() || !trackingAuthorized) return;
