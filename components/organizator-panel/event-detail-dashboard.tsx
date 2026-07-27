@@ -376,7 +376,7 @@ export function EventDetailDashboard({
     if (status === 'cancelled') {
       return {
         title: 'Etkinlik iptal edildi',
-        body: 'Satışlar durduruldu. Mevcut bilet sahipleri bilgilendirilmelidir.',
+        body: 'Satışlar durduruldu. Tekrar yayına almak için onaya gönderebilir veya önce taslağa alıp düzenleyebilirsiniz. Mevcut bilet sahipleri bilgilendirilmelidir.',
         tone: 'cancelled' as const
       };
     }
@@ -605,6 +605,37 @@ export function EventDetailDashboard({
                 <PlayCircle className="size-3.5" />
                 Onaya Gönder
               </Button>
+            )}
+            {status === 'cancelled' && !isPast && (
+              <>
+                <Button
+                  size="sm"
+                  className="justify-start gap-2"
+                  disabled={actionLoading}
+                  onClick={() => {
+                    if (
+                      confirm(
+                        'İptal edilen etkinliği tekrar onaya göndermek istiyor musunuz? Admin onayından sonra yeniden yayınlanır.'
+                      )
+                    ) {
+                      void updateStatus('pending');
+                    }
+                  }}
+                >
+                  <PlayCircle className="size-3.5" />
+                  Tekrar onaya gönder
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="justify-start gap-2"
+                  disabled={actionLoading}
+                  onClick={() => void updateStatus('draft')}
+                >
+                  <PauseCircle className="size-3.5" />
+                  Taslağa geri al
+                </Button>
+              </>
             )}
             {status === 'pending' && !isPast && (
               <p className="text-xs text-muted-foreground">

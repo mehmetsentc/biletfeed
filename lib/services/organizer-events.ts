@@ -546,7 +546,10 @@ export async function updateOrganizerEventStatus(
   }
 
   const series = parseEventSeriesMeta(event.seo);
-  if (series?.seriesId && (status === 'pending' || status === 'draft')) {
+  if (
+    series?.seriesId &&
+    (status === 'pending' || status === 'draft' || status === 'cancelled')
+  ) {
     await prisma.event.updateMany({
       where: {
         organizerId,
