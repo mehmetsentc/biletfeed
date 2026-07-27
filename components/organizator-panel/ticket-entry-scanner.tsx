@@ -109,8 +109,8 @@ export function TicketEntryScanner() {
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <ScanLine className="size-5 shrink-0 text-[var(--bf-accent-ink)]" strokeWidth={2} />
-            <h1 className="truncate text-lg font-semibold">Bilet Tara</h1>
+            <ScanLine className="size-5 shrink-0 text-[var(--bf-neon)]" strokeWidth={2} />
+            <h1 className="truncate text-lg font-semibold text-white">Bilet Tara</h1>
           </div>
           <p className="truncate text-xs text-white/55">
             Girişte QR okutun — geçerli bilet otomatik kaydedilir
@@ -131,7 +131,7 @@ export function TicketEntryScanner() {
           Giriş: <span className="text-white/90">{scannerAccount.email}</span>
           {' · '}
           Organizasyon:{' '}
-          <span className="font-medium text-[var(--bf-accent-ink)]">{scannerAccount.organizerName}</span>
+          <span className="font-medium text-[var(--bf-neon)]">{scannerAccount.organizerName}</span>
         </div>
       )}
 
