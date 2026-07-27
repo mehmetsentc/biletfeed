@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import type { EntryCategory, EntryTicketKind } from '@/lib/tickets/entry-display';
+import { getScannerAuthHeaders } from '@/lib/auth/scanner-bearer';
 
 export type ScanStatus =
   | 'VALID'
@@ -82,7 +83,10 @@ async function refreshPanelSession(): Promise<boolean> {
     const res = await fetch('/api/auth/panel-me', {
       credentials: 'include',
       cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' }
+      headers: {
+        'Cache-Control': 'no-cache',
+        ...getScannerAuthHeaders()
+      }
     });
     return res.ok;
   } catch {
@@ -104,7 +108,10 @@ async function postValidate(
 ): Promise<{ res: Response; data: ScanResult & { error?: string } }> {
   const res = await fetch('/api/tickets/validate', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getScannerAuthHeaders()
+    },
     credentials: 'include',
     body: JSON.stringify({
       ...payload,

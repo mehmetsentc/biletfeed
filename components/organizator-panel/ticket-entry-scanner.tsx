@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { getOrCreateScannerId } from '@/lib/tickets/offline-scan-queue';
 import { ScannerGateAccessPanel } from '@/components/organizator-panel/scanner-gate-access-panel';
 import { isOnGirisHost, panelHref } from '@/lib/config/domain';
+import { getScannerAuthHeaders } from '@/lib/auth/scanner-bearer';
 
 const QrScanner = dynamic(
   () => import('@/components/tickets/qr-scanner').then((m) => m.QrScanner),
@@ -59,7 +60,10 @@ export function TicketEntryScanner() {
   }, [eventIdFromQuery]);
 
   useEffect(() => {
-    void fetch('/api/organizer/profile', { credentials: 'include' })
+    void fetch('/api/organizer/profile', {
+      credentials: 'include',
+      headers: getScannerAuthHeaders()
+    })
       .then((r) => r.json())
       .then(
         (data: {
@@ -83,7 +87,10 @@ export function TicketEntryScanner() {
   }, []);
 
   useEffect(() => {
-    void fetch('/api/organizer/events', { credentials: 'include' })
+    void fetch('/api/organizer/events', {
+      credentials: 'include',
+      headers: getScannerAuthHeaders()
+    })
       .then((r) => r.json())
       .then((data: { events?: OrganizerEvent[] }) => {
         const list = (data.events ?? []).filter((e) => e.status === 'published');

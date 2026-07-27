@@ -69,10 +69,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let gateScopeToken: string | undefined;
+  if (redeemed.eventId) {
+    gateScopeToken = buildGateScopeToken({
+      eventId: redeemed.eventId,
+      organizerId: redeemed.organizerId,
+      exp: redeemed.expiresAt
+    });
+  }
+
   const response = NextResponse.json({
     success: true,
     email: redeemed.email,
-    redirect: '/tarayici'
+    redirect: '/tarayici',
+    // Capacitor: cookie silinse bile tarayıcı bu token'larla çalışır
+    sessionToken: redeemed.sessionCookie,
+    gateScopeToken: gateScopeToken ?? null
   });
 
   response.cookies.set(
@@ -81,18 +93,14 @@ export async function POST(request: NextRequest) {
     getSessionCookieOptions(SESSION_EXPIRES_MS / 1000)
   );
 
-  if (redeemed.eventId) {
+  if (gateScopeToken && redeemed.eventId) {
     const scopeTtlSec = Math.max(
       60,
       Math.floor((redeemed.expiresAt - Date.now()) / 1000)
     );
     response.cookies.set(
       SCANNER_GATE_SCOPE_COOKIE,
-      buildGateScopeToken({
-        eventId: redeemed.eventId,
-        organizerId: redeemed.organizerId,
-        exp: redeemed.expiresAt
-      }),
+      gateScopeToken,
       gateScopeCookieOptions(scopeTtlSec)
     );
   }

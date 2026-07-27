@@ -35,11 +35,24 @@ export async function readGateScopeFromCookies(): Promise<GateScope | null> {
   try {
     const jar = await cookies();
     const raw = jar.get(SCANNER_GATE_SCOPE_COOKIE)?.value;
-    if (!raw) return null;
-    return verifyGateScopeToken(raw);
+    if (raw) {
+      const fromCookie = verifyGateScopeToken(raw);
+      if (fromCookie) return fromCookie;
+    }
   } catch {
-    return null;
+    /* ignore */
   }
+
+  try {
+    const { headers } = await import('next/headers');
+    const h = await headers();
+    const bearerScope = h.get('x-scanner-gate-scope');
+    if (bearerScope) return verifyGateScopeToken(bearerScope);
+  } catch {
+    /* ignore */
+  }
+
+  return null;
 }
 
 export function gateScopeCookieOptions(maxAgeSeconds: number) {

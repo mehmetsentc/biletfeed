@@ -1,11 +1,15 @@
 import type { User } from '@/types';
+import { getScannerAuthHeaders } from '@/lib/auth/scanner-bearer';
 
 async function fetchFromEndpoint(endpoint: string): Promise<User | null> {
   try {
     const res = await fetch(endpoint, {
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' }
+      headers: {
+        'Cache-Control': 'no-cache',
+        ...getScannerAuthHeaders()
+      }
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { user?: User | null };

@@ -179,7 +179,10 @@ export function QrScanner({
         flushScanQueue(async (payload) => {
           const res = await fetch('/api/tickets/validate', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(await import('@/lib/auth/scanner-bearer')).getScannerAuthHeaders()
+            },
             credentials: 'include',
             body: JSON.stringify(payload)
           });

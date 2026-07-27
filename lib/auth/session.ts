@@ -64,7 +64,8 @@ function verifySimpleSession(token: string): SessionUser | null {
   }
 }
 
-async function resolveSessionFromCookieValue(
+/** Cookie veya Bearer token değeri — imza + süre + DB rol */
+export async function resolveSessionFromToken(
   token: string | undefined
 ): Promise<SessionUser | null> {
   if (!token) return null;
@@ -89,6 +90,24 @@ async function resolveSessionFromCookieValue(
   return parsed;
 }
 
+async function resolveSessionFromCookieValue(
+  token: string | undefined
+): Promise<SessionUser | null> {
+  return resolveSessionFromToken(token);
+}
+
+async function resolveSessionFromBearerHeader(): Promise<SessionUser | null> {
+  try {
+    const { headers } = await import('next/headers');
+    const h = await headers();
+    const auth = h.get('authorization');
+    if (!auth?.toLowerCase().startsWith('bearer ')) return null;
+    return resolveSessionFromToken(auth.slice(7).trim());
+  } catch {
+    return null;
+  }
+}
+
 export async function verifySessionCookie(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies();
@@ -104,9 +123,12 @@ export async function verifySessionCookie(): Promise<SessionUser | null> {
 export async function verifyPanelSessionCookie(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies();
-    return resolveSessionFromCookieValue(
+    const fromCookie = await resolveSessionFromCookieValue(
       cookieStore.get(PANEL_SESSION_COOKIE_NAME)?.value
     );
+    if (fromCookie) return fromCookie;
+    // Capacitor / kapı: cookie silinmiş olsa bile Authorization Bearer
+    return resolveSessionFromBearerHeader();
   } catch {
     return null;
   }

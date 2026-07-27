@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/card';
 import { useTranslations } from '@/components/providers';
 import { girisHref, isOnGirisHost } from '@/lib/config/domain';
+import { storeScannerBearerTokens } from '@/lib/auth/scanner-bearer';
 
 function defaultScannerRedirect(): string {
   if (typeof window !== 'undefined' && isOnGirisHost(window.location.hostname)) {
@@ -69,11 +70,20 @@ export function ScannerGateLoginForm() {
         const data = (await res.json().catch(() => ({}))) as {
           error?: string;
           redirect?: string;
+          sessionToken?: string;
+          gateScopeToken?: string | null;
         };
 
         if (!res.ok) {
           setError(data.error ?? t.gate.errorInvalidGate);
           return;
+        }
+
+        if (data.sessionToken) {
+          storeScannerBearerTokens({
+            sessionToken: data.sessionToken,
+            gateScopeToken: data.gateScopeToken
+          });
         }
 
         const redirect =

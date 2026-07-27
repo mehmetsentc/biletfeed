@@ -287,6 +287,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setLoading(false);
               return;
             }
+            // Kapı host'ta oturum yoksa da establish/clear çalıştırma
+            authGenerationRef.current += 1;
+            setFirebaseUser(fbUser);
+            setLoading(false);
+            return;
           }
 
           const alignedUser = await alignFirebaseWithSessionCookie(
@@ -434,6 +439,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       void (async () => {
+        if (isGateAuthContext()) {
+          const gate = await fetchPanelSessionUser();
+          if (!gate && (user || firebaseUser)) {
+            // Kapı oturumu gerçekten yoksa UI temizle — cookie silme yok
+            authGenerationRef.current += 1;
+            setFirebaseUser(null);
+            setUser(null);
+            setSessionReady(false);
+            setSessionError(null);
+          }
+          return;
+        }
+
         const panelContext = isPanelAuthContext();
         const me = panelContext
           ? await fetchPanelSessionUser()
