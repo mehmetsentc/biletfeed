@@ -104,7 +104,26 @@ function newTicketCategory(): TicketCategory {
   };
 }
 
-/** Sol ikona tıklayınca native date/time picker açılır */
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) =>
+  String(i).padStart(2, '0')
+);
+/** Etkinlik saatleri için 5 dk adımları — native time scroll sorununu önler */
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) =>
+  String(i * 5).padStart(2, '0')
+);
+
+function parseTimeValue(value: string): { hour: string; minute: string } {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return { hour: '', minute: '' };
+  const hour = String(Math.min(23, Math.max(0, Number(match[1])))).padStart(2, '0');
+  const rawMin = Math.min(59, Math.max(0, Number(match[2])));
+  // En yakın 5 dk'ya yuvarla
+  const snapped = Math.round(rawMin / 5) * 5;
+  const minute = String(snapped === 60 ? 55 : snapped).padStart(2, '0');
+  return { hour, minute };
+}
+
+/** Tarih: native picker (ikonla açılır). Saat: saat/dakika select — kaydırma sorunu yok. */
 function DateTimeField({
   type,
   icon: Icon,
@@ -121,6 +140,57 @@ function DateTimeField({
   required?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  if (type === 'time') {
+    const { hour, minute } = parseTimeValue(value);
+    const selectClass =
+      'h-11 flex-1 rounded-lg border border-input bg-background px-2.5 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30';
+
+    return (
+      <div className="relative flex items-center gap-2">
+        <span className="pointer-events-none absolute left-2 z-10 flex size-8 items-center justify-center text-[var(--bf-accent-ink)]/80">
+          <Icon className="size-4" />
+        </span>
+        <select
+          aria-label="Saat"
+          required={required}
+          value={hour}
+          onChange={(e) => {
+            const h = e.target.value;
+            const m = minute || '00';
+            onChange(h ? `${h}:${m}` : '');
+          }}
+          className={cn(selectClass, 'pl-10')}
+        >
+          <option value="">Saat</option>
+          {HOUR_OPTIONS.map((h) => (
+            <option key={h} value={h}>
+              {h}
+            </option>
+          ))}
+        </select>
+        <span className="text-sm font-semibold text-muted-foreground">:</span>
+        <select
+          aria-label="Dakika"
+          required={required && Boolean(hour)}
+          value={minute}
+          disabled={!hour}
+          onChange={(e) => {
+            const m = e.target.value;
+            onChange(hour ? `${hour}:${m || '00'}` : '');
+          }}
+          className={selectClass}
+        >
+          <option value="">Dk</option>
+          {MINUTE_OPTIONS.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
 
   const openPicker = () => {
     const el = inputRef.current;
@@ -140,7 +210,7 @@ function DateTimeField({
       <button
         type="button"
         tabIndex={-1}
-        aria-label={type === 'date' ? 'Takvimi aç' : 'Saat seçiciyi aç'}
+        aria-label="Takvimi aç"
         onClick={openPicker}
         className="absolute left-2 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-[var(--bf-accent-ink)]/80 hover:bg-muted hover:text-[var(--bf-accent-ink)]"
       >
@@ -148,13 +218,12 @@ function DateTimeField({
       </button>
       <Input
         ref={inputRef}
-        type={type}
+        type="date"
         value={value}
         min={min}
         required={required}
         onChange={(e) => onChange(e.target.value)}
-        onClick={openPicker}
-        className="h-11 cursor-pointer rounded-lg pl-10"
+        className="h-11 rounded-lg pl-10"
       />
     </div>
   );
