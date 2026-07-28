@@ -366,6 +366,20 @@ function handleGirisSubdomain(
   return NextResponse.redirect(new URL('/', request.url));
 }
 
+const ADMIN_FEED_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Admin alt alanında Feed CMS yolları — public `/feed/[slug]` ile karışmasın.
+ * /feed, /feed/yeni, /feed/<uuid> → admin; diğer /feed/* → ana site.
+ */
+function isAdminFeedCmsPath(pathname: string): boolean {
+  if (pathname === '/feed' || pathname === '/feed/yeni') return true;
+  const match = pathname.match(/^\/feed\/([^/]+)\/?$/);
+  if (!match) return false;
+  return ADMIN_FEED_UUID_RE.test(match[1]);
+}
+
 function handleAdminSubdomain(
   request: NextRequest,
   pathname: string
@@ -378,14 +392,17 @@ function handleAdminSubdomain(
     return NextResponse.next();
   }
 
-  // Hesap / yasal / public feed — yalnızca ana sitede
-  // admin.biletfeed.com/feed/slug yanlışlıkla /admin/feed/[id] edit sayfasına düşmesin
+  // Public feed slug'ları ana siteye; admin CMS yolları (/feed, /feed/yeni, /feed/<uuid>)
+  // alt alanda kalıp /admin/feed* olarak rewrite edilir.
+  const isPublicFeedSlugOnAdmin =
+    (pathname === '/feed' || pathname.startsWith('/feed/')) &&
+    !isAdminFeedCmsPath(pathname);
+
   if (
     isMainSiteOnlyPath(pathname) ||
     pathname === '/giris' ||
     pathname.startsWith('/giris/') ||
-    pathname === '/feed' ||
-    pathname.startsWith('/feed/')
+    isPublicFeedSlugOnAdmin
   ) {
     const absolute = siteHref(pathname);
     if (absolute.startsWith('http')) {

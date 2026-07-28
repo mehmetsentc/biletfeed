@@ -30,7 +30,7 @@ import {
   type AdminPermission
 } from '@/lib/auth/admin-permissions';
 import { useTranslations } from '@/components/providers';
-import { adminHref } from '@/lib/config/domain';
+import { adminHref, normalizeAdminPath } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
 type AdminLink = {
@@ -49,12 +49,15 @@ function AdminNavLinks({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const normalizedPath = normalizeAdminPath(pathname);
+
   return (
     <nav className="space-y-1 p-4">
       {links.map((link) => {
+        const linkPath = normalizeAdminPath(link.href);
         const active =
-          pathname === link.href ||
-          (link.href !== '/admin' && pathname.startsWith(link.href));
+          normalizedPath === linkPath ||
+          (linkPath !== '/' && normalizedPath.startsWith(`${linkPath}/`));
         return (
           <Link
             key={link.href}
