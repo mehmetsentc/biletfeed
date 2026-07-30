@@ -1,37 +1,38 @@
-'use client';
-
-import {
-  SettingsPageHeader,
-  SettingsSection
-} from '@/components/account/settings-form';
-import { AvatarUpload } from '@/components/profile/avatar-upload';
-import { useAuth } from '@/components/providers/auth-provider';
+import { redirect } from 'next/navigation';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
+import { SettingsPageHeader } from '@/components/account/settings-form';
+import { AvatarUpload } from '@/components/profile/avatar-upload';
+import { FollowedEntitiesSection } from '@/components/account/followed-entities-section';
+import { ProfileInfoForm } from './profile-info-form';
+import { verifySessionCookie } from '@/lib/auth/session';
+import {
+  getFollowedOrganizersByFirebaseUid,
+  getFollowedVenuesByFirebaseUid
+} from '@/lib/services/follows';
 
-export default function ProfilePage() {
-  const { user, loading } = useAuth();
+export default async function ProfilePage() {
+  const session = await verifySessionCookie();
+  if (!session) redirect('/kayit?redirect=/profil');
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-3xl animate-pulse space-y-6">
-        <div className="h-8 w-48 rounded bg-muted" />
-        <div className="h-32 rounded-xl bg-muted" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
+  const [organizers, venues] = await Promise.all([
+    getFollowedOrganizersByFirebaseUid(session.uid),
+    getFollowedVenuesByFirebaseUid(session.uid)
+  ]);
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-5xl">
       <AccountProfileTabs />
       <SettingsPageHeader title="Profilim" />
 
-      <SettingsSection title="Profil Fotoğrafı">
+      <div className="mt-6 flex justify-center md:justify-start">
         <AvatarUpload />
-      </SettingsSection>
+      </div>
+
+      <div className="mt-8">
+        <ProfileInfoForm />
+      </div>
+
+      <FollowedEntitiesSection organizers={organizers} venues={venues} />
     </div>
   );
 }

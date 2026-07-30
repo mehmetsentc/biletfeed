@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Calendar,
-  Contact,
   Heart,
   Settings,
   Star,
@@ -22,7 +21,8 @@ function getProfileTabs(t: TranslationKeys) {
       href: '/profil',
       label: t.account.profile,
       icon: User,
-      isActive: (p: string) => p === '/profil' || p === '/profil/duzenle'
+      isActive: (p: string) =>
+        p === '/profil' || p === '/profil/duzenle' || p === '/profil/bilgilerim'
     },
     {
       href: '/profil/ayarlar',
@@ -33,12 +33,6 @@ function getProfileTabs(t: TranslationKeys) {
         p === '/profil/email' ||
         p === '/profil/sifre' ||
         p === '/profil/ilgi-alanlari'
-    },
-    {
-      href: '/profil/bilgilerim',
-      label: t.account.personalInfo,
-      icon: Contact,
-      isActive: (p: string) => p === '/profil/bilgilerim'
     },
     {
       href: '/biletlerim',

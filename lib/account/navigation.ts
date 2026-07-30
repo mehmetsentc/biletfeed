@@ -2,7 +2,6 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Bell,
   Calendar,
-  Contact,
   Heart,
   LifeBuoy,
   Settings,
@@ -36,13 +35,8 @@ export function getAccountMenuGroups(t: TranslationKeys): AccountMenuGroup[] {
           href: '/profil',
           label: t.account.profile,
           icon: User,
-          isActive: (p) => p === '/profil' || p === '/profil/duzenle'
-        },
-        {
-          href: '/profil/bilgilerim',
-          label: t.account.personalInfo,
-          icon: Contact,
-          isActive: (p) => p === '/profil/bilgilerim'
+          isActive: (p) =>
+            p === '/profil' || p === '/profil/duzenle' || p === '/profil/bilgilerim'
         },
         {
           href: '/profil/ayarlar',

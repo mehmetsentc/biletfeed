@@ -26,7 +26,7 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
         <main
           className={cn(
             'mx-auto min-w-0 rounded-2xl border border-border bg-card p-5 md:p-8',
-            pathname === '/profil/bilgilerim' ||
+            pathname === '/profil' ||
               pathname === '/profil/ayarlar' ||
               pathname === '/degerlendirmelerim' ||
               pathname === '/profil/destek' ||
