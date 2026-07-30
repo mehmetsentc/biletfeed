@@ -58,10 +58,6 @@ export function FeedBillboardHero({ post }: { post: FeedPostCard }) {
           {post.title}
         </h2>
 
-        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-zinc-400 sm:text-base">
-          {post.summary}
-        </p>
-
         <div className="mt-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 text-xs text-zinc-500">
             <span className="font-semibold text-zinc-300">{post.authorName}</span>

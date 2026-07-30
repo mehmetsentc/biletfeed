@@ -1,7 +1,7 @@
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Clock, Eye, Heart, MessageCircle } from 'lucide-react';
+import { Clock, Heart, MessageCircle } from 'lucide-react';
 import { FeedPostCardView } from '@/components/feed/feed-post-card';
 import { FeedEventCta } from '@/components/feed/feed-event-cta';
 import { FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
@@ -50,10 +50,6 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
         <span className="inline-flex items-center gap-1">
           <Clock className="size-4" />
           {post.readingTimeMinutes} dk okuma
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <Eye className="size-4" />
-          {post.viewCount.toLocaleString('tr-TR')}
         </span>
         <span className="inline-flex items-center gap-1">
           <Heart className="size-4" />

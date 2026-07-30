@@ -1,6 +1,6 @@
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
-import { Bookmark, Clock, Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
+import { Bookmark, Clock, Heart, MessageCircle, Share2 } from 'lucide-react';
 import {
   FEED_CATEGORY_BADGE_COLORS,
   FEED_CATEGORY_BADGE_FALLBACK,
@@ -66,10 +66,6 @@ export function FeedPostCardView({
             <Clock className="size-3.5" />
             {post.readingTimeMinutes} dk
           </span>
-          <span className="inline-flex items-center gap-1">
-            <Eye className="size-3.5" />
-            {post.viewCount.toLocaleString('tr-TR')}
-          </span>
         </div>
 
         <Link href={`/feed/${post.slug}`}>
@@ -82,8 +78,6 @@ export function FeedPostCardView({
             {post.title}
           </h2>
         </Link>
-
-        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{post.summary}</p>
 
         {post.eventTitle && (
           <p className="mt-3 text-xs font-medium text-[var(--bf-accent-ink)]">

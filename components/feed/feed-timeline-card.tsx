@@ -1,6 +1,6 @@
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
-import { Bookmark, Clock, Eye, Heart } from 'lucide-react';
+import { Bookmark, Clock, Heart } from 'lucide-react';
 import {
   FEED_CATEGORY_BADGE_COLORS,
   FEED_CATEGORY_BADGE_FALLBACK,
@@ -87,20 +87,11 @@ export function FeedTimelineCard({
               <Clock className="size-3" />
               {post.readingTimeMinutes} dk
             </span>
-            <span className="text-zinc-600">·</span>
-            <span className="inline-flex items-center gap-1">
-              <Eye className="size-3" />
-              {post.viewCount.toLocaleString('tr-TR')}
-            </span>
           </div>
 
           <h3 className="text-base font-bold leading-snug text-white transition group-hover:text-[var(--bf-accent-ink)]">
             {post.title}
           </h3>
-
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-zinc-400">
-            {post.summary}
-          </p>
 
           {post.eventTitle && (
             <p className="mt-2 text-xs font-medium text-[var(--bf-accent-ink)]/90">
