@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { HomeFeedTabs } from '@/components/feed/home-feed-tabs';
 import { FeedArticleView } from '@/components/feed/feed-article-view';
+import { FeedBackButton } from '@/components/feed/feed-back-button';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { buildBreadcrumbSchema } from '@/lib/seo/schemas';
 import { createFeedArticleMetadata } from '@/lib/seo/feed-metadata';
@@ -57,7 +58,10 @@ export default async function FeedArticlePage({ params }: Props) {
       <section className="border-b border-border bg-card/50 py-4">
         <div className="container mx-auto px-4">
           <HomeFeedTabs />
-          <nav className="mt-4 text-sm text-muted-foreground">
+          <div className="mt-4">
+            <FeedBackButton />
+          </div>
+          <nav className="mt-2 text-sm text-muted-foreground">
             <Link href="/feed" className="hover:text-primary">
               Feed
             </Link>

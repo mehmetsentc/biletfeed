@@ -26,7 +26,7 @@ export function HomeEventScrollCard({ event, className }: HomeEventScrollCardPro
         className
       )}
     >
-      <div className="relative aspect-[4/5] overflow-hidden">
+      <div className="relative aspect-video overflow-hidden bg-muted">
         <Image
           src={event.coverImage}
           alt={event.title}

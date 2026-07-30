@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["lib/firebase/client.ts", "components/providers/auth-provider.tsx"]
+}

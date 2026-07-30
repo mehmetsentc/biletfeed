@@ -33,14 +33,16 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
     <article className="pb-24">
       <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
         <FeedCoverImage src={post.coverImage} alt={post.title} fill className="object-cover" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-          <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold">{typeLabel}</span>
-          <h1 className="mt-4 text-3xl font-bold leading-tight md:text-4xl">{post.title}</h1>
-          {post.headline && post.headline !== post.title && (
-            <p className="mt-2 text-lg text-white/85">{post.headline}</p>
-          )}
-        </div>
+      </div>
+
+      <div className="mt-6">
+        <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+          {typeLabel}
+        </span>
+        <h1 className="mt-4 text-3xl font-bold leading-tight text-foreground md:text-4xl">{post.title}</h1>
+        {post.headline && post.headline !== post.title && (
+          <p className="mt-2 text-lg text-muted-foreground">{post.headline}</p>
+        )}
       </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">

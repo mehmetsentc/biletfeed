@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { LayoutDashboard, MapPin, Plus, Search, Menu, X } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { ArrowLeft, LayoutDashboard, MapPin, Plus, Search, Menu, X } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTranslations } from '@/components/providers';
@@ -22,13 +22,18 @@ interface MobileHeaderProps {
   categories: CategoryNavItem[];
 }
 
+const MOBILE_HEADER_ROOT_PATHS = ['/', '/feed', '/etkinlikler', '/favorilerim', '/biletlerim', '/profil'];
+
 export function MobileHeader({ categories }: MobileHeaderProps) {
   const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
   const { citySlug, cities, openCityPicker } = useCity();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
+
+  const isRootPage = MOBILE_HEADER_ROOT_PATHS.includes(pathname);
 
   const currentCity = cities.find((c) => c.slug === citySlug);
   const cityName = currentCity?.name ?? t.location.selectCity;
@@ -52,14 +57,25 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
       >
         {/* Üst bar — logo ortada, kompakt header */}
         <div className="relative flex h-12 items-center justify-center px-3">
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            className="absolute left-3 flex size-11 items-center justify-center text-[var(--bf-accent-ink)]"
-            aria-label={t.common.menu}
-          >
-            <Menu className="size-6" strokeWidth={2.5} />
-          </button>
+          {isRootPage ? (
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              className="absolute left-3 flex size-11 items-center justify-center text-[var(--bf-accent-ink)]"
+              aria-label={t.common.menu}
+            >
+              <Menu className="size-6" strokeWidth={2.5} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="absolute left-3 flex size-11 items-center justify-center rounded-full bg-[var(--muted)] text-[var(--bf-accent-ink)]"
+              aria-label={t.common.back}
+            >
+              <ArrowLeft className="size-6" strokeWidth={2.5} />
+            </button>
+          )}
 
           <Logo variant="auto" className="pointer-events-auto" />
 

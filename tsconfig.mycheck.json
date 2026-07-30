@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": [
+    "next-env.d.ts",
+    "lib/tracking/att.ts",
+    "lib/tracking/platform.ts",
+    "lib/auth/csrf.ts",
+    "components/analytics/site-tracker.tsx",
+    "components/analytics/speed-insights.tsx",
+    "components/footer/app-store-badges.tsx",
+    "components/auth/register-form.tsx",
+    "components/auth/login-form.tsx",
+    "app/(site)/mobil-uygulama/page.tsx"
+  ]
+}
