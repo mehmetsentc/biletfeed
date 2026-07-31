@@ -1,7 +1,12 @@
 import type { FeedPostStatus, FeedPostType, Prisma } from '@prisma/client';
 import { prisma, ensureDbConnection, isDatabaseConfigured } from '@/lib/db/prisma';
 import { uniqueSlug } from '@/lib/utils/slug';
-import { DEFAULT_FEED_CATEGORIES, FEED_AUTHOR_NAME, isMissingFeedCoverImage } from '@/lib/feed/constants';
+import {
+  DEFAULT_FEED_CATEGORIES,
+  FEED_AUTHOR_NAME,
+  FEED_FALLBACK_COVER,
+  isMissingFeedCoverImage
+} from '@/lib/feed/constants';
 import type { FeedPostCard, FeedPostDetail } from '@/lib/feed/types';
 
 function isFeedDbUnavailable(error: unknown): boolean {
@@ -18,6 +23,19 @@ function isFeedDbUnavailable(error: unknown): boolean {
     message.includes('feed_posts') ||
     message.includes('does not exist')
   );
+}
+
+/** Yayınlanmış VE gerçek kapak görseli olan haberler — herkese açık sorgularda
+ * temel filtre. Görselsiz/placeholder haberler otomatik olarak yayından
+ * gizlenir; admin görsel ekleyince otomatik olarak tekrar görünür olur. */
+function publishedWithImageWhere(): Prisma.FeedPostWhereInput {
+  return {
+    status: 'published',
+    deletedAt: null,
+    publishedAt: { not: null },
+    coverImage: { not: '' },
+    NOT: [{ coverImage: { contains: 'brand/logo' } }, { coverImage: FEED_FALLBACK_COVER }]
+  };
 }
 
 const postCardSelect = {
@@ -116,10 +134,8 @@ export async function listPublishedFeedPosts(params: {
     // olarak yeniden sıralıyoruz; normal sayfalarda pencere = limit + 1.
     const windowSize = personalize ? Math.min(limit * 3, 60) : limit + 1;
 
-    const where = {
-      status: 'published' as const,
-      deletedAt: null,
-      publishedAt: { not: null },
+    const where: Prisma.FeedPostWhereInput = {
+      ...publishedWithImageWhere(),
       ...(params.categorySlug
         ? { feedCategory: { slug: params.categorySlug, deletedAt: null } }
         : {}),
@@ -184,12 +200,45 @@ export async function getTrendingFeedPosts(limit = 6): Promise<FeedPostCard[]> {
   try {
     await ensureDbConnection();
     const rows = await prisma.feedPost.findMany({
-      where: { status: 'published', deletedAt: null, publishedAt: { not: null } },
+      where: publishedWithImageWhere(),
       select: postCardSelect,
       orderBy: [{ trendingScore: 'desc' }, { viewCount: 'desc' }],
       take: limit
     });
     return rows.map(mapPostCard);
+  } catch (error) {
+    if (isFeedDbUnavailable(error)) return [];
+    throw error;
+  }
+}
+
+/** Sadece en az bir yayınlanmış+görselli haberi olan kategorileri döner —
+ * feed sayfasındaki kategori filtre çipleri için. Haberi olmayan kategoriler
+ * listeye hiç girmez. */
+export async function listFeedCategoriesWithPosts(): Promise<
+  Array<{ slug: string; name: string; count: number }>
+> {
+  if (!isDatabaseConfigured()) return [];
+
+  try {
+    await ensureDbConnection();
+    const categories = await prisma.feedCategory.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: { slug: true, name: true },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    const counts = await Promise.all(
+      categories.map((cat) =>
+        prisma.feedPost.count({
+          where: { ...publishedWithImageWhere(), feedCategory: { slug: cat.slug, deletedAt: null } }
+        })
+      )
+    );
+
+    return categories
+      .map((cat, i) => ({ slug: cat.slug, name: cat.name, count: counts[i] ?? 0 }))
+      .filter((cat) => cat.count > 0);
   } catch (error) {
     if (isFeedDbUnavailable(error)) return [];
     throw error;
@@ -202,7 +251,7 @@ export async function getFeedPostBySlug(slug: string): Promise<FeedPostDetail | 
   try {
     await ensureDbConnection();
     const row = await prisma.feedPost.findFirst({
-      where: { slug, status: 'published', deletedAt: null },
+      where: { slug, ...publishedWithImageWhere() },
       include: {
         feedCategory: { select: { slug: true, name: true } },
         event: {
@@ -232,8 +281,7 @@ export async function getFeedPostBySlug(slug: string): Promise<FeedPostDetail | 
       relatedFilters.length > 0
         ? await prisma.feedPost.findMany({
             where: {
-              status: 'published',
-              deletedAt: null,
+              ...publishedWithImageWhere(),
               id: { not: row.id },
               OR: relatedFilters
             },
@@ -359,8 +407,7 @@ export async function searchFeedPosts(query: string, limit = 12): Promise<FeedPo
 
     const rows = await prisma.feedPost.findMany({
       where: {
-        status: 'published',
-        deletedAt: null,
+        ...publishedWithImageWhere(),
         OR: [
           { title: { contains: q, mode: 'insensitive' } },
           { summary: { contains: q, mode: 'insensitive' } },

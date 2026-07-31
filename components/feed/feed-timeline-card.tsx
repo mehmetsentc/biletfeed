@@ -38,7 +38,7 @@ export function FeedTimelineCard({
         )}
         <div className="relative z-10 mt-1 flex size-10 shrink-0 flex-col items-center justify-center">
           <div className="absolute size-10 rounded-full bg-primary/10" />
-          <div className="size-3 rounded-full border-2 border-primary bg-[#0c1017] shadow-[0_0_12px_rgba(245,166,35,0.45)]" />
+          <div className="size-3 rounded-full border-2 border-primary bg-background shadow-[0_0_12px_rgba(245,166,35,0.45)]" />
         </div>
         {!isLast && (
           <div className="mt-1 w-px flex-1 min-h-[2rem] bg-gradient-to-b from-primary/60 via-primary/25 to-primary/10" />
@@ -58,7 +58,7 @@ export function FeedTimelineCard({
       {/* Card */}
       <Link
         href={`/feed/${post.slug}`}
-        className="group mb-4 flex min-w-0 flex-1 items-center gap-4 rounded-2xl border border-white/8 bg-zinc-900/80 p-3.5 shadow-lg transition hover:border-primary/30 hover:bg-zinc-900"
+        className="group mb-4 flex min-w-0 flex-1 items-center gap-4 rounded-2xl border border-border bg-card p-3.5 shadow-lg transition hover:border-primary/30 hover:bg-muted"
       >
         <div className="relative size-24 shrink-0 overflow-hidden rounded-xl sm:size-28">
           <FeedCoverImage
@@ -80,13 +80,13 @@ export function FeedTimelineCard({
             {label}
           </span>
 
-          <h3 className="mt-2 line-clamp-3 text-lg font-bold leading-snug text-white transition group-hover:text-[var(--bf-accent-ink)]">
+          <h3 className="mt-2 line-clamp-3 text-lg font-bold leading-snug text-foreground transition group-hover:text-[var(--bf-accent-ink)]">
             {post.title}
           </h3>
 
-          <div className="mt-2 flex items-center gap-2 text-sm text-zinc-400">
+          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
             <span className="truncate">{post.authorName}</span>
-            <span className="shrink-0 text-zinc-600">·</span>
+            <span className="shrink-0 text-muted-foreground/60">·</span>
             <span className="inline-flex shrink-0 items-center gap-1">
               <Clock className="size-3.5" />
               {post.readingTimeMinutes} dk

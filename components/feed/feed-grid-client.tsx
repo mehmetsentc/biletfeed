@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { FeedCoverBackground } from '@/components/feed/feed-cover-image';
 import { Loader2 } from 'lucide-react';
@@ -15,32 +15,62 @@ import type { FeedPostCard } from '@/lib/feed/types';
 export function FeedGridClient({
   initialPosts,
   initialCursor,
-  trending = []
+  trending = [],
+  categorySlug
 }: {
   initialPosts: FeedPostCard[];
   initialCursor: string | null;
   trending?: FeedPostCard[];
+  categorySlug?: string;
 }) {
   const [posts, setPosts] = useState(initialPosts);
   const [cursor, setCursor] = useState(initialCursor);
   const [loading, setLoading] = useState(false);
+  // İki ayrı sentinel: mobil ve masaüstü düzenleri aynı anda DOM'da
+  // (CSS ile gizleniyor), tek ref paylaşımı yanlış düğüme bağlanabilir.
+  const mobileSentinelRef = useRef<HTMLDivElement | null>(null);
+  const desktopSentinelRef = useRef<HTMLDivElement | null>(null);
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/feed?cursor=${encodeURIComponent(cursor)}`);
+      const url = `/api/feed?cursor=${encodeURIComponent(cursor)}${
+        categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : ''
+      }`;
+      const res = await fetch(url);
       const data = (await res.json()) as { posts: FeedPostCard[]; nextCursor: string | null };
       setPosts((prev) => [...prev, ...data.posts]);
       setCursor(data.nextCursor);
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading]);
+  }, [cursor, loading, categorySlug]);
+
+  // Aşağı kaydırıldıkça otomatik yeni içerik yükle. Gizli (display:none)
+  // düğüm hiçbir zaman kesişmediği için sadece görünür olan tetiklenir.
+  useEffect(() => {
+    if (!cursor) return;
+    const nodes = [mobileSentinelRef.current, desktopSentinelRef.current].filter(
+      (n): n is HTMLDivElement => n !== null
+    );
+    if (nodes.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMore();
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    nodes.forEach((n) => observer.observe(n));
+    return () => observer.disconnect();
+  }, [cursor, loadMore]);
 
   if (posts.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center md:border-border">
+      <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
         <p className="text-lg font-semibold text-foreground">Feed henüz boş</p>
         <p className="mt-2 text-sm text-muted-foreground">
           Konser ve festival haberleri yakında burada olacak. Şimdilik etkinlikleri keşfedin.
@@ -67,6 +97,13 @@ export function FeedGridClient({
   const desktopMain = posts.slice(5);
   const desktopSidebar = (trending.length > 0 ? trending : posts).slice(0, 6);
 
+  const loadingIndicator = loading && (
+    <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="size-4 animate-spin" />
+      Yükleniyor…
+    </span>
+  );
+
   return (
     <>
       {/* ── Mobile: billboard + timeline ── */}
@@ -85,17 +122,17 @@ export function FeedGridClient({
                 <Link
                   key={post.id}
                   href={`/feed/${post.slug}`}
-                  className="w-[72vw] max-w-[280px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-900"
+                  className="w-[72vw] max-w-[280px] shrink-0 overflow-hidden rounded-xl border border-border bg-card"
                 >
                   <FeedCoverBackground
                     src={post.coverImage}
                     className="h-28 bg-cover bg-center"
                   />
                   <div className="p-3">
-                    <p className="line-clamp-2 text-sm font-bold leading-snug text-white">
+                    <p className="line-clamp-2 text-sm font-bold leading-snug text-foreground">
                       {post.title}
                     </p>
-                    <p className="mt-1 text-[11px] text-zinc-500">{post.readingTimeMinutes} dk okuma</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{post.readingTimeMinutes} dk okuma</p>
                   </div>
                 </Link>
               ))}
@@ -107,9 +144,9 @@ export function FeedGridClient({
           <div className="mb-6 flex items-end justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--bf-accent-ink)]">Gündem</p>
-              <h2 className="mt-1 text-xl font-extrabold text-white">Feed</h2>
+              <h2 className="mt-1 text-xl font-extrabold text-foreground">Feed</h2>
             </div>
-            <span className="text-xs text-zinc-500">{flatTimeline.length + 1} hikâye</span>
+            <span className="text-xs text-muted-foreground">{flatTimeline.length + 1} hikâye</span>
           </div>
 
           <div className="relative">
@@ -124,26 +161,9 @@ export function FeedGridClient({
           </div>
         </section>
 
-        {cursor && (
-          <div className="flex justify-center pb-4 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={loading}
-              onClick={() => void loadMore()}
-              className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Yükleniyor…
-                </>
-              ) : (
-                'Daha fazla hikâye'
-              )}
-            </Button>
-          </div>
-        )}
+        <div ref={mobileSentinelRef} className="flex justify-center py-6">
+          {loadingIndicator}
+        </div>
       </div>
 
       {/* ── Desktop: dergi tarzı düzen ── */}
@@ -173,13 +193,9 @@ export function FeedGridClient({
           <FeedRecentSidebar posts={desktopSidebar} />
         </div>
 
-        {cursor && (
-          <div className="flex justify-center pt-2">
-            <Button type="button" variant="outline" disabled={loading} onClick={() => void loadMore()}>
-              {loading ? 'Yükleniyor…' : 'Daha fazla göster'}
-            </Button>
-          </div>
-        )}
+        <div ref={desktopSentinelRef} className="flex justify-center py-6">
+          {loadingIndicator}
+        </div>
       </div>
     </>
   );

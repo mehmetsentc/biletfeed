@@ -23,7 +23,7 @@ export function FeedBillboardHero({ post }: { post: FeedPostCard }) {
   return (
     <Link
       href={`/feed/${post.slug}`}
-      className="group block overflow-hidden rounded-2xl border border-white/8 bg-zinc-900 md:rounded-3xl"
+      className="group block overflow-hidden rounded-2xl border border-border bg-card md:rounded-3xl"
     >
       <div className="relative aspect-[4/5] sm:aspect-[16/10]">
         <FeedCoverImage
@@ -48,19 +48,19 @@ export function FeedBillboardHero({ post }: { post: FeedPostCard }) {
             {label}
           </span>
           {post.isFeatured && (
-            <span className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-300">
+            <span className="rounded-full border border-border bg-muted px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
               Manşet
             </span>
           )}
         </div>
 
-        <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">
+        <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-foreground sm:text-3xl md:text-4xl">
           {post.title}
         </h2>
 
         <div className="mt-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-xs text-zinc-500">
-            <span className="font-semibold text-zinc-300">{post.authorName}</span>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{post.authorName}</span>
             <span className="inline-flex items-center gap-1">
               <Clock className="size-3.5" />
               {post.readingTimeMinutes} dk
