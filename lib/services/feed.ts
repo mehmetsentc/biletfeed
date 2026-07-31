@@ -4,10 +4,23 @@ import { uniqueSlug } from '@/lib/utils/slug';
 import {
   DEFAULT_FEED_CATEGORIES,
   FEED_AUTHOR_NAME,
+  FEED_CATEGORY_CONTENT_TYPES,
+  FEED_CATEGORY_SHORT_LABELS,
   FEED_FALLBACK_COVER,
   isMissingFeedCoverImage
 } from '@/lib/feed/constants';
 import type { FeedPostCard, FeedPostDetail } from '@/lib/feed/types';
+
+/** Kategori chip filtresi: atanmış kategori VEYA eşleşen contentType. */
+function categoryFilterWhere(categorySlug: string): Prisma.FeedPostWhereInput {
+  const types = FEED_CATEGORY_CONTENT_TYPES[categorySlug] ?? [];
+  return {
+    OR: [
+      { feedCategory: { slug: categorySlug, deletedAt: null } },
+      ...(types.length > 0 ? [{ contentType: { in: types } }] : [])
+    ]
+  };
+}
 
 function isFeedDbUnavailable(error: unknown): boolean {
   if (!isDatabaseConfigured()) return true;
@@ -148,9 +161,7 @@ export async function listPublishedFeedPosts(params: {
 
     const where: Prisma.FeedPostWhereInput = {
       ...publishedWithImageWhere(),
-      ...(params.categorySlug
-        ? { feedCategory: { slug: params.categorySlug, deletedAt: null } }
-        : {}),
+      ...(params.categorySlug ? categoryFilterWhere(params.categorySlug) : {}),
       ...(params.contentType ? { contentType: params.contentType } : {}),
       ...(params.featured ? { isFeatured: true } : {})
     };
@@ -224,11 +235,10 @@ export async function getTrendingFeedPosts(limit = 6): Promise<FeedPostCard[]> {
   }
 }
 
-/** Sadece en az bir yayınlanmış+görselli haberi olan kategorileri döner —
- * feed sayfasındaki kategori filtre çipleri için. Haberi olmayan kategoriler
- * listeye hiç girmez. */
+/** En az bir yayınlanmış+görselli haberi olan kategorileri döner.
+ * Sayaç kategori ataması VEYA eşleşen contentType üzerinden hesaplanır. */
 export async function listFeedCategoriesWithPosts(): Promise<
-  Array<{ slug: string; name: string; count: number }>
+  Array<{ slug: string; name: string; shortName: string; count: number }>
 > {
   if (!isDatabaseConfigured()) return [];
 
@@ -243,13 +253,18 @@ export async function listFeedCategoriesWithPosts(): Promise<
     const counts = await Promise.all(
       categories.map((cat) =>
         prisma.feedPost.count({
-          where: { ...publishedWithImageWhere(), feedCategory: { slug: cat.slug, deletedAt: null } }
+          where: { AND: [publishedWithImageWhere(), categoryFilterWhere(cat.slug)] }
         })
       )
     );
 
     return categories
-      .map((cat, i) => ({ slug: cat.slug, name: cat.name, count: counts[i] ?? 0 }))
+      .map((cat, i) => ({
+        slug: cat.slug,
+        name: cat.name,
+        shortName: FEED_CATEGORY_SHORT_LABELS[cat.slug] ?? cat.name,
+        count: counts[i] ?? 0
+      }))
       .filter((cat) => cat.count > 0);
   } catch (error) {
     if (isFeedDbUnavailable(error)) return [];

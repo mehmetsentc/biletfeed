@@ -26,10 +26,19 @@ const updateSchema = z.object({
   isFeatured: z.boolean().optional(),
   feedCategoryId: z.string().uuid().nullable().optional(),
   status: z.nativeEnum(FeedPostStatus).optional(),
+  // SEO alanları görüntüsel/meta amaçlıdır — sınırı aşan bir değer geldiğinde
+  // kaydı reddetmek yerine sessizce kırpılır (eski AI taslakları bu sınırları
+  // aşabiliyordu ve reddedilme "Geçersiz veri" hatasına yol açıyordu).
   seo: z
     .object({
-      title: z.string().max(70).optional(),
-      description: z.string().max(200).optional()
+      title: z
+        .string()
+        .optional()
+        .transform((v) => v?.slice(0, 70)),
+      description: z
+        .string()
+        .optional()
+        .transform((v) => v?.slice(0, 200))
     })
     .optional(),
   media: z.array(mediaSchema).optional()

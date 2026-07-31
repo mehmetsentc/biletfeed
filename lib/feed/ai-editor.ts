@@ -272,6 +272,94 @@ ${brief}`
   };
 }
 
+const MAGAZINE_EDITOR_SYSTEM_PROMPT = `Sen BiletFeed'in "Festival & Parti Dergisi Editörü"sün — DeepSeek tabanlı otonom bir AI editörsün. Konser, festival, gece hayatı/parti, DJ, tiyatro ve sinema haberciliğinde uzmanlaşmış, dergi kalitesinde Türkçe içerik üretirsin.
+
+GÖREVİN: Sana verilen mevcut haberi SIFIRDAN, profesyonel bir dergi editörü gözüyle yeniden kurgula — başlık, manşet, özet, gövde metni, etiketler ve SEO alanlarının TAMAMINI yeniden yaz ve yapılandır. Bu bir düzeltme değil, tam bir yeniden yazımdır.
+
+İÇERİK YAPISI KURALLARI:
+- Gövde metni markdown ## (H2) ve gerekiyorsa ### (H3) / #### (H4) alt başlıklarla bölümlere ayrılmalı
+- En az 3 H2 bölümü olsun (örn: bağlam/giriş, öne çıkan detaylar, bilet & katılım bilgisi, beklenti/sonuç gibi konuya uygun başlıklar)
+- Her bölüm en az 2 paragraf olsun
+- Konser/festival/parti haberciliğine özgü enerjik, sürükleyici ama bilgilendirici ton
+- Asla kaynağı birebir kopyalama — tamamen özgün yeniden yazım
+- Rakamlar, tarihler, mekân ve sanatçı isimleri gibi somut bilgileri koru, değiştirme
+
+SEO KURALLARI (KESİN SINIRLAR):
+- seoTitle: en fazla 60 karakter, ana anahtar kelimeyi başta geçir
+- seoDescription: 120-155 karakter arası, tıklamayı teşvik eden ama spam olmayan doğal dil
+- tags: 5-8 adet, haberle doğrudan ilgili anahtar kelime/etiket (sanatçı, mekân, şehir, tür vb.)
+- headline (manşet): title'dan farklı, kısa ve çarpıcı bir alt başlık/sürükleyici cümle
+
+ÇIKTI: Yalnızca geçerli JSON döndür, başka hiçbir açıklama ekleme.`;
+
+/**
+ * Mevcut bir haberi "Festival & Parti Dergisi Editörü" kalitesinde tek
+ * tuşla tamamen yeniden oluşturur — başlık, manşet, özet, H2/H3/H4
+ * yapılandırılmış gövde metni, etiketler ve SEO alanlarının tümü DeepSeek
+ * ile yeniden yazılır. Admin düzenleme ekranındaki "AI ile Yeniden Oluştur"
+ * butonu tarafından kullanılır.
+ */
+export async function regeneratePostAsMagazineEditor(post: {
+  title: string;
+  headline?: string | null;
+  summary: string;
+  content: string;
+  contentType: FeedPostType;
+  tags: string[];
+  artistName?: string | null;
+  categoryName?: string | null;
+}): Promise<AiEditorDraft> {
+  const result = await aiChat(
+    [
+      { role: 'system', content: MAGAZINE_EDITOR_SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content: `Aşağıdaki mevcut haberi Festival & Parti Dergisi Editörü kalitesinde tamamen yeniden oluştur. Mevcut içerik türü: ${post.contentType}${post.categoryName ? `, kategori: ${post.categoryName}` : ''}.
+
+JSON formatı:
+{
+  "title": "Ana başlık",
+  "headline": "Manşet (alt başlık, title'dan farklı)",
+  "summary": "2 cümle özet",
+  "content": "Markdown formatında, ## ve ### alt başlıklarla yapılandırılmış tam makale (en az 3 bölüm)",
+  "excerpt": "Kart özeti",
+  "contentType": "en uygun içerik türü",
+  "tags": ["etiket1","etiket2","..."],
+  "artistName": "varsa sanatçı adı",
+  "seoTitle": "SEO başlık (en fazla 60 karakter)",
+  "seoDescription": "SEO açıklama (120-155 karakter)"
+}
+
+MEVCUT BAŞLIK: ${post.title}
+MEVCUT MANŞET: ${post.headline ?? ''}
+MEVCUT ÖZET: ${post.summary}
+MEVCUT ETİKETLER: ${post.tags.join(', ')}
+${post.artistName ? `SANATÇI: ${post.artistName}` : ''}
+
+MEVCUT İÇERİK:
+${post.content.slice(0, 6000)}`
+      }
+    ],
+    { provider: 'deepseek', temperature: 0.8, maxTokens: 3000, jsonMode: true }
+  );
+
+  const parsed = parseAiDraftJson(result.content);
+  const content = parsed.content?.trim() || post.content;
+  return {
+    title: parsed.title?.trim() || post.title,
+    headline: parsed.headline?.trim() || parsed.title?.trim() || post.title,
+    summary: parsed.summary?.trim() || parsed.excerpt?.trim() || post.summary,
+    content,
+    excerpt: parsed.excerpt?.trim() || parsed.summary?.trim() || '',
+    contentType: sanitizeContentType(parsed.contentType ?? post.contentType),
+    tags: (parsed.tags?.length ? parsed.tags : post.tags).slice(0, 8).map((t) => t.trim()).filter(Boolean),
+    artistName: parsed.artistName?.trim() || post.artistName || undefined,
+    seoTitle: (parsed.seoTitle?.trim() || parsed.title?.trim() || post.title).slice(0, 70),
+    seoDescription: (parsed.seoDescription?.trim() || parsed.summary?.trim() || '').slice(0, 200),
+    readingTimeMinutes: estimateReadingTime(content)
+  };
+}
+
 export const AI_EDITOR_META = {
   name: 'BiletFeed AI Editor',
   author: FEED_AUTHOR_NAME

@@ -28,6 +28,62 @@ export const FEED_POST_TYPE_LABELS: Record<FeedPostType, string> = {
   organizer_update: 'Organizatör Duyurusu'
 };
 
+/** Kart / chip üzerinde kısa etiket — uzun "Konser Haberi" yerine taranabilir. */
+export const FEED_POST_TYPE_SHORT_LABELS: Record<FeedPostType, string> = {
+  concert_news: 'Konser',
+  festival_news: 'Festival',
+  music_news: 'Müzik',
+  entertainment_news: 'Party',
+  artist_news: 'Sanatçı',
+  event_announcement: 'Etkinlik',
+  behind_the_scenes: 'Kulis',
+  event_recap: 'Özet',
+  top_list: 'Liste',
+  weekend_guide: 'Rehber',
+  city_guide: 'Şehir',
+  venue_guide: 'Mekan',
+  ticket_alert: 'Bilet',
+  trending_story: 'Trend',
+  ai_opinion: 'Yorum',
+  interview: 'Röportaj',
+  photo_story: 'Foto',
+  video_story: 'Video',
+  organizer_update: 'Duyuru'
+};
+
+export const FEED_CATEGORY_SHORT_LABELS: Record<string, string> = {
+  'konser-haberleri': 'Konser',
+  'festival-haberleri': 'Festival',
+  'muzik-haberleri': 'Müzik',
+  'eglence-haberleri': 'Party',
+  'etkinlik-duyurulari': 'Etkinlik',
+  'trend-hikayeler': 'Trend'
+};
+
+/**
+ * Kategori slug → eşleşen içerik tipleri.
+ * Birçok haberde feedCategory boş kalabiliyor; filtre hem kategori hem tipe bakar.
+ */
+export const FEED_CATEGORY_CONTENT_TYPES: Record<string, FeedPostType[]> = {
+  'konser-haberleri': ['concert_news'],
+  'festival-haberleri': ['festival_news'],
+  'muzik-haberleri': ['music_news', 'artist_news'],
+  'eglence-haberleri': ['entertainment_news'],
+  'etkinlik-duyurulari': ['event_announcement', 'ticket_alert', 'weekend_guide'],
+  'trend-hikayeler': ['trending_story']
+};
+
+export function feedStoryShortLabel(
+  categorySlug: string | null,
+  categoryName: string | null,
+  contentType: FeedPostType
+): string {
+  if (categorySlug && FEED_CATEGORY_SHORT_LABELS[categorySlug]) {
+    return FEED_CATEGORY_SHORT_LABELS[categorySlug];
+  }
+  return FEED_POST_TYPE_SHORT_LABELS[contentType] ?? categoryName ?? 'Haber';
+}
+
 // Not: her giriş kendi okunabilir metin rengini de içerir (bg-primary artık neon
 // olduğu için sabit text-white kontrastı bozuyordu, bu yüzden text rengi burada
 // bg ile birlikte tanımlanıyor).

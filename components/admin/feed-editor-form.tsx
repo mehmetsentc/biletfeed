@@ -47,6 +47,9 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
   const [generating, setGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     title: initial?.title ?? '',
     headline: initial?.headline ?? '',
@@ -165,6 +168,55 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     }
   }
 
+  async function handleRegenerateAsMagazineEditor() {
+    if (props.mode !== 'edit') return;
+    if (
+      !confirm(
+        'Bu haberin başlığı, manşeti, özeti, gövde metni, etiketleri ve SEO alanları DeepSeek AI Festival & Parti Editörü tarafından tamamen yeniden yazılacak. Formu doldurduktan sonra kaydetmeden önce gözden geçirebilirsiniz. Devam edilsin mi?'
+      )
+    ) {
+      return;
+    }
+    setRegenerating(true);
+    setRegenerateError(null);
+    try {
+      const res = await fetch(`/api/admin/feed/${props.post.id}/ai-regenerate`, {
+        method: 'POST'
+      });
+      const data = (await res.json()) as {
+        draft?: {
+          title: string;
+          headline: string;
+          summary: string;
+          content: string;
+          contentType: FeedPostType;
+          tags: string[];
+          seoTitle: string;
+          seoDescription: string;
+        };
+        error?: string;
+      };
+      if (!res.ok || !data.draft) throw new Error(data.error ?? 'AI yeniden oluşturma başarısız');
+
+      const draft = data.draft;
+      setForm((f) => ({
+        ...f,
+        title: draft.title,
+        headline: draft.headline,
+        summary: draft.summary,
+        content: draft.content,
+        contentType: draft.contentType,
+        tags: draft.tags.join(', '),
+        seoTitle: draft.seoTitle.slice(0, 70),
+        seoDescription: draft.seoDescription.slice(0, 200)
+      }));
+    } catch (err) {
+      setRegenerateError(err instanceof Error ? err.message : 'AI yeniden oluşturma başarısız');
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
   function buildPayload() {
     return {
       title: form.title.trim(),
@@ -277,6 +329,32 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
           )}
           {generating ? 'Oluşturuluyor…' : 'AI ile Oluştur'}
         </Button>
+
+        {props.mode === 'edit' && (
+          <div className="mt-2 border-t border-primary/20 pt-4">
+            <p className="mb-2 text-xs text-muted-foreground">
+              Bu mevcut haberi tek tuşla DeepSeek destekli Festival & Parti Dergisi Editörü ile
+              tamamen yeniden yazdırın — başlık, manşet, özet, H2/H3 alt başlıklı gövde metni,
+              etiketler ve SEO alanlarının (uzunluk sınırlarına uygun) tümü yeniden oluşturulur.
+            </p>
+            {regenerateError && <p className="mb-2 text-sm text-destructive">{regenerateError}</p>}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={regenerating}
+              onClick={() => void handleRegenerateAsMagazineEditor()}
+              className="border-primary/40"
+            >
+              {regenerating ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 size-4" />
+              )}
+              {regenerating ? 'Yeniden yazılıyor…' : 'AI Festival & Parti Editörü — Yeniden Oluştur'}
+            </Button>
+          </div>
+        )}
       </section>
 
       {/* Kapak */}
