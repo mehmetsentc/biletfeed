@@ -96,7 +96,28 @@ export const FEED_CATEGORY_BADGE_COLORS: Record<string, string> = {
   'trend-hikayeler': 'bg-emerald-600 text-white'
 };
 
-export const FEED_CATEGORY_BADGE_FALLBACK = 'bg-primary text-[var(--bf-neon-on)]';
+export const FEED_TYPE_BADGE_COLORS: Partial<Record<FeedPostType, string>> = {
+  concert_news: 'bg-rose-600 text-white',
+  festival_news: 'bg-purple-600 text-white',
+  music_news: 'bg-indigo-600 text-white',
+  artist_news: 'bg-violet-600 text-white',
+  entertainment_news: 'bg-amber-600 text-white',
+  event_announcement: 'bg-sky-600 text-white',
+  ticket_alert: 'bg-orange-600 text-white',
+  trending_story: 'bg-emerald-600 text-white'
+};
+
+export const FEED_CATEGORY_BADGE_FALLBACK = 'bg-zinc-700 text-white';
+
+export function feedBadgeClass(
+  categorySlug: string | null,
+  contentType: FeedPostType
+): string {
+  if (categorySlug && FEED_CATEGORY_BADGE_COLORS[categorySlug]) {
+    return FEED_CATEGORY_BADGE_COLORS[categorySlug];
+  }
+  return FEED_TYPE_BADGE_COLORS[contentType] ?? FEED_CATEGORY_BADGE_FALLBACK;
+}
 
 export const DEFAULT_FEED_CATEGORIES = [
   {

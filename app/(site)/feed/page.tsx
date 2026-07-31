@@ -1,6 +1,4 @@
-import { HomeFeedTabs } from '@/components/feed/home-feed-tabs';
 import { FeedGridClient } from '@/components/feed/feed-grid-client';
-import { FeedMagazineCard } from '@/components/feed/feed-magazine-card';
 import { FeedCategoryChips } from '@/components/feed/feed-category-chips';
 import { createFeedListMetadata } from '@/lib/seo/feed-metadata';
 import {
@@ -43,46 +41,36 @@ export default async function FeedPage({ searchParams }: Props) {
   const userId = await resolveCurrentUserId();
   const [{ posts, nextCursor }, trending, categories] = await Promise.all([
     listPublishedFeedPosts({ limit: 12, userId, categorySlug }),
-    getTrendingFeedPosts(4),
+    getTrendingFeedPosts(8),
     listFeedCategoriesWithPosts()
   ]);
 
+  const activeCategory = categories.find((c) => c.slug === categorySlug);
+  const pageTitle = activeCategory
+    ? (activeCategory.shortName ?? activeCategory.name)
+    : 'Gündem';
+  const pageSubtitle = activeCategory
+    ? `${activeCategory.name} — konser, festival ve sahne haberleri`
+    : 'Konser, festival, party ve sanatçı haberleri — taranabilir, güncel akış';
+
   return (
     <div className="bg-background">
-      {/* Mobile billboard header */}
-      <section className="border-b border-border bg-card/50 pb-6 pt-4 md:py-6">
+      <section className="border-b border-border bg-gradient-to-b from-card/80 to-background pb-5 pt-5 md:pb-7 md:pt-8">
         <div className="container mx-auto px-4">
-          <HomeFeedTabs />
-          <div className="mt-6 text-center md:mt-6">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-primary md:hidden">
-              Etkinlik Gündemi
-            </p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-foreground md:mt-0 md:text-4xl">
-              BiletFeed Feed
-            </h1>
-            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
-              Konser haberleri, festival gündemi, sanatçı duyuruları ve etkinlik rehberleri — her gün
-              yeni bir keşif.
-            </p>
-          </div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+            BiletFeed
+          </p>
+          <h1 className="mt-2 text-[1.75rem] font-extrabold tracking-tight text-foreground sm:text-3xl md:text-4xl">
+            {pageTitle}
+          </h1>
+          <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
+            {pageSubtitle}
+          </p>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-6 md:py-8">
+      <div className="container mx-auto px-4 py-5 md:py-8">
         <FeedCategoryChips categories={categories} activeSlug={categorySlug} />
-
-        {/* Desktop trending */}
-        {trending.length > 0 && !categorySlug && (
-          <section className="mb-10 hidden md:block">
-            <h2 className="mb-4 text-lg font-bold text-foreground">Trend Hikâyeler</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {trending.map((post) => (
-                <FeedMagazineCard key={post.id} post={post} size="small" />
-              ))}
-            </div>
-          </section>
-        )}
-
         <FeedGridClient
           initialPosts={posts}
           initialCursor={nextCursor}
