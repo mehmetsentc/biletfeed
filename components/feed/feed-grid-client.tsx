@@ -4,9 +4,10 @@ import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { FeedCoverBackground } from '@/components/feed/feed-cover-image';
 import { Loader2 } from 'lucide-react';
-import { FeedPostCardView } from '@/components/feed/feed-post-card';
 import { FeedBillboardHero } from '@/components/feed/feed-billboard-hero';
 import { FeedTimelineCard } from '@/components/feed/feed-timeline-card';
+import { FeedMagazineCard } from '@/components/feed/feed-magazine-card';
+import { FeedRecentSidebar } from '@/components/feed/feed-recent-sidebar';
 import { Button } from '@/components/ui/button';
 import { groupFeedPostsByDate } from '@/lib/feed/format-date';
 import type { FeedPostCard } from '@/lib/feed/types';
@@ -56,7 +57,12 @@ export function FeedGridClient({
   const timelinePosts = posts.filter((p) => p.id !== heroId);
   const dateGroups = groupFeedPostsByDate(timelinePosts);
   const flatTimeline = dateGroups.flatMap((g) => g.posts);
-  const [featured, ...rest] = posts.filter((p) => p.id !== heroId || trending.length === 0);
+
+  // Masaüstü dergi düzeni: 2 büyük + 3 orta kart, ardından ana liste + kenar çubuğu
+  const desktopHero = posts.slice(0, 2);
+  const desktopSecondary = posts.slice(2, 5);
+  const desktopMain = posts.slice(5);
+  const desktopSidebar = (trending.length > 0 ? trending : posts).slice(0, 6);
 
   return (
     <>
@@ -137,19 +143,32 @@ export function FeedGridClient({
         )}
       </div>
 
-      {/* ── Desktop: grid layout ── */}
+      {/* ── Desktop: dergi tarzı düzen ── */}
       <div className="hidden space-y-8 md:block">
-        {featured && (
-          <section>
-            <FeedPostCardView post={featured} featured />
+        {desktopHero.length > 0 && (
+          <section className="grid gap-4 lg:grid-cols-2">
+            {desktopHero.map((post) => (
+              <FeedMagazineCard key={post.id} post={post} size="large" />
+            ))}
           </section>
         )}
 
-        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {rest.map((post) => (
-            <FeedPostCardView key={post.id} post={post} />
-          ))}
-        </section>
+        {desktopSecondary.length > 0 && (
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {desktopSecondary.map((post) => (
+              <FeedMagazineCard key={post.id} post={post} size="medium" />
+            ))}
+          </section>
+        )}
+
+        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+          <section className="grid gap-6 sm:grid-cols-2">
+            {desktopMain.map((post) => (
+              <FeedMagazineCard key={post.id} post={post} size="medium" />
+            ))}
+          </section>
+          <FeedRecentSidebar posts={desktopSidebar} />
+        </div>
 
         {cursor && (
           <div className="flex justify-center pt-2">

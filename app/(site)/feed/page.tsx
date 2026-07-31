@@ -1,17 +1,35 @@
 import { HomeFeedTabs } from '@/components/feed/home-feed-tabs';
 import { FeedGridClient } from '@/components/feed/feed-grid-client';
-import { FeedPostCardView } from '@/components/feed/feed-post-card';
+import { FeedMagazineCard } from '@/components/feed/feed-magazine-card';
 import { createFeedListMetadata } from '@/lib/seo/feed-metadata';
 import { ensureFeedCategories, listPublishedFeedPosts, getTrendingFeedPosts } from '@/lib/services/feed';
+import { verifySessionCookie } from '@/lib/auth/session';
+import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 export const metadata = createFeedListMetadata();
 
-export const revalidate = 300;
+export const revalidate = 0;
+
+async function resolveCurrentUserId(): Promise<string | undefined> {
+  try {
+    const session = await verifySessionCookie();
+    if (!session) return undefined;
+    await ensureDbConnection();
+    const user = await prisma.user.findFirst({
+      where: { firebaseUid: session.uid, deletedAt: null },
+      select: { id: true }
+    });
+    return user?.id ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export default async function FeedPage() {
   await ensureFeedCategories();
+  const userId = await resolveCurrentUserId();
   const [{ posts, nextCursor }, trending] = await Promise.all([
-    listPublishedFeedPosts({ limit: 12 }),
+    listPublishedFeedPosts({ limit: 12, userId }),
     getTrendingFeedPosts(4)
   ]);
 
@@ -43,7 +61,7 @@ export default async function FeedPage() {
             <h2 className="mb-4 text-lg font-bold text-foreground">Trend Hikâyeler</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {trending.map((post) => (
-                <FeedPostCardView key={post.id} post={post} />
+                <FeedMagazineCard key={post.id} post={post} size="small" />
               ))}
             </div>
           </section>

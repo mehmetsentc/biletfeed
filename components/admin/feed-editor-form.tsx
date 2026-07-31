@@ -4,11 +4,11 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ImagePlus, Loader2, Plus, Trash2, Video } from 'lucide-react';
+import { AlertTriangle, ImagePlus, Loader2, Plus, Sparkles, Trash2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
+import { FEED_POST_TYPE_LABELS, isMissingFeedCoverImage } from '@/lib/feed/constants';
 import type { AdminFeedPostEditor, FeedMediaInput } from '@/lib/services/feed';
 import type { FeedPostStatus, FeedPostType } from '@prisma/client';
 import { adminHref, getSiteUrl } from '@/lib/config/domain';
@@ -43,6 +43,10 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [brief, setBrief] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     title: initial?.title ?? '',
     headline: initial?.headline ?? '',
@@ -53,7 +57,9 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     tags: (initial?.tags ?? []).join(', '),
     isFeatured: initial?.isFeatured ?? false,
     feedCategoryId: initial?.feedCategoryId ?? '',
-    status: (initial?.status ?? 'review') as FeedPostStatus
+    status: (initial?.status ?? 'review') as FeedPostStatus,
+    seoTitle: initial?.seo?.title ?? '',
+    seoDescription: initial?.seo?.description ?? ''
   });
 
   const [media, setMedia] = useState<MediaRow[]>(
@@ -110,6 +116,53 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     }
   }
 
+  async function handleGenerateWithAi() {
+    if (!brief.trim() || brief.trim().length < 10) {
+      setAiError('Lütfen en az birkaç cümlelik bir haber içeriği/notu girin');
+      return;
+    }
+    setGenerating(true);
+    setAiError(null);
+    try {
+      const res = await fetch('/api/admin/feed/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief: brief.trim() })
+      });
+      const data = (await res.json()) as {
+        draft?: {
+          title: string;
+          headline: string;
+          summary: string;
+          content: string;
+          contentType: FeedPostType;
+          tags: string[];
+          seoTitle: string;
+          seoDescription: string;
+        };
+        error?: string;
+      };
+      if (!res.ok || !data.draft) throw new Error(data.error ?? 'AI oluşturma başarısız');
+
+      const draft = data.draft;
+      setForm((f) => ({
+        ...f,
+        title: draft.title,
+        headline: draft.headline,
+        summary: draft.summary,
+        content: draft.content,
+        contentType: draft.contentType,
+        tags: draft.tags.join(', '),
+        seoTitle: draft.seoTitle,
+        seoDescription: draft.seoDescription
+      }));
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'AI oluşturma başarısız');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   function buildPayload() {
     return {
       title: form.title.trim(),
@@ -125,6 +178,10 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
       isFeatured: form.isFeatured,
       feedCategoryId: form.feedCategoryId || null,
       status: form.status,
+      seo: {
+        title: form.seoTitle.trim() || undefined,
+        description: form.seoDescription.trim() || undefined
+      },
       media: media
         .filter((m) => m.url.trim())
         .map(({ type, url, thumbnail, alt, caption }) => ({
@@ -189,9 +246,46 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-8">
+      {/* AI Editör */}
+      <section className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-5">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
+            AI Editör — Haberi Otomatik Oluştur
+          </h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Konser, parti, festival veya sinema haberinin ham içeriğini/notunu aşağıya yapıştırın —
+          AI Editör başlık, özet, tam metin, etiket ve SEO alanlarını sizin için oluştursun. Oluşan
+          içeriği kaydetmeden önce gözden geçirebilirsiniz.
+        </p>
+        <textarea
+          rows={4}
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          placeholder="Örn: Mabel Matiz, 15 Ağustos'ta Harbiye Açıkhava'da sahne alacak. Bilet fiyatları 500 TL'den başlıyor..."
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+        {aiError && <p className="text-sm text-destructive">{aiError}</p>}
+        <Button type="button" size="sm" disabled={generating} onClick={() => void handleGenerateWithAi()}>
+          {generating ? (
+            <Loader2 className="mr-2 size-4 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 size-4" />
+          )}
+          {generating ? 'Oluşturuluyor…' : 'AI ile Oluştur'}
+        </Button>
+      </section>
+
       {/* Kapak */}
       <section className="space-y-4 rounded-xl border border-border bg-card p-5">
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Kapak Görseli</h2>
+        {isMissingFeedCoverImage(form.coverImage) && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>Bu haberde kapak görseli yok. Feed&apos;de düzgün görünmesi için bir görsel ekleyin.</span>
+          </div>
+        )}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-muted sm:max-w-xs">
             {form.coverImage ? (
@@ -350,6 +444,36 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
           />
           Öne çıkan haber
         </label>
+      </section>
+
+      {/* SEO */}
+      <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">SEO</h2>
+        <div>
+          <Label htmlFor="seoTitle">SEO Başlık</Label>
+          <Input
+            id="seoTitle"
+            value={form.seoTitle}
+            onChange={(e) => setForm((f) => ({ ...f, seoTitle: e.target.value }))}
+            placeholder={form.title || 'Arama sonuçlarında görünecek başlık'}
+            maxLength={70}
+            className="mt-1"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">{form.seoTitle.length}/70</p>
+        </div>
+        <div>
+          <Label htmlFor="seoDescription">SEO Açıklama</Label>
+          <textarea
+            id="seoDescription"
+            rows={2}
+            value={form.seoDescription}
+            onChange={(e) => setForm((f) => ({ ...f, seoDescription: e.target.value }))}
+            placeholder={form.summary || 'Arama sonuçlarında görünecek açıklama'}
+            maxLength={200}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">{form.seoDescription.length}/200</p>
+        </div>
       </section>
 
       {/* Galeri */}

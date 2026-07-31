@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Pencil, Plus } from 'lucide-react';
+import { ImageOff, Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { EditorialQueueItem } from '@/lib/feed/types';
+import { isMissingFeedCoverImage } from '@/lib/feed/constants';
 import { adminHref, getSiteUrl } from '@/lib/config/domain';
+import { cn } from '@/lib/utils';
 
 type FeedStats = {
   published: number;
   inReview: number;
   queuePending: number;
   totalViews: number;
+  missingImages: number;
 };
 
 type AdminPost = {
@@ -21,6 +24,7 @@ type AdminPost = {
   title: string;
   status: string;
   contentType: string;
+  coverImage: string;
   viewCount: number;
   likeCount: number;
   publishedAt: string | null;
@@ -107,14 +111,22 @@ export function FeedAdminDashboard() {
           { label: 'Yayında', value: stats?.published ?? 0 },
           { label: 'İncelemede', value: stats?.inReview ?? 0 },
           { label: 'AI Kuyruğu', value: stats?.queuePending ?? 0 },
-          { label: 'Toplam Görüntülenme', value: stats?.totalViews ?? 0 }
+          { label: 'Toplam Görüntülenme', value: stats?.totalViews ?? 0 },
+          { label: 'Görsel Eksik', value: stats?.missingImages ?? 0, warn: true }
         ].map((item) => (
-          <Card key={item.label}>
+          <Card key={item.label} className={cn(item.warn && (item.value ?? 0) > 0 && 'border-amber-500/50')}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{item.label}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{item.value.toLocaleString('tr-TR')}</p>
+              <p
+                className={cn(
+                  'text-3xl font-bold',
+                  item.warn && (item.value ?? 0) > 0 && 'text-amber-600 dark:text-amber-400'
+                )}
+              >
+                {item.value.toLocaleString('tr-TR')}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -169,7 +181,15 @@ export function FeedAdminDashboard() {
                 <tr key={post.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3">
                     <p className="font-medium">{post.title}</p>
-                    <p className="text-xs text-muted-foreground">{post.contentType}</p>
+                    <div className="mt-0.5 flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">{post.contentType}</p>
+                      {isMissingFeedCoverImage(post.coverImage) && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                          <ImageOff className="size-3" />
+                          Görsel yok
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">{post.status}</td>
                   <td className="px-4 py-3">{post.viewCount}</td>

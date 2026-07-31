@@ -25,6 +25,12 @@ const updateSchema = z.object({
   isFeatured: z.boolean().optional(),
   feedCategoryId: z.string().uuid().nullable().optional(),
   status: z.nativeEnum(FeedPostStatus).optional(),
+  seo: z
+    .object({
+      title: z.string().max(70).optional(),
+      description: z.string().max(200).optional()
+    })
+    .optional(),
   media: z.array(mediaSchema).optional()
 });
 

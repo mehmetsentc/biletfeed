@@ -81,6 +81,14 @@ export const DEFAULT_FEED_CATEGORIES = [
   }
 ] as const;
 
+/** Kapak görseli eksik veya placeholder ise true döner (admin panelde uyarı için) */
+export function isMissingFeedCoverImage(coverImage: string | null | undefined): boolean {
+  if (!coverImage || !coverImage.trim()) return true;
+  if (coverImage.includes('brand/logo')) return true;
+  if (coverImage === FEED_FALLBACK_COVER) return true;
+  return false;
+}
+
 export const FEED_DISCOVERY_SOURCES = [
   {
     name: 'BiletFeed Events RSS',

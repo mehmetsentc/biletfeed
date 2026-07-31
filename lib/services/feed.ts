@@ -1,7 +1,7 @@
 import type { FeedPostStatus, FeedPostType, Prisma } from '@prisma/client';
 import { prisma, ensureDbConnection, isDatabaseConfigured } from '@/lib/db/prisma';
 import { uniqueSlug } from '@/lib/utils/slug';
-import { DEFAULT_FEED_CATEGORIES, FEED_AUTHOR_NAME } from '@/lib/feed/constants';
+import { DEFAULT_FEED_CATEGORIES, FEED_AUTHOR_NAME, isMissingFeedCoverImage } from '@/lib/feed/constants';
 import type { FeedPostCard, FeedPostDetail } from '@/lib/feed/types';
 
 function isFeedDbUnavailable(error: unknown): boolean {
@@ -99,6 +99,10 @@ export async function listPublishedFeedPosts(params: {
   categorySlug?: string;
   contentType?: FeedPostType;
   featured?: boolean;
+  /** Girişli kullanıcı — verilirse ve cursor yoksa (ilk sayfa), okunmamış
+   * haberler önce, en yeniden en eskiye doğru sıralanır. Yeni haber yoksa
+   * otomatik olarak kullanıcının henüz görmediği eski haberlere düşer. */
+  userId?: string;
 }): Promise<{ posts: FeedPostCard[]; nextCursor: string | null }> {
   if (!isDatabaseConfigured()) {
     return { posts: [], nextCursor: null };
@@ -107,21 +111,27 @@ export async function listPublishedFeedPosts(params: {
   try {
     await ensureDbConnection();
     const limit = Math.min(params.limit ?? 12, 24);
+    const personalize = Boolean(params.userId) && !params.cursor;
+    // Kişiselleştirme için daha geniş bir pencere çekip görülmemiş/görülmüş
+    // olarak yeniden sıralıyoruz; normal sayfalarda pencere = limit + 1.
+    const windowSize = personalize ? Math.min(limit * 3, 60) : limit + 1;
+
+    const where = {
+      status: 'published' as const,
+      deletedAt: null,
+      publishedAt: { not: null },
+      ...(params.categorySlug
+        ? { feedCategory: { slug: params.categorySlug, deletedAt: null } }
+        : {}),
+      ...(params.contentType ? { contentType: params.contentType } : {}),
+      ...(params.featured ? { isFeatured: true } : {})
+    };
 
     const rows = await prisma.feedPost.findMany({
-      where: {
-        status: 'published',
-        deletedAt: null,
-        publishedAt: { not: null },
-        ...(params.categorySlug
-          ? { feedCategory: { slug: params.categorySlug, deletedAt: null } }
-          : {}),
-        ...(params.contentType ? { contentType: params.contentType } : {}),
-        ...(params.featured ? { isFeatured: true } : {})
-      },
+      where,
       select: postCardSelect,
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-      take: limit + 1,
+      take: windowSize,
       ...(params.cursor
         ? {
             cursor: { id: params.cursor },
@@ -130,8 +140,32 @@ export async function listPublishedFeedPosts(params: {
         : {})
     });
 
-    const hasMore = rows.length > limit;
-    const slice = hasMore ? rows.slice(0, limit) : rows;
+    if (!personalize) {
+      const hasMore = rows.length > limit;
+      const slice = hasMore ? rows.slice(0, limit) : rows;
+      return {
+        posts: slice.map(mapPostCard),
+        nextCursor: hasMore ? slice[slice.length - 1]?.id ?? null : null
+      };
+    }
+
+    // Kullanıcının bu pencere içinde daha önce gördüğü haberleri bul
+    const seenIds = new Set(
+      (
+        await prisma.feedView.findMany({
+          where: { userId: params.userId, postId: { in: rows.map((r) => r.id) } },
+          select: { postId: true }
+        })
+      ).map((v) => v.postId)
+    );
+
+    // Görülmemiş haberler önce (yeniden eskiye), sonra görülmüşler (yeniden eskiye)
+    const unseen = rows.filter((r) => !seenIds.has(r.id));
+    const seen = rows.filter((r) => seenIds.has(r.id));
+    const ordered = [...unseen, ...seen];
+
+    const hasMore = ordered.length > limit;
+    const slice = hasMore ? ordered.slice(0, limit) : ordered;
     return {
       posts: slice.map(mapPostCard),
       nextCursor: hasMore ? slice[slice.length - 1]?.id ?? null : null
@@ -350,19 +384,27 @@ export async function getFeedAdminStats(): Promise<{
   inReview: number;
   queuePending: number;
   totalViews: number;
+  missingImages: number;
 }> {
   await ensureDbConnection();
-  const [published, inReview, queuePending, views] = await Promise.all([
+  const [published, inReview, queuePending, views, missingImages] = await Promise.all([
     prisma.feedPost.count({ where: { status: 'published', deletedAt: null } }),
     prisma.feedPost.count({ where: { status: 'review', deletedAt: null } }),
     prisma.feedEditorialQueue.count({ where: { status: 'pending' } }),
-    prisma.feedPost.aggregate({ _sum: { viewCount: true }, where: { deletedAt: null } })
+    prisma.feedPost.aggregate({ _sum: { viewCount: true }, where: { deletedAt: null } }),
+    prisma.feedPost.count({
+      where: {
+        deletedAt: null,
+        OR: [{ coverImage: '' }, { coverImage: { contains: 'brand/logo' } }]
+      }
+    })
   ]);
   return {
     published,
     inReview,
     queuePending,
-    totalViews: views._sum.viewCount ?? 0
+    totalViews: views._sum.viewCount ?? 0,
+    missingImages
   };
 }
 
@@ -378,7 +420,7 @@ export async function createFeedPostFromDraft(input: {
   sourceUrl?: string;
   sourceName?: string;
   sourceAttribution?: string;
-  seo?: Record<string, string>;
+  seo?: { title?: string; description?: string };
   aiProvider?: string;
   aiModel?: string;
   readingTimeMinutes?: number;
@@ -452,6 +494,7 @@ export async function listAdminFeedPosts(status?: FeedPostStatus) {
       title: true,
       status: true,
       contentType: true,
+      coverImage: true,
       viewCount: true,
       likeCount: true,
       publishedAt: true,
@@ -486,6 +529,7 @@ export type AdminFeedPostEditor = {
   isFeatured: boolean;
   feedCategoryId: string | null;
   readingTimeMinutes: number;
+  seo: { title?: string; description?: string };
   media: Array<{
     id: string;
     type: string;
@@ -537,6 +581,7 @@ export async function getAdminFeedPostById(id: string): Promise<AdminFeedPostEdi
     isFeatured: row.isFeatured,
     feedCategoryId: row.feedCategoryId,
     readingTimeMinutes: row.readingTimeMinutes,
+    seo: (row.seo as { title?: string; description?: string }) ?? {},
     media: row.media.map((m) => ({
       id: m.id,
       type: m.type,
@@ -578,6 +623,7 @@ export async function createManualAdminFeedPost(input: {
   feedCategoryId?: string | null;
   status?: FeedPostStatus;
   media?: FeedMediaInput[];
+  seo?: { title?: string; description?: string };
 }): Promise<{ id: string; slug: string }> {
   const readingTimeMinutes = estimateReadingMinutes(input.content);
   const post = await createFeedPostFromDraft({
@@ -590,7 +636,8 @@ export async function createManualAdminFeedPost(input: {
     tags: input.tags,
     feedCategoryId: input.feedCategoryId ?? undefined,
     status: input.status ?? 'review',
-    readingTimeMinutes
+    readingTimeMinutes,
+    seo: input.seo
   });
 
   if (input.media?.length) {
@@ -625,6 +672,7 @@ export async function updateAdminFeedPost(
     feedCategoryId?: string | null;
     status?: FeedPostStatus;
     media?: FeedMediaInput[];
+    seo?: { title?: string; description?: string };
   }
 ): Promise<{ slug: string }> {
   await ensureDbConnection();
@@ -649,6 +697,7 @@ export async function updateAdminFeedPost(
       ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
       ...(input.feedCategoryId !== undefined ? { feedCategoryId: input.feedCategoryId } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(input.seo !== undefined ? { seo: input.seo } : {}),
       readingTimeMinutes,
       ...(shouldPublish
         ? { publishedAt: new Date(), editorialStage: 'publish' as const }

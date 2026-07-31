@@ -42,6 +42,24 @@ export const RSS_SOURCES: RssSource[] = [
     lang: 'tr',
     tags: ['müzik', 'etkinlik']
   },
+  {
+    name: 'Jazz Dergisi',
+    url: 'https://www.jazzdergisi.com/feed',
+    lang: 'tr',
+    tags: ['konser', 'jazz', 'festival', 'röportaj']
+  },
+  {
+    name: 'Extreminal',
+    url: 'https://www.extreminal.com/tr/feed',
+    lang: 'tr',
+    tags: ['konser', 'metal', 'festival']
+  },
+  {
+    name: 'Gecce Magazin',
+    url: 'https://www.gecce.com.tr/rss.xml',
+    lang: 'tr',
+    tags: ['magazin', 'konser', 'sanatçı']
+  },
   // Uluslararası kaynaklar
   {
     name: 'Pitchfork News',
@@ -98,5 +116,19 @@ export const TAVILY_QUERIES: TavilyQuery[] = [
     query: 'müzik haberleri sanatçı albüm konser',
     topic: 'news',
     timeRange: 'day'
+  },
+  {
+    // musicfestivalwizard.com'da RSS yok — Tavily site araması ile kapsıyoruz
+    query: 'site:musicfestivalwizard.com festival lineup announcement 2026',
+    topic: 'news',
+    timeRange: 'week'
+  },
+  {
+    // djmag.com robots.txt'i AI/scraper botlarını (ClaudeBot dahil) açıkça
+    // yasaklıyor — siteyi doğrudan taramıyoruz, genel arama ile elektronik
+    // müzik/DJ/parti gündemini yine de kapsıyoruz
+    query: 'elektronik müzik DJ festival parti haberleri 2026',
+    topic: 'news',
+    timeRange: 'week'
   }
 ];
