@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ImageOff, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { ImageOff, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import type { EditorialQueueItem } from '@/lib/feed/types';
 import { isMissingFeedCoverImage } from '@/lib/feed/constants';
 import { adminHref, getSiteUrl } from '@/lib/config/domain';
@@ -39,11 +40,13 @@ export function FeedAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [showMissingOnly, setShowMissingOnly] = useState(false);
+  const [batchProcessing, setBatchProcessing] = useState(false);
+  const [batchRemaining, setBatchRemaining] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (missingImage: boolean) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/feed');
+      const res = await fetch(`/api/admin/feed${missingImage ? '?missingImage=1' : ''}`);
       const data = (await res.json()) as {
         stats: FeedStats;
         posts: AdminPost[];
@@ -58,8 +61,8 @@ export function FeedAdminDashboard() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(showMissingOnly);
+  }, [load, showMissingOnly]);
 
   async function publishPost(postId: string) {
     setActionId(postId);
@@ -69,7 +72,7 @@ export function FeedAdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postId })
       });
-      await load();
+      await load(showMissingOnly);
     } finally {
       setActionId(null);
     }
@@ -80,7 +83,7 @@ export function FeedAdminDashboard() {
     setActionId(postId);
     try {
       await fetch(`/api/admin/feed/${postId}`, { method: 'DELETE' });
-      await load();
+      await load(showMissingOnly);
     } finally {
       setActionId(null);
     }
@@ -94,16 +97,36 @@ export function FeedAdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'process-queue', queueId })
       });
-      await load();
+      await load(showMissingOnly);
     } finally {
       setActionId(null);
     }
   }
 
-  const visiblePosts = useMemo(
-    () => (showMissingOnly ? posts.filter((p) => isMissingFeedCoverImage(p.coverImage)) : posts),
-    [posts, showMissingOnly]
-  );
+  async function processQueueBatch() {
+    setBatchProcessing(true);
+    try {
+      // 531 bekleyen gibi büyük bir birikimi tek istekte işlemek zaman aşımına
+      // uğrayabilir — 10'arlı gruplar halinde, kalan sıfır olana kadar işler.
+      let remaining = Infinity;
+      let guard = 0;
+      while (remaining > 0 && guard < 200) {
+        const res = await fetch('/api/admin/feed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'process-batch', batchSize: 10 })
+        });
+        const data = (await res.json()) as { remaining?: number };
+        remaining = data.remaining ?? 0;
+        setBatchRemaining(remaining);
+        guard += 1;
+      }
+    } finally {
+      setBatchProcessing(false);
+      setBatchRemaining(null);
+      await load(showMissingOnly);
+    }
+  }
 
   if (loading && !stats) {
     return <p className="text-sm text-muted-foreground">Feed yükleniyor…</p>;
@@ -160,7 +183,26 @@ export function FeedAdminDashboard() {
       </div>
 
       <section>
-        <h2 className="mb-4 text-lg font-bold">BiletFeed AI Editor — Kuyruk</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold">BiletFeed AI Editor — Kuyruk</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {(stats?.queuePending ?? 0).toLocaleString('tr-TR')} öğe bekliyor · en eski bekleyenler önce listelenir
+            </p>
+          </div>
+          {(stats?.queuePending ?? 0) > 0 && (
+            <Button size="sm" disabled={batchProcessing} onClick={() => void processQueueBatch()}>
+              {batchProcessing ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  İşleniyor{batchRemaining !== null ? ` — ${batchRemaining.toLocaleString('tr-TR')} kaldı` : '…'}
+                </>
+              ) : (
+                'Kuyruğu Toplu İşle'
+              )}
+            </Button>
+          )}
+        </div>
         <div className="space-y-3">
           {queue.length === 0 && (
             <p className="text-sm text-muted-foreground">Bekleyen keşif öğesi yok.</p>
@@ -206,7 +248,7 @@ export function FeedAdminDashboard() {
             </button>
           )}
         </div>
-        {visiblePosts.length === 0 && (
+        {posts.length === 0 && (
           <p className="mb-4 text-sm text-muted-foreground">
             {showMissingOnly ? 'Görseli eksik haber yok.' : 'Henüz haber yok.'}
           </p>
@@ -215,6 +257,7 @@ export function FeedAdminDashboard() {
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-border bg-muted/40">
               <tr>
+                <th className="w-16 px-4 py-3 font-semibold">Görsel</th>
                 <th className="px-4 py-3 font-semibold">Başlık</th>
                 <th className="px-4 py-3 font-semibold">Durum</th>
                 <th className="px-4 py-3 font-semibold">Görüntülenme</th>
@@ -222,8 +265,25 @@ export function FeedAdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {visiblePosts.map((post) => (
+              {posts.map((post) => (
                 <tr key={post.id} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3">
+                    <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      {isMissingFeedCoverImage(post.coverImage) ? (
+                        <div className="flex size-full items-center justify-center">
+                          <ImageOff className="size-4 text-muted-foreground" />
+                        </div>
+                      ) : (
+                        <FeedCoverImage
+                          src={post.coverImage}
+                          alt={post.title}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                        />
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <p className="font-medium">{post.title}</p>
                     <div className="mt-0.5 flex items-center gap-2">

@@ -52,9 +52,10 @@ export async function GET(request: NextRequest) {
   if ('error' in guard) return guard.error;
 
   const status = request.nextUrl.searchParams.get('status') ?? undefined;
+  const missingImage = request.nextUrl.searchParams.get('missingImage') === '1';
   const [stats, posts, queue] = await Promise.all([
     getFeedAdminStats(),
-    listAdminFeedPosts(status as never),
+    listAdminFeedPosts(status as never, missingImage),
     listEditorialQueue(30)
   ]);
 

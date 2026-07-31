@@ -142,13 +142,24 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
 
 export async function listEditorialQueue(limit = 50): Promise<EditorialQueueItem[]> {
   await ensureDbConnection();
-  const rows = await prisma.feedEditorialQueue.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-    include: {
-      post: { select: { slug: true, title: true, status: true } }
-    }
-  });
+  // Bekleyen (pending) öğeler her zaman önce gösterilir — aksi halde yeni
+  // eklenen ve hemen işlenen (completed) öğeler createdAt'e göre üstte kalır,
+  // eski bekleyen birikim (backlog) listenin dışında kalır ve hiç görünmez.
+  const [pending, others] = await Promise.all([
+    prisma.feedEditorialQueue.findMany({
+      where: { status: 'pending' },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      include: { post: { select: { slug: true, title: true, status: true } } }
+    }),
+    prisma.feedEditorialQueue.findMany({
+      where: { NOT: { status: 'pending' } },
+      orderBy: { createdAt: 'desc' },
+      take: Math.max(limit - 20, 10),
+      include: { post: { select: { slug: true, title: true, status: true } } }
+    })
+  ]);
+  const rows = [...pending, ...others];
 
   return rows.map((row) => ({
     id: row.id,

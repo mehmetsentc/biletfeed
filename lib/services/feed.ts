@@ -38,6 +38,18 @@ function publishedWithImageWhere(): Prisma.FeedPostWhereInput {
   };
 }
 
+/** Görseli eksik/placeholder olan haberler — admin panelindeki "Görsel Eksik"
+ * sayaç ve filtresiyle aynı tanımı paylaşır (isMissingFeedCoverImage ile tutarlı). */
+function missingImageWhere(): Prisma.FeedPostWhereInput {
+  return {
+    OR: [
+      { coverImage: '' },
+      { coverImage: { contains: 'brand/logo' } },
+      { coverImage: FEED_FALLBACK_COVER }
+    ]
+  };
+}
+
 const postCardSelect = {
   id: true,
   slug: true,
@@ -440,10 +452,7 @@ export async function getFeedAdminStats(): Promise<{
     prisma.feedEditorialQueue.count({ where: { status: 'pending' } }),
     prisma.feedPost.aggregate({ _sum: { viewCount: true }, where: { deletedAt: null } }),
     prisma.feedPost.count({
-      where: {
-        deletedAt: null,
-        OR: [{ coverImage: '' }, { coverImage: { contains: 'brand/logo' } }]
-      }
+      where: { deletedAt: null, ...missingImageWhere() }
     })
   ]);
   return {
@@ -531,10 +540,14 @@ export async function publishFeedPost(postId: string): Promise<void> {
   });
 }
 
-export async function listAdminFeedPosts(status?: FeedPostStatus) {
+export async function listAdminFeedPosts(status?: FeedPostStatus, missingImageOnly = false) {
   await ensureDbConnection();
   return prisma.feedPost.findMany({
-    where: { deletedAt: null, ...(status ? { status } : {}) },
+    where: {
+      deletedAt: null,
+      ...(status ? { status } : {}),
+      ...(missingImageOnly ? missingImageWhere() : {})
+    },
     select: {
       id: true,
       slug: true,
@@ -549,7 +562,9 @@ export async function listAdminFeedPosts(status?: FeedPostStatus) {
       isFeatured: true
     },
     orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-    take: 100
+    // Eksik görselli haberler eski/yayınlanmamış olabilir ve normal 100'lük
+    // pencerenin dışında kalabilir — filtre aktifken daha geniş bir pencere çekilir.
+    take: missingImageOnly ? 300 : 100
   });
 }
 
