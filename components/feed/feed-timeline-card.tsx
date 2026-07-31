@@ -55,40 +55,40 @@ export function FeedTimelineCard({
         </time>
       </div>
 
-      {/* Compact row card */}
+      {/* Card */}
       <Link
         href={`/feed/${post.slug}`}
-        className="group mb-3 flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/8 bg-zinc-900/80 p-2.5 shadow-lg transition hover:border-primary/30 hover:bg-zinc-900"
+        className="group mb-4 flex min-w-0 flex-1 items-center gap-4 rounded-2xl border border-white/8 bg-zinc-900/80 p-3.5 shadow-lg transition hover:border-primary/30 hover:bg-zinc-900"
       >
-        <div className="relative size-16 shrink-0 overflow-hidden rounded-xl">
+        <div className="relative size-24 shrink-0 overflow-hidden rounded-xl sm:size-28">
           <FeedCoverImage
             src={post.coverImage}
             alt={post.title}
             fill
             className="object-cover transition duration-300 group-hover:scale-[1.05]"
-            sizes="64px"
+            sizes="112px"
           />
         </div>
 
         <div className="min-w-0 flex-1">
           <span
             className={cn(
-              'inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+              'inline-block rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide',
               badgeClass(post.categorySlug, post.contentType)
             )}
           >
             {label}
           </span>
 
-          <h3 className="mt-1 line-clamp-2 text-sm font-bold leading-snug text-white transition group-hover:text-[var(--bf-accent-ink)]">
+          <h3 className="mt-2 line-clamp-3 text-lg font-bold leading-snug text-white transition group-hover:text-[var(--bf-accent-ink)]">
             {post.title}
           </h3>
 
-          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-500">
+          <div className="mt-2 flex items-center gap-2 text-sm text-zinc-400">
             <span className="truncate">{post.authorName}</span>
             <span className="shrink-0 text-zinc-600">·</span>
             <span className="inline-flex shrink-0 items-center gap-1">
-              <Clock className="size-3" />
+              <Clock className="size-3.5" />
               {post.readingTimeMinutes} dk
             </span>
           </div>

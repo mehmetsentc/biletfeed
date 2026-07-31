@@ -52,11 +52,14 @@ export function FeedGridClient({
     );
   }
 
-  const heroPost = trending[0] ?? posts[0]!;
+  // Hero her zaman en yeni haber olsun (trend skoruna göre değil) — eski ama
+  // popüler bir haberin sürekli en üstte takılı kalmasını engeller.
+  const heroPost = posts[0]!;
   const heroId = heroPost.id;
   const timelinePosts = posts.filter((p) => p.id !== heroId);
   const dateGroups = groupFeedPostsByDate(timelinePosts);
   const flatTimeline = dateGroups.flatMap((g) => g.posts);
+  const trendingStrip = trending.filter((p) => p.id !== heroId).slice(0, 4);
 
   // Masaüstü dergi düzeni: 2 büyük + 3 orta kart, ardından ana liste + kenar çubuğu
   const desktopHero = posts.slice(0, 2);
@@ -72,13 +75,13 @@ export function FeedGridClient({
           <FeedBillboardHero post={heroPost} />
         </section>
 
-        {trending.length > 1 && (
+        {trendingStrip.length > 0 && (
           <section className="mb-8">
             <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-[var(--bf-accent-ink)]">
               Trend Hikâyeler
             </h2>
             <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {trending.slice(1, 5).map((post) => (
+              {trendingStrip.map((post) => (
                 <Link
                   key={post.id}
                   href={`/feed/${post.slug}`}
@@ -104,7 +107,7 @@ export function FeedGridClient({
           <div className="mb-6 flex items-end justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--bf-accent-ink)]">Gündem</p>
-              <h2 className="mt-1 text-xl font-extrabold text-white">Haber Akışı</h2>
+              <h2 className="mt-1 text-xl font-extrabold text-white">Feed</h2>
             </div>
             <span className="text-xs text-zinc-500">{flatTimeline.length + 1} hikâye</span>
           </div>
