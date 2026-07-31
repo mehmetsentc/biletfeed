@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ImageOff, Pencil, Plus } from 'lucide-react';
+import { ImageOff, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { EditorialQueueItem } from '@/lib/feed/types';
@@ -38,6 +38,7 @@ export function FeedAdminDashboard() {
   const [queue, setQueue] = useState<EditorialQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [showMissingOnly, setShowMissingOnly] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +75,17 @@ export function FeedAdminDashboard() {
     }
   }
 
+  async function deletePost(postId: string) {
+    if (!confirm('Bu haberi silmek istediğinize emin misiniz?')) return;
+    setActionId(postId);
+    try {
+      await fetch(`/api/admin/feed/${postId}`, { method: 'DELETE' });
+      await load();
+    } finally {
+      setActionId(null);
+    }
+  }
+
   async function processQueue(queueId: string) {
     setActionId(queueId);
     try {
@@ -87,6 +99,11 @@ export function FeedAdminDashboard() {
       setActionId(null);
     }
   }
+
+  const visiblePosts = useMemo(
+    () => (showMissingOnly ? posts.filter((p) => isMissingFeedCoverImage(p.coverImage)) : posts),
+    [posts, showMissingOnly]
+  );
 
   if (loading && !stats) {
     return <p className="text-sm text-muted-foreground">Feed yükleniyor…</p>;
@@ -112,9 +129,19 @@ export function FeedAdminDashboard() {
           { label: 'İncelemede', value: stats?.inReview ?? 0 },
           { label: 'AI Kuyruğu', value: stats?.queuePending ?? 0 },
           { label: 'Toplam Görüntülenme', value: stats?.totalViews ?? 0 },
-          { label: 'Görsel Eksik', value: stats?.missingImages ?? 0, warn: true }
+          { label: 'Görsel Eksik', value: stats?.missingImages ?? 0, warn: true, clickable: true }
         ].map((item) => (
-          <Card key={item.label} className={cn(item.warn && (item.value ?? 0) > 0 && 'border-amber-500/50')}>
+          <Card
+            key={item.label}
+            role={item.clickable ? 'button' : undefined}
+            tabIndex={item.clickable ? 0 : undefined}
+            onClick={item.clickable ? () => setShowMissingOnly((v) => !v) : undefined}
+            className={cn(
+              item.warn && (item.value ?? 0) > 0 && 'border-amber-500/50',
+              item.clickable && 'cursor-pointer transition hover:border-amber-500',
+              item.clickable && showMissingOnly && 'ring-2 ring-amber-500'
+            )}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{item.label}</CardTitle>
             </CardHeader>
@@ -165,7 +192,25 @@ export function FeedAdminDashboard() {
       </section>
 
       <section>
-        <h2 className="mb-4 text-lg font-bold">İçerikler</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">İçerikler</h2>
+          {showMissingOnly && (
+            <button
+              type="button"
+              onClick={() => setShowMissingOnly(false)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+            >
+              <ImageOff className="size-3.5" />
+              Sadece görseli eksik olanlar gösteriliyor
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+        {visiblePosts.length === 0 && (
+          <p className="mb-4 text-sm text-muted-foreground">
+            {showMissingOnly ? 'Görseli eksik haber yok.' : 'Henüz haber yok.'}
+          </p>
+        )}
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-border bg-muted/40">
@@ -177,7 +222,7 @@ export function FeedAdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {posts.map((post) => (
+              {visiblePosts.map((post) => (
                 <tr key={post.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3">
                     <p className="font-medium">{post.title}</p>
@@ -220,6 +265,16 @@ export function FeedAdminDashboard() {
                           Görüntüle
                         </a>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionId === post.id}
+                        onClick={() => void deletePost(post.id)}
+                        className="border-red-500/40 text-red-600 hover:bg-red-500/10 hover:text-red-600 dark:text-red-400"
+                      >
+                        <Trash2 className="mr-1 size-3.5" />
+                        Sil
+                      </Button>
                     </div>
                   </td>
                 </tr>
