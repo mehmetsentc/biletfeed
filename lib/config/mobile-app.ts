@@ -2,6 +2,11 @@ import { getSiteUrl } from '@/lib/config/domain';
 import { platformContact } from '@/lib/config/contact';
 import { siteConfig } from '@/lib/config/site';
 
+/** App Store Connect'teki sayısal uygulama kimliği (apps.apple.com/.../idXXXXXXXXXX) */
+export const APPLE_APP_STORE_NUMERIC_ID = '6790977791';
+
+const DEFAULT_APP_STORE_URL = `https://apps.apple.com/app/id${APPLE_APP_STORE_NUMERIC_ID}`;
+
 /** App Store / Google Play metadata — tek kaynak */
 export const mobileAppConfig = {
   bundleId: 'com.biletfeed.app',
@@ -37,7 +42,7 @@ export const mobileAppConfig = {
       'BiletFeed ile konser, tiyatro, festival ve daha fazlasını keşfedin. Bilet satın alın, QR biletinizi görüntüleyin ve etkinliklerinizi yönetin.'
   },
   storeUrls: {
-    ios: process.env.NEXT_PUBLIC_APP_STORE_URL ?? '',
+    ios: process.env.NEXT_PUBLIC_APP_STORE_URL?.trim() || DEFAULT_APP_STORE_URL,
     android: process.env.NEXT_PUBLIC_PLAY_STORE_URL ?? ''
   },
   appleTeamId: process.env.APPLE_TEAM_ID?.trim() ?? '',
