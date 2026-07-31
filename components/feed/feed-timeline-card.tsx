@@ -58,19 +58,19 @@ export function FeedTimelineCard({
       {/* Card */}
       <Link
         href={`/feed/${post.slug}`}
-        className="group mb-4 flex min-w-0 flex-1 items-center gap-4 rounded-2xl border border-border bg-card p-3.5 shadow-lg transition hover:border-primary/30 hover:bg-muted"
+        className="group mb-4 flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-lg transition hover:border-primary/30"
       >
-        <div className="relative size-24 shrink-0 overflow-hidden rounded-xl sm:size-28">
+        <div className="relative aspect-[4/5] w-full overflow-hidden sm:aspect-video">
           <FeedCoverImage
             src={post.coverImage}
             alt={post.title}
             fill
-            className="object-cover transition duration-300 group-hover:scale-[1.05]"
-            sizes="112px"
+            className="object-cover transition duration-300 group-hover:scale-[1.03]"
+            sizes="(min-width: 768px) 600px, 100vw"
           />
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 p-4">
           <span
             className={cn(
               'inline-block rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide',
