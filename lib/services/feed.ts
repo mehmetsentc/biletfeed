@@ -555,6 +555,16 @@ export async function publishFeedPost(postId: string): Promise<void> {
   });
 }
 
+/** Admin panelde toplu seçim ile birden çok haberi tek istekte (soft-delete) siler. */
+export async function bulkDeleteFeedPosts(ids: string[]): Promise<number> {
+  await ensureDbConnection();
+  const result = await prisma.feedPost.updateMany({
+    where: { id: { in: ids }, deletedAt: null },
+    data: { deletedAt: new Date(), status: 'archived' }
+  });
+  return result.count;
+}
+
 export async function listAdminFeedPosts(status?: FeedPostStatus, missingImageOnly = false) {
   await ensureDbConnection();
   return prisma.feedPost.findMany({

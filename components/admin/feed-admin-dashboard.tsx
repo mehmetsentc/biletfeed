@@ -42,6 +42,8 @@ export function FeedAdminDashboard() {
   const [showMissingOnly, setShowMissingOnly] = useState(false);
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [batchRemaining, setBatchRemaining] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = useCallback(async (missingImage: boolean) => {
     setLoading(true);
@@ -55,6 +57,7 @@ export function FeedAdminDashboard() {
       setStats(data.stats);
       setPosts(data.posts);
       setQueue(data.queue);
+      setSelectedIds(new Set());
     } finally {
       setLoading(false);
     }
@@ -86,6 +89,35 @@ export function FeedAdminDashboard() {
       await load(showMissingOnly);
     } finally {
       setActionId(null);
+    }
+  }
+
+  function toggleSelect(postId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => (prev.size === posts.length ? new Set() : new Set(posts.map((p) => p.id))));
+  }
+
+  async function bulkDeleteSelected() {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`${selectedIds.size} haberi silmek istediğinize emin misiniz?`)) return;
+    setBulkDeleting(true);
+    try {
+      await fetch('/api/admin/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bulk-delete', ids: Array.from(selectedIds) })
+      });
+      await load(showMissingOnly);
+    } finally {
+      setBulkDeleting(false);
     }
   }
 
@@ -236,17 +268,48 @@ export function FeedAdminDashboard() {
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-bold">İçerikler</h2>
-          {showMissingOnly && (
-            <button
-              type="button"
-              onClick={() => setShowMissingOnly(false)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-            >
-              <ImageOff className="size-3.5" />
-              Sadece görseli eksik olanlar gösteriliyor
-              <X className="size-3.5" />
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {showMissingOnly && (
+              <button
+                type="button"
+                onClick={() => setShowMissingOnly(false)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+              >
+                <ImageOff className="size-3.5" />
+                Sadece görseli eksik olanlar gösteriliyor
+                <X className="size-3.5" />
+              </button>
+            )}
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/5 py-1 pl-3 pr-1">
+                <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                  {selectedIds.size} seçili
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={bulkDeleting}
+                  onClick={() => void bulkDeleteSelected()}
+                >
+                  {bulkDeleting ? (
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-1.5 size-3.5" />
+                  )}
+                  Seçilenleri Sil
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
         {posts.length === 0 && (
           <p className="mb-4 text-sm text-muted-foreground">
@@ -257,6 +320,15 @@ export function FeedAdminDashboard() {
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-border bg-muted/40">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={posts.length > 0 && selectedIds.size === posts.length}
+                    onChange={toggleSelectAll}
+                    aria-label="Tümünü seç"
+                    className="size-4 rounded border-border"
+                  />
+                </th>
                 <th className="w-16 px-4 py-3 font-semibold">Görsel</th>
                 <th className="px-4 py-3 font-semibold">Başlık</th>
                 <th className="px-4 py-3 font-semibold">Durum</th>
@@ -266,7 +338,22 @@ export function FeedAdminDashboard() {
             </thead>
             <tbody>
               {posts.map((post) => (
-                <tr key={post.id} className="border-b border-border last:border-0">
+                <tr
+                  key={post.id}
+                  className={cn(
+                    'border-b border-border last:border-0',
+                    selectedIds.has(post.id) && 'bg-red-500/5'
+                  )}
+                >
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(post.id)}
+                      onChange={() => toggleSelect(post.id)}
+                      aria-label={`${post.title} seç`}
+                      className="size-4 rounded border-border"
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
                       {isMissingFeedCoverImage(post.coverImage) ? (
