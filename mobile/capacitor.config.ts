@@ -14,7 +14,11 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      // Native açılış ekranı statik (yalnızca ikon, ortalanmış, küçük boyut) —
+      // gerçek "küçükten orta büyüklüğe büyüme" animasyonu web tarafında
+      // (CapacitorSplashOverlay) devam eder. Native ekran sadece WebView
+      // hazır olana kadarki kısa boşluğu kapatır, bu yüzden süresi kısa.
+      launchShowDuration: 800,
       launchAutoHide: true,
       backgroundColor: '#000000',
       androidSplashResourceName: 'splash',

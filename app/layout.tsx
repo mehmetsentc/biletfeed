@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { GeistSans } from 'geist/font/sans';
 import { AppSpeedInsights } from '@/components/analytics/speed-insights';
+import { CapacitorSplashOverlay } from '@/components/capacitor-splash-overlay';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import { SiteTracker } from '@/components/analytics/site-tracker';
 import { Providers } from '@/components/providers';
@@ -66,6 +67,7 @@ export default async function RootLayout({
         <ThemeInitScript />
       </head>
       <body className={`${GeistSans.variable} ${inter.variable} font-sans antialiased`}>
+        <CapacitorSplashOverlay />
         <JsonLd
           data={[buildOrganizationSchema(), buildWebsiteSchema()]}
         />
