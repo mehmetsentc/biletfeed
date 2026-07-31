@@ -5,6 +5,7 @@ import { guardAdminMutation, guardAdminRead } from '@/lib/auth/guard-admin-api';
 import { getAdminFeedPostById, updateAdminFeedPost } from '@/lib/services/feed';
 import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { zodErrorMessage } from '@/lib/api/zod-validation';
 
 const mediaSchema = z.object({
   type: z.enum(['image', 'video', 'embed', 'reel']),
@@ -57,7 +58,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const parsed = updateSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Geçersiz veri', details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json(
+      { error: zodErrorMessage(parsed.error), details: parsed.error.flatten() },
+      { status: 400 }
+    );
   }
 
   try {

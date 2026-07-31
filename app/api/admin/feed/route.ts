@@ -15,6 +15,7 @@ import {
 import { fetchOgImage } from '@/lib/feed/discovery/og-image';
 import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { FeedPostType, FeedPostStatus } from '@prisma/client';
+import { zodErrorMessage } from '@/lib/api/zod-validation';
 
 const createSchema = z.object({
   action: z.literal('create'),
@@ -74,7 +75,10 @@ export async function POST(request: NextRequest) {
   if (action === 'create') {
     const parsed = createSchema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Geçersiz veri', details: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json(
+        { error: zodErrorMessage(parsed.error), details: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
     const { action: _a, ...payload } = parsed.data;
     const normalizedCover = await normalizeCoverImageUrl(payload.coverImage);

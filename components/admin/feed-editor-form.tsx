@@ -58,8 +58,10 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     isFeatured: initial?.isFeatured ?? false,
     feedCategoryId: initial?.feedCategoryId ?? '',
     status: (initial?.status ?? 'review') as FeedPostStatus,
-    seoTitle: initial?.seo?.title ?? '',
-    seoDescription: initial?.seo?.description ?? ''
+    // Eski AI taslaklarında SEO alanları sınırı aşmış olabilir — düzenleme
+    // ekranında da kaydetme hatası vermemesi için baştan kırpılır.
+    seoTitle: (initial?.seo?.title ?? '').slice(0, 70),
+    seoDescription: (initial?.seo?.description ?? '').slice(0, 200)
   });
 
   const [media, setMedia] = useState<MediaRow[]>(
@@ -153,8 +155,8 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
         content: draft.content,
         contentType: draft.contentType,
         tags: draft.tags.join(', '),
-        seoTitle: draft.seoTitle,
-        seoDescription: draft.seoDescription
+        seoTitle: draft.seoTitle.slice(0, 70),
+        seoDescription: draft.seoDescription.slice(0, 200)
       }));
     } catch (err) {
       setAiError(err instanceof Error ? err.message : 'AI oluşturma başarısız');
@@ -179,8 +181,8 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
       feedCategoryId: form.feedCategoryId || null,
       status: form.status,
       seo: {
-        title: form.seoTitle.trim() || undefined,
-        description: form.seoDescription.trim() || undefined
+        title: form.seoTitle.trim().slice(0, 70) || undefined,
+        description: form.seoDescription.trim().slice(0, 200) || undefined
       },
       media: media
         .filter((m) => m.url.trim())
