@@ -34,7 +34,7 @@ export default async function TicketTierPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-10">
+    <div className="bg-background pb-10">
       <PurchaseEventBar event={event} backHref={`/etkinlik/${slug}`} />
       <div className="container mx-auto max-w-3xl px-4 py-6 md:py-8">
         <header className="mb-6 text-foreground">

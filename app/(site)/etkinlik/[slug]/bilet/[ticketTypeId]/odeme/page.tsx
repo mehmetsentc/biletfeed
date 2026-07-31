@@ -53,7 +53,7 @@ export default async function TicketCheckoutPage({ params, searchParams }: Props
   const rulesDisplay = await getEventRulesDisplay(ctx.event.id, locale);
 
   return (
-    <div className="min-h-screen bg-background pb-12">
+    <div className="bg-background pb-12">
       <PurchaseEventBar
         event={ctx.event}
         backHref={`/etkinlik/${slug}/bilet/${ticketTypeId}`}
