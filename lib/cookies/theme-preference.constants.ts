@@ -5,4 +5,4 @@ export type ThemePreference = 'light' | 'dark' | 'system';
 
 export const THEME_PREFERENCES: ThemePreference[] = ['system', 'light', 'dark'];
 
-export const DEFAULT_THEME_PREFERENCE: ThemePreference = 'system';
+export const DEFAULT_THEME_PREFERENCE: ThemePreference = 'dark';

@@ -2,16 +2,18 @@
 
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { ArrowLeft, LayoutDashboard, MapPin, Plus, Search, Menu, X } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, LogOut, MapPin, Plus, Search, Menu, X } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTranslations } from '@/components/providers';
 import { useCity } from '@/components/providers/city-provider';
+import { ThemeSelector } from '@/components/theme/theme-selector';
 import { toCategoryNavLinks, type CategoryNavItem } from '@/lib/categories/nav-links';
 import {
   panelHref,
   panelLoginHref,
-  PANEL_EXTERNAL_LINK_PROPS
+  PANEL_EXTERNAL_LINK_PROPS,
+  siteHref
 } from '@/lib/config/domain';
 import { corporateMobileLinks } from '@/lib/layout/corporate-links';
 import { trackClientSearch } from '@/lib/analytics/track-client-search';
@@ -28,10 +30,16 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
   const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { citySlug, cities, openCityPicker } = useCity();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
+
+  async function handleSignOut() {
+    setMenuOpen(false);
+    await signOut();
+    window.location.assign(siteHref('/giris'));
+  }
 
   const isRootPage = MOBILE_HEADER_ROOT_PATHS.includes(pathname);
 
@@ -172,24 +180,34 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
 
             {user && (
               <div className="px-5 pb-5">
-                <Link
-                  href="/profil"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-xl bg-[var(--muted)] px-4 py-3"
-                >
-                  {user.photoURL ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.photoURL} alt="" className="size-9 rounded-full object-cover" />
-                  ) : (
-                    <div className="flex size-9 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-[var(--bf-accent-ink)]">
-                      {user.displayName?.[0]?.toUpperCase() ?? 'U'}
+                <div className="flex items-center gap-2 rounded-xl bg-[var(--muted)] px-4 py-3">
+                  <Link
+                    href="/profil"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex min-w-0 flex-1 items-center gap-3"
+                  >
+                    {user.photoURL ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={user.photoURL} alt="" className="size-9 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-[var(--bf-accent-ink)]">
+                        {user.displayName?.[0]?.toUpperCase() ?? 'U'}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{user.displayName ?? t.account.profile}</p>
+                      <p className="truncate text-xs text-[var(--muted-foreground)]">{user.email}</p>
                     </div>
-                  )}
-                  <div>
-                    <p className="text-sm font-semibold">{user.displayName ?? t.account.profile}</p>
-                    <p className="text-xs text-[var(--muted-foreground)]">{user.email}</p>
-                  </div>
-                </Link>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    aria-label={t.nav.logout}
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--muted-foreground)] transition-colors hover:bg-background hover:text-foreground"
+                  >
+                    <LogOut className="size-4" strokeWidth={1.75} />
+                  </button>
+                </div>
               </div>
             )}
 
@@ -289,6 +307,13 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
                   {t.common.viewAll}
                 </Link>
               </div>
+            </div>
+
+            <div className="mt-6 border-t border-[var(--border)] px-5 pt-5">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--muted-foreground)]">
+                Görünüm
+              </p>
+              <ThemeSelector />
             </div>
 
             <div className="mt-6 border-t border-[var(--border)] px-5 pt-5 pb-8">

@@ -20,7 +20,8 @@ function isIosDevice(): boolean {
 
 /**
  * Tarayıcıdan (Safari/Chrome) siteye giren, uygulamayı henüz yüklememiş
- * ziyaretçilere üstte küçük bir "uygulamayı indir" şeridi gösterir.
+ * ziyaretçilere sayfa ortasında, temaya uygun küçük bir "uygulamayı indir"
+ * kartı gösterir.
  *
  * Native uygulama içinde hiçbir zaman gösterilmez. Şimdilik yalnızca iOS —
  * Google Play mağaza linki yayınlanınca Android da eklenebilir.
@@ -47,7 +48,10 @@ export function InstallAppBanner() {
       // localStorage kapalıysa (gizli sekme vb.) sessizce göster.
     }
 
-    setVisible(true);
+    // Sayfa açılır açılmaz değil, kısa bir gecikmeyle göster — böylece ilk
+    // içerik yüklenmesiyle çakışmaz.
+    const timer = setTimeout(() => setVisible(true), 600);
+    return () => clearTimeout(timer);
   }, [isNative]);
 
   if (!visible) return null;
@@ -62,37 +66,62 @@ export function InstallAppBanner() {
   };
 
   return (
-    <div className="relative z-[60] flex items-center gap-3 border-b border-border bg-background px-3 py-2 shadow-sm">
-      <button
-        type="button"
-        onClick={dismiss}
-        aria-label="Kapat"
-        className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="BiletFeed Uygulaması"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in-0 duration-200"
+      onClick={dismiss}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-sm rounded-2xl border border-border bg-background text-foreground shadow-xl animate-in zoom-in-95 fade-in-0 duration-200"
       >
-        <X className="size-4" />
-      </button>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={brandAssetUrl('/brand/favicon-192.png')}
-        alt=""
-        width={36}
-        height={36}
-        className="size-9 shrink-0 rounded-[9px]"
-      />
-      <div className="min-w-0 flex-1 leading-tight">
-        <p className="truncate text-sm font-semibold">BiletFeed Uygulaması</p>
-        <p className="truncate text-xs text-muted-foreground">
-          Biletlerini ve etkinlik gündemini uygulamada takip et
-        </p>
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Kapat"
+          className="absolute right-3 top-3 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <X className="size-4" />
+        </button>
+
+        <div className="flex flex-col items-center gap-3 px-6 pb-6 pt-8 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={brandAssetUrl('/brand/favicon-192.png')}
+            alt=""
+            width={56}
+            height={56}
+            className="size-14 shrink-0 rounded-[14px] shadow-sm"
+          />
+          <div>
+            <p className="text-base font-semibold">BiletFeed Uygulaması</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Biletlerini ve etkinlik gündemini uygulamada takip et
+            </p>
+          </div>
+
+          <div className="mt-2 flex w-full flex-col gap-2">
+            <a
+              href={mobileAppConfig.storeUrls.ios}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={dismiss}
+              className="w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              İndir
+            </a>
+            <button
+              type="button"
+              onClick={dismiss}
+              className="w-full rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Vazgeç
+            </button>
+          </div>
+        </div>
       </div>
-      <a
-        href={mobileAppConfig.storeUrls.ios}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="shrink-0 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-primary/90"
-      >
-        İndir
-      </a>
     </div>
   );
 }
