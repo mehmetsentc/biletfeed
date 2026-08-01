@@ -1,43 +1,13 @@
 /**
- * Capacitor WKWebView içinde kalması gereken ödeme / 3D Secure host'ları.
- * Listede olmayan harici URL'ler iOS'ta sistem Safari'ye açılır; ProcessCardForm
- * POST gövdesi kaybolunca "ProcessCardForm (0 KB)" indirmesi görülür.
+ * Capacitor WKWebView içinde kalacak host'lar.
+ *
+ * `*` = tüm harici navigasyon (Tosla ProcessCardForm + bilinmeyen banka ACS/3DS)
+ * uygulama içinde kalır; Safari'ye düşmez.
+ *
+ * Capacitor dokümantasyonu production için whitelist önerir; TR kart 3DS ACS
+ * host'ları kart veren bankaya göre değiştiği için tam liste tutulamaz.
+ * BiletFeed kabuğu zaten remote `biletfeed.com` yükler — ödeme akışı için `*` gerekli.
+ *
+ * @see CAPInstanceConfiguration.doesHost — `pattern == "*"` → true
  */
-export const CAPACITOR_PAYMENT_ALLOW_NAVIGATION = [
-  'biletfeed.com',
-  '*.biletfeed.com',
-  'www.biletfeed.com',
-  // Tosla
-  '*.tosla.com',
-  'entegrasyon.tosla.com',
-  'tosla.com',
-  // Yaygın TR banka / kart ACS (3D Secure) host'ları
-  '*.akbank.com',
-  '*.akbank.com.tr',
-  '*.isbank.com.tr',
-  '*.garanti.com.tr',
-  '*.garantibbva.com.tr',
-  '*.yapikredi.com.tr',
-  '*.denizbank.com',
-  '*.qnbfinansbank.com',
-  '*.finansbank.com.tr',
-  '*.ziraatbank.com.tr',
-  '*.halkbank.com.tr',
-  '*.vakifbank.com.tr',
-  '*.teb.com.tr',
-  '*.ing.com.tr',
-  '*.fibabanka.com.tr',
-  '*.sekerbank.com.tr',
-  '*.kuveytturk.com.tr',
-  '*.albaraka.com.tr',
-  '*.turkiyefinans.com.tr',
-  '*.hsbc.com.tr',
-  '*.odeabank.com.tr',
-  '*.mastercard.com',
-  '*.visa.com',
-  '*.troyodeme.com',
-  '*.bkm.com.tr',
-  '*.param.com.tr',
-  '*.iyzico.com',
-  '*.payu.com.tr'
-] as const;
+export const CAPACITOR_PAYMENT_ALLOW_NAVIGATION = ['*'] as const;

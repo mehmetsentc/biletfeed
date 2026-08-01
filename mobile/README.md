@@ -54,6 +54,21 @@ Web kabuğu veya eklenti değişikliklerinden sonra:
 npm run cap:sync
 ```
 
+### Ödeme (Tosla) — uygulama içinde kalması
+
+`capacitor.config.ts` içinde `server.allowNavigation: ['*']` vardır. Bu olmadan iOS,
+Tosla `ProcessCardForm` POST'unu Safari'ye atar ve boş dosya indirmesi görülür.
+
+Config değişikliğinden sonra **mutlaka**:
+
+```bash
+cd mobile
+npx cap sync ios
+npx cap open ios
+# Xcode → Archive → App Store Connect
+```
+
+Eski App Store binary'sinde bu ayar yoktur; yalnızca web deploy yetmez.
 ## Xcode / Android Studio
 
 ```bash

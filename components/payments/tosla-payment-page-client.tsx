@@ -43,7 +43,6 @@ export function ToslaPaymentPageClient({ context }: { context: PaymentPageContex
         <ToslaCardPaymentForm
           sessionId={context.sessionId}
           processCardFormUrl={context.processCardFormUrl}
-          hostedPaymentUrl={context.hostedPaymentUrl}
           total={context.total}
           eventTitle={context.eventTitle}
           ticketSummary={context.ticketSummary}
