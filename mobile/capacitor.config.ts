@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import { CAPACITOR_PAYMENT_ALLOW_NAVIGATION } from './payment-allow-navigation';
 
 const serverUrl =
   process.env.CAPACITOR_SERVER_URL?.trim() || 'https://biletfeed.com';
@@ -10,7 +11,10 @@ const config: CapacitorConfig = {
   server: {
     url: serverUrl,
     cleartext: serverUrl.startsWith('http://'),
-    androidScheme: 'https'
+    androidScheme: 'https',
+    // Tosla ProcessCardForm + banka 3DS sayfaları WebView'da kalsın.
+    // Yoksa iOS harici Safari'ye POST atar → boş "ProcessCardForm" indirmesi.
+    allowNavigation: [...CAPACITOR_PAYMENT_ALLOW_NAVIGATION]
   },
   plugins: {
     SplashScreen: {

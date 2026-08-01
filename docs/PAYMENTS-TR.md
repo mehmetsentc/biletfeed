@@ -57,8 +57,8 @@ ENABLE_MOCK_PAYMENTS=true
 3. İsteğe bağlı: `TOSLA_API_BASE_URL`, `TOSLA_PROCESS_CARD_FORM_URL`, `TOSLA_3D_HOST_URL`
 4. Callback URL: `https://biletfeed.com/api/payments/callback/tosla`
 5. Kart formu BiletFeed `/odeme/kart/[orderId]` sayfasında; kart bilgisi doğrudan Tosla `processCardForm` endpoint'ine POST edilir
-6. Yedek: aynı sayfada Tosla ortak ödeme sayfası iframe modal
-
+6. **iOS/Android Capacitor:** ProcessCardForm POST harici Safari'ye düşünce boş indirme oluşur. Native kabukta Tosla hosted 3D sayfası (GET) kullanılır. Kalıcı çözüm: `mobile/capacitor.config.ts` → `server.allowNavigation` (Tosla + banka ACS) ile uygulama güncellemesi
+7. Yedek (web): aynı sayfada Tosla ortak ödeme sayfası
 
 - `/admin/islemler` — sipariş listesi
 - `POST /api/admin/orders/{id}/refund` — mock/free iade; gerçek provider için 501 döner

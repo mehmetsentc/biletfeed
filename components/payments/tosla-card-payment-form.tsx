@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CreditCard, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 export type ToslaCardPaymentFormProps = {
   sessionId: string;
   processCardFormUrl: string;
+  /** Tosla ortak 3D sayfası (GET) — Capacitor native'de ProcessCardForm yerine kullanılır */
+  hostedPaymentUrl: string;
   total: number;
   eventTitle: string;
   ticketSummary: string;
@@ -31,15 +33,37 @@ export type ToslaCardPaymentFormProps = {
 
 type FieldErrors = Partial<Record<'holder' | 'number' | 'expiry' | 'cvv', string>>;
 
+function useIsCapacitorNative(): boolean | null {
+  const [isNative, setIsNative] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import('@capacitor/core')
+      .then(({ Capacitor }) => {
+        if (!cancelled) setIsNative(Capacitor.isNativePlatform());
+      })
+      .catch(() => {
+        if (!cancelled) setIsNative(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return isNative;
+}
+
 export function ToslaCardPaymentForm({
   sessionId,
   processCardFormUrl,
+  hostedPaymentUrl,
   total,
   eventTitle,
   ticketSummary,
   cancelHref,
   onUseHostedFallback
 }: ToslaCardPaymentFormProps) {
+  const isNativeApp = useIsCapacitorNative();
   const [holderName, setHolderName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -52,6 +76,8 @@ export function ToslaCardPaymentForm({
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+  const nativeMode = isNativeApp === true;
+  const envPending = isNativeApp === null;
 
   function validate(): boolean {
     const next: FieldErrors = {};
@@ -86,7 +112,10 @@ export function ToslaCardPaymentForm({
     const detached = document.createElement('form');
     detached.method = 'POST';
     detached.action = processCardFormUrl;
-    detached.enctype = 'multipart/form-data';
+    // multipart Capacitor/Safari elinde boş indirmeye yol açabiliyor; urlencoded standart.
+    detached.enctype = 'application/x-www-form-urlencoded';
+    detached.acceptCharset = 'UTF-8';
+    detached.target = '_self';
     detached.style.display = 'none';
 
     for (const [name, value] of Object.entries(fields)) {
@@ -101,8 +130,23 @@ export function ToslaCardPaymentForm({
     detached.submit();
   }
 
+  /** Native kabukta ProcessCardForm POST Safari'ye düşünce 0 KB indirme oluyor → GET hosted. */
+  function startNativeHostedPayment() {
+    setRedirecting(true);
+    window.setTimeout(() => {
+      window.location.assign(hostedPaymentUrl);
+    }, 0);
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isNativeApp === null) return;
+
+    if (isNativeApp) {
+      startNativeHostedPayment();
+      return;
+    }
+
     if (!validate()) return;
 
     // State update before navigation can cancel cross-origin POST in React 18+
@@ -129,162 +173,188 @@ export function ToslaCardPaymentForm({
         <p className="mt-1 text-sm text-primary-foreground/90">{ticketSummary}</p>
       </div>
 
-      <form
-        action={processCardFormUrl}
-        method="POST"
-        encType="multipart/form-data"
-        onSubmit={handleSubmit}
-        className="p-6"
-        noValidate
-      >
-        <input type="hidden" name="ThreeDSessionId" value={sessionId} />
-        <input type="hidden" name="CardNo" value={normalizeCardNumber(cardNumber)} />
-        <input type="hidden" name="ExpireDate" value={normalizeExpiry(expiry)} />
-
-        <div className="mb-6 flex items-end justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Ödenecek tutar
-            </p>
-            <p className="text-2xl font-extrabold text-foreground">₺{formattedTotal}</p>
-          </div>
-          <div
-            className={cn(
-              'rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider',
-              brand === 'visa' && 'bg-blue-600 text-white',
-              brand === 'mastercard' && 'bg-zinc-800 text-white',
-              brand === 'amex' && 'bg-sky-700 text-white',
-              brand === 'unknown' && 'bg-muted text-muted-foreground'
-            )}
-          >
-            {brand === 'unknown' ? 'Kart' : brand}
-          </div>
+      {envPending ? (
+        <div className="flex items-center justify-center gap-2 px-6 py-16 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" />
+          Ödeme hazırlanıyor…
         </div>
-
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="CardHolderName">Kart Sahibi</Label>
-            <Input
-              id="CardHolderName"
-              name="CardHolderName"
-              value={holderName}
-              onChange={(e) => {
-                setHolderName(e.target.value.toUpperCase());
-                if (errors.holder) setErrors((p) => ({ ...p, holder: undefined }));
-              }}
-              placeholder="AD SOYAD"
-              autoComplete="cc-name"
-              className="mt-1.5 uppercase"
-              required
-              readOnly={redirecting}
-            />
-            {errors.holder && <p className="mt-1 text-xs text-destructive">{errors.holder}</p>}
-          </div>
-
-          <div>
-            <Label htmlFor="CardNo">Kart Numarası</Label>
-            <Input
-              id="CardNo"
-              inputMode="numeric"
-              autoComplete="cc-number"
-              value={cardNumber}
-              onChange={(e) => {
-                setCardNumber(formatCardNumberDisplay(e.target.value));
-                if (errors.number) setErrors((p) => ({ ...p, number: undefined }));
-              }}
-              placeholder="0000 0000 0000 0000"
-              className="mt-1.5 font-mono tracking-wider"
-              required
-              readOnly={redirecting}
-            />
-            {errors.number && <p className="mt-1 text-xs text-destructive">{errors.number}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="ExpireDate">Son Kullanma (AA/YY)</Label>
-              <Input
-                id="ExpireDate"
-                inputMode="numeric"
-                autoComplete="cc-exp"
-                value={expiry}
-                onChange={(e) => {
-                  setExpiry(formatExpiryInput(e.target.value));
-                  if (errors.expiry) setErrors((p) => ({ ...p, expiry: undefined }));
-                }}
-                placeholder="MM/YY"
-                className="mt-1.5 font-mono"
-                required
-                readOnly={redirecting}
-              />
-              {errors.expiry && <p className="mt-1 text-xs text-destructive">{errors.expiry}</p>}
-            </div>
-            <div>
-              <Label htmlFor="Cvv">Güvenlik Kodu (CVV)</Label>
-              <Input
-                id="Cvv"
-                name="Cvv"
-                type="password"
-                inputMode="numeric"
-                autoComplete="cc-csc"
-                value={cvv}
-                onChange={(e) => {
-                  setCvv(e.target.value.replace(/\D/g, '').slice(0, brand === 'amex' ? 4 : 3));
-                  if (errors.cvv) setErrors((p) => ({ ...p, cvv: undefined }));
-                }}
-                placeholder="•••"
-                className="mt-1.5 font-mono"
-                required
-                readOnly={redirecting}
-              />
-              {errors.cvv && <p className="mt-1 text-xs text-destructive">{errors.cvv}</p>}
-            </div>
-          </div>
-        </div>
-
-        <Button
-          type="submit"
-          className="mt-6 h-12 w-full rounded-xl text-base font-bold"
-          aria-busy={redirecting}
+      ) : (
+        <form
+          action={nativeMode ? undefined : processCardFormUrl}
+          method={nativeMode ? undefined : 'POST'}
+          encType={nativeMode ? undefined : 'application/x-www-form-urlencoded'}
+          onSubmit={handleSubmit}
+          className="p-6"
+          noValidate
         >
-          {redirecting ? (
+          {!nativeMode && (
             <>
-              <Loader2 className="mr-2 size-4 animate-spin" />
-              Banka doğrulamasına yönlendiriliyor…
+              <input type="hidden" name="ThreeDSessionId" value={sessionId} />
+              <input type="hidden" name="CardNo" value={normalizeCardNumber(cardNumber)} />
+              <input type="hidden" name="ExpireDate" value={normalizeExpiry(expiry)} />
             </>
+          )}
+
+          <div className="mb-6 flex items-end justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Ödenecek tutar
+              </p>
+              <p className="text-2xl font-extrabold text-foreground">₺{formattedTotal}</p>
+            </div>
+            {!nativeMode && (
+              <div
+                className={cn(
+                  'rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wider',
+                  brand === 'visa' && 'bg-blue-600 text-white',
+                  brand === 'mastercard' && 'bg-zinc-800 text-white',
+                  brand === 'amex' && 'bg-sky-700 text-white',
+                  brand === 'unknown' && 'bg-muted text-muted-foreground'
+                )}
+              >
+                {brand === 'unknown' ? 'Kart' : brand}
+              </div>
+            )}
+          </div>
+
+          {nativeMode ? (
+            <div className="mb-2 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+              Uygulamada kart bilgileri Tosla güvenli ödeme sayfasında alınır. Banka 3D Secure
+              doğrulaması aynı akışta tamamlanır.
+            </div>
           ) : (
-            <>₺{formattedTotal} — Ödemeyi Tamamla</>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="CardHolderName">Kart Sahibi</Label>
+                <Input
+                  id="CardHolderName"
+                  name="CardHolderName"
+                  value={holderName}
+                  onChange={(e) => {
+                    setHolderName(e.target.value.toUpperCase());
+                    if (errors.holder) setErrors((p) => ({ ...p, holder: undefined }));
+                  }}
+                  placeholder="AD SOYAD"
+                  autoComplete="cc-name"
+                  className="mt-1.5 uppercase"
+                  required
+                  readOnly={redirecting}
+                />
+                {errors.holder && <p className="mt-1 text-xs text-destructive">{errors.holder}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="CardNo">Kart Numarası</Label>
+                <Input
+                  id="CardNo"
+                  inputMode="numeric"
+                  autoComplete="cc-number"
+                  value={cardNumber}
+                  onChange={(e) => {
+                    setCardNumber(formatCardNumberDisplay(e.target.value));
+                    if (errors.number) setErrors((p) => ({ ...p, number: undefined }));
+                  }}
+                  placeholder="0000 0000 0000 0000"
+                  className="mt-1.5 font-mono tracking-wider"
+                  required
+                  readOnly={redirecting}
+                />
+                {errors.number && <p className="mt-1 text-xs text-destructive">{errors.number}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="ExpireDate">Son Kullanma (AA/YY)</Label>
+                  <Input
+                    id="ExpireDate"
+                    inputMode="numeric"
+                    autoComplete="cc-exp"
+                    value={expiry}
+                    onChange={(e) => {
+                      setExpiry(formatExpiryInput(e.target.value));
+                      if (errors.expiry) setErrors((p) => ({ ...p, expiry: undefined }));
+                    }}
+                    placeholder="MM/YY"
+                    className="mt-1.5 font-mono"
+                    required
+                    readOnly={redirecting}
+                  />
+                  {errors.expiry && <p className="mt-1 text-xs text-destructive">{errors.expiry}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="Cvv">Güvenlik Kodu (CVV)</Label>
+                  <Input
+                    id="Cvv"
+                    name="Cvv"
+                    type="password"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
+                    value={cvv}
+                    onChange={(e) => {
+                      setCvv(e.target.value.replace(/\D/g, '').slice(0, brand === 'amex' ? 4 : 3));
+                      if (errors.cvv) setErrors((p) => ({ ...p, cvv: undefined }));
+                    }}
+                    placeholder="•••"
+                    className="mt-1.5 font-mono"
+                    required
+                    readOnly={redirecting}
+                  />
+                  {errors.cvv && <p className="mt-1 text-xs text-destructive">{errors.cvv}</p>}
+                </div>
+              </div>
+            </div>
           )}
-        </Button>
 
-        <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
-          <Lock className="mt-0.5 size-3.5 shrink-0 text-[var(--bf-accent-ink)]" />
-          <p>
-            Kart bilgileriniz BiletFeed sunucularına iletilmez; doğrudan Tosla güvenli ödeme
-            altyapısına gönderilir. Ardından bankanızın 3D Secure doğrulaması açılır.
-          </p>
-        </div>
+          <Button
+            type="submit"
+            className="mt-6 h-12 w-full rounded-xl text-base font-bold"
+            aria-busy={redirecting}
+            disabled={redirecting}
+          >
+            {redirecting ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                {nativeMode
+                  ? 'Güvenli ödeme sayfası açılıyor…'
+                  : 'Banka doğrulamasına yönlendiriliyor…'}
+              </>
+            ) : nativeMode ? (
+              <>₺{formattedTotal} — Güvenli ödemeye geç</>
+            ) : (
+              <>₺{formattedTotal} — Ödemeyi Tamamla</>
+            )}
+          </Button>
 
-        <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="size-3.5 text-[var(--bf-accent-ink)]" />
-          256-bit SSL · PCI-DSS uyumlu altyapı
-        </div>
+          <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
+            <Lock className="mt-0.5 size-3.5 shrink-0 text-[var(--bf-accent-ink)]" />
+            <p>
+              {nativeMode
+                ? 'Ödeme Tosla altyapısında işlenir; kart bilgileriniz BiletFeed sunucularında saklanmaz.'
+                : 'Kart bilgileriniz BiletFeed sunucularına iletilmez; doğrudan Tosla güvenli ödeme altyapısına gönderilir. Ardından bankanızın 3D Secure doğrulaması açılır.'}
+            </p>
+          </div>
 
-        <div className="mt-5 flex flex-col items-center gap-2 border-t border-border pt-4 text-center text-sm">
-          <Link href={cancelHref} className="text-muted-foreground hover:text-foreground">
-            Vazgeç ve geri dön
-          </Link>
-          {onUseHostedFallback && !redirecting && (
-            <button
-              type="button"
-              onClick={onUseHostedFallback}
-              className="text-xs text-[var(--bf-accent-ink)] underline-offset-2 hover:underline"
-            >
-              Kart formu açılmıyorsa alternatif ödeme sayfasını dene
-            </button>
-          )}
-        </div>
-      </form>
+          <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck className="size-3.5 text-[var(--bf-accent-ink)]" />
+            256-bit SSL · PCI-DSS uyumlu altyapı
+          </div>
+
+          <div className="mt-5 flex flex-col items-center gap-2 border-t border-border pt-4 text-center text-sm">
+            <Link href={cancelHref} className="text-muted-foreground hover:text-foreground">
+              Vazgeç ve geri dön
+            </Link>
+            {!nativeMode && onUseHostedFallback && !redirecting && (
+              <button
+                type="button"
+                onClick={onUseHostedFallback}
+                className="text-xs text-[var(--bf-accent-ink)] underline-offset-2 hover:underline"
+              >
+                Kart formu açılmıyorsa alternatif ödeme sayfasını dene
+              </button>
+            )}
+          </div>
+        </form>
+      )}
     </div>
   );
 }
