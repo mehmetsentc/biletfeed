@@ -134,9 +134,13 @@ export async function verifyPanelSessionCookie(): Promise<SessionUser | null> {
   }
 }
 
-/** Panel layout / API — yalnızca panel oturumu */
+/**
+ * Panel layout / API — panel_session birincil; ana site `session` SSO yedek.
+ * (Eski oturumlarda yalnızca `session` yazılmış olabilir; panel alt alanında
+ * çerez yok sanılıp /giris ↔ /baslangic yenileme döngüsü oluşmasın.)
+ */
 export async function verifyOrganizerPanelSession(): Promise<SessionUser | null> {
-  return verifyPanelSessionCookie();
+  return (await verifyPanelSessionCookie()) ?? (await verifySessionCookie());
 }
 
 export function sessionHasRole(

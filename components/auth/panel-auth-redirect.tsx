@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/providers/auth-provider';
 import { sanitizeRedirectPath } from '@/lib/auth/safe-redirect';
 import { isPanelAuthContext } from '@/lib/auth/panel-auth-context';
+import { toPanelPublicPath } from '@/lib/auth/panel-paths';
+import { isOnOrganizerPanelHost } from '@/lib/config/domain';
 
 const PANEL_AUTH_PATHS = ['/organizator-panel/giris', '/giris'];
 
@@ -14,13 +16,16 @@ export function isPanelAuthPath(pathname: string): boolean {
 
 export function getPanelRedirectTarget(search: string): string {
   const params = new URLSearchParams(search);
-  const fallback =
-    typeof window !== 'undefined' && isPanelAuthContext()
-      ? window.location.hostname.includes('panel.')
-        ? '/baslangic'
-        : '/organizator-panel/baslangic'
-      : '/organizator-panel/baslangic';
-  return sanitizeRedirectPath(params.get('redirect'), fallback);
+  const onPanelHost =
+    typeof window !== 'undefined' &&
+    (isOnOrganizerPanelHost(window.location.hostname) || isPanelAuthContext());
+  const fallback = onPanelHost ? '/baslangic' : '/organizator-panel/baslangic';
+  const raw = sanitizeRedirectPath(params.get('redirect'), fallback);
+  // panel.biletfeed.com üzerinde /organizator-panel/* → temiz path
+  if (onPanelHost && raw.startsWith('/')) {
+    return toPanelPublicPath(raw);
+  }
+  return raw;
 }
 
 async function hasValidPanelSession(): Promise<boolean> {

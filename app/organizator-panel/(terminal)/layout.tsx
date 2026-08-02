@@ -1,18 +1,21 @@
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { verifyOrganizerPanelSession } from '@/lib/auth/session';
 import { resolveScannerUser } from '@/lib/auth/organizer-api';
 import { OrganizatorShell } from '@/components/organizator-panel/shell';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { ensureOrganizerContactEmail } from '@/lib/services/organizer-panel';
+import { panelServerLoginPath, panelServerPath } from '@/lib/auth/panel-paths';
 
 export default async function OrganizatorTerminalLayout({
   children
 }: {
   children: React.ReactNode;
 }) {
+  const host = (await headers()).get('host');
   const session = await verifyOrganizerPanelSession();
   if (!session) {
-    redirect('/organizator-panel/giris?redirect=/organizator-panel/baslangic');
+    redirect(panelServerLoginPath(host, '/baslangic'));
   }
 
   await ensureDbConnection();
@@ -24,7 +27,7 @@ export default async function OrganizatorTerminalLayout({
     : null;
 
   if (!organizer) {
-    redirect('/organizator-panel/kurulum');
+    redirect(panelServerPath('/kurulum', host));
   }
 
   if (user) {

@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from '@/components/providers';
-import { AuthGuard } from '@/components/auth/auth-guard';
 import { OrganizatorHeader } from '@/components/organizator-panel/header';
 import { OrganizatorSidebar } from '@/components/organizator-panel/sidebar';
 import { cn } from '@/lib/utils';
@@ -31,56 +30,52 @@ export function OrganizatorShell({
     pathname.startsWith('/giris-terminal/tarayici');
 
   if (isScanner) {
-    // Server layout already verified panel session — client AuthGuard causes
-    // Firebase/sessionReady flicker and redirects for gate-only (kapı kodu) logins.
     return <div className="min-h-screen bg-[#0a0a0a]">{children}</div>;
   }
 
+  // Server layout (terminal) zaten panel_session doğrular.
+  // Client AuthGuard Firebase sync gecikmesinde /giris ↔ /baslangic yenileme
+  // döngüsü + iskelet flash üretir — bu yüzden burada AuthGuard yok.
+
   if (isWizard) {
     return (
-      <AuthGuard requiredRole="ROLE_USER" fallbackUrl="/giris">
-        <div className="organizer-surface min-h-screen bg-organizer-shell p-4 md:p-6 lg:p-8">
-          {children}
-        </div>
-      </AuthGuard>
+      <div className="organizer-surface min-h-screen bg-organizer-shell p-4 md:p-6 lg:p-8">
+        {children}
+      </div>
     );
   }
 
   return (
-    <AuthGuard requiredRole="ROLE_USER" fallbackUrl="/giris">
-      <div className="organizer-surface bg-organizer-shell flex min-h-screen">
-        {/* Sidebar — masaüstünde tam yükseklik, logo burada tek */}
-        <OrganizatorSidebar
-          organizationName={organizationName}
-          className={cn(
-            'fixed inset-y-0 left-0 z-40 transition-transform duration-200 lg:static lg:z-auto lg:min-h-screen',
-            mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          )}
-        />
-
-        {mobileOpen && (
-          <button
-            type="button"
-            className="fixed inset-0 z-30 bg-black/40 lg:hidden"
-            onClick={() => setMobileOpen(false)}
-            aria-label={t.common.close}
-          />
+    <div className="organizer-surface bg-organizer-shell flex min-h-screen">
+      <OrganizatorSidebar
+        organizationName={organizationName}
+        className={cn(
+          'fixed inset-y-0 left-0 z-40 transition-transform duration-200 lg:static lg:z-auto lg:min-h-screen',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
+      />
 
-        {/* Ana sütun — header sidebar genişliğinin dışında */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <OrganizatorHeader
-            displayName={displayName}
-            userEmail={userEmail}
-            organizationName={organizationName}
-            mobileOpen={mobileOpen}
-            onMenuClick={() => setMobileOpen((v) => !v)}
-          />
-          <main className="organizer-surface flex-1 overflow-auto bg-background p-4 md:p-6 lg:p-8">
-            {children}
-          </main>
-        </div>
+      {mobileOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-label={t.common.close}
+        />
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <OrganizatorHeader
+          displayName={displayName}
+          userEmail={userEmail}
+          organizationName={organizationName}
+          mobileOpen={mobileOpen}
+          onMenuClick={() => setMobileOpen((v) => !v)}
+        />
+        <main className="organizer-surface flex-1 overflow-auto bg-background p-4 md:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
-    </AuthGuard>
+    </div>
   );
 }

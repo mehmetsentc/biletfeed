@@ -288,9 +288,15 @@ function handleOrganizerPanelSubdomain(
 
   if (requiresPanelSession(pathname)) {
     const panelSession = request.cookies.get(PANEL_SESSION_COOKIE_NAME);
-    if (!panelSession?.value) {
+    const siteSession = request.cookies.get(SESSION_COOKIE_NAME);
+    // Ana site SSO: `session` varsa panel_session olmasa da geç (layout doğrular)
+    if (!panelSession?.value && !siteSession?.value) {
       const loginUrl = new URL('/giris', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
+      const redirectTarget =
+        pathname.startsWith('/organizator-panel')
+          ? pathname.replace(/^\/organizator-panel/, '') || '/baslangic'
+          : pathname;
+      loginUrl.searchParams.set('redirect', redirectTarget);
       return NextResponse.redirect(loginUrl);
     }
   }
@@ -543,7 +549,8 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/organizator-panel')) {
     if (!isPanelPublicPath(pathname)) {
       const panelSession = request.cookies.get(PANEL_SESSION_COOKIE_NAME);
-      if (!panelSession?.value) {
+      const siteSession = request.cookies.get(SESSION_COOKIE_NAME);
+      if (!panelSession?.value && !siteSession?.value) {
         const loginUrl = new URL('/organizator-panel/giris', request.url);
         loginUrl.searchParams.set('redirect', pathname);
         return withLocale(request, NextResponse.redirect(loginUrl));

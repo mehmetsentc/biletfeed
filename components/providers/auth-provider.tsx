@@ -154,11 +154,24 @@ async function handleSignedInUser(
     const isRateLimited =
       err instanceof SessionEstablishError && err.code === 'rate_limited';
 
-    if (!isRateLimited) {
+    // Panelde başarısız establish sonrası çerezi silme — middleware /giris'e atar,
+    // PanelAuthRedirect geri gönderir → sürekli sayfa yenileme.
+    if (!isRateLimited && !panelContext) {
       try {
         await fetch(sessionEndpoint, { method: 'DELETE', credentials: 'same-origin' });
       } catch {
         // ignore
+      }
+    }
+
+    // Panel: mevcut çerez hâlâ geçerliyse sessionReady bırak
+    if (panelContext) {
+      const stillValid = await fetchPanelSessionUser();
+      if (stillValid?.uid === fbUser.uid) {
+        const profile = await fetchUserProfile(fbUser, profileEndpoint);
+        clearExplicitLogoutMark();
+        clearGlobalLogoutMarker();
+        return { profile, sessionReady: true };
       }
     }
 
