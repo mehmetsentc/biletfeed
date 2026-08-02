@@ -59,6 +59,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
     <>
       <header
         className={cn(
+          // Nav kabuğunda üstte sabit; nav gizli sayfalarda body scroll ile sticky
           'glass-header sticky top-0 z-50 border-b pt-[env(safe-area-inset-top)] lg:hidden',
           'text-[var(--header-fg)]'
         )}

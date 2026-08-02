@@ -1,8 +1,8 @@
-/** Mobil alt navigasyon yüksekliği + safe area — sabit nav altında içerik kalmaması için */
+/** Mobil alt navigasyon yüksekliği + safe area — fixed overlay / eski clearance için */
 export const mobileBottomNavClearanceClass =
   'pb-[calc(4.75rem+env(safe-area-inset-bottom))]';
 
-/** Sabit alt barların (bilet CTA vb.) nav üstüne oturması için */
+/** Viewport’a fixed barların (bilet CTA vb.) alt nav üstüne oturması için */
 export const mobileBottomNavOffsetClass =
   'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]';
 

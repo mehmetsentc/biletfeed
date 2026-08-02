@@ -59,8 +59,8 @@ export function MobileBottomNav() {
   return (
     <nav
       className={cn(
-        'fixed inset-x-0 bottom-0 z-50 lg:hidden',
-        'border-t border-[var(--header-border)] bg-[var(--header-bg)]',
+        // SiteChrome flex kabuğunda durur (fixed değil) — iOS scroll kaymasını önler
+        'z-50 border-t border-[var(--header-border)] bg-[var(--header-bg-solid)] lg:hidden',
         'pb-[env(safe-area-inset-bottom)]',
         'shadow-[var(--shadow-md)]'
       )}
