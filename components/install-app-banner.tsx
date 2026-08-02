@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { useIsNativeApp } from '@/lib/tracking/platform';
+import { useNativePlatformReady } from '@/lib/tracking/platform';
 import { mobileAppConfig } from '@/lib/config/mobile-app';
 import { brandAssetUrl } from '@/lib/config/brand-theme';
 
@@ -19,42 +19,38 @@ function isIosDevice(): boolean {
 }
 
 /**
- * Tarayıcıdan (Safari/Chrome) siteye giren, uygulamayı henüz yüklememiş
- * ziyaretçilere sayfa ortasında, temaya uygun küçük bir "uygulamayı indir"
- * kartı gösterir.
- *
- * Native uygulama içinde hiçbir zaman gösterilmez. Şimdilik yalnızca iOS —
- * Google Play mağaza linki yayınlanınca Android da eklenebilir.
- *
- * "Kapat" (X) tıklanınca 14 gün boyunca tekrar gösterilmez; sonra tekrar
- * ilk-kez-gelen bir ziyaretçiye gösterir gibi ortaya çıkar.
+ * Yalnızca tarayıcıda (Safari/Chrome) — native Capacitor uygulamasında asla.
+ * Uygulama içinde güncelleme uyarısı `AppUpdateChecker` ile yapılır.
  */
 export function InstallAppBanner() {
-  const isNative = useIsNativeApp();
+  const { ready, isNative } = useNativePlatformReady();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (isNative) return;
+    // Native tespit bitmeden veya native shell'deyken gösterme
+    if (!ready || isNative) {
+      setVisible(false);
+      return;
+    }
     if (!isIosDevice()) return;
     if (!mobileAppConfig.storeUrls.ios) return;
 
     try {
       const dismissedAt = localStorage.getItem(DISMISS_KEY);
       if (dismissedAt) {
-        const daysSince = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
+        const daysSince =
+          (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
         if (daysSince < DISMISS_DAYS) return;
       }
     } catch {
       // localStorage kapalıysa (gizli sekme vb.) sessizce göster.
     }
 
-    // Sayfa açılır açılmaz değil, kısa bir gecikmeyle göster — böylece ilk
-    // içerik yüklenmesiyle çakışmaz.
     const timer = setTimeout(() => setVisible(true), 600);
     return () => clearTimeout(timer);
-  }, [isNative]);
+  }, [ready, isNative]);
 
-  if (!visible) return null;
+  if (!ready || isNative || !visible) return null;
 
   const dismiss = () => {
     setVisible(false);
