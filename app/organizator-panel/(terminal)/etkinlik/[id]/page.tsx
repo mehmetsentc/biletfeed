@@ -4,7 +4,7 @@ import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getSiteUrl } from '@/lib/config/domain';
 import { getOrganizerEventDetail } from '@/lib/services/organizer-event-detail';
 import { EventDetailDashboard } from '@/components/organizator-panel/event-detail-dashboard';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 interface PageProps {
   params: Promise<{ id: string }>;

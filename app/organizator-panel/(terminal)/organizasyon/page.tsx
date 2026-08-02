@@ -3,7 +3,7 @@ import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getSiteUrl } from '@/lib/config/domain';
 import { getOrganizerOrganizationProfile } from '@/lib/services/organizer-billing';
 import { OrganizationPanel } from '@/components/organizator-panel/organization-panel';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 export default async function OrganizatorOrganizationPage() {
   const session = await requireOrganizer();

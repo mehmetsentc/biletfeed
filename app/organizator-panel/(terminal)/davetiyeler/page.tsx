@@ -1,7 +1,7 @@
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { InvitationsPanel } from '@/components/organizator-panel/invitations-panel';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 interface PageProps {
   searchParams: Promise<{ eventId?: string }>;

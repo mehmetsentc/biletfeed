@@ -18,7 +18,7 @@ import type { SalesCategoryFilter } from '@/lib/services/ticket-type-category';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EventFilterSelect } from '@/components/organizator-panel/orders/event-filter-select';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 interface PageProps {
   searchParams: Promise<{ category?: string; eventId?: string }>;

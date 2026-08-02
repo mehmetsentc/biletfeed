@@ -6,7 +6,7 @@ import { getEventRuleSet } from '@/lib/services/event-rules-query';
 import { getOrganizerEventSeriesForWizard } from '@/lib/services/event-series';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { CreateOrganizerEventWizard } from '@/components/organizator-panel/create-event-wizard';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 interface PageProps {
   params: Promise<{ id: string }>;

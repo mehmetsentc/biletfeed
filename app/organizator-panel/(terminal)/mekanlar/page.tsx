@@ -3,7 +3,7 @@ import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerVenues, getOrganizerCities } from '@/lib/services/organizer-panel';
 import { VenuesManager } from '@/components/organizator-panel/venues-manager';
 import type { SeatPlan } from '@/lib/services/organizer-panel';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 export default async function OrganizatorVenuesPage() {
   const session = await requireOrganizer();

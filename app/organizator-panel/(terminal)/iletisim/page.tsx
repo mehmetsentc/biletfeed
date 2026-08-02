@@ -3,7 +3,7 @@ import { verifyOrganizerPanelSession } from '@/lib/auth/session';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerSupportTickets } from '@/lib/services/organizer-panel';
 import { ensureDbConnection } from '@/lib/db/prisma';
-import { redirectToPanel, redirectToPanelLogin } from '@/lib/auth/panel-paths';
+import { redirectToPanel, redirectToPanelLogin } from '@/lib/auth/panel-paths-server';
 
 export default async function OrganizatorIletisimPage() {
   const session = await verifyOrganizerPanelSession();

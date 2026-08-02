@@ -2,7 +2,7 @@ import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { listOrganizerCoupons } from '@/lib/services/coupons';
 import { OrganizerCouponsPanel } from '@/components/organizator-panel/organizer-coupons-panel';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 export default async function OrganizatorCouponsPage() {
   const session = await requireOrganizer();

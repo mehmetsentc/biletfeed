@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ExternalLink, Plus, ScanLine } from 'lucide-react';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 import { getOrganizerSalesStats } from '@/lib/services/organizer-sales-stats';
 import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
 import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';

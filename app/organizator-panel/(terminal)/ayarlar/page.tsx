@@ -2,7 +2,7 @@ import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession, resolveScannerUser } from '@/lib/auth/organizer-api';
 import { getOrganizerSettings } from '@/lib/services/organizer-panel';
 import { OrganizerSettingsForm } from '@/components/organizator-panel/settings-form';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 export default async function OrganizatorSettingsPage({
   searchParams

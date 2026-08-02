@@ -3,7 +3,7 @@ import { resolveScannerUser } from '@/lib/auth/organizer-api';
 import { CreateOrganizerEventWizard } from '@/components/organizator-panel/create-event-wizard';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { isOrganizerProfileComplete } from '@/lib/services/organizer-profile-readiness';
-import { redirectToPanel, redirectToPanelLogin } from '@/lib/auth/panel-paths';
+import { redirectToPanel, redirectToPanelLogin } from '@/lib/auth/panel-paths-server';
 
 export default async function OrganizatorCreateEventPage() {
   const session = await verifyOrganizerPanelSession();

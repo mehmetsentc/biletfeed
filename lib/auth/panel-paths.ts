@@ -1,11 +1,11 @@
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { isOnOrganizerPanelHost } from '@/lib/config/domain';
 
 /**
  * Panel alt alanı (panel.biletfeed.com) temiz path kullanır.
  * `/organizator-panel/...` prefix'i ana sitede / dev'de geçerli; panel host'ta
  * middleware rewrite zaten ekler — redirect'te tekrar eklenirse yenileme döngüsü oluşur.
+ *
+ * Bu dosya client'tan da import edilebilir (next/headers yok).
  */
 export function toPanelPublicPath(path: string): string {
   const trimmed = path.trim();
@@ -55,18 +55,4 @@ export function panelServerLoginPath(
   // panel host'ta redirect=/baslangic; ana sitede /organizator-panel/baslangic
   const q = new URLSearchParams({ redirect: redirectTarget });
   return `${login}?${q.toString()}`;
-}
-
-/** Server Component redirect — host'a göre temiz veya /organizator-panel path */
-export async function redirectToPanel(path: string): Promise<never> {
-  const host = (await headers()).get('host');
-  redirect(panelServerPath(path, host));
-}
-
-/** Giriş sayfasına host-aware redirect */
-export async function redirectToPanelLogin(
-  redirectTo = '/baslangic'
-): Promise<never> {
-  const host = (await headers()).get('host');
-  redirect(panelServerLoginPath(host, redirectTo));
 }

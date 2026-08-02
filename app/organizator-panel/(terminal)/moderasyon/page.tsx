@@ -2,7 +2,7 @@ import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerReviews } from '@/lib/services/organizer-panel';
 import { ModerationPanel } from '@/components/organizator-panel/moderation-panel';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 export default async function OrganizatorModerationPage() {
   const session = await requireOrganizer();

@@ -18,7 +18,7 @@ import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organ
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getGirisUrl } from '@/lib/config/domain';
-import { redirectToPanel } from '@/lib/auth/panel-paths';
+import { redirectToPanel } from '@/lib/auth/panel-paths-server';
 
 interface PageProps {
   searchParams: Promise<{ event?: string; type?: string; category?: string }>;
