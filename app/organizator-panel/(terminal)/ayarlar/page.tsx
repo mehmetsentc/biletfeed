@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession, resolveScannerUser } from '@/lib/auth/organizer-api';
 import { getOrganizerSettings } from '@/lib/services/organizer-panel';
 import { OrganizerSettingsForm } from '@/components/organizator-panel/settings-form';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 export default async function OrganizatorSettingsPage({
   searchParams
@@ -12,11 +12,11 @@ export default async function OrganizatorSettingsPage({
   const { complete } = await searchParams;
   const session = await requireOrganizer();
   const organizer = await getOrganizerForSession(session.uid, session.email);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const user = await resolveScannerUser(session.uid, session.email);
   const settings = await getOrganizerSettings(organizer.id);
-  if (!settings) redirect('/organizator-panel/kurulum');
+  if (!settings) return redirectToPanel('/kurulum');
 
   const socialLinks = (settings.socialLinks ?? {}) as Record<string, string>;
 

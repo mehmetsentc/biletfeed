@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import {
   Ticket,
   Users,
@@ -19,6 +18,7 @@ import type { SalesCategoryFilter } from '@/lib/services/ticket-type-category';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EventFilterSelect } from '@/components/organizator-panel/orders/event-filter-select';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 interface PageProps {
   searchParams: Promise<{ category?: string; eventId?: string }>;
@@ -58,8 +58,8 @@ function StatCard({ icon: Icon, label, value, color }: StatCardProps) {
 
 export default async function OrganizatorOrdersPage({ searchParams }: PageProps) {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const { category: categoryParam, eventId } = await searchParams;
   const category = parseCategory(categoryParam);

@@ -1,13 +1,13 @@
-import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { listOrganizerEventsDetailed } from '@/lib/services/organizer-events';
 import { EventManagementTable } from '@/components/organizator-panel/event-management-table';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 export default async function OrganizatorEventsPage() {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const events = await listOrganizerEventsDetailed(organizer.id);
 

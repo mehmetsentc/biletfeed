@@ -1,17 +1,17 @@
-import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getSiteUrl } from '@/lib/config/domain';
 import { getOrganizerOrganizationProfile } from '@/lib/services/organizer-billing';
 import { OrganizationPanel } from '@/components/organizator-panel/organization-panel';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 export default async function OrganizatorOrganizationPage() {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const profile = await getOrganizerOrganizationProfile(organizer.id);
-  if (!profile) redirect('/organizator-panel/kurulum');
+  if (!profile) return redirectToPanel('/kurulum');
 
   return (
     <OrganizationPanel

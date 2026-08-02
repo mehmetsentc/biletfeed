@@ -1,14 +1,14 @@
-import { redirect } from 'next/navigation';
 import { verifyOrganizerPanelSession } from '@/lib/auth/session';
 import { resolveScannerUser } from '@/lib/auth/organizer-api';
 import { CreateOrganizerEventWizard } from '@/components/organizator-panel/create-event-wizard';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { isOrganizerProfileComplete } from '@/lib/services/organizer-profile-readiness';
+import { redirectToPanel, redirectToPanelLogin } from '@/lib/auth/panel-paths';
 
 export default async function OrganizatorCreateEventPage() {
   const session = await verifyOrganizerPanelSession();
   if (!session) {
-    redirect('/organizator-panel/giris?redirect=/organizator-panel/etkinlik/yeni');
+    return redirectToPanelLogin('/etkinlik/yeni');
   }
 
   await ensureDbConnection();
@@ -21,11 +21,11 @@ export default async function OrganizatorCreateEventPage() {
     : null;
 
   if (!organizer) {
-    redirect('/organizator-panel/kurulum');
+    return redirectToPanel('/kurulum');
   }
 
   if (!isOrganizerProfileComplete(organizer, user?.email)) {
-    redirect('/organizator-panel/ayarlar?complete=1');
+    return redirectToPanel('/ayarlar?complete=1');
   }
 
   return <CreateOrganizerEventWizard />;

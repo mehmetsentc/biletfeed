@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { ExternalLink, Plus, ScanLine } from 'lucide-react';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 import { getOrganizerSalesStats } from '@/lib/services/organizer-sales-stats';
 import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
 import { CheckInStatsPanel } from '@/components/organizator-panel/check-in-stats';
@@ -15,8 +15,8 @@ import { getServerTranslations } from '@/lib/i18n/server';
 export default async function OrganizatorHomePage() {
   const { t } = await getServerTranslations();
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const [salesStats, checkIn] = await Promise.all([
     getOrganizerSalesStats(organizer.id),

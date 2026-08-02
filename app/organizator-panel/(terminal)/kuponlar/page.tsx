@@ -2,12 +2,12 @@ import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { listOrganizerCoupons } from '@/lib/services/coupons';
 import { OrganizerCouponsPanel } from '@/components/organizator-panel/organizer-coupons-panel';
-import { redirect } from 'next/navigation';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 export default async function OrganizatorCouponsPage() {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const coupons = await listOrganizerCoupons(organizer.id);
 

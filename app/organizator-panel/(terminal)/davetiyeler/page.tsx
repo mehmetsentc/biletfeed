@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { InvitationsPanel } from '@/components/organizator-panel/invitations-panel';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 interface PageProps {
   searchParams: Promise<{ eventId?: string }>;
@@ -9,8 +9,8 @@ interface PageProps {
 
 export default async function OrganizatorInvitationsPage({ searchParams }: PageProps) {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const { eventId } = await searchParams;
 

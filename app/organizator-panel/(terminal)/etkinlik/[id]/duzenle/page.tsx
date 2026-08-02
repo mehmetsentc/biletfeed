@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { mapEventToWizardInitialData } from '@/lib/organizator/event-wizard-data';
@@ -6,6 +6,7 @@ import { getEventRuleSet } from '@/lib/services/event-rules-query';
 import { getOrganizerEventSeriesForWizard } from '@/lib/services/event-series';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { CreateOrganizerEventWizard } from '@/components/organizator-panel/create-event-wizard';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -14,7 +15,7 @@ interface PageProps {
 export default async function OrganizatorEditEventPage({ params }: PageProps) {
   const session = await requireOrganizer();
   const organizer = await getOrganizerForSession(session.uid, session.email);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const { id } = await params;
   await ensureDbConnection();

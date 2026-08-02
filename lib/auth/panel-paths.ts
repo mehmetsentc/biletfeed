@@ -1,3 +1,5 @@
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { isOnOrganizerPanelHost } from '@/lib/config/domain';
 
 /**
@@ -49,8 +51,22 @@ export function panelServerLoginPath(
   redirectTo = '/baslangic'
 ): string {
   const login = panelServerPath('/giris', hostHeader);
-  const redirect = panelServerPath(redirectTo, hostHeader);
+  const redirectTarget = panelServerPath(redirectTo, hostHeader);
   // panel host'ta redirect=/baslangic; ana sitede /organizator-panel/baslangic
-  const q = new URLSearchParams({ redirect });
+  const q = new URLSearchParams({ redirect: redirectTarget });
   return `${login}?${q.toString()}`;
+}
+
+/** Server Component redirect — host'a göre temiz veya /organizator-panel path */
+export async function redirectToPanel(path: string): Promise<never> {
+  const host = (await headers()).get('host');
+  redirect(panelServerPath(path, host));
+}
+
+/** Giriş sayfasına host-aware redirect */
+export async function redirectToPanelLogin(
+  redirectTo = '/baslangic'
+): Promise<never> {
+  const host = (await headers()).get('host');
+  redirect(panelServerLoginPath(host, redirectTo));
 }

@@ -3,18 +3,18 @@ import { verifyOrganizerPanelSession } from '@/lib/auth/session';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerSupportTickets } from '@/lib/services/organizer-panel';
 import { ensureDbConnection } from '@/lib/db/prisma';
-import { redirect } from 'next/navigation';
+import { redirectToPanel, redirectToPanelLogin } from '@/lib/auth/panel-paths';
 
 export default async function OrganizatorIletisimPage() {
   const session = await verifyOrganizerPanelSession();
   if (!session) {
-    redirect('/organizator-panel/giris?redirect=/organizator-panel/iletisim');
+    return redirectToPanelLogin('/iletisim');
   }
 
   await ensureDbConnection();
   const organizer = await getOrganizerForSession(session.uid, session.email);
   if (!organizer) {
-    redirect('/organizator-panel/kurulum');
+    return redirectToPanel('/kurulum');
   }
 
   const tickets = await getOrganizerSupportTickets(organizer.id);

@@ -1,29 +1,29 @@
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { UserRole } from '@/types';
 import {
   verifyOrganizerPanelSession,
   sessionHasRole
 } from '@/lib/auth/session';
-import { adminHref, panelLoginHref, siteHref } from '@/lib/config/domain';
+import { getOrganizerForSession } from '@/lib/auth/organizer-api';
+import {
+  panelServerLoginPath,
+  panelServerPath
+} from '@/lib/auth/panel-paths';
+import { adminHref, siteHref } from '@/lib/config/domain';
 import { getAdminAccessByFirebaseUid } from '@/lib/services/admin-access';
-
-function loginRedirect(returnPath?: string): never {
-  if (returnPath) {
-    redirect(panelLoginHref(returnPath));
-  }
-  redirect(panelLoginHref());
-}
 
 export async function requirePanelAuth(
   requiredRole: UserRole = 'ROLE_USER',
-  returnPath?: string
+  returnPath = '/baslangic'
 ) {
+  const host = (await headers()).get('host');
   const session = await verifyOrganizerPanelSession();
   if (!session) {
-    loginRedirect(returnPath);
+    redirect(panelServerLoginPath(host, returnPath));
   }
   if (!sessionHasRole(session, requiredRole)) {
-    loginRedirect(returnPath);
+    redirect(panelServerLoginPath(host, returnPath));
   }
   return session;
 }
@@ -55,8 +55,27 @@ export async function requireAuth(
   return session;
 }
 
+/**
+ * Organizatör paneli — oturum + (rol VEYA organizer kaydı).
+ * Rol gecikmesinde login↔baslangic döngüsüne düşmemek için organizer profili yeter.
+ */
 export async function requireOrganizer() {
-  return requirePanelAuth('ROLE_ORGANIZER', '/organizator-panel/baslangic');
+  const host = (await headers()).get('host');
+  const session = await verifyOrganizerPanelSession();
+  if (!session) {
+    redirect(panelServerLoginPath(host, '/baslangic'));
+  }
+
+  if (sessionHasRole(session, 'ROLE_ORGANIZER')) {
+    return session;
+  }
+
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (organizer) {
+    return session;
+  }
+
+  redirect(panelServerPath('/kurulum', host));
 }
 
 export async function requireAdmin() {

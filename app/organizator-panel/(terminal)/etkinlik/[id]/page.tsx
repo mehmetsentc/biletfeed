@@ -1,9 +1,10 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getSiteUrl } from '@/lib/config/domain';
 import { getOrganizerEventDetail } from '@/lib/services/organizer-event-detail';
 import { EventDetailDashboard } from '@/components/organizator-panel/event-detail-dashboard';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -11,8 +12,8 @@ interface PageProps {
 
 export default async function OrganizatorEventDetailPage({ params }: PageProps) {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const { id } = await params;
   const detail = await getOrganizerEventDetail(organizer.id, id);

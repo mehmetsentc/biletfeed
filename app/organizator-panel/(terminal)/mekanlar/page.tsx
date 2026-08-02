@@ -1,14 +1,14 @@
-import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerVenues, getOrganizerCities } from '@/lib/services/organizer-panel';
 import { VenuesManager } from '@/components/organizator-panel/venues-manager';
 import type { SeatPlan } from '@/lib/services/organizer-panel';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 export default async function OrganizatorVenuesPage() {
   const session = await requireOrganizer();
-  const organizer = await getOrganizerForSession(session.uid);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  const organizer = await getOrganizerForSession(session.uid, session.email);
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const [venues, cities] = await Promise.all([
     getOrganizerVenues(organizer.id),

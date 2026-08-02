@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerCheckInStats } from '@/lib/services/ticket-admin';
@@ -19,6 +18,7 @@ import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organ
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getGirisUrl } from '@/lib/config/domain';
+import { redirectToPanel } from '@/lib/auth/panel-paths';
 
 interface PageProps {
   searchParams: Promise<{ event?: string; type?: string; category?: string }>;
@@ -38,7 +38,7 @@ function parseSalesCategory(raw?: string): SalesCategoryFilter | null {
 export default async function OrganizatorTicketsPage({ searchParams }: PageProps) {
   const session = await requireOrganizer();
   const organizer = await getOrganizerForSession(session.uid, session.email);
-  if (!organizer) redirect('/organizator-panel/kurulum');
+  if (!organizer) return redirectToPanel('/kurulum');
 
   const params = await searchParams;
   const eventId = params.event?.trim() || undefined;
@@ -51,7 +51,7 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
     : undefined;
 
   if (eventId && !activeEvent) {
-    redirect('/organizator-panel/biletler');
+    return redirectToPanel('/biletler');
   }
 
   const filterOptions = await getOrganizerTicketTypeFilters(organizer.id, eventId);

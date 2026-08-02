@@ -277,6 +277,20 @@ function handleOrganizerPanelSubdomain(
     return NextResponse.redirect(new URL('/baslangic', request.url));
   }
 
+  // Eski /organizator-panel/* linkleri temiz path'e — aksi halde kurulum↔baslangic döngüsü
+  if (
+    pathname === '/organizator-panel' ||
+    pathname.startsWith('/organizator-panel/')
+  ) {
+    const cleanPath =
+      pathname.replace(/^\/organizator-panel/, '') || '/baslangic';
+    const url = new URL(cleanPath, request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      url.searchParams.set(key, value);
+    });
+    return NextResponse.redirect(url, 308);
+  }
+
   // panel.biletfeed.com/giris → organizatör giriş sayfası
   if (pathname === '/giris' || pathname.startsWith('/giris/')) {
     const rewriteUrl = new URL('/organizator-panel/giris', request.url);
@@ -292,11 +306,7 @@ function handleOrganizerPanelSubdomain(
     // Ana site SSO: `session` varsa panel_session olmasa da geç (layout doğrular)
     if (!panelSession?.value && !siteSession?.value) {
       const loginUrl = new URL('/giris', request.url);
-      const redirectTarget =
-        pathname.startsWith('/organizator-panel')
-          ? pathname.replace(/^\/organizator-panel/, '') || '/baslangic'
-          : pathname;
-      loginUrl.searchParams.set('redirect', redirectTarget);
+      loginUrl.searchParams.set('redirect', pathname || '/baslangic');
       return NextResponse.redirect(loginUrl);
     }
   }
@@ -312,11 +322,7 @@ function handleOrganizerPanelSubdomain(
     return NextResponse.next();
   }
 
-  if (
-    pathname.startsWith('/organizator-panel') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next')
-  ) {
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) {
     return NextResponse.next();
   }
 
