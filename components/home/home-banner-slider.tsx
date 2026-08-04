@@ -149,6 +149,9 @@ export function HomeBannerSlider({ slides }: HomeBannerSliderProps) {
   const items = slides.length > 0 ? slides.slice(0, 5) : [fallback];
   const [index, setIndex] = useState(0);
   const count = items.length;
+  const slidesKey = items.map((s) => s.id).join('|');
+  // Şehir değişince slayt sayısı azalabilir — eski index taşmasın (error boundary)
+  const safeIndex = count > 0 ? Math.min(index, count - 1) : 0;
 
   const goTo = useCallback(
     (next: number) => {
@@ -159,6 +162,10 @@ export function HomeBannerSlider({ slides }: HomeBannerSliderProps) {
   );
 
   useEffect(() => {
+    setIndex(0);
+  }, [slidesKey]);
+
+  useEffect(() => {
     if (count <= 1) return;
     const timer = window.setInterval(() => {
       setIndex((current) => (current + 1) % count);
@@ -166,13 +173,13 @@ export function HomeBannerSlider({ slides }: HomeBannerSliderProps) {
     return () => window.clearInterval(timer);
   }, [count]);
 
-  const current = items[index];
+  const current = items[safeIndex] ?? items[0] ?? fallback;
 
   return (
     <div className="relative w-full bg-black" aria-label={t.home.bannerFeatured}>
       <BannerSlide
         slide={current}
-        priority={index === 0}
+        priority={safeIndex === 0}
         buyTicketLabel={t.chrome.getTickets}
       />
 
@@ -180,7 +187,7 @@ export function HomeBannerSlider({ slides }: HomeBannerSliderProps) {
         <>
           <button
             type="button"
-            onClick={() => goTo(index - 1)}
+            onClick={() => goTo(safeIndex - 1)}
             className="absolute left-3 top-1/2 z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/75 md:left-5"
             aria-label="Önceki"
           >
@@ -188,7 +195,7 @@ export function HomeBannerSlider({ slides }: HomeBannerSliderProps) {
           </button>
           <button
             type="button"
-            onClick={() => goTo(index + 1)}
+            onClick={() => goTo(safeIndex + 1)}
             className="absolute right-3 top-1/2 z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/75 md:right-5"
             aria-label="Sonraki"
           >
@@ -207,7 +214,7 @@ export function HomeBannerSlider({ slides }: HomeBannerSliderProps) {
                 <span
                   className={cn(
                     'block h-1.5 rounded-full transition-all',
-                    dotIndex === index
+                    dotIndex === safeIndex
                       ? 'w-7 bg-primary'
                       : 'w-1.5 bg-white/45 hover:bg-white/75'
                   )}
