@@ -12,6 +12,7 @@ function toMockVenue(row: {
   address: string;
   capacity: number | null;
   image: string | null;
+  gallery?: string[];
   description: string | null;
   eventCount: number;
   city: { name: string; slug: string };
@@ -27,6 +28,7 @@ function toMockVenue(row: {
     image:
       row.image ||
       'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80',
+    gallery: (row.gallery ?? []).filter((u) => u.startsWith('http')).slice(0, 4),
     eventCount: row.eventCount,
     description: row.description || ''
   };

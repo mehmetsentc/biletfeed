@@ -16,6 +16,8 @@ export type CoverImagePickerProps = {
   onPreviewChange: (url: string | null) => void;
   onFileChange: (file: File | null) => void;
   className?: string;
+  /** Ölçü ipucu (örn. formatImageSpecHint) */
+  description?: string;
 };
 
 function isHttpImageUrl(value: string): boolean {
@@ -41,7 +43,8 @@ export function CoverImagePicker({
   previewUrl,
   onPreviewChange,
   onFileChange,
-  className
+  className,
+  description
 }: CoverImagePickerProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +112,9 @@ export function CoverImagePicker({
 
   return (
     <div className={cn('space-y-4', className)}>
+      {description ? (
+        <p className="text-xs text-muted-foreground">{description}</p>
+      ) : null}
       <div className="flex gap-2 rounded-lg border border-border bg-muted/30 p-1">
         <button
           type="button"

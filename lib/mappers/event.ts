@@ -2,6 +2,7 @@ import type { MockEvent } from '@/lib/data/mock-events';
 import { resolveCategoryImage } from '@/lib/data/category-images';
 import { getExternalPlatformLabel } from '@/lib/events/ticket-url';
 import { parsePerformersFromSeo } from '@/lib/organizator/event-metadata';
+import { parseEventMediaAssets } from '@/lib/config/image-dimensions';
 
 function resolveCoverImage(coverImage: string, categorySlug: string): string {
   const trimmed = coverImage?.trim() ?? '';
@@ -61,6 +62,7 @@ export type EventWithRelations = {
   rules?: string;
   stats?: unknown;
   seo?: unknown;
+  mediaAssets?: unknown;
 };
 
 export function toMockEvent(event: EventWithRelations): MockEvent {
@@ -115,7 +117,8 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
       if (!event.seo || typeof event.seo !== 'object' || Array.isArray(event.seo)) return undefined;
       const url = (event.seo as { venueMapUrl?: unknown }).venueMapUrl;
       return typeof url === 'string' && url.trim() ? url.trim() : undefined;
-    })()
+    })(),
+    mediaAssets: parseEventMediaAssets(event.mediaAssets)
   };
 }
 

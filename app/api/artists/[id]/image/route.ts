@@ -29,6 +29,10 @@ export async function POST(
     const file = formData.get('file') as File | null;
     if (!file) return NextResponse.json({ error: 'Dosya bulunamadı' }, { status: 400 });
 
+    const kindRaw = String(formData.get('kind') ?? 'image');
+    const kind =
+      kindRaw === 'cover' || kindRaw === 'strip' || kindRaw === 'image' ? kindRaw : 'image';
+
     const contentType = file.type || 'image/jpeg';
     if (!contentType.startsWith('image/')) {
       return NextResponse.json({ error: 'Sadece görsel yüklenebilir' }, { status: 400 });
@@ -42,10 +46,15 @@ export async function POST(
     const verifiedType = assertImageUpload(buffer, contentType);
     const url = await uploadArtistImage(id, buffer, verifiedType);
 
-    // Persist the URL on the artist record
-    await updateArtist(id, { image: url });
+    if (kind === 'cover') {
+      await updateArtist(id, { coverImage: url });
+    } else if (kind === 'strip') {
+      await updateArtist(id, { stripImage: url });
+    } else {
+      await updateArtist(id, { image: url });
+    }
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url, kind });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Yükleme başarısız';
     const status = message.includes('Geçersiz') ? 400 : 500;

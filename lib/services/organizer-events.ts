@@ -51,6 +51,8 @@ export interface CreateOrganizerEventInput extends OrganizerEventExtras {
   price: number;
   capacity: number;
   coverImage?: string;
+  gallery?: string[];
+  mediaAssets?: import('@/lib/config/image-dimensions').EventMediaAssets;
   status?: EventStatus;
   eventType?: EventType;
   ticketCategories?: TicketCategoryInput[];
@@ -83,6 +85,8 @@ export interface UpdateOrganizerEventInput extends OrganizerEventExtras {
   price?: number;
   capacity?: number;
   coverImage?: string;
+  gallery?: string[];
+  mediaAssets?: import('@/lib/config/image-dimensions').EventMediaAssets;
   status?: EventStatus;
   ticketCategories?: TicketCategoryInput[];
 }
@@ -146,6 +150,8 @@ type CreateEventTxParams = {
   price: number;
   capacity: number;
   coverImage?: string;
+  gallery?: string[];
+  mediaAssets?: import('@/lib/config/image-dimensions').EventMediaAssets;
   status?: EventStatus;
   eventType?: EventType;
   ticketCategories?: TicketCategoryInput[];
@@ -181,7 +187,8 @@ async function createEventRecord(
       coverImage:
         params.coverImage?.trim() ||
         'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=1200',
-      gallery: [],
+      gallery: (params.gallery ?? []).filter((u) => u.startsWith('http')).slice(0, 4),
+      mediaAssets: params.mediaAssets ?? {},
       startDate: params.startDate,
       endDate: params.endDate,
       status: params.status || 'draft',
@@ -277,6 +284,8 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
       price,
       capacity: input.capacity,
       coverImage: input.coverImage,
+      gallery: input.gallery,
+      mediaAssets: input.mediaAssets,
       status: input.status,
       eventType: input.eventType,
       ticketCategories: input.ticketCategories,
@@ -343,6 +352,8 @@ export async function createOrganizerEventSeries(input: CreateOrganizerEventSeri
         price,
         capacity: input.capacity,
         coverImage: input.coverImage,
+        gallery: input.gallery,
+        mediaAssets: input.mediaAssets,
         status: input.status,
         eventType: input.eventType,
         ticketCategories: input.ticketCategories,
@@ -446,6 +457,10 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
         ...(input.price !== undefined && { basePrice: input.isFree ? 0 : input.price }),
         ...(input.capacity !== undefined && { capacity: input.capacity }),
         ...(input.coverImage && { coverImage: input.coverImage }),
+        ...(input.gallery !== undefined && {
+          gallery: input.gallery.filter((u) => u.startsWith('http')).slice(0, 4)
+        }),
+        ...(input.mediaAssets !== undefined && { mediaAssets: input.mediaAssets }),
         ...(input.status && { status: input.status }),
         ...extrasData,
         cityId,

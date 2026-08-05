@@ -17,6 +17,8 @@ export type ArtistRow = {
   name: string;
   bio: string;
   image: string | null;
+  coverImage: string | null;
+  stripImage: string | null;
   type: string;
   socialLinks: ArtistSocialLinks;
   verified: boolean;
@@ -124,6 +126,8 @@ export async function createArtist(data: {
   name: string;
   bio?: string;
   image?: string;
+  coverImage?: string;
+  stripImage?: string;
   type?: 'person' | 'group';
   socialLinks?: ArtistSocialLinks;
 }): Promise<ArtistRow> {
@@ -136,6 +140,8 @@ export async function createArtist(data: {
       name: data.name,
       bio: data.bio ?? '',
       image: data.image,
+      coverImage: data.coverImage,
+      stripImage: data.stripImage,
       type: data.type ?? 'person',
       socialLinks: (data.socialLinks ?? {}) as object
     }
@@ -149,6 +155,8 @@ export async function updateArtist(
     name?: string;
     bio?: string;
     image?: string;
+    coverImage?: string | null;
+    stripImage?: string | null;
     type?: 'person' | 'group';
     socialLinks?: ArtistSocialLinks;
     verified?: boolean;
@@ -161,6 +169,8 @@ export async function updateArtist(
       ...(data.name !== undefined && { name: data.name }),
       ...(data.bio !== undefined && { bio: data.bio }),
       ...(data.image !== undefined && { image: data.image }),
+      ...(data.coverImage !== undefined && { coverImage: data.coverImage }),
+      ...(data.stripImage !== undefined && { stripImage: data.stripImage }),
       ...(data.type !== undefined && { type: data.type }),
       ...(data.socialLinks !== undefined && { socialLinks: data.socialLinks as object }),
       ...(data.verified !== undefined && { verified: data.verified })

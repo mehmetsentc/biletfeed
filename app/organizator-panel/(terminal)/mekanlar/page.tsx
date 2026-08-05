@@ -27,6 +27,8 @@ export default async function OrganizatorVenuesPage() {
           name: v.name,
           address: v.address,
           capacity: v.capacity,
+          image: v.image,
+          gallery: v.gallery,
           seatPlan: v.seatPlan as SeatPlan,
           city: v.city
         }))}

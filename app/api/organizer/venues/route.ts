@@ -14,6 +14,8 @@ const createSchema = z.object({
   citySlug: z.string().min(1),
   capacity: z.number().int().min(1).max(100000).optional(),
   description: z.string().max(500).optional(),
+  image: z.string().url().max(2048).optional(),
+  gallery: z.array(z.string().url().max(2048)).max(4).optional(),
   seatPlan: seatPlanSchema.optional()
 });
 

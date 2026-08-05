@@ -399,6 +399,8 @@ model Venue {
   longitude   Float?
   capacity    Int?
   image       String?
+  /** Brief: 1920×1080 × 4 */
+  gallery     String[]  @default([])
   description String?
   seatPlan    Json      @default("{}") @map("seat_plan")
   eventCount  Int       @default(0) @map("event_count")
@@ -430,6 +432,8 @@ model Event {
   categoryId   String      @map("category_id") @db.Uuid
   coverImage   String      @map("cover_image")
   gallery      String[]    @default([])
+  /** Sponsor bandı + pazarlama asset URL’leri (JSON) */
+  mediaAssets  Json        @default("{}") @map("media_assets")
   startDate    DateTime    @map("start_date")
   endDate      DateTime    @map("end_date")
   gateOpenTime DateTime?   @map("gate_open_time")
@@ -1501,6 +1505,10 @@ model Artist {
   name          String
   bio           String    @default("")
   image         String?
+  /** Brief: sanatçı/grup sayfa hero 1920×1080 */
+  coverImage    String?   @map("cover_image")
+  /** Grup şerit 1220×344 */
+  stripImage    String?   @map("strip_image")
   type          String    @default("person") // "person" | "group"
   socialLinks   Json      @default("{}") @map("social_links")
   verified      Boolean   @default(false)

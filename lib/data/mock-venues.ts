@@ -7,6 +7,7 @@ export interface MockVenue {
   address: string;
   capacity: number;
   image: string;
+  gallery: string[];
   eventCount: number;
   description: string;
 }
@@ -21,6 +22,7 @@ export const mockVenues: MockVenue[] = [
     address: 'Zorlu Center, Beşiktaş',
     capacity: 2000,
     image: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=80',
+    gallery: [],
     eventCount: 45,
     description: 'İstanbul\'un önde gelen performans sanatları merkezi.'
   },
@@ -33,6 +35,7 @@ export const mockVenues: MockVenue[] = [
     address: 'Maslak, İstanbul',
     capacity: 20000,
     image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&q=80',
+    gallery: [],
     eventCount: 28,
     description: 'Açık hava konser ve festival alanı.'
   },
@@ -45,6 +48,7 @@ export const mockVenues: MockVenue[] = [
     address: 'Ulus, Ankara',
     capacity: 500,
     image: 'https://images.unsplash.com/photo-1540039157733-d5bf01b1f7aa?w=800&q=80',
+    gallery: [],
     eventCount: 62,
     description: 'Ankara\'nın kültür ve sanat merkezi.'
   },
@@ -57,6 +61,7 @@ export const mockVenues: MockVenue[] = [
     address: 'Alsancak, İzmir',
     capacity: 15000,
     image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
+    gallery: [],
     eventCount: 19,
     description: 'İzmir\'in en popüler etkinlik alanı.'
   }

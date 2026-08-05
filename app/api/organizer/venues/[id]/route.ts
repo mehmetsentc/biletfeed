@@ -7,9 +7,11 @@ import { seatPlanSchema } from '@/lib/api/seat-plan-schema';
 
 const patchSchema = z.object({
   name: z.string().min(2).max(120).optional(),
-  address: z.string().min(2).max(300).optional(),
+  address: z.string().max(300).optional(),
   capacity: z.number().int().min(1).max(100000).optional(),
   description: z.string().max(500).optional(),
+  image: z.string().url().max(2048).optional().nullable(),
+  gallery: z.array(z.string().url().max(2048)).max(4).optional(),
   seatPlan: seatPlanSchema.optional()
 });
 

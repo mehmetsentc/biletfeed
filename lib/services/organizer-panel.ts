@@ -65,6 +65,8 @@ export async function createOrganizerVenue(
     citySlug: string;
     capacity?: number;
     description?: string;
+    image?: string;
+    gallery?: string[];
     seatPlan?: SeatPlan;
   }
 ) {
@@ -88,6 +90,8 @@ export async function createOrganizerVenue(
       organizerId,
       capacity: input.capacity ?? null,
       description: input.description?.trim() || null,
+      image: input.image?.trim() || null,
+      gallery: (input.gallery ?? []).filter((u) => u.startsWith('http')).slice(0, 4),
       seatPlan: (input.seatPlan ?? { layout: 'general', rows: 10, seatsPerRow: 20 }) as Prisma.InputJsonValue
     },
     include: { city: { select: { name: true, slug: true } } }
@@ -102,6 +106,8 @@ export async function updateOrganizerVenue(
     address?: string;
     capacity?: number;
     description?: string;
+    image?: string | null;
+    gallery?: string[];
     seatPlan?: SeatPlan;
   }
 ) {
@@ -122,6 +128,10 @@ export async function updateOrganizerVenue(
       ...(input.address !== undefined ? { address: input.address.trim() } : {}),
       ...(input.capacity !== undefined ? { capacity: input.capacity } : {}),
       ...(input.description !== undefined ? { description: input.description.trim() || null } : {}),
+      ...(input.image !== undefined ? { image: input.image?.trim() || null } : {}),
+      ...(input.gallery !== undefined
+        ? { gallery: input.gallery.filter((u) => u.startsWith('http')).slice(0, 4) }
+        : {}),
       ...(input.seatPlan !== undefined
         ? { seatPlan: input.seatPlan as Prisma.InputJsonValue }
         : {}),

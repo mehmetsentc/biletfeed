@@ -246,24 +246,29 @@ function PerformerItem({
   onUpdate: (id: string, patch: Partial<PerformerRow>) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
+  const stripRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   // Tracks a just-created artistId before state propagates
   const pendingArtistIdRef = useRef<string | null>(null);
 
-  async function handleImageUpload(file: File) {
+  async function handleImageUpload(file: File, kind: 'image' | 'cover' | 'strip' = 'image') {
     const artistId = performer.artistId ?? pendingArtistIdRef.current;
     if (!artistId) return;
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('kind', kind);
       const res = await fetch(`/api/artists/${artistId}/image`, {
         method: 'POST',
         body: formData
       });
       if (!res.ok) throw new Error('Yükleme başarısız');
       const { url } = await res.json();
-      onUpdate(performer.id, { image: url, artistId });
+      if (kind === 'image') {
+        onUpdate(performer.id, { image: url, artistId });
+      }
       pendingArtistIdRef.current = null;
     } catch {
       alert('Görsel yüklenemedi.');
@@ -354,6 +359,50 @@ function PerformerItem({
           placeholder="Rol (örn: Başrolde, DJ, Konuşmacı...)"
           className="h-8 text-xs rounded-md"
         />
+        {performer.artistId && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => coverRef.current?.click()}
+              className="rounded-md border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+            >
+              Sayfa hero (1920×1080)
+            </button>
+            {performer.type === 'group' && (
+              <button
+                type="button"
+                disabled={uploading}
+                onClick={() => stripRef.current?.click()}
+                className="rounded-md border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+              >
+                Grup şeridi (1220×344)
+              </button>
+            )}
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImageUpload(f, 'cover');
+                e.target.value = '';
+              }}
+            />
+            <input
+              ref={stripRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImageUpload(f, 'strip');
+                e.target.value = '';
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Controls */}

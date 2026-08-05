@@ -59,7 +59,7 @@ function BannerSlide({
           sizes="100vw"
         />
       </div>
-      <div className="relative hidden aspect-[3/1] w-full lg:block">
+      <div className="relative hidden aspect-[2440/688] w-full lg:block">
         <Image
           src={slideImage(slide, 'desktop')}
           alt={slide.title}

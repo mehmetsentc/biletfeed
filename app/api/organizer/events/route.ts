@@ -73,6 +73,18 @@ const createSchema = z.object({
   price: z.number().min(0).default(0),
   capacity: z.number().int().min(1).max(1000000),
   coverImage: optionalCoverImageSchema,
+  gallery: z.array(z.string().url().max(2048)).max(4).optional(),
+  mediaAssets: z
+    .object({
+      sponsorBandUrl: z.string().url().max(2048).optional(),
+      popup: z.string().url().max(2048).optional(),
+      igPost: z.string().url().max(2048).optional(),
+      igStory: z.string().url().max(2048).optional(),
+      metaAd: z.string().url().max(2048).optional(),
+      push: z.string().url().max(2048).optional(),
+      email: z.string().url().max(2048).optional()
+    })
+    .optional(),
   status: z.enum(['draft', 'published', 'pending']).optional(),
   ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
   sessions: z.array(sessionDateSchema).min(2).max(50).optional(),
@@ -156,6 +168,8 @@ export async function POST(request: NextRequest) {
       price: parsed.data.price,
       capacity: parsed.data.capacity,
       coverImage: parsed.data.coverImage,
+      gallery: parsed.data.gallery,
+      mediaAssets: parsed.data.mediaAssets,
       status: parsed.data.status,
       ticketCategories: parsed.data.ticketCategories,
       tags: parsed.data.tags,

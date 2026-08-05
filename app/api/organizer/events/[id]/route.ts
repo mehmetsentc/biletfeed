@@ -64,6 +64,18 @@ const patchSchema = z.object({
   price: z.number().min(0).optional(),
   capacity: z.number().int().min(1).max(1000000).optional(),
   coverImage: optionalCoverImageSchema,
+  gallery: z.array(z.string().url().max(2048)).max(4).optional(),
+  mediaAssets: z
+    .object({
+      sponsorBandUrl: z.string().url().max(2048).optional(),
+      popup: z.string().url().max(2048).optional(),
+      igPost: z.string().url().max(2048).optional(),
+      igStory: z.string().url().max(2048).optional(),
+      metaAd: z.string().url().max(2048).optional(),
+      push: z.string().url().max(2048).optional(),
+      email: z.string().url().max(2048).optional()
+    })
+    .optional(),
   ticketCategories: z.array(ticketCategorySchema).min(1).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
   venueDetail: z.string().max(2000).optional(),
@@ -199,6 +211,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         ...(data.price !== undefined && { price: data.price }),
         ...(data.capacity !== undefined && { capacity: data.capacity }),
         ...(data.coverImage && { coverImage: data.coverImage }),
+        ...(data.gallery !== undefined && { gallery: data.gallery }),
+        ...(data.mediaAssets !== undefined && { mediaAssets: data.mediaAssets }),
         ...(data.status && { status: data.status }),
         ...(data.ticketCategories && { ticketCategories: data.ticketCategories }),
         ...(data.tags !== undefined && { tags: data.tags }),

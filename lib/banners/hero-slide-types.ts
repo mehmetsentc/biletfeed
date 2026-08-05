@@ -1,3 +1,5 @@
+import { SPOTLIGHT_DIMENSIONS } from '@/lib/config/image-dimensions';
+
 export type HeroBannerSlide = {
   id: string;
   title: string;
@@ -15,8 +17,5 @@ export type HeroBannerSlide = {
 
 export const HERO_BANNER_LIMIT = 5;
 
-export const BANNER_DIMENSIONS = {
-  mobile: { width: 800, height: 450 },
-  tablet: { width: 1280, height: 548 },
-  desktop: { width: 1920, height: 640 }
-} as const;
+/** @deprecated Use SPOTLIGHT_DIMENSIONS — re-export for Sharp engine */
+export const BANNER_DIMENSIONS = SPOTLIGHT_DIMENSIONS;

@@ -1,11 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { MultiImagePicker } from '@/components/organizator-panel/multi-image-picker';
+import {
+  IMAGE_SPECS,
+  formatImageSpecHint
+} from '@/lib/config/image-dimensions';
 import type { SeatPlan } from '@/lib/services/organizer-panel';
 
 type City = { slug: string; name: string };
@@ -14,6 +19,8 @@ type VenueRow = {
   name: string;
   address: string;
   capacity: number | null;
+  image?: string | null;
+  gallery?: string[];
   seatPlan: SeatPlan;
   city: { name: string; slug: string };
 };
@@ -32,9 +39,15 @@ export function VenuesManager({
   const [capacity, setCapacity] = useState('500');
   const [rows, setRows] = useState('10');
   const [seatsPerRow, setSeatsPerRow] = useState('20');
+  const [imageUrl, setImageUrl] = useState('');
+  const [gallery, setGallery] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [mediaVenueId, setMediaVenueId] = useState<string | null>(null);
+  const [mediaImage, setMediaImage] = useState('');
+  const [mediaGallery, setMediaGallery] = useState<string[]>([]);
+  const [mediaSaving, setMediaSaving] = useState(false);
 
   const reload = useCallback(async () => {
     const res = await fetch('/api/organizer/venues', { credentials: 'same-origin' });
@@ -60,7 +73,9 @@ export function VenuesManager({
         address,
         citySlug,
         capacity: Number(capacity) || undefined,
-        seatPlan
+        seatPlan,
+        ...(imageUrl.trim().startsWith('http') ? { image: imageUrl.trim() } : {}),
+        gallery
       })
     });
     const data = await res.json();
@@ -71,6 +86,8 @@ export function VenuesManager({
     }
     setName('');
     setAddress('');
+    setImageUrl('');
+    setGallery([]);
     await reload();
   }
 
@@ -84,6 +101,35 @@ export function VenuesManager({
     });
     setEditingId(null);
     if (res.ok) await reload();
+  }
+
+  function openMediaEditor(venue: VenueRow) {
+    setMediaVenueId(venue.id);
+    setMediaImage(venue.image ?? '');
+    setMediaGallery((venue.gallery ?? []).filter((u) => u.startsWith('http')).slice(0, 4));
+  }
+
+  async function saveMedia() {
+    if (!mediaVenueId) return;
+    setMediaSaving(true);
+    setError(null);
+    const res = await fetch(`/api/organizer/venues/${mediaVenueId}`, {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: mediaImage.trim().startsWith('http') ? mediaImage.trim() : null,
+        gallery: mediaGallery
+      })
+    });
+    const data = await res.json();
+    setMediaSaving(false);
+    if (!res.ok) {
+      setError(data.error || 'Görseller kaydedilemedi');
+      return;
+    }
+    setMediaVenueId(null);
+    await reload();
   }
 
   return (
@@ -124,18 +170,74 @@ export function VenuesManager({
               <Label>Koltuk — Sıra × Koltuk</Label>
               <div className="flex gap-2">
                 <Input type="number" value={rows} onChange={(e) => setRows(e.target.value)} placeholder="Sıra" />
-                <Input type="number" value={seatsPerRow} onChange={(e) => setSeatsPerRow(e.target.value)} placeholder="Koltuk" />
+                <Input
+                  type="number"
+                  value={seatsPerRow}
+                  onChange={(e) => setSeatsPerRow(e.target.value)}
+                  placeholder="Koltuk"
+                />
               </div>
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Kapak görseli URL</Label>
+              <p className="text-xs text-muted-foreground">
+                {formatImageSpecHint(IMAGE_SPECS.venueHero)}
+              </p>
+              <Input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://…"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Galeri (en fazla 4)</Label>
+              <MultiImagePicker
+                urls={gallery}
+                onChange={setGallery}
+                maxCount={4}
+                spec={IMAGE_SPECS.venueGallery}
+              />
             </div>
             {error && <p className="text-sm text-destructive sm:col-span-2">{error}</p>}
             <div className="sm:col-span-2">
-              <Button type="submit" disabled={loading} className="">
+              <Button type="submit" disabled={loading}>
                 {loading ? 'Kaydediliyor…' : 'Mekan Kaydet'}
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      {mediaVenueId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Mekan görselleri</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Kapak URL</Label>
+              <p className="text-xs text-muted-foreground">
+                {formatImageSpecHint(IMAGE_SPECS.venueHero)}
+              </p>
+              <Input value={mediaImage} onChange={(e) => setMediaImage(e.target.value)} />
+            </div>
+            <MultiImagePicker
+              urls={mediaGallery}
+              onChange={setMediaGallery}
+              maxCount={4}
+              spec={IMAGE_SPECS.venueGallery}
+            />
+            <div className="flex gap-2">
+              <Button type="button" onClick={saveMedia} disabled={mediaSaving}>
+                {mediaSaving ? 'Kaydediliyor…' : 'Kaydet'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setMediaVenueId(null)}>
+                İptal
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <table className="w-full text-sm">
@@ -173,24 +275,29 @@ export function VenuesManager({
                     )}
                   </td>
                   <td className="p-3">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={editingId === venue.id}
-                      onClick={() =>
-                        saveSeatPlan(
-                          venue.id,
-                          {
-                            layout: 'general',
-                            rows: plan.rows || 10,
-                            seatsPerRow: plan.seatsPerRow || 20
-                          },
-                          totalSeats || venue.capacity || 500
-                        )
-                      }
-                    >
-                      Planı Onayla
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openMediaEditor(venue)}>
+                        Görseller
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={editingId === venue.id}
+                        onClick={() =>
+                          saveSeatPlan(
+                            venue.id,
+                            {
+                              layout: 'general',
+                              rows: plan.rows || 10,
+                              seatsPerRow: plan.seatsPerRow || 20
+                            },
+                            totalSeats || venue.capacity || 500
+                          )
+                        }
+                      >
+                        Planı Onayla
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );

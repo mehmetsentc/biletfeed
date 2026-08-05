@@ -70,6 +70,34 @@ export default async function ArtistPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 space-y-10">
+      {/* Hero — brief 1920×1080 */}
+      {(artist.coverImage || artist.image) && (
+        <div className="relative -mx-4 sm:mx-0 aspect-video overflow-hidden rounded-none sm:rounded-2xl bg-muted">
+          <Image
+            src={artist.coverImage || artist.image!}
+            alt=""
+            fill
+            priority
+            className="object-cover"
+            sizes="(max-width: 896px) 100vw, 896px"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+        </div>
+      )}
+
+      {/* Grup şerit — brief 1220×344 */}
+      {artist.type === 'group' && artist.stripImage && (
+        <div className="relative aspect-[1220/344] overflow-hidden rounded-xl bg-muted">
+          <Image
+            src={artist.stripImage}
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(max-width: 896px) 100vw, 896px"
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8">
         {/* Avatar */}

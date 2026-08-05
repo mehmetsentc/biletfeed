@@ -2,6 +2,7 @@ import type { Event, TicketType, Category, City, Venue, Artist } from '@prisma/c
 
 import type { EventAnnouncementInput, EventRuleSetData } from '@/lib/event-rules/types';
 import { parsePerformersFromSeo } from '@/lib/organizator/event-metadata';
+import { parseEventMediaAssets } from '@/lib/config/image-dimensions';
 
 type EventWithRelations = Event & {
   category: Category;
@@ -24,6 +25,8 @@ export interface EventWizardInitialData {
   venueAddress: string;
   description: string;
   coverImage: string | null;
+  gallery: string[];
+  mediaAssets: import('@/lib/config/image-dimensions').EventMediaAssets;
   ticketType: 'free' | 'paid';
   location: 'venue' | 'online' | 'hybrid';
   eventTypeMode: 'single' | 'recurring';
@@ -123,6 +126,8 @@ export function mapEventToWizardInitialData(
     venueAddress: event.venue?.address ?? '',
     description: event.description,
     coverImage: event.coverImage || null,
+    gallery: (event.gallery ?? []).filter((u) => typeof u === 'string' && u.startsWith('http')).slice(0, 4),
+    mediaAssets: parseEventMediaAssets(event.mediaAssets),
     ticketType: event.isFree ? 'free' : 'paid',
     location: (() => {
       const venueName = event.venue?.name ?? '';

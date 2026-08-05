@@ -52,6 +52,8 @@ export interface MockEvent {
   performers?: Array<{ name: string; type: 'person' | 'group' }>;
   /** Etkinlik haritası / oturma düzeni görseli */
   venueMapUrl?: string;
+  /** Sponsor + pazarlama asset URL’leri */
+  mediaAssets?: import('@/lib/config/image-dimensions').EventMediaAssets;
 }
 
 /** @deprecated Yalnızca geriye dönük import uyumluluğu — boş dizi */

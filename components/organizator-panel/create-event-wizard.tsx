@@ -16,6 +16,14 @@ import {
   Trash2
 } from 'lucide-react';
 import { CoverImagePicker } from '@/components/organizator-panel/cover-image-picker';
+import { MultiImagePicker } from '@/components/organizator-panel/multi-image-picker';
+import { MarketingAssetsForm } from '@/components/organizator-panel/marketing-assets-form';
+import {
+  IMAGE_SPECS,
+  formatImageSpecHint,
+  type EventMediaAssets,
+  parseEventMediaAssets
+} from '@/lib/config/image-dimensions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EventWizardStepper } from '@/components/dashboard/event-wizard-stepper';
@@ -438,6 +446,12 @@ export function CreateOrganizerEventWizard({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [description, setDescription] = useState(initialData?.description ?? '');
   const [previewImage, setPreviewImage] = useState<string | null>(initialData?.coverImage ?? null);
+  const [galleryUrls, setGalleryUrls] = useState<string[]>(
+    (initialData?.gallery ?? []).filter((u) => u.startsWith('http')).slice(0, 4)
+  );
+  const [mediaAssets, setMediaAssets] = useState<EventMediaAssets>(
+    () => initialData?.mediaAssets ?? parseEventMediaAssets(undefined)
+  );
   const imageFileRef = useRef<File | null>(null);
   const [ticketType, setTicketType] = useState<'free' | 'paid'>(initialData?.ticketType ?? 'paid');
   const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>(
@@ -800,6 +814,8 @@ export function CreateOrganizerEventWizard({
         price: minPrice,
         capacity: totalCapacity,
         coverImage: coverImageUrl,
+        gallery: galleryUrls,
+        mediaAssets,
         isOnline,
         ...(isOnline && onlineUrl.trim() ? { onlineUrl: onlineUrl.trim() } : {}),
         tags,
@@ -1181,18 +1197,40 @@ export function CreateOrganizerEventWizard({
             <div className="space-y-6">
               <WizardFormSection
                 title="Etkinlik Görseli"
-                description="Kapak görseli etkinliğinizin keşfedilme oranını artırır. Dosyayı sürükleyip bırakabilir, yükleyebilir veya görsel linki ekleyebilirsiniz. Tavsiye: 1920×1080 px, max. 5 MB."
+                description={formatImageSpecHint(IMAGE_SPECS.eventCover)}
                 icon={ImageIcon}
               >
               <div className="py-5">
                 <CoverImagePicker
                   previewUrl={previewImage}
                   onPreviewChange={setPreviewImage}
+                  description={formatImageSpecHint(IMAGE_SPECS.eventCover)}
                   onFileChange={(file) => {
                     imageFileRef.current = file;
                   }}
                 />
               </div>
+            </WizardFormSection>
+
+            <WizardFormSection
+              title="Galeri"
+              description={formatImageSpecHint(IMAGE_SPECS.eventGallery)}
+              icon={ImageIcon}
+            >
+              <MultiImagePicker
+                urls={galleryUrls}
+                onChange={setGalleryUrls}
+                maxCount={4}
+                spec={IMAGE_SPECS.eventGallery}
+              />
+            </WizardFormSection>
+
+            <WizardFormSection
+              title="Sponsor & pazarlama görselleri"
+              description="Brief ölçüleri — otomatik yayınlanmaz, panelde saklanır."
+              icon={ImageIcon}
+            >
+              <MarketingAssetsForm value={mediaAssets} onChange={setMediaAssets} />
             </WizardFormSection>
 
             <WizardFormSection

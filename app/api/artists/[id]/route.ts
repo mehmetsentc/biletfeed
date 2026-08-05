@@ -16,6 +16,8 @@ const patchSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   bio: z.string().max(2000).optional(),
   image: z.string().url().optional().nullable(),
+  coverImage: z.string().url().optional().nullable(),
+  stripImage: z.string().url().optional().nullable(),
   type: z.enum(['person', 'group']).optional(),
   socialLinks: z
     .object({
@@ -49,8 +51,13 @@ export async function PATCH(
 
   try {
     const artist = await updateArtist(id, {
-      ...parsed.data,
-      image: parsed.data.image ?? undefined
+      name: parsed.data.name,
+      bio: parsed.data.bio,
+      type: parsed.data.type,
+      socialLinks: parsed.data.socialLinks,
+      image: parsed.data.image === null ? undefined : parsed.data.image,
+      coverImage: parsed.data.coverImage,
+      stripImage: parsed.data.stripImage
     });
     return NextResponse.json({ artist });
   } catch (err) {

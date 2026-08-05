@@ -23,6 +23,8 @@ import {
 import { EventRulesSection } from '@/components/events/event-rules-section';
 import { EventPerformersSection } from '@/components/events/event-performers-section';
 import { EventVenueMapSection } from '@/components/events/event-venue-map-section';
+import { EventGallerySection } from '@/components/events/event-gallery-section';
+import { EventSponsorBand } from '@/components/events/event-sponsor-band';
 import { EventSeriesSessions } from '@/components/events/event-series-sessions';
 import { getEventSeriesSessionsBySlug } from '@/lib/services/event-series';
 import { siteConfig } from '@/lib/config/site';
@@ -118,12 +120,20 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             purchasable={purchasable}
           />
 
+          {event.mediaAssets?.sponsorBandUrl && (
+            <EventSponsorBand imageUrl={event.mediaAssets.sponsorBandUrl} />
+          )}
+
           {seriesSessions.length > 1 && (
             <EventSeriesSessions sessions={seriesSessions} />
           )}
 
           <div className="grid gap-8 lg:grid-cols-[1fr_300px] lg:gap-10">
             <div className="space-y-8">
+              {event.gallery.length > 0 && (
+                <EventGallerySection images={event.gallery} />
+              )}
+
               {showDescriptionBlock && (
                 <section className="rounded-2xl border border-border bg-card p-5 md:p-6">
                   <h2 className="text-lg font-bold">Etkinlik Hakkında</h2>

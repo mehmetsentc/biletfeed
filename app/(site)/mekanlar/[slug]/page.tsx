@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { MapPin, Users } from 'lucide-react';
 import { PageHero } from '@/components/layout/page-hero';
 import { EventCard } from '@/components/events/event-card';
+import { EventGallerySection } from '@/components/events/event-gallery-section';
 import { getVenueBySlug } from '@/lib/services/venues';
 import { getAllEvents } from '@/lib/services/events';
 import { verifySessionCookie } from '@/lib/auth/session';
@@ -73,6 +74,11 @@ export default async function VenueDetailPage({ params }: Props) {
             />
           </div>
         </div>
+        {venue.gallery.length > 0 && (
+          <div className="mb-10">
+            <EventGallerySection images={venue.gallery} title="Mekan galerisi" />
+          </div>
+        )}
         <h2 className="mb-6 text-xl font-bold">Bu Mekandaki Etkinlikler</h2>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event) => (

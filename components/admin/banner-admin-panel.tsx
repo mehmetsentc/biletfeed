@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AdminImageSourceField } from '@/components/admin/admin-image-source-field';
 import type { HomeBannerRecord } from '@/lib/services/home-banners';
+import { formatImageSpecHint, IMAGE_SPECS } from '@/lib/config/image-dimensions';
 
 type BannerForm = {
   title: string;
@@ -277,7 +278,7 @@ export function BannerAdminPanel() {
             <div className="md:col-span-2">
               <AdminImageSourceField
                 label="Mobil görsel *"
-                hint="Önerilen oran 16:9"
+                hint={formatImageSpecHint(IMAGE_SPECS.spotlightMobile)}
                 value={form.imageMobile}
                 onChange={(url) => setForm({ ...form, imageMobile: url })}
                 uploadScope="banners"
@@ -286,7 +287,7 @@ export function BannerAdminPanel() {
             <div className="md:col-span-2">
               <AdminImageSourceField
                 label="Tablet görsel *"
-                hint="Önerilen oran 21:9"
+                hint={formatImageSpecHint(IMAGE_SPECS.spotlightTablet)}
                 value={form.imageTablet}
                 onChange={(url) => setForm({ ...form, imageTablet: url })}
                 uploadScope="banners"
@@ -295,7 +296,7 @@ export function BannerAdminPanel() {
             <div className="md:col-span-2">
               <AdminImageSourceField
                 label="Web görsel *"
-                hint="Önerilen oran 3:1"
+                hint={formatImageSpecHint(IMAGE_SPECS.spotlightDesktop)}
                 value={form.imageDesktop}
                 onChange={(url) => setForm({ ...form, imageDesktop: url })}
                 uploadScope="banners"
