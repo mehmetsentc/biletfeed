@@ -10,11 +10,9 @@ import { useCity } from '@/components/providers/city-provider';
 import { ThemeSelector } from '@/components/theme/theme-selector';
 import { toCategoryNavLinks, type CategoryNavItem } from '@/lib/categories/nav-links';
 import {
-  panelHref,
-  panelLoginHref,
-  PANEL_EXTERNAL_LINK_PROPS,
   siteHref
 } from '@/lib/config/domain';
+import { PanelExternalLink } from '@/components/native/panel-external-link';
 import { corporateMobileLinks } from '@/lib/layout/corporate-links';
 import { trackClientSearch } from '@/lib/analytics/track-client-search';
 import { useState } from 'react';
@@ -219,45 +217,41 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
               <div className="space-y-0.5">
                 {user ? (
                   <>
-                    <Link
-                      href={panelHref('/organizator-panel/etkinlik/yeni')}
-                      {...PANEL_EXTERNAL_LINK_PROPS}
+                    <PanelExternalLink
+                      path="/organizator-panel/etkinlik/yeni"
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-[var(--bf-accent-ink)] transition-colors hover:bg-[var(--muted)]"
                     >
                       <Plus className="size-4 shrink-0" strokeWidth={2} />
                       {t.account.createEvent}
-                    </Link>
-                    <Link
-                      href={panelHref('/organizator-panel/baslangic')}
-                      {...PANEL_EXTERNAL_LINK_PROPS}
+                    </PanelExternalLink>
+                    <PanelExternalLink
+                      path="/organizator-panel/baslangic"
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-[var(--bf-accent-ink)]"
                     >
                       <LayoutDashboard className="size-4 shrink-0" strokeWidth={1.75} />
                       {t.account.organizerPanel}
-                    </Link>
+                    </PanelExternalLink>
                   </>
                 ) : (
                   <>
-                    <Link
-                      href={panelLoginHref()}
-                      {...PANEL_EXTERNAL_LINK_PROPS}
+                    <PanelExternalLink
+                      path="/organizator-panel/giris"
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-[var(--bf-accent-ink)] transition-colors hover:bg-[var(--muted)]"
                     >
                       <LayoutDashboard className="size-4 shrink-0" strokeWidth={2} />
                       {t.chrome.panelLogin}
-                    </Link>
-                    <Link
-                      href={panelLoginHref('/organizator-panel/etkinlik/yeni')}
-                      {...PANEL_EXTERNAL_LINK_PROPS}
+                    </PanelExternalLink>
+                    <PanelExternalLink
+                      path="/organizator-panel/etkinlik/yeni"
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-[var(--muted)] hover:text-[var(--bf-accent-ink)]"
                     >
                       <Plus className="size-4 shrink-0" strokeWidth={1.75} />
                       {t.account.createEvent}
-                    </Link>
+                    </PanelExternalLink>
                   </>
                 )}
               </div>

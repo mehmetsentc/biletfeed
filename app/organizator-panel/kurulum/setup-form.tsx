@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { siteConfig } from '@/lib/config/site';
-import { panelHref } from '@/lib/config/domain';
+import { panelHref, siteHref } from '@/lib/config/domain';
 
 export function OrganizatorSetupForm() {
   const [name, setName] = useState('');
@@ -127,7 +127,7 @@ export function OrganizatorSetupForm() {
         </form>
 
         <p className="text-organizer-chrome-muted mt-6 text-center text-xs">
-          <Link href="/" className="hover:text-white">
+          <Link href={siteHref('/')} className="hover:text-white">
             Ana sayfaya dön
           </Link>
         </p>

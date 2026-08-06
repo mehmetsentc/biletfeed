@@ -44,6 +44,7 @@
   "dependencies": {
     "@capacitor-firebase/authentication": "^6.3.1",
     "@capacitor/app": "^6.0.3",
+    "@capacitor/browser": "^6.0.6",
     "@capacitor/core": "^6.2.0",
     "@google-analytics/data": "^6.1.0",
     "@hookform/resolvers": "^5.4.0",

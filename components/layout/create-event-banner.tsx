@@ -1,10 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { ArrowRight, CalendarPlus } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTranslations } from '@/components/providers';
-import { panelHref } from '@/lib/config/domain';
+import { PanelExternalLink } from '@/components/native/panel-external-link';
 
 /** Ana sayfa CTA — giriş yapmış tüm kullanıcılara. */
 export function CreateEventBanner() {
@@ -42,13 +41,13 @@ export function CreateEventBanner() {
             {t.home.createEventSubtitle}
           </p>
         </div>
-        <Link href={panelHref('/organizator-panel/etkinlik/yeni')}>
+        <PanelExternalLink path="/organizator-panel/etkinlik/yeni">
           <span className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90">
             <CalendarPlus className="size-5" />
             {t.chrome.createEvent}
             <ArrowRight className="size-4" />
           </span>
-        </Link>
+        </PanelExternalLink>
       </div>
     </section>
   );

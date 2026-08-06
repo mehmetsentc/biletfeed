@@ -13,7 +13,8 @@ import { AccountMenuList } from '@/components/account/account-menu-list';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTranslations } from '@/components/providers';
 import { isAccountAreaActive } from '@/lib/account/navigation';
-import { panelHref, PANEL_EXTERNAL_LINK_PROPS, siteHref } from '@/lib/config/domain';
+import { siteHref } from '@/lib/config/domain';
+import { PanelExternalLink } from '@/components/native/panel-external-link';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { resolveProfileDisplayName } from '@/lib/account/display-name';
 import { cn } from '@/lib/utils';
@@ -110,18 +111,16 @@ export function ProfileDropdown() {
             organizerLinks={
               <>
                 <div className="my-1 border-t border-border" />
-                <Link
-                  href={panelHref('/organizator-panel/etkinlik/yeni')}
-                  {...PANEL_EXTERNAL_LINK_PROPS}
+                <PanelExternalLink
+                  path="/organizator-panel/etkinlik/yeni"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[var(--bf-accent-ink)] transition-colors hover:bg-muted"
                 >
                   <Plus className="size-4 shrink-0" strokeWidth={1.75} />
                   {t.account.createEvent}
-                </Link>
-                <Link
-                  href={panelHref('/organizator-panel/baslangic')}
-                  {...PANEL_EXTERNAL_LINK_PROPS}
+                </PanelExternalLink>
+                <PanelExternalLink
+                  path="/organizator-panel/baslangic"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                 >
@@ -130,7 +129,7 @@ export function ProfileDropdown() {
                     strokeWidth={1.75}
                   />
                   {t.account.organizerPanel}
-                </Link>
+                </PanelExternalLink>
               </>
             }
           />
