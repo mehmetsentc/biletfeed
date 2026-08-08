@@ -29,23 +29,34 @@ export default async function TicketTierPage({ params }: Props) {
 
   const { event, ticketTypes, seatPlan } = ctx;
 
-  if (ticketTypes.length === 1 && (!seatPlan || seatPlan.layout !== 'tables')) {
+  const isSeatMapLayout =
+    seatPlan?.layout === 'tables' || seatPlan?.layout === 'sections';
+
+  if (ticketTypes.length === 1 && !isSeatMapLayout) {
     redirect(`/etkinlik/${slug}/bilet/${ticketTypes[0].id}`);
   }
+
+  const containerClass =
+    seatPlan?.layout === 'sections'
+      ? 'container mx-auto max-w-4xl px-4 py-6 md:py-8'
+      : 'container mx-auto max-w-3xl px-4 py-6 md:py-8';
+
+  const subtitle =
+    seatPlan?.layout === 'tables'
+      ? 'Haritadan masa veya loca seçin. Her birim, kişi sayısı kadar QR bilet üretir.'
+      : seatPlan?.layout === 'sections'
+        ? 'Krokiden koltuk seçin; seçtiğiniz koltuklar sepete eklenir.'
+        : 'Satın almak istediğiniz bilet türünü seçin.';
 
   return (
     <div className="bg-background pb-10">
       <PurchaseEventBar event={event} backHref={`/etkinlik/${slug}`} />
-      <div className="container mx-auto max-w-3xl px-4 py-6 md:py-8">
+      <div className={containerClass}>
         <header className="mb-6 text-foreground">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            Bilet Seçin
+            {seatPlan?.layout === 'sections' ? 'Koltuk Seçin' : 'Bilet Seçin'}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {seatPlan?.layout === 'tables'
-              ? 'Haritadan masa veya loca seçin. Her birim, kişi sayısı kadar QR bilet üretir.'
-              : 'Satın almak istediğiniz bilet türünü seçin.'}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
         </header>
         <TicketTierList
           eventSlug={slug}

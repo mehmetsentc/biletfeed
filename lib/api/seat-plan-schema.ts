@@ -23,7 +23,7 @@ export const seatPlanSchema = z.object({
           z.object({
             id: z.string().min(1).max(24),
             label: z.string().min(1).max(40),
-            ticketTypeHint: z.string().max(40).optional()
+            ticketTypeHint: z.string().max(80).optional()
           })
         )
       })

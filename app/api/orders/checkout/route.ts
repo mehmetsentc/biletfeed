@@ -9,8 +9,9 @@ import { checkoutBillingSchema } from '@/lib/validation/checkout-billing';
 
 const bodySchema = checkoutAttendeeSchema.extend({
   eventSlug: z.string().min(1),
-  quantity: z.number().int().min(1).max(10),
+  quantity: z.number().int().min(1).max(10).default(1),
   ticketTypeId: z.string().uuid().optional(),
+  ticketTypeIds: z.array(z.string().uuid()).min(1).max(10).optional(),
   couponCode: z.string().max(50).optional(),
   billing: checkoutBillingSchema.optional()
 });
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
       eventSlug: parsed.data.eventSlug,
       quantity: parsed.data.quantity,
       ticketTypeId: parsed.data.ticketTypeId,
+      ticketTypeIds: parsed.data.ticketTypeIds,
       attendeeName: parsed.data.attendeeName,
       attendeeEmail: parsed.data.attendeeEmail,
       attendeePhone: parsed.data.attendeePhone,

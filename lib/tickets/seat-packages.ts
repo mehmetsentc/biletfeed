@@ -1,11 +1,49 @@
 /** Masa/loca paket bileti yardımcıları */
 
 const UNIT_CODE_RE = /\b([SBMPT])\s*[-.]?\s*(\d+)\b/i;
+/** Sections layout: P1-E11, P4-N16, VIP-E1 */
+const SECTION_SEAT_RE = /\b((?:VIP|P\d+)-[A-Z]\d{1,3})\b/i;
 
 export function parseSeatUnitCode(name: string): string | null {
   const match = name.match(UNIT_CODE_RE);
   if (!match) return null;
   return `${match[1]!.toUpperCase()}${match[2]}`;
+}
+
+/** Parse numbered seat unit id from ticket type name/description (sections layout). */
+export function parseSectionSeatUnitId(text: string): string | null {
+  const match = text.match(SECTION_SEAT_RE);
+  if (!match?.[1]) return null;
+  const raw = match[1];
+  const dash = raw.indexOf('-');
+  if (dash < 0) return raw.toUpperCase();
+  return `${raw.slice(0, dash).toUpperCase()}-${raw.slice(dash + 1).toUpperCase()}`;
+}
+
+/** Match a seat-plan unit to its ticket type (per-seat or zone-level). */
+export function matchTicketTypeToSeatUnit<T extends { name: string; description?: string | null }>(
+  unitId: string,
+  ticketTypeHint: string | undefined,
+  ticketTypes: T[]
+): T | undefined {
+  const needle = unitId.toUpperCase();
+  const byId = ticketTypes.find((tt) => {
+    const fromName = parseSectionSeatUnitId(tt.name);
+    const fromDesc = tt.description ? parseSectionSeatUnitId(tt.description) : null;
+    return fromName === needle || fromDesc === needle || tt.name.toUpperCase().includes(needle);
+  });
+  if (byId) return byId;
+
+  if (ticketTypeHint) {
+    const hint = ticketTypeHint.trim().toLowerCase();
+    return ticketTypes.find(
+      (tt) =>
+        tt.name.trim().toLowerCase() === hint ||
+        tt.name.toLowerCase().includes(hint) ||
+        hint.includes(tt.name.trim().toLowerCase())
+    );
+  }
+  return undefined;
 }
 
 export function inferSeatsPerUnitFromName(name: string): number | null {

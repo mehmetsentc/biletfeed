@@ -11,6 +11,7 @@ import {
 import { formatTry } from '@/lib/tickets/purchase-pricing';
 import { getServerTranslations } from '@/lib/i18n/server';
 import { VenueTablePicker } from '@/components/tickets/purchase/venue-table-picker';
+import { VenueSectionSeatPicker } from '@/components/tickets/purchase/venue-section-seat-picker';
 import type { SeatPlan } from '@/lib/services/organizer-panel';
 import { cn } from '@/lib/utils';
 
@@ -42,16 +43,32 @@ export async function TicketTierList({
     );
   }
 
+  const hasZones =
+    Array.isArray(seatPlan?.zones) && (seatPlan?.zones?.length ?? 0) > 0;
+
   const useTablePicker =
     seatPlan?.layout === 'tables' &&
-    Array.isArray(seatPlan.zones) &&
-    seatPlan.zones.length > 0 &&
+    hasZones &&
     ticketTypes.some((tt) => (tt.seatsPerUnit ?? 1) > 1);
+
+  const useSectionPicker = seatPlan?.layout === 'sections' && hasZones;
 
   if (useTablePicker && seatPlan) {
     return (
       <div className={className}>
         <VenueTablePicker
+          eventSlug={eventSlug}
+          ticketTypes={ticketTypes}
+          seatPlan={seatPlan}
+        />
+      </div>
+    );
+  }
+
+  if (useSectionPicker && seatPlan) {
+    return (
+      <div className={className}>
+        <VenueSectionSeatPicker
           eventSlug={eventSlug}
           ticketTypes={ticketTypes}
           seatPlan={seatPlan}

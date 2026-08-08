@@ -26,6 +26,7 @@ import {
 } from '@/lib/services/commission';
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
+import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
 
 export interface CheckoutResult {
   orderId: string;
@@ -56,21 +57,17 @@ async function resolveCheckoutUser(params: {
   return findOrCreateGuestUser(params.attendeeName, params.attendeeEmail);
 }
 
-async function loadCheckoutContext(params: {
-  userId: string;
-  eventSlug: string;
+type CheckoutLineItem = {
+  ticketTypeId: string;
+  name: string;
+  unitPrice: number;
   quantity: number;
-  ticketTypeId?: string;
-}) {
+};
+
+async function loadEventForCheckout(eventSlug: string) {
   await ensureDbConnection();
-
-  const user = await prisma.user.findFirst({
-    where: { id: params.userId, deletedAt: null }
-  });
-  if (!user) throw new Error('Kullanıcı bulunamadı');
-
   const event = await prisma.event.findFirst({
-    where: { slug: params.eventSlug, status: 'published', deletedAt: null },
+    where: { slug: eventSlug, status: 'published', deletedAt: null },
     include: {
       organizer: true,
       ticketTypes: {
@@ -85,6 +82,67 @@ async function loadCheckoutContext(params: {
     throw new Error(
       'Bu etkinlik harici bir platformdadır. Bilet için kaynak siteye yönlendirilmelisiniz.'
     );
+  }
+  return event;
+}
+
+async function loadCheckoutContext(params: {
+  userId: string;
+  eventSlug: string;
+  quantity: number;
+  ticketTypeId?: string;
+  ticketTypeIds?: string[];
+}) {
+  await ensureDbConnection();
+
+  const user = await prisma.user.findFirst({
+    where: { id: params.userId, deletedAt: null }
+  });
+  if (!user) throw new Error('Kullanıcı bulunamadı');
+
+  const event = await loadEventForCheckout(params.eventSlug);
+
+  const multiIds = params.ticketTypeIds?.filter(Boolean) ?? [];
+  if (multiIds.length > 0) {
+    if (multiIds.length > 10) {
+      throw new Error('En fazla 10 koltuk seçebilirsiniz');
+    }
+    const unique = [...new Set(multiIds)];
+    if (unique.length !== multiIds.length) {
+      throw new Error('Aynı koltuk birden fazla seçilemez');
+    }
+
+    const lines: CheckoutLineItem[] = [];
+    for (const id of unique) {
+      const tt = event.ticketTypes.find((t) => t.id === id);
+      if (!tt) throw new Error('Seçilen koltuklardan biri bulunamadı');
+      if (tt.sold + 1 > tt.capacity) {
+        throw new Error(`"${tt.name}" koltuğu artık müsait değil`);
+      }
+      lines.push({
+        ticketTypeId: tt.id,
+        name: tt.name,
+        unitPrice: tt.price,
+        quantity: 1
+      });
+    }
+
+    const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+    const commissionRate = await resolveOrganizerCommissionRate(
+      event.organizer.commissionRate
+    );
+    const commission = calculateOrderCommission(subtotal, commissionRate);
+    const primary = event.ticketTypes.find((t) => t.id === lines[0]!.ticketTypeId)!;
+
+    return {
+      user,
+      event,
+      ticketType: primary,
+      lines,
+      qty: lines.length,
+      subtotal,
+      commission
+    };
   }
 
   const ticketType =
@@ -102,8 +160,16 @@ async function loadCheckoutContext(params: {
   const subtotal = ticketType.price * qty;
   const commissionRate = await resolveOrganizerCommissionRate(event.organizer.commissionRate);
   const commission = calculateOrderCommission(subtotal, commissionRate);
+  const lines: CheckoutLineItem[] = [
+    {
+      ticketTypeId: ticketType.id,
+      name: ticketType.name,
+      unitPrice: ticketType.price,
+      quantity: qty
+    }
+  ];
 
-  return { user, event, ticketType, ticketTypes: event.ticketTypes, qty, subtotal, commission };
+  return { user, event, ticketType, lines, qty, subtotal, commission };
 }
 
 export async function getCheckoutTicketTypes(eventSlug: string) {
@@ -137,6 +203,8 @@ export async function createCheckout(params: {
   eventSlug: string;
   quantity: number;
   ticketTypeId?: string;
+  /** Çoklu koltuk seçimi — her id için quantity=1 OrderItem */
+  ticketTypeIds?: string[];
   attendeeName: string;
   attendeeEmail: string;
   attendeePhone: string;
@@ -153,13 +221,13 @@ export async function createCheckout(params: {
     attendeeEmail
   });
 
-  const { event, ticketType, qty, subtotal, commission } =
-    await loadCheckoutContext({
-      userId: user.id,
-      eventSlug: params.eventSlug,
-      quantity: params.quantity,
-      ticketTypeId: params.ticketTypeId
-    });
+  const { event, lines, qty, subtotal, commission } = await loadCheckoutContext({
+    userId: user.id,
+    eventSlug: params.eventSlug,
+    quantity: params.quantity,
+    ticketTypeId: params.ticketTypeId,
+    ticketTypeIds: params.ticketTypeIds
+  });
 
   let discount = 0;
   let appliedCouponId: string | undefined;
@@ -194,9 +262,7 @@ export async function createCheckout(params: {
       userId: user.id,
       eventId: event.id,
       organizerId: event.organizerId,
-      ticketTypeId: ticketType.id,
-      quantity: qty,
-      unitPrice: ticketType.price,
+      lines,
       attendeeName,
       attendeeEmail,
       attendeePhone,
@@ -216,11 +282,13 @@ export async function createCheckout(params: {
   const base = getAppBaseUrl();
 
   const order = await prisma.$transaction(async (tx) => {
-    const freshType = await tx.ticketType.findUnique({
-      where: { id: ticketType.id }
-    });
-    if (!freshType || freshType.sold + qty > freshType.capacity) {
-      throw new Error('Yeterli bilet kalmadı');
+    for (const line of lines) {
+      const freshType = await tx.ticketType.findUnique({
+        where: { id: line.ticketTypeId }
+      });
+      if (!freshType || freshType.sold + line.quantity > freshType.capacity) {
+        throw new Error(`"${line.name}" için yeterli bilet kalmadı`);
+      }
     }
 
     return tx.order.create({
@@ -240,11 +308,11 @@ export async function createCheckout(params: {
         attendeeEmail,
         attendeePhone,
         items: {
-          create: {
-            ticketTypeId: ticketType.id,
-            quantity: qty,
-            unitPrice: ticketType.price
-          }
+          create: lines.map((line) => ({
+            ticketTypeId: line.ticketTypeId,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice
+          }))
         }
       },
       include: { items: true }
@@ -270,11 +338,11 @@ export async function createCheckout(params: {
       email: user.email,
       name: user.displayName || undefined
     },
-    items: order.items.map((item) => ({
-      id: item.ticketTypeId,
-      name: ticketType.name,
-      price: item.unitPrice,
-      quantity: item.quantity
+    items: lines.map((line) => ({
+      id: line.ticketTypeId,
+      name: line.name,
+      price: line.unitPrice,
+      quantity: line.quantity
     })),
     eventTitle: event.title,
     successUrl: `${base}/etkinlik/${event.slug}/bilet/basarili?order=${order.id}`,
@@ -305,9 +373,7 @@ async function fulfillFreeOrder(params: {
   userId: string;
   eventId: string;
   organizerId: string;
-  ticketTypeId: string;
-  quantity: number;
-  unitPrice: number;
+  lines: CheckoutLineItem[];
   attendeeName: string;
   attendeeEmail: string;
   attendeePhone: string;
@@ -315,16 +381,21 @@ async function fulfillFreeOrder(params: {
   couponCode?: string;
   couponId?: string;
 }): Promise<string> {
-  const subtotal = params.unitPrice * params.quantity;
+  const subtotal = params.lines.reduce(
+    (s, l) => s + l.unitPrice * l.quantity,
+    0
+  );
   const discount = params.discount ?? 0;
   const total = Math.max(0, subtotal - discount);
 
   const order = await prisma.$transaction(async (tx) => {
-    const ticketType = await tx.ticketType.findUnique({
-      where: { id: params.ticketTypeId }
-    });
-    if (!ticketType || ticketType.sold + params.quantity > ticketType.capacity) {
-      throw new Error('Yeterli bilet kalmadı');
+    for (const line of params.lines) {
+      const ticketType = await tx.ticketType.findUnique({
+        where: { id: line.ticketTypeId }
+      });
+      if (!ticketType || ticketType.sold + line.quantity > ticketType.capacity) {
+        throw new Error(`"${line.name}" için yeterli bilet kalmadı`);
+      }
     }
 
     const created = await tx.order.create({
@@ -344,11 +415,11 @@ async function fulfillFreeOrder(params: {
         attendeeEmail: params.attendeeEmail,
         attendeePhone: params.attendeePhone,
         items: {
-          create: {
-            ticketTypeId: params.ticketTypeId,
-            quantity: params.quantity,
-            unitPrice: params.unitPrice
-          }
+          create: params.lines.map((line) => ({
+            ticketTypeId: line.ticketTypeId,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice
+          }))
         }
       }
     });
@@ -364,16 +435,18 @@ async function fulfillFreeOrder(params: {
       }
     });
 
-    await issueTickets(tx, {
-      orderId: created.id,
-      userId: params.userId,
-      eventId: params.eventId,
-      ticketTypeId: params.ticketTypeId,
-      quantity: params.quantity,
-      attendeeName: params.attendeeName,
-      attendeeEmail: params.attendeeEmail,
-      attendeePhone: params.attendeePhone
-    });
+    for (const line of params.lines) {
+      await issueTickets(tx, {
+        orderId: created.id,
+        userId: params.userId,
+        eventId: params.eventId,
+        ticketTypeId: line.ticketTypeId,
+        quantity: line.quantity,
+        attendeeName: params.attendeeName,
+        attendeeEmail: params.attendeeEmail,
+        attendeePhone: params.attendeePhone
+      });
+    }
 
     return created;
   });
@@ -437,10 +510,16 @@ async function issueTickets(
     throw new Error('Yeterli bilet kalmadı');
   }
 
+  const seatUnitId = parseSectionSeatUnitId(ticketType.name);
+
   for (let i = 0; i < qrCount; i++) {
     const ticketId = newTicketId();
     const seatLabel =
-      seatsPerUnit > 1 ? ` (${i + 1}/${qrCount})` : '';
+      seatsPerUnit > 1
+        ? ` (${i + 1}/${qrCount})`
+        : seatUnitId
+          ? ` · ${seatUnitId}`
+          : '';
     await tx.purchasedTicket.create({
       data: {
         id: ticketId,

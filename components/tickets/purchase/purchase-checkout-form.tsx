@@ -6,7 +6,10 @@ import { useRouter } from 'next/navigation';
 import { ExternalLink, Lock, ShieldCheck } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
 import { CheckoutBillingSection } from '@/components/checkout/checkout-billing-section';
-import { PurchasePriceBreakdown } from '@/components/tickets/purchase/purchase-price-breakdown';
+import {
+  PurchasePriceBreakdown,
+  PriceBreakdownRows
+} from '@/components/tickets/purchase/purchase-price-breakdown';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +37,8 @@ interface PurchaseCheckoutFormProps {
   event: MockEvent;
   ticketType: CheckoutTicketType;
   quantity: number;
+  /** Çoklu koltuk — verilirse her biri qty=1; ticketType/quantity yerine kullanılır */
+  seatTicketTypes?: CheckoutTicketType[];
   rulesDisplay?: EventRulesDisplayData | null;
 }
 
@@ -41,6 +46,7 @@ export function PurchaseCheckoutForm({
   event,
   ticketType,
   quantity,
+  seatTicketTypes,
   rulesDisplay
 }: PurchaseCheckoutFormProps) {
   const t = useTranslations();
@@ -71,11 +77,31 @@ export function PurchaseCheckoutForm({
     (rulesDisplay.sections.length > 0 || rulesDisplay.announcements.length > 0);
   const requiresRulesAcceptance = hasStructuredRules || ruleLines.length > 0;
 
-  const pricing = calculatePurchasePricing({
-    unitPrice: ticketType.price,
-    quantity,
-    discount: couponDiscount
-  });
+  const isMultiSeat = Boolean(seatTicketTypes && seatTicketTypes.length > 0);
+  const seatLines = seatTicketTypes ?? [];
+  const seatSubtotal = seatLines.reduce((s, tt) => s + tt.price, 0);
+  const effectiveQuantity = isMultiSeat ? seatLines.length : quantity;
+  const effectiveUnitPrice = isMultiSeat
+    ? seatSubtotal / Math.max(1, seatLines.length)
+    : ticketType.price;
+
+  const pricing = isMultiSeat
+    ? {
+        quantity: seatLines.length,
+        unitPrice: effectiveUnitPrice,
+        ticketSubtotal: Math.round(seatSubtotal * 100) / 100,
+        subtotal: Math.round(seatSubtotal * 100) / 100,
+        discount: couponDiscount,
+        total: Math.max(
+          0,
+          Math.round((seatSubtotal - couponDiscount) * 100) / 100
+        )
+      }
+    : calculatePurchasePricing({
+        unitPrice: ticketType.price,
+        quantity,
+        discount: couponDiscount
+      });
   const isPaid = pricing.total > 0;
   const { title: ticketTitle } = splitTicketDisplay(
     ticketType.name,
@@ -92,8 +118,8 @@ export function PurchaseCheckoutForm({
         body: JSON.stringify({
           code: couponCode.trim(),
           eventSlug: event.slug,
-          quantity,
-          ticketTypeId: ticketType.id
+          quantity: effectiveQuantity,
+          ticketTypeId: isMultiSeat ? seatLines[0]?.id : ticketType.id
         })
       });
       const data = await res.json();
@@ -149,8 +175,10 @@ export function PurchaseCheckoutForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventSlug: event.slug,
-          quantity,
-          ticketTypeId: ticketType.id,
+          quantity: isMultiSeat ? 1 : quantity,
+          ...(isMultiSeat
+            ? { ticketTypeIds: seatLines.map((tt) => tt.id) }
+            : { ticketTypeId: ticketType.id }),
           attendeeName: attendee.data.attendeeName,
           attendeeEmail: attendee.data.attendeeEmail,
           attendeePhone: attendee.data.attendeePhone,
@@ -368,30 +396,59 @@ export function PurchaseCheckoutForm({
           </div>
           <Separator />
           <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t.purchase.ticketTypeLabel}</span>
-              <span className="font-medium text-right">{ticketTitle}</span>
-            </div>
-            {(ticketType.seatsPerUnit ?? 1) > 1 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">QR / kişi</span>
-                <span className="font-medium">
-                  {(ticketType.seatsPerUnit ?? 1) * quantity} bilet
-                </span>
-              </div>
+            {isMultiSeat ? (
+              <>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Seçili koltuklar
+                </p>
+                <ul className="max-h-40 space-y-1 overflow-y-auto">
+                  {seatLines.map((tt) => {
+                    const { title } = splitTicketDisplay(tt.name, tt.description);
+                    return (
+                      <li key={tt.id} className="flex justify-between gap-2">
+                        <span className="truncate text-muted-foreground">{title}</span>
+                        <span className="shrink-0 font-medium">{formatTry(tt.price)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="flex justify-between pt-1">
+                  <span className="text-muted-foreground">{t.purchase.quantity}</span>
+                  <span className="font-medium">{seatLines.length}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t.purchase.ticketTypeLabel}</span>
+                  <span className="font-medium text-right">{ticketTitle}</span>
+                </div>
+                {(ticketType.seatsPerUnit ?? 1) > 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">QR / kişi</span>
+                    <span className="font-medium">
+                      {(ticketType.seatsPerUnit ?? 1) * quantity} bilet
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t.purchase.quantity}</span>
+                  <span className="font-medium">{quantity}</span>
+                </div>
+              </>
             )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{t.purchase.quantity}</span>
-              <span className="font-medium">{quantity}</span>
-            </div>
           </div>
           <Separator />
-          <PurchasePriceBreakdown
-            unitPrice={ticketType.price}
-            quantity={quantity}
-            discount={couponDiscount}
-            compact
-          />
+          {isMultiSeat ? (
+            <PriceBreakdownRows pricing={pricing} compact />
+          ) : (
+            <PurchasePriceBreakdown
+              unitPrice={ticketType.price}
+              quantity={quantity}
+              discount={couponDiscount}
+              compact
+            />
+          )}
           <Button
             type="submit"
             size="lg"
