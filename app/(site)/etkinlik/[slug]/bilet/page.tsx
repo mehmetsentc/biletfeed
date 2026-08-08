@@ -3,7 +3,6 @@ import { PurchaseEventBar } from '@/components/tickets/purchase/purchase-event-b
 import { TicketTierList } from '@/components/tickets/purchase/ticket-tier-list';
 import { getTicketPurchaseContext } from '@/lib/tickets/purchase-context';
 import { createPageMetadata } from '@/lib/seo/metadata';
-import { cn } from '@/lib/utils';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -53,7 +52,7 @@ export default async function TicketTierPage({ params }: Props) {
         : 'Satın almak istediğiniz bilet türünü seçin.';
 
   return (
-    <div className={cn('pb-10', isSections ? 'bg-[#f4f5f7]' : 'bg-background')}>
+    <div className="bg-background pb-10">
       <PurchaseEventBar event={event} backHref={`/etkinlik/${slug}`} />
       <div className={containerClass}>
         {!isSections && (
@@ -65,7 +64,7 @@ export default async function TicketTierPage({ params }: Props) {
           </header>
         )}
         {isSections && (
-          <p className="mb-3 text-sm text-zinc-500">{subtitle}</p>
+          <p className="mb-3 text-sm text-muted-foreground">{subtitle}</p>
         )}
         <TicketTierList
           eventSlug={slug}

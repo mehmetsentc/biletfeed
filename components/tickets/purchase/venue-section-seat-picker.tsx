@@ -465,15 +465,15 @@ export function VenueSectionSeatPicker({
 
   return (
     <div className="space-y-4">
-      <div className="flex overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="flex overflow-hidden rounded-lg border border-border bg-muted/40 shadow-sm">
         <button
           type="button"
           onClick={() => setMode('map')}
           className={cn(
             'flex-1 px-4 py-3 text-sm font-bold transition-colors',
             mode === 'map'
-              ? 'bg-primary/15 text-[var(--bf-accent-ink)]'
-              : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
           Harita Üzerinden Seçim
@@ -484,8 +484,8 @@ export function VenueSectionSeatPicker({
           className={cn(
             'flex-1 border-l border-border px-4 py-3 text-sm font-bold transition-colors',
             mode === 'auto'
-              ? 'bg-primary/15 text-[var(--bf-accent-ink)]'
-              : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
           Otomatik Seçim
@@ -493,8 +493,8 @@ export function VenueSectionSeatPicker({
       </div>
 
       {mode === 'auto' ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="mb-3 text-sm text-zinc-600">
+        <div className="rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm">
+          <p className="mb-3 text-sm text-muted-foreground">
             Kategori seçerek müsait koltuklardan otomatik atama yapın.
           </p>
           <ul className="space-y-2">
@@ -509,17 +509,19 @@ export function VenueSectionSeatPicker({
                       .find((x) => x?.available);
                     if (cell) toggleSeat(cell);
                   }}
-                  className="flex w-full items-center justify-between rounded-xl border border-zinc-200 px-4 py-3 text-left hover:bg-zinc-50 disabled:opacity-40"
+                  className="flex w-full items-center justify-between rounded-xl border border-border bg-background px-4 py-3 text-left hover:bg-muted/60 disabled:opacity-40"
                 >
                   <span className="flex items-center gap-2">
                     <span
                       className="size-2.5 rounded-full"
                       style={{ backgroundColor: c.accent }}
                     />
-                    <span className="text-sm font-semibold">{c.label}</span>
-                    <span className="text-xs text-zinc-500">{c.available} müsait</span>
+                    <span className="text-sm font-semibold text-foreground">{c.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {c.available} müsait
+                    </span>
                   </span>
-                  <span className="font-bold text-[var(--bf-accent-ink)]">
+                  <span className="font-bold tabular-nums text-foreground">
                     {c.price != null ? formatTry(c.price) : '—'}
                   </span>
                 </button>
@@ -529,18 +531,18 @@ export function VenueSectionSeatPicker({
         </div>
       ) : (
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-4 lg:items-start">
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between gap-2 border-b border-zinc-100 px-3 py-2">
+          <div className="overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
               <button
                 type="button"
                 onClick={() => setActiveZone(null)}
-                className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
               >
                 <span className="flex -space-x-1">
                   {categoryStats.slice(0, 5).map((c) => (
                     <span
                       key={c.code}
-                      className="size-2.5 rounded-full ring-1 ring-white"
+                      className="size-2.5 rounded-full ring-1 ring-background"
                       style={{ backgroundColor: c.accent }}
                     />
                   ))}
@@ -549,20 +551,20 @@ export function VenueSectionSeatPicker({
                   ? `${formatTry(priceRange.min)} – ${formatTry(priceRange.max)}`
                   : 'Kategoriler'}
               </button>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[11px] text-muted-foreground">
                 Yakınlaştırıp koltuk seçin
               </p>
             </div>
 
             <div
               ref={mapViewportRef}
-              className="relative h-[min(64vh,560px)] cursor-grab touch-none overflow-hidden overscroll-none bg-[#f3f5f7] active:cursor-grabbing select-none"
+              className="relative h-[min(64vh,560px)] cursor-grab touch-none overflow-hidden overscroll-none bg-muted active:cursor-grabbing select-none"
               style={{ touchAction: 'none', WebkitUserSelect: 'none' }}
             >
               {/* Zoom toolbar (Biletix: top-left) */}
               <div
                 data-map-chrome
-                className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-zinc-300 bg-white shadow"
+                className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-border bg-card text-card-foreground shadow"
               >
                 <ZoomBtn onClick={() => zoomBy(0.25)} aria-label="Yakınlaştır">
                   <Plus className="size-4" />
@@ -578,7 +580,7 @@ export function VenueSectionSeatPicker({
               {/* Minimap */}
               <div
                 data-map-chrome
-                className="absolute right-3 top-3 z-10 hidden overflow-hidden rounded border border-zinc-300 bg-white/95 shadow sm:block"
+                className="absolute right-3 top-3 z-10 hidden overflow-hidden rounded border border-border bg-card/95 shadow sm:block"
               >
                 <svg
                   width={140}
@@ -707,14 +709,14 @@ export function VenueSectionSeatPicker({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-5 border-t border-zinc-100 px-3 py-2.5 text-[11px] text-zinc-600">
+            <div className="flex flex-wrap items-center justify-center gap-5 border-t border-border px-3 py-2.5 text-[11px] text-muted-foreground">
               <LegendDot color={SELECTED_COLOR} label="Seçili" />
               <LegendDot color={SOLD_COLOR} label="Dolu" />
               <LegendDot color={OTHER_BASKET_COLOR} label="Başka Sepette" />
             </div>
           </div>
 
-          <aside className="mt-4 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:mt-0 lg:h-[min(72vh,640px)]">
+          <aside className="mt-4 flex flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm lg:mt-0 lg:h-[min(72vh,640px)]">
             <div className="border-b border-border border-t-[3px] border-t-primary px-4 py-3">
               <p className="flex items-center gap-2 text-sm font-bold text-foreground">
                 <ShoppingBag className="size-4 text-[var(--bf-accent-ink)]" />
@@ -741,7 +743,7 @@ export function VenueSectionSeatPicker({
                   {selectedSeats.map((s) => (
                     <li
                       key={s.unit.id}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2 text-sm"
+                      className="flex items-center justify-between gap-2 rounded-lg bg-muted/60 px-3 py-2 text-sm text-foreground"
                     >
                       <span className="min-w-0 truncate">
                         <span
@@ -751,12 +753,12 @@ export function VenueSectionSeatPicker({
                         {s.zone.label} · {s.unit.label}
                       </span>
                       <span className="flex shrink-0 items-center gap-1.5">
-                        <span className="font-bold tabular-nums">
+                        <span className="font-bold tabular-nums text-foreground">
                           {formatTry(s.ticket!.price)}
                         </span>
                         <button
                           type="button"
-                          className="rounded p-1 text-zinc-400 hover:bg-zinc-200"
+                          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                           onClick={() =>
                             setSelectedIds((prev) =>
                               prev.filter((id) => id !== s.unit.id)
@@ -772,8 +774,8 @@ export function VenueSectionSeatPicker({
                 </ul>
               )}
 
-              <div className="mt-3 border-t border-zinc-100 px-2 pt-3">
-                <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <div className="mt-3 border-t border-border px-2 pt-3">
+                <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Kategoriler
                 </p>
                 <ul className="space-y-0.5">
@@ -789,8 +791,8 @@ export function VenueSectionSeatPicker({
                         className={cn(
                           'flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm',
                           activeZone === c.code
-                            ? 'bg-primary/15 text-[var(--bf-accent-ink)]'
-                            : 'hover:bg-muted'
+                            ? 'bg-primary/15 text-foreground'
+                            : 'text-foreground hover:bg-muted'
                         )}
                       >
                         <span className="flex min-w-0 items-center gap-2">
@@ -800,7 +802,7 @@ export function VenueSectionSeatPicker({
                           />
                           <span className="truncate font-medium">{c.label}</span>
                         </span>
-                        <span className="shrink-0 font-bold tabular-nums text-[var(--bf-accent-ink)]">
+                        <span className="shrink-0 font-bold tabular-nums text-foreground">
                           {c.price != null ? formatTry(c.price) : '—'}
                         </span>
                       </button>
@@ -810,9 +812,9 @@ export function VenueSectionSeatPicker({
               </div>
             </div>
 
-            <div className="border-t border-zinc-100 p-3">
+            <div className="border-t border-border p-3">
               {selectedSeats.length > 0 && (
-                <p className="mb-2 text-center text-sm font-semibold tabular-nums">
+                <p className="mb-2 text-center text-sm font-semibold tabular-nums text-foreground">
                   {selectedSeats.length} koltuk · {formatTry(total)}
                 </p>
               )}
@@ -831,18 +833,20 @@ export function VenueSectionSeatPicker({
 
       {/* Mobile sticky bar */}
       {selectedSeats.length > 0 && (
-        <div className="sticky bottom-0 z-20 -mx-4 border-t border-zinc-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden">
+        <div className="sticky bottom-0 z-20 -mx-4 border-t border-border bg-card/95 px-4 py-3 text-card-foreground shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur lg:hidden">
           {showDetail && (
-            <ul className="mb-2 max-h-28 space-y-1 overflow-y-auto rounded-xl bg-zinc-50 p-2">
+            <ul className="mb-2 max-h-28 space-y-1 overflow-y-auto rounded-xl bg-muted/60 p-2">
               {selectedSeats.map((s) => (
                 <li
                   key={s.unit.id}
-                  className="flex justify-between gap-2 text-sm"
+                  className="flex justify-between gap-2 text-sm text-foreground"
                 >
                   <span className="truncate">
                     {s.zone.label} · {s.unit.label}
                   </span>
-                  <span className="font-bold">{formatTry(s.ticket!.price)}</span>
+                  <span className="font-bold tabular-nums">
+                    {formatTry(s.ticket!.price)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -851,7 +855,7 @@ export function VenueSectionSeatPicker({
             <div className="min-w-0 flex-1">
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground"
                 onClick={() => setShowDetail((v) => !v)}
               >
                 {selectedSeats.length} koltuk
@@ -859,7 +863,9 @@ export function VenueSectionSeatPicker({
                   className={cn('size-3.5', !showDetail && 'rotate-180')}
                 />
               </button>
-              <p className="text-lg font-extrabold tabular-nums">{formatTry(total)}</p>
+              <p className="text-lg font-extrabold tabular-nums text-foreground">
+                {formatTry(total)}
+              </p>
             </div>
             <Button
               type="button"
@@ -902,7 +908,7 @@ function ZoomBtn({
         e.stopPropagation();
         onClick();
       }}
-      className="flex size-9 touch-manipulation items-center justify-center border-b border-zinc-200 text-zinc-700 last:border-b-0 hover:bg-zinc-50"
+      className="flex size-9 touch-manipulation items-center justify-center border-b border-border text-foreground last:border-b-0 hover:bg-muted"
     >
       {children}
     </button>
