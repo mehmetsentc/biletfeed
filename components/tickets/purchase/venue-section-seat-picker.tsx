@@ -30,7 +30,10 @@ import {
   stagePath,
   type AmphitheaterDot
 } from '@/lib/tickets/amphitheater-layout';
-import { ANTALYA_CATEGORIES } from '@/lib/tickets/antalya-inventory';
+import {
+  ANTALYA_CATEGORIES,
+  isAllocatedSeatId
+} from '@/lib/tickets/antalya-inventory';
 import type { SeatPlan, SeatPlanUnit, SeatPlanZone } from '@/lib/services/organizer-panel';
 import { cn } from '@/lib/utils';
 
@@ -193,23 +196,18 @@ export function VenueSectionSeatPicker({
   }
 
   function dotFill(dot: AmphitheaterDot, selected: boolean): string {
-    if (dot.cat === 'DAVETIYE') return SOLD_COLOR;
+    // Tahsis dışı / davetiye / satılmış → gri (context için haritada kalır)
+    if (dot.cat === 'DAVETIYE' || !isAllocatedSeatId(dot.unitId)) return SOLD_COLOR;
     if (soldSet.has(dot.unitId.toUpperCase())) return SOLD_COLOR;
     const cell = cellsByUnitId.get(dot.unitId.toUpperCase());
-    if (!cell?.ticket) {
-      const catColor = ANTALYA_CATEGORIES[dot.cat]?.color;
-      return catColor && ANTALYA_CATEGORIES[dot.cat]?.sellable
-        ? SOLD_COLOR
-        : SOLD_COLOR;
-    }
-    if (!cell.available) return SOLD_COLOR;
+    if (!cell?.ticket || !cell.available) return SOLD_COLOR;
     if (selected) return SELECTED_COLOR;
     if (activeZone && cell.zone.code !== activeZone) return `${cell.accent}55`;
     return cell.accent;
   }
 
   function isInteractive(dot: AmphitheaterDot): boolean {
-    if (dot.cat === 'DAVETIYE') return false;
+    if (dot.cat === 'DAVETIYE' || !isAllocatedSeatId(dot.unitId)) return false;
     const cell = cellsByUnitId.get(dot.unitId.toUpperCase());
     return Boolean(cell?.ticket && cell.available);
   }
@@ -356,9 +354,9 @@ export function VenueSectionSeatPicker({
                         cy={d.y}
                         r={6}
                         fill={
-                          d.cat === 'DAVETIYE'
-                            ? SOLD_COLOR
-                            : ANTALYA_CATEGORIES[d.cat]?.color ?? SOLD_COLOR
+                          isAllocatedSeatId(d.unitId) && d.cat !== 'DAVETIYE'
+                            ? ANTALYA_CATEGORIES[d.cat]?.color ?? SOLD_COLOR
+                            : SOLD_COLOR
                         }
                       />
                     ))}

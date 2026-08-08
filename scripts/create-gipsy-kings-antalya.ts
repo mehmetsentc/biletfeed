@@ -1,6 +1,6 @@
 /**
  * Gipsy Kings by Andre Reyes — Antalya Açıkhava (30 Ağustos 2026)
- * Biletix GENEL Excel envanteri (3105 satılabilir) + kategori biletleri + kurallar
+ * Organizer allocation: 60 seats (VIP/K1–K5 × 10) — full amphitheater map for context only
  *
  * npx dotenv -e .env.local -- npx tsx scripts/create-gipsy-kings-antalya.ts
  */
@@ -178,7 +178,7 @@ async function main() {
   const endDate = await istanbulDate(2026, 8, 30, 23, 30);
   const flatRules = CUSTOM_RULES.map((r) => `• ${r}`).join('\n');
 
-  // 6 kategori TicketType — Excel FİYAT stokları; koltuk seçimi seat plan unit id ile
+  // 6 kategori TicketType — 10’ar koltuk (60 toplam); seçim seat plan unit id ile
   const ticketCategories = categoryTicketDefs().map((cat) => ({
     name: cat.name,
     description: cat.description,
@@ -213,7 +213,7 @@ async function main() {
         organizerId: organizer.id,
         capacity,
         description:
-          'Antalya Açıkhava — VIP (A–H), Parter 1–3 (A–M), Parter 4–6 (N–Z). Biletix oturma planı referansı.',
+          'Antalya Açıkhava — Gipsy Kings organizatör tahsisi (60 koltuk). VIP E, Parter 1 E, Parter 4 N/V/Z.',
         seatPlan
       }
     });
@@ -228,7 +228,7 @@ async function main() {
         capacity,
         seatPlan,
         description:
-          'Antalya Açıkhava — VIP (A–H), Parter 1–3 (A–M), Parter 4–6 (N–Z). Biletix oturma planı referansı.'
+          'Antalya Açıkhava — Gipsy Kings organizatör tahsisi (60 koltuk). VIP E, Parter 1 E, Parter 4 N/V/Z.'
       }
     });
     console.log('Venue güncellendi:', venue.id, venue.slug);
@@ -403,8 +403,8 @@ async function main() {
     mapImageUrl: plan?.mapImageUrl ?? null,
     rulesCount: CUSTOM_RULES.length,
     gaps: [
-      'Salon davetiyesi (185) satış dışı — haritada gri',
-      '6 kategori TicketType + Excel GENEL koltuk birimleri; checkout seatUnitIds ile',
+      'Amfi haritası tam çizilir; yalnızca 60 tahsisli koltuk seçilebilir',
+      '6 kategori TicketType × 10 kapasite; checkout seatUnitIds ile',
       'Kapak/galeri Firebase yoksa public path üzerinden absolute URL'
     ]
   };

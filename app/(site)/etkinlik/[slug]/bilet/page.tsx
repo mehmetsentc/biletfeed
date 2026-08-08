@@ -49,7 +49,7 @@ export default async function TicketTierPage({ params }: Props) {
     seatPlan?.layout === 'tables'
       ? 'Haritadan masa veya loca seçin. Her birim, kişi sayısı kadar QR bilet üretir.'
       : isSections
-        ? 'Amfiden koltuk seçin. Renkli noktalar müsait kategoriler, gri dolu koltuklardır.'
+        ? 'Amfiden koltuk seçin. Renkli noktalar tahsisli müsait koltuklar; gri noktalar satılamaz.'
         : 'Satın almak istediğiniz bilet türünü seçin.';
 
   return (
