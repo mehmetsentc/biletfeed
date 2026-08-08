@@ -1,12 +1,11 @@
 'use client';
 
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-  type WheelEvent as ReactWheelEvent
+  type ReactNode
 } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -43,6 +42,11 @@ const SELECTED_COLOR = '#16a34a';
 const SELECTED_STROKE = '#15803d';
 const SOLD_COLOR = '#c8ccd1';
 const OTHER_BASKET_COLOR = '#d97706';
+
+const MIN_SCALE = 0.55;
+const MAX_SCALE = 4;
+/** Tap vs pan: below this movement stays a seat tap (px, CSS pixels). */
+const TAP_MOVE_THRESHOLD_PX = 10;
 
 type Props = {
   eventSlug: string;
@@ -81,7 +85,35 @@ export function VenueSectionSeatPicker({
   const [showDetail, setShowDetail] = useState(false);
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const dragRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+
+  const mapViewportRef = useRef<HTMLDivElement>(null);
+  const scaleRef = useRef(scale);
+  const panRef = useRef(pan);
+  const cellsByUnitIdRef = useRef(new Map<string, SeatCell>());
+
+  /** One-finger pan / pending tap (mouse + touch) */
+  const panGestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    panX: number;
+    panY: number;
+    moved: boolean;
+    seatUnitId: string | null;
+  } | null>(null);
+
+  /** Two-finger pinch (touch only — PointerEvents pinch is flaky in iOS WKWebView) */
+  const pinchRef = useRef<{
+    startDistance: number;
+    startScale: number;
+    startPanX: number;
+    startPanY: number;
+    startMidX: number;
+    startMidY: number;
+  } | null>(null);
+
+  scaleRef.current = scale;
+  panRef.current = pan;
 
   const soldSet = useMemo(
     () => new Set(soldSeatIds.map((id) => id.toUpperCase())),
@@ -110,6 +142,8 @@ export function VenueSectionSeatPicker({
     });
     return map;
   }, [zones, ticketTypes, soldSet]);
+
+  cellsByUnitIdRef.current = cellsByUnitId;
 
   const dots = useMemo(() => buildAmphitheaterDots(), []);
 
@@ -164,8 +198,12 @@ export function VenueSectionSeatPicker({
     router.push(`/etkinlik/${eventSlug}/bilet/koltuklar/odeme?seats=${encodeURIComponent(seats)}`);
   }
 
+  function clampScale(value: number) {
+    return Math.min(MAX_SCALE, Math.max(MIN_SCALE, Number(value.toFixed(3))));
+  }
+
   function zoomBy(delta: number) {
-    setScale((s) => Math.min(4, Math.max(0.55, Number((s + delta).toFixed(2)))));
+    setScale((s) => clampScale(s + delta));
   }
 
   function resetView() {
@@ -173,29 +211,230 @@ export function VenueSectionSeatPicker({
     setPan({ x: 0, y: 0 });
   }
 
-  function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-    if ((e.target as HTMLElement).closest('[data-seat]')) return;
-    dragRef.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-    e.currentTarget.setPointerCapture(e.pointerId);
+  function seatUnitIdFromTarget(target: EventTarget | null): string | null {
+    if (!(target instanceof Element)) return null;
+    const seatEl = target.closest('[data-seat-id]');
+    if (!(seatEl instanceof HTMLElement) && !(seatEl instanceof SVGElement)) return null;
+    const id = seatEl.getAttribute('data-seat-id');
+    return id && id.length > 0 ? id : null;
   }
 
-  function onPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
-    const d = dragRef.current;
-    if (!d) return;
-    setPan({
-      x: d.panX + (e.clientX - d.x),
-      y: d.panY + (e.clientY - d.y)
-    });
+  function isUiChromeTarget(target: EventTarget | null): boolean {
+    return target instanceof Element && Boolean(target.closest('[data-map-chrome]'));
   }
 
-  function onPointerUp() {
-    dragRef.current = null;
+  function applySeatTap(unitId: string | null) {
+    if (!unitId) return;
+    const cell = cellsByUnitIdRef.current.get(unitId.toUpperCase());
+    if (cell) toggleSeat(cell);
   }
 
-  function onWheel(e: ReactWheelEvent<HTMLDivElement>) {
-    e.preventDefault();
-    zoomBy(e.deltaY > 0 ? -0.12 : 0.12);
+  function touchDistance(a: Touch, b: Touch) {
+    return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
   }
+
+  function touchMidpoint(a: Touch, b: Touch) {
+    return {
+      x: (a.clientX + b.clientX) / 2,
+      y: (a.clientY + b.clientY) / 2
+    };
+  }
+
+  /**
+   * Map gestures for mobile Safari / Capacitor WKWebView:
+   * - touch-action: none blocks page scroll & native pinch on the viewport
+   * - non-passive touchmove + preventDefault as a belt-and-suspenders for rubber-band scroll
+   * - pinch via TouchEvent (2 fingers); one-finger pan after a move threshold
+   * - seat tap only when movement stays under the threshold
+   */
+  useEffect(() => {
+    const el = mapViewportRef.current;
+    if (!el) return;
+
+    const endPanGesture = (commitTap: boolean) => {
+      const g = panGestureRef.current;
+      panGestureRef.current = null;
+      if (commitTap && g && !g.moved) {
+        applySeatTap(g.seatUnitId);
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (isUiChromeTarget(e.target)) return;
+
+      if (e.touches.length >= 2) {
+        // Block Safari/Capacitor from hijacking the pinch as page zoom.
+        e.preventDefault();
+        const a = e.touches[0]!;
+        const b = e.touches[1]!;
+        const mid = touchMidpoint(a, b);
+        panGestureRef.current = null;
+        pinchRef.current = {
+          startDistance: Math.max(1, touchDistance(a, b)),
+          startScale: scaleRef.current,
+          startPanX: panRef.current.x,
+          startPanY: panRef.current.y,
+          startMidX: mid.x,
+          startMidY: mid.y
+        };
+        return;
+      }
+
+      if (e.touches.length === 1 && !pinchRef.current) {
+        const t = e.touches[0]!;
+        panGestureRef.current = {
+          pointerId: t.identifier,
+          startX: t.clientX,
+          startY: t.clientY,
+          panX: panRef.current.x,
+          panY: panRef.current.y,
+          moved: false,
+          seatUnitId: seatUnitIdFromTarget(e.target)
+        };
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (isUiChromeTarget(e.target) && !panGestureRef.current && !pinchRef.current) {
+        return;
+      }
+
+      if (e.touches.length >= 2 && pinchRef.current) {
+        e.preventDefault();
+        const a = e.touches[0]!;
+        const b = e.touches[1]!;
+        const pinch = pinchRef.current;
+        const dist = Math.max(1, touchDistance(a, b));
+        const nextScale = clampScale(pinch.startScale * (dist / pinch.startDistance));
+        const mid = touchMidpoint(a, b);
+        // Scale about transform-origin (center); also follow two-finger midpoint for pan.
+        const nextPan = {
+          x: pinch.startPanX + (mid.x - pinch.startMidX),
+          y: pinch.startPanY + (mid.y - pinch.startMidY)
+        };
+        scaleRef.current = nextScale;
+        panRef.current = nextPan;
+        setScale(nextScale);
+        setPan(nextPan);
+        return;
+      }
+
+      const g = panGestureRef.current;
+      if (!g || e.touches.length !== 1) return;
+
+      e.preventDefault();
+      const t = e.touches[0]!;
+      const dx = t.clientX - g.startX;
+      const dy = t.clientY - g.startY;
+      if (!g.moved && Math.hypot(dx, dy) >= TAP_MOVE_THRESHOLD_PX) {
+        g.moved = true;
+      }
+      if (!g.moved) return;
+      const nextPan = { x: g.panX + dx, y: g.panY + dy };
+      panRef.current = nextPan;
+      setPan(nextPan);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length >= 2) return;
+
+      if (e.touches.length === 1 && pinchRef.current) {
+        // Pinch ended → continue as one-finger pan from remaining finger.
+        pinchRef.current = null;
+        const t = e.touches[0]!;
+        panGestureRef.current = {
+          pointerId: t.identifier,
+          startX: t.clientX,
+          startY: t.clientY,
+          panX: panRef.current.x,
+          panY: panRef.current.y,
+          moved: true,
+          seatUnitId: null
+        };
+        return;
+      }
+
+      if (e.touches.length === 0) {
+        const wasPinch = Boolean(pinchRef.current);
+        pinchRef.current = null;
+        endPanGesture(!wasPinch);
+      }
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      // Touch gestures are owned by TouchEvent handlers (iOS pinch + scroll lock).
+      if (e.pointerType === 'touch') return;
+      if (isUiChromeTarget(e.target)) return;
+      if (e.button !== 0) return;
+
+      panGestureRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        panX: panRef.current.x,
+        panY: panRef.current.y,
+        moved: false,
+        seatUnitId: seatUnitIdFromTarget(e.target)
+      };
+      el.setPointerCapture(e.pointerId);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      const g = panGestureRef.current;
+      if (!g || g.pointerId !== e.pointerId) return;
+      const dx = e.clientX - g.startX;
+      const dy = e.clientY - g.startY;
+      if (!g.moved && Math.hypot(dx, dy) >= TAP_MOVE_THRESHOLD_PX) {
+        g.moved = true;
+      }
+      if (!g.moved) return;
+      const nextPan = { x: g.panX + dx, y: g.panY + dy };
+      panRef.current = nextPan;
+      setPan(nextPan);
+    };
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return;
+      const g = panGestureRef.current;
+      if (!g || g.pointerId !== e.pointerId) return;
+      endPanGesture(true);
+      if (el.hasPointerCapture(e.pointerId)) {
+        el.releasePointerCapture(e.pointerId);
+      }
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const next = clampScale(scaleRef.current + (e.deltaY > 0 ? -0.12 : 0.12));
+      scaleRef.current = next;
+      setScale(next);
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('pointermove', onPointerMove);
+    el.addEventListener('pointerup', onPointerUp);
+    el.addEventListener('pointercancel', onPointerUp);
+    el.addEventListener('wheel', onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('pointermove', onPointerMove);
+      el.removeEventListener('pointerup', onPointerUp);
+      el.removeEventListener('pointercancel', onPointerUp);
+      el.removeEventListener('wheel', onWheel);
+      panGestureRef.current = null;
+      pinchRef.current = null;
+    };
+  }, [mode]);
 
   function dotFill(dot: AmphitheaterDot, selected: boolean): string {
     // Tahsis dışı / davetiye / satılmış → gri (context için haritada kalır)
@@ -316,15 +555,15 @@ export function VenueSectionSeatPicker({
             </div>
 
             <div
-              className="relative h-[min(64vh,560px)] cursor-grab touch-none overflow-hidden bg-[#f3f5f7] active:cursor-grabbing"
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-              onWheel={onWheel}
+              ref={mapViewportRef}
+              className="relative h-[min(64vh,560px)] cursor-grab touch-none overflow-hidden overscroll-none bg-[#f3f5f7] active:cursor-grabbing select-none"
+              style={{ touchAction: 'none', WebkitUserSelect: 'none' }}
             >
               {/* Zoom toolbar (Biletix: top-left) */}
-              <div className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-zinc-300 bg-white shadow">
+              <div
+                data-map-chrome
+                className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-zinc-300 bg-white shadow"
+              >
                 <ZoomBtn onClick={() => zoomBy(0.25)} aria-label="Yakınlaştır">
                   <Plus className="size-4" />
                 </ZoomBtn>
@@ -337,7 +576,10 @@ export function VenueSectionSeatPicker({
               </div>
 
               {/* Minimap */}
-              <div className="absolute right-3 top-3 z-10 hidden overflow-hidden rounded border border-zinc-300 bg-white/95 shadow sm:block">
+              <div
+                data-map-chrome
+                className="absolute right-3 top-3 z-10 hidden overflow-hidden rounded border border-zinc-300 bg-white/95 shadow sm:block"
+              >
                 <svg
                   width={140}
                   height={100}
@@ -420,6 +662,7 @@ export function VenueSectionSeatPicker({
                       <g key={dot.key}>
                         <circle
                           data-seat={interactive ? '1' : undefined}
+                          data-seat-id={interactive ? dot.unitId : undefined}
                           cx={dot.x}
                           cy={dot.y}
                           r={selected ? dot.r + 1.4 : dot.r}
@@ -430,11 +673,6 @@ export function VenueSectionSeatPicker({
                           style={
                             interactive ? undefined : { pointerEvents: 'none' }
                           }
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const cell = cellsByUnitId.get(dot.unitId.toUpperCase());
-                            if (cell) toggleSeat(cell);
-                          }}
                         >
                           {interactive && (
                             <title>
@@ -664,7 +902,7 @@ function ZoomBtn({
         e.stopPropagation();
         onClick();
       }}
-      className="flex size-9 items-center justify-center border-b border-zinc-200 text-zinc-700 last:border-b-0 hover:bg-zinc-50"
+      className="flex size-9 touch-manipulation items-center justify-center border-b border-zinc-200 text-zinc-700 last:border-b-0 hover:bg-zinc-50"
     >
       {children}
     </button>
