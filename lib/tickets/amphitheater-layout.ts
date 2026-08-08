@@ -1,118 +1,62 @@
 /**
- * Antalya Açıkhava tarzı amfi geometrisi (bubilet kroki referansı).
- * Sahne üstte; ön: P3 | VIP | P1; arka: P6 | P5 | P4.
- * Satılık envanter: VIP / P1 / P4 unit id’leri; diğer noktalar dolu (gri).
+ * Antalya Açıkhava amfi geometrisi — Excel GENEL satır/koltuk envanterinden.
+ * Sahne üstte; VIP → A–M → N–Z7 sırasıyla açılır.
  */
+
+import { getAntyaRows, type InventorySeat } from '@/lib/tickets/antalya-inventory';
 
 export type AmphitheaterDot = {
   key: string;
   x: number;
   y: number;
   r: number;
-  section: string;
   row: string;
   seat: number;
-  /** Envanter unit id — örn. P1-E11, VIP-E3, P4-N16; filler için null */
-  unitId: string | null;
+  unitId: string;
+  cat: string;
 };
 
-export const AMPHITHEATER_VB = { w: 1000, h: 720, cx: 500, cy: 40 } as const;
+export const AMPHITHEATER_VB = { w: 1200, h: 900, cx: 600, cy: 48 } as const;
 
-type Wedge = {
-  section: string;
-  prefix: string;
-  sellable: boolean;
-  a0: number;
-  a1: number;
-  rows: string[];
-  /** radius start/end for this wedge’s rows */
-  r0: number;
-  r1: number;
-  seatsForRow: (rowIndex: number) => number;
-};
-
-const FRONT_ROWS = 'ABCDEFGHIJKLM'.split('');
-const VIP_ROWS = 'ABCDEFGH'.split('');
-const REAR_ROWS = 'NOPQRSTUVWXYZ'.split('');
-
-const WEDGES: Wedge[] = [
-  {
-    section: 'Parter 3',
-    prefix: 'P3',
-    sellable: false,
-    a0: 0.2 * Math.PI,
-    a1: 0.38 * Math.PI,
-    rows: FRONT_ROWS,
-    r0: 100,
-    r1: 275,
-    seatsForRow: (i) => 11 + Math.floor(i * 0.4)
-  },
-  {
-    section: 'VIP',
-    prefix: 'VIP',
-    sellable: true,
-    a0: 0.4 * Math.PI,
-    a1: 0.6 * Math.PI,
-    rows: VIP_ROWS,
-    r0: 95,
-    r1: 210,
-    seatsForRow: () => 14
-  },
-  {
-    section: 'Parter 2',
-    prefix: 'P2',
-    sellable: false,
-    a0: 0.4 * Math.PI,
-    a1: 0.6 * Math.PI,
-    rows: 'IJKLM'.split(''),
-    r0: 225,
-    r1: 275,
-    seatsForRow: (i) => 16 + i
-  },
-  {
-    section: 'Parter 1',
-    prefix: 'P1',
-    sellable: true,
-    a0: 0.62 * Math.PI,
-    a1: 0.8 * Math.PI,
-    rows: FRONT_ROWS,
-    r0: 100,
-    r1: 275,
-    seatsForRow: (i) => 22 + Math.floor(i * 0.3) // E satırı ≥ 20
-  },
-  {
-    section: 'Parter 6',
-    prefix: 'P6',
-    sellable: false,
-    a0: 0.18 * Math.PI,
-    a1: 0.4 * Math.PI,
-    rows: REAR_ROWS,
-    r0: 300,
-    r1: 530,
-    seatsForRow: (i) => 14 + Math.floor(i * 0.5)
-  },
-  {
-    section: 'Parter 5',
-    prefix: 'P5',
-    sellable: false,
-    a0: 0.42 * Math.PI,
-    a1: 0.58 * Math.PI,
-    rows: REAR_ROWS,
-    r0: 300,
-    r1: 530,
-    seatsForRow: (i) => 16 + Math.floor(i * 0.55)
-  },
-  {
-    section: 'Parter 4',
-    prefix: 'P4',
-    sellable: true,
-    a0: 0.6 * Math.PI,
-    a1: 0.82 * Math.PI,
-    rows: REAR_ROWS,
-    r0: 300,
-    r1: 530,
-    seatsForRow: (i) => 28 + Math.floor(i * 0.4) // N satırı ≥ 25
-  }
+const ROW_ORDER = [
+  'VIP A',
+  'VIP B',
+  'VIP C',
+  'VIP D',
+  'VIP E',
+  'VIP F',
+  'VIP G',
+  'VIP H',
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'Y',
+  'Z',
+  'Z1',
+  'Z2',
+  'Z3',
+  'Z4',
+  'Z5',
+  'Z6',
+  'Z7'
 ];
 
 function lerp(a: number, b: number, t: number) {
@@ -121,46 +65,55 @@ function lerp(a: number, b: number, t: number) {
 
 export function buildAmphitheaterDots(): AmphitheaterDot[] {
   const { cx, cy } = AMPHITHEATER_VB;
+  const byRow = new Map(getAntyaRows().map((r) => [r.row, r.seats]));
   const dots: AmphitheaterDot[] = [];
+  const totalRows = ROW_ORDER.length;
 
-  for (const w of WEDGES) {
-    const n = w.rows.length;
-    w.rows.forEach((row, ri) => {
-      const t = n === 1 ? 0 : ri / (n - 1);
-      const radius = lerp(w.r0, w.r1, t);
-      const seatCount = w.seatsForRow(ri);
-      const rDot = w.r0 < 280 ? 4.1 : 3.6;
+  ROW_ORDER.forEach((rowLabel, ri) => {
+    const seats = byRow.get(rowLabel);
+    if (!seats?.length) return;
 
-      for (let s = 1; s <= seatCount; s++) {
-        const u = seatCount === 1 ? 0.5 : (s - 1) / (seatCount - 1);
-        const angle = lerp(w.a0, w.a1, u);
-        const x = cx + radius * Math.cos(angle);
-        const y = cy + radius * Math.sin(angle);
-        const unitId = w.sellable ? `${w.prefix}-${row}${s}` : null;
+    const t = totalRows === 1 ? 0 : ri / (totalRows - 1);
+    const radius = lerp(88, 780, t);
+    const isVip = rowLabel.startsWith('VIP');
+    // VIP daha dar yay; arka sıralar daha geniş
+    const halfSpan = lerp(0.22, 0.78, t) * Math.PI * (isVip ? 0.55 : 1);
+    const a0 = Math.PI / 2 - halfSpan;
+    const a1 = Math.PI / 2 + halfSpan;
+    const rDot = lerp(5.2, 2.6, t);
 
-        dots.push({
-          key: `${w.prefix}-${row}${s}`,
-          x,
-          y,
-          r: rDot,
-          section: w.section,
-          row,
-          seat: s,
-          unitId
-        });
-      }
-    });
-  }
+    const sorted = [...seats].sort((a, b) => a.n - b.n);
+    const maxN = sorted[sorted.length - 1]!.n;
+    const minN = sorted[0]!.n;
+
+    for (const s of sorted) {
+      const u =
+        maxN === minN ? 0.5 : (s.n - minN) / (maxN - minN);
+      // Excel’de yüksek numara solda görünüyor — yayda tersle
+      const angle = lerp(a1, a0, u);
+      dots.push({
+        key: s.id,
+        x: cx + radius * Math.cos(angle),
+        y: cy + radius * Math.sin(angle),
+        r: rDot,
+        row: rowLabel,
+        seat: s.n,
+        unitId: s.id,
+        cat: s.cat
+      });
+    }
+  });
 
   return dots;
 }
 
 export function stagePath(): string {
   const { cx } = AMPHITHEATER_VB;
-  return `M ${cx - 200} 6 Q ${cx} 48 ${cx + 200} 6 L ${cx + 178} 26 Q ${cx} 64 ${cx - 178} 26 Z`;
+  return `M ${cx - 240} 8 Q ${cx} 56 ${cx + 240} 8 L ${cx + 210} 30 Q ${cx} 74 ${cx - 210} 30 Z`;
 }
 
-/** Teknik kabin (referans krokideki gri kutu) */
 export function boothRect() {
-  return { x: 455, y: 395, w: 90, h: 36 };
+  return { x: 555, y: 455, w: 90, h: 34 };
 }
+
+export type { InventorySeat };

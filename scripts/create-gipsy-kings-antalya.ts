@@ -1,6 +1,6 @@
 /**
  * Gipsy Kings by Andre Reyes — Antalya Açıkhava (30 Ağustos 2026)
- * 60 koltuk tahsisi + seat plan zones + kurallar + kapak/galeri
+ * Biletix GENEL Excel envanteri (3105 satılabilir) + kategori biletleri + kurallar
  *
  * npx dotenv -e .env.local -- npx tsx scripts/create-gipsy-kings-antalya.ts
  */
@@ -10,6 +10,11 @@ import { uniqueSlug } from '../lib/utils/slug';
 import { createOrganizerEvent } from '../lib/services/organizer-events';
 import { approveInternalEvent } from '../lib/services/event-approvals';
 import { saveEventRuleSet } from '../lib/services/event-rules-persist';
+import {
+  buildAntyaSeatPlan,
+  categoryTicketDefs,
+  ANTALYA_STOCK
+} from '../lib/tickets/antalya-inventory';
 import type { SeatPlan } from '../lib/services/organizer-panel';
 import {
   isFirebaseStorageUploadConfigured,
@@ -20,24 +25,14 @@ import {
 const TITLE = 'Gipsy Kings by Andre Reyes';
 const COVER_PUBLIC = '/events/gipsy-kings-andre-reyes-2026-cover.png';
 const STAGE_PUBLIC = '/events/gipsy-kings-andre-reyes-2026-stage.png';
-const MAP_PUBLIC = '/venues/antalya-acikhava-oturma-plani.png';
+const MAP_PUBLIC = '/venues/antalya-acikhava-koltuk-noktalari.png';
 
 const COVER_ASSET =
   '/Users/user/.cursor/projects/Users-user-Documents-platforms-main/assets/image-c8ad457b-1bb1-41ce-9fb3-fa4c34025e63.png';
 const STAGE_ASSET =
   '/Users/user/.cursor/projects/Users-user-Documents-platforms-main/assets/image-c952756e-dea6-4417-a3a3-ae4a1252f7b0.png';
 const MAP_ASSET =
-  '/Users/user/.cursor/projects/Users-user-Documents-platforms-main/assets/image-66648249-66e9-490b-9d9d-5656d075bbe3.png';
-
-/** Bubilet kategori fiyatları (TRY). VIP sidebar'da yok → placeholder. */
-const PRICES = {
-  k5: 1500,
-  k4: 2000,
-  k3: 2500,
-  k2: 3000,
-  k1: 3500,
-  vip: 4500
-} as const;
+  '/Users/user/.cursor/projects/Users-user-Documents-platforms-main/assets/image-61b5de50-412b-444d-8677-1a17d5dc63e1.png';
 
 const DESCRIPTION = `EFSANEVİ GIPSY KINGS BY ANDRÉ REYES, 30 AĞUSTOS'TA ANTALYA AÇIKHAVA TİYATROSU'NDA!
 Flamenko, Latin ve Akdeniz ezgilerini tüm dünyaya taşıyan efsanevi topluluk Gipsy Kings by André Reyes, unutulmaz bir yaz gecesi için Antalya'ya geliyor.
@@ -77,129 +72,6 @@ const CUSTOM_RULES = [
   'Etkinliğe katılan kişilerin fotoğraf ve video çekimlerinin tanıtım materyallerinde kullanım hakkı etkinlik organizasyonuna ait olup katılımcı etkinliğe katılarak bu hakkın kullanılmasını kabul etmektedir.',
   'Profesyonel olmayan cihazlarla, katılımcıları ve sanatçıları rahatsız edecek ve özel hayat gizliliğini ihlal edecek çekim yapılmamasına özen gösterilmelidir.'
 ];
-
-type Allocation = {
-  zoneCode: string;
-  zoneLabel: string;
-  color: string;
-  section: string;
-  row: string;
-  seats: number[];
-  ticketName: string;
-  price: number;
-  ticketType: 'vip' | 'general';
-};
-
-function range(from: number, to: number): number[] {
-  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-}
-
-const ALLOCATIONS: Allocation[] = [
-  {
-    zoneCode: 'P1K4',
-    zoneLabel: 'Parter 1 · 4. Kategori',
-    color: '#4caf50',
-    section: 'Parter 1',
-    row: 'E',
-    seats: range(1, 10),
-    ticketName: '4. Kategori — Parter 1 E1–10',
-    price: PRICES.k4,
-    ticketType: 'general'
-  },
-  {
-    zoneCode: 'P1K1',
-    zoneLabel: 'Parter 1 · 1. Kategori',
-    color: '#00897b',
-    section: 'Parter 1',
-    row: 'E',
-    seats: range(11, 20),
-    ticketName: '1. Kategori — Parter 1 E11–20',
-    price: PRICES.k1,
-    ticketType: 'general'
-  },
-  {
-    zoneCode: 'P4K2',
-    zoneLabel: 'Parter 4 · 2. Kategori',
-    color: '#e53935',
-    section: 'Parter 4',
-    row: 'N',
-    seats: range(16, 25),
-    ticketName: '2. Kategori — Parter 4 N16–25',
-    price: PRICES.k2,
-    ticketType: 'general'
-  },
-  {
-    zoneCode: 'P4K3',
-    zoneLabel: 'Parter 4 · 3. Kategori',
-    color: '#1e88e5',
-    section: 'Parter 4',
-    row: 'V',
-    seats: range(1, 10),
-    ticketName: '3. Kategori — Parter 4 V1–10',
-    price: PRICES.k3,
-    ticketType: 'general'
-  },
-  {
-    zoneCode: 'P4K5',
-    zoneLabel: 'Parter 4 · 5. Kategori',
-    color: '#ec407a',
-    section: 'Parter 4',
-    row: 'Z',
-    seats: range(1, 10),
-    ticketName: '5. Kategori — Parter 4 Z1–10',
-    price: PRICES.k5,
-    ticketType: 'general'
-  },
-  {
-    zoneCode: 'VIP',
-    zoneLabel: 'VIP',
-    color: '#f5c518',
-    section: 'VIP',
-    row: 'E',
-    seats: range(1, 10),
-    ticketName: 'VIP — VIP E1–10',
-    price: PRICES.vip,
-    ticketType: 'vip'
-  }
-];
-
-function seatId(section: string, row: string, seat: number): string {
-  const prefix =
-    section === 'VIP' ? 'VIP' : section === 'Parter 1' ? 'P1' : section === 'Parter 4' ? 'P4' : 'X';
-  return `${prefix}-${row}${seat}`;
-}
-
-function buildSeatPlan(mapImageUrl: string): SeatPlan {
-  const zones = ALLOCATIONS.map((a) => ({
-    code: a.zoneCode,
-    label: a.zoneLabel,
-    seatsPerUnit: 1,
-    color: a.color,
-    units: a.seats.map((n) => {
-      const id = seatId(a.section, a.row, n);
-      const category = a.ticketName.split('—')[0]?.trim() || a.zoneLabel;
-      return {
-        id,
-        label: `${a.row}${n}`,
-        ticketTypeHint: `${category} · ${id}`
-      };
-    })
-  }));
-
-  const totalSeats = zones.reduce((sum, z) => sum + z.units.length, 0);
-
-  return {
-    layout: 'sections',
-    sections: [
-      { name: 'VIP (A–H)', capacity: 10 },
-      { name: 'Parter 1–3 (A–M)', capacity: 20 },
-      { name: 'Parter 4–6 (N–Z)', capacity: 30 }
-    ],
-    zones,
-    mapImageUrl,
-    notes: `Antalya Açıkhava — organizatör envanteri ${totalSeats} koltuk. Biletix planı: VIP A–H; Parter1–3 A–M; Parter4–6 N–Z.`
-  };
-}
 
 function absoluteUrl(publicPath: string): string {
   const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://biletfeed.com').replace(/\/$/, '');
@@ -300,26 +172,21 @@ async function main() {
   if (!stageUrl.startsWith('http')) stageUrl = absoluteUrl(STAGE_PUBLIC);
   if (!mapUrl.startsWith('http')) mapUrl = absoluteUrl(MAP_PUBLIC);
 
-  const seatPlan = buildSeatPlan(mapUrl);
-  const capacity = ALLOCATIONS.reduce((s, a) => s + a.seats.length, 0);
+  const seatPlan = buildAntyaSeatPlan(mapUrl);
+  const capacity = Object.values(ANTALYA_STOCK).reduce((s, n) => s + n, 0);
   const startDate = await istanbulDate(2026, 8, 30, 21, 0);
   const endDate = await istanbulDate(2026, 8, 30, 23, 30);
   const flatRules = CUSTOM_RULES.map((r) => `• ${r}`).join('\n');
 
-  // Her koltuk ayrı TicketType (capacity:1) — kroki üzerinden seçim + satılmış işaretleme
-  const ticketCategories = ALLOCATIONS.flatMap((a) => {
-    const category = a.ticketName.split('—')[0]?.trim() || a.zoneLabel;
-    return a.seats.map((n) => {
-      const id = seatId(a.section, a.row, n);
-      return {
-        name: `${category} · ${id}`,
-        description: `${a.section} · Sıra ${a.row} · Koltuk ${n}`,
-        price: a.price,
-        capacity: 1,
-        seatsPerUnit: 1
-      };
-    });
-  });
+  // 6 kategori TicketType — Excel FİYAT stokları; koltuk seçimi seat plan unit id ile
+  const ticketCategories = categoryTicketDefs().map((cat) => ({
+    name: cat.name,
+    description: cat.description,
+    price: cat.price,
+    capacity: cat.capacity,
+    seatsPerUnit: 1,
+    type: cat.type
+  }));
 
   // Venue with seat plan
   let venue = await prisma.venue.findFirst({
@@ -386,7 +253,7 @@ async function main() {
         eventId: existing.id,
         name: cat.name,
         description: cat.description,
-        type: cat.name.toLowerCase().includes('vip') ? ('vip' as const) : ('general' as const),
+        type: cat.type,
         price: cat.price,
         currency: 'TRY' as const,
         quantity: cat.capacity,
@@ -415,7 +282,7 @@ async function main() {
         endDate,
         eventType: 'concert',
         isFree: false,
-        basePrice: PRICES.k5,
+        basePrice: 1500,
         capacity,
         listingType: 'internal',
         rules: flatRules,
@@ -443,7 +310,7 @@ async function main() {
       startDate,
       endDate,
       isFree: false,
-      price: PRICES.k5,
+      price: 1500,
       capacity,
       coverImage: coverUrl,
       gallery: [stageUrl],
@@ -536,8 +403,8 @@ async function main() {
     mapImageUrl: plan?.mapImageUrl ?? null,
     rulesCount: CUSTOM_RULES.length,
     gaps: [
-      'VIP fiyatı Bubilet sidebar’da yoktu → 4500 TRY placeholder',
-      'Her koltuk ayrı TicketType (capacity:1); UI VenueSectionSeatPicker ile seçilir',
+      'Salon davetiyesi (185) satış dışı — haritada gri',
+      '6 kategori TicketType + Excel GENEL koltuk birimleri; checkout seatUnitIds ile',
       'Kapak/galeri Firebase yoksa public path üzerinden absolute URL'
     ]
   };

@@ -39,6 +39,8 @@ interface PurchaseCheckoutFormProps {
   quantity: number;
   /** Çoklu koltuk — verilirse her biri qty=1; ticketType/quantity yerine kullanılır */
   seatTicketTypes?: CheckoutTicketType[];
+  /** Kategori biletlerinde seçilen koltuk unit id’leri */
+  seatUnitIds?: string[];
   rulesDisplay?: EventRulesDisplayData | null;
 }
 
@@ -47,6 +49,7 @@ export function PurchaseCheckoutForm({
   ticketType,
   quantity,
   seatTicketTypes,
+  seatUnitIds,
   rulesDisplay
 }: PurchaseCheckoutFormProps) {
   const t = useTranslations();
@@ -177,7 +180,12 @@ export function PurchaseCheckoutForm({
           eventSlug: event.slug,
           quantity: isMultiSeat ? 1 : quantity,
           ...(isMultiSeat
-            ? { ticketTypeIds: seatLines.map((tt) => tt.id) }
+            ? {
+                ticketTypeIds: seatLines.map((tt) => tt.id),
+                ...(seatUnitIds && seatUnitIds.length > 0
+                  ? { seatUnitIds }
+                  : {})
+              }
             : { ticketTypeId: ticketType.id }),
           attendeeName: attendee.data.attendeeName,
           attendeeEmail: attendee.data.attendeeEmail,

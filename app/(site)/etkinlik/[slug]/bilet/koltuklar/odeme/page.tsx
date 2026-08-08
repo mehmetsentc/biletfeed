@@ -4,8 +4,10 @@ import { PurchaseCheckoutForm } from '@/components/tickets/purchase/purchase-che
 import { getTicketPurchaseContext } from '@/lib/tickets/purchase-context';
 import {
   findTicketType,
-  ticketTypeAvailable
+  ticketTypeAvailable,
+  type CheckoutTicketType
 } from '@/lib/tickets/purchase-types';
+import { matchTicketTypeToSeatUnit } from '@/lib/tickets/seat-packages';
 import { getEventRulesDisplay } from '@/lib/services/event-rules-display';
 import { resolveLocaleFromCookie } from '@/lib/event-rules/i18n';
 import { createPageMetadata } from '@/lib/seo/metadata';
@@ -13,7 +15,7 @@ import { cookies } from 'next/headers';
 
 interface Props {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ids?: string }>;
+  searchParams: Promise<{ ids?: string; seats?: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -28,7 +30,7 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function MultiSeatCheckoutPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { ids: idsRaw } = await searchParams;
+  const { ids: idsRaw, seats: seatsRaw } = await searchParams;
   const ctx = await getTicketPurchaseContext(slug);
   if (!ctx) notFound();
 
@@ -36,30 +38,68 @@ export default async function MultiSeatCheckoutPage({ params, searchParams }: Pr
     redirect(ctx.event.externalUrl);
   }
 
+  const seatUnitIds = (seatsRaw ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   const ids = (idsRaw ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
 
-  if (ids.length === 0) {
+  type SeatLine = CheckoutTicketType & { seatUnitId?: string };
+
+  let seats: SeatLine[] = [];
+
+  if (seatUnitIds.length > 0) {
+    const zones = ctx.seatPlan?.zones ?? [];
+    const allUnits = zones.flatMap((z) =>
+      z.units.map((u) => ({ unit: u, zone: z }))
+    );
+    const resolved: SeatLine[] = [];
+    for (const seatId of seatUnitIds) {
+      const found = allUnits.find(
+        (x) => x.unit.id.toUpperCase() === seatId.toUpperCase()
+      );
+      if (!found) {
+        redirect(`/etkinlik/${slug}/bilet`);
+      }
+      const tt = matchTicketTypeToSeatUnit(
+        found.unit.id,
+        found.unit.ticketTypeHint,
+        ctx.ticketTypes
+      );
+      if (!tt || !ticketTypeAvailable(tt)) {
+        redirect(`/etkinlik/${slug}/bilet`);
+      }
+      resolved.push({
+        ...tt,
+        seatUnitId: found.unit.id,
+        name: `${tt.name} · ${found.unit.label}`
+      });
+    }
+    seats = resolved;
+  } else if (ids.length > 0) {
+    if (ids.length === 1) {
+      redirect(`/etkinlik/${slug}/bilet/${ids[0]}/odeme?adet=1`);
+    }
+    const mapped = ids.map((id) => {
+      const tt = findTicketType(ctx.ticketTypes, id);
+      if (!tt || !ticketTypeAvailable(tt)) return null;
+      return tt;
+    });
+    if (mapped.some((tt) => tt == null)) {
+      redirect(`/etkinlik/${slug}/bilet`);
+    }
+    seats = mapped as SeatLine[];
+  } else {
     redirect(`/etkinlik/${slug}/bilet`);
   }
 
-  if (ids.length === 1) {
-    redirect(`/etkinlik/${slug}/bilet/${ids[0]}/odeme?adet=1`);
+  if (seats.length === 1 && !seats[0]!.seatUnitId) {
+    redirect(`/etkinlik/${slug}/bilet/${seats[0]!.id}/odeme?adet=1`);
   }
-
-  const seatTicketTypes = ids.map((id) => {
-    const tt = findTicketType(ctx.ticketTypes, id);
-    if (!tt || !ticketTypeAvailable(tt)) return null;
-    return tt;
-  });
-
-  if (seatTicketTypes.some((tt) => tt == null)) {
-    redirect(`/etkinlik/${slug}/bilet`);
-  }
-
-  const seats = seatTicketTypes as NonNullable<(typeof seatTicketTypes)[number]>[];
 
   const cookieStore = await cookies();
   const locale = resolveLocaleFromCookie(cookieStore.get('bf-locale')?.value);
@@ -82,6 +122,7 @@ export default async function MultiSeatCheckoutPage({ params, searchParams }: Pr
           ticketType={seats[0]!}
           quantity={1}
           seatTicketTypes={seats}
+          seatUnitIds={seats.map((s) => s.seatUnitId).filter((id): id is string => Boolean(id))}
           rulesDisplay={rulesDisplay}
         />
       </div>

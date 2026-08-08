@@ -28,7 +28,7 @@ export default async function TicketTierPage({ params }: Props) {
     redirect(ctx.event.externalUrl);
   }
 
-  const { event, ticketTypes, seatPlan } = ctx;
+  const { event, ticketTypes, seatPlan, soldSeatIds } = ctx;
 
   const isSeatMapLayout =
     seatPlan?.layout === 'tables' || seatPlan?.layout === 'sections';
@@ -71,6 +71,7 @@ export default async function TicketTierPage({ params }: Props) {
           eventSlug={slug}
           ticketTypes={ticketTypes}
           seatPlan={seatPlan}
+          soldSeatIds={soldSeatIds}
         />
       </div>
     </div>

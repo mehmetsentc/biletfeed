@@ -1,8 +1,8 @@
 /** Masa/loca paket bileti yardımcıları */
 
 const UNIT_CODE_RE = /\b([SBMPT])\s*[-.]?\s*(\d+)\b/i;
-/** Sections layout: P1-E11, P4-N16, VIP-E1 */
-const SECTION_SEAT_RE = /\b((?:VIP|P\d+)-[A-Z]\d{1,3})\b/i;
+/** Sections layout: VIP-E11, A-12, Z3-5, P1-E11 */
+const SECTION_SEAT_RE = /\b((?:VIP-[A-H]|Z\d|[A-Z]|P\d+-[A-Z])\d{1,3}|(?:VIP-[A-H]|Z\d|[A-Z])-\d{1,3})\b/i;
 
 export function parseSeatUnitCode(name: string): string | null {
   const match = name.match(UNIT_CODE_RE);

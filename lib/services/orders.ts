@@ -62,6 +62,8 @@ type CheckoutLineItem = {
   name: string;
   unitPrice: number;
   quantity: number;
+  /** Kategori biletinde seçilen koltuk unit id’leri */
+  seatUnitIds?: string[];
 };
 
 async function loadEventForCheckout(eventSlug: string) {
@@ -92,6 +94,7 @@ async function loadCheckoutContext(params: {
   quantity: number;
   ticketTypeId?: string;
   ticketTypeIds?: string[];
+  seatUnitIds?: string[];
 }) {
   await ensureDbConnection();
 
@@ -103,10 +106,73 @@ async function loadCheckoutContext(params: {
   const event = await loadEventForCheckout(params.eventSlug);
 
   const multiIds = params.ticketTypeIds?.filter(Boolean) ?? [];
+  const seatUnitIds = params.seatUnitIds?.filter(Boolean) ?? [];
   if (multiIds.length > 0) {
     if (multiIds.length > 10) {
       throw new Error('En fazla 10 koltuk seçebilirsiniz');
     }
+
+    // seatUnitIds ile kategori biletleri: aynı ticketType birden fazla olabilir
+    if (seatUnitIds.length > 0) {
+      if (seatUnitIds.length !== multiIds.length) {
+        throw new Error('Koltuk ve bilet eşlemesi uyuşmuyor');
+      }
+      const uniqueSeats = [...new Set(seatUnitIds.map((s) => s.toUpperCase()))];
+      if (uniqueSeats.length !== seatUnitIds.length) {
+        throw new Error('Aynı koltuk birden fazla seçilemez');
+      }
+
+      const grouped = new Map<
+        string,
+        { tt: (typeof event.ticketTypes)[number]; seats: string[]; qty: number }
+      >();
+      for (let i = 0; i < multiIds.length; i++) {
+        const id = multiIds[i]!;
+        const seat = seatUnitIds[i]!;
+        const tt = event.ticketTypes.find((t) => t.id === id);
+        if (!tt) throw new Error('Seçilen koltuklardan biri bulunamadı');
+        const g = grouped.get(id);
+        if (g) {
+          g.qty += 1;
+          g.seats.push(seat);
+        } else {
+          grouped.set(id, { tt, seats: [seat], qty: 1 });
+        }
+      }
+
+      const lines: CheckoutLineItem[] = [];
+      for (const g of grouped.values()) {
+        if (g.tt.sold + g.qty > g.tt.capacity) {
+          throw new Error(`"${g.tt.name}" için yeterli bilet kalmadı`);
+        }
+        lines.push({
+          ticketTypeId: g.tt.id,
+          name: g.tt.name,
+          unitPrice: g.tt.price,
+          quantity: g.qty,
+          seatUnitIds: g.seats
+        });
+      }
+
+      const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+      const commissionRate = await resolveOrganizerCommissionRate(
+        event.organizer.commissionRate
+      );
+      const commission = calculateOrderCommission(subtotal, commissionRate);
+      const primary = event.ticketTypes.find((t) => t.id === lines[0]!.ticketTypeId)!;
+      const qty = lines.reduce((n, l) => n + l.quantity, 0);
+
+      return {
+        user,
+        event,
+        ticketType: primary,
+        lines,
+        qty,
+        subtotal,
+        commission
+      };
+    }
+
     const unique = [...new Set(multiIds)];
     if (unique.length !== multiIds.length) {
       throw new Error('Aynı koltuk birden fazla seçilemez');
@@ -205,6 +271,8 @@ export async function createCheckout(params: {
   ticketTypeId?: string;
   /** Çoklu koltuk seçimi — her id için quantity=1 OrderItem */
   ticketTypeIds?: string[];
+  /** Kategori biletlerinde seçilen koltuk unit id’leri (ticketTypeIds ile paralel) */
+  seatUnitIds?: string[];
   attendeeName: string;
   attendeeEmail: string;
   attendeePhone: string;
@@ -226,8 +294,13 @@ export async function createCheckout(params: {
     eventSlug: params.eventSlug,
     quantity: params.quantity,
     ticketTypeId: params.ticketTypeId,
-    ticketTypeIds: params.ticketTypeIds
+    ticketTypeIds: params.ticketTypeIds,
+    seatUnitIds: params.seatUnitIds
   });
+
+  const flatSeatIds = lines.flatMap((l) => l.seatUnitIds ?? []);
+  const seatsRef =
+    flatSeatIds.length > 0 ? `seats:${flatSeatIds.join(',')}` : null;
 
   let discount = 0;
   let appliedCouponId: string | undefined;
@@ -325,7 +398,8 @@ export async function createCheckout(params: {
       organizerId: event.organizerId,
       amount: subtotal,
       status: 'pending',
-      provider: providerName
+      provider: providerName,
+      providerRef: seatsRef
     }
   });
 
@@ -444,7 +518,8 @@ async function fulfillFreeOrder(params: {
         quantity: line.quantity,
         attendeeName: params.attendeeName,
         attendeeEmail: params.attendeeEmail,
-        attendeePhone: params.attendeePhone
+        attendeePhone: params.attendeePhone,
+        seatUnitIds: line.seatUnitIds
       });
     }
 
@@ -488,6 +563,7 @@ async function issueTickets(
     attendeeName?: string | null;
     attendeeEmail?: string | null;
     attendeePhone?: string | null;
+    seatUnitIds?: string[];
   }
 ): Promise<void> {
   const ticketType = await tx.ticketType.findUnique({
@@ -510,12 +586,15 @@ async function issueTickets(
     throw new Error('Yeterli bilet kalmadı');
   }
 
-  const seatUnitId = parseSectionSeatUnitId(ticketType.name);
+  const seatUnitIdFromName = parseSectionSeatUnitId(ticketType.name);
+  const seatIds = params.seatUnitIds ?? [];
 
   for (let i = 0; i < qrCount; i++) {
     const ticketId = newTicketId();
+    const seatFromList = seatIds[i] ?? seatIds[Math.floor(i / seatsPerUnit)];
+    const seatUnitId = seatFromList ?? seatUnitIdFromName;
     const seatLabel =
-      seatsPerUnit > 1
+      seatsPerUnit > 1 && !seatUnitId
         ? ` (${i + 1}/${qrCount})`
         : seatUnitId
           ? ` · ${seatUnitId}`
@@ -532,7 +611,9 @@ async function issueTickets(
         status: 'VALID',
         attendeeName: params.attendeeName
           ? `${params.attendeeName}${seatLabel}`
-          : null,
+          : seatUnitId
+            ? seatUnitId
+            : null,
         attendeeEmail: params.attendeeEmail ?? null,
         attendeePhone: params.attendeePhone ?? null
       }
@@ -589,7 +670,22 @@ export async function fulfillPaidOrder(params: {
     }
 
     let ticketCount = 0;
+    const seatTxn = await tx.transaction.findFirst({
+      where: { orderId: order.id, deletedAt: null },
+      orderBy: { createdAt: 'asc' }
+    });
+    const allSeats =
+      seatTxn?.providerRef?.startsWith('seats:')
+        ? seatTxn.providerRef.slice(6).split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+    let seatCursor = 0;
+
     for (const item of order.items) {
+      const seatUnitIds =
+        allSeats.length > 0
+          ? allSeats.slice(seatCursor, seatCursor + item.quantity)
+          : undefined;
+      seatCursor += item.quantity;
       await issueTickets(tx, {
         orderId: order.id,
         userId: order.userId,
@@ -598,7 +694,8 @@ export async function fulfillPaidOrder(params: {
         quantity: item.quantity,
         attendeeName: order.attendeeName,
         attendeeEmail: order.attendeeEmail,
-        attendeePhone: order.attendeePhone
+        attendeePhone: order.attendeePhone,
+        seatUnitIds
       });
       ticketCount += item.quantity;
     }

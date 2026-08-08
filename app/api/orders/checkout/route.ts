@@ -12,6 +12,7 @@ const bodySchema = checkoutAttendeeSchema.extend({
   quantity: z.number().int().min(1).max(10).default(1),
   ticketTypeId: z.string().uuid().optional(),
   ticketTypeIds: z.array(z.string().uuid()).min(1).max(10).optional(),
+  seatUnitIds: z.array(z.string().min(1).max(24)).min(1).max(10).optional(),
   couponCode: z.string().max(50).optional(),
   billing: checkoutBillingSchema.optional()
 });
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
       quantity: parsed.data.quantity,
       ticketTypeId: parsed.data.ticketTypeId,
       ticketTypeIds: parsed.data.ticketTypeIds,
+      seatUnitIds: parsed.data.seatUnitIds,
       attendeeName: parsed.data.attendeeName,
       attendeeEmail: parsed.data.attendeeEmail,
       attendeePhone: parsed.data.attendeePhone,

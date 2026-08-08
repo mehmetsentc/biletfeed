@@ -19,6 +19,7 @@ interface TicketTierListProps {
   eventSlug: string;
   ticketTypes: CheckoutTicketType[];
   seatPlan?: SeatPlan | null;
+  soldSeatIds?: string[];
   className?: string;
 }
 
@@ -26,6 +27,7 @@ export async function TicketTierList({
   eventSlug,
   ticketTypes,
   seatPlan,
+  soldSeatIds,
   className
 }: TicketTierListProps) {
   const { t } = await getServerTranslations();
@@ -72,6 +74,7 @@ export async function TicketTierList({
           eventSlug={eventSlug}
           ticketTypes={ticketTypes}
           seatPlan={seatPlan}
+          soldSeatIds={soldSeatIds}
         />
       </div>
     );
