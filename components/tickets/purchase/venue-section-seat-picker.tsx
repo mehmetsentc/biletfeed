@@ -38,10 +38,11 @@ import type { SeatPlan, SeatPlanUnit, SeatPlanZone } from '@/lib/services/organi
 import { cn } from '@/lib/utils';
 
 const MAX_SEATS = 10;
-const SELECTED_COLOR = '#1b9e5a';
+/** Seçili koltuk — marka success (haritada kategori renklerinden ayrışır) */
+const SELECTED_COLOR = '#16a34a';
+const SELECTED_STROKE = '#15803d';
 const SOLD_COLOR = '#c8ccd1';
-const BILETIX_BLUE = '#0072ce';
-const BILETIX_BLUE_DARK = '#005a9e';
+const OTHER_BASKET_COLOR = '#d97706';
 
 type Props = {
   eventSlug: string;
@@ -61,7 +62,8 @@ type SeatCell = {
 
 function zoneAccent(zone: SeatPlanZone, index: number): string {
   if (zone.color) return zone.color;
-  const palette = ['#f5c518', '#26a69a', '#e53935', '#5c6bc0', '#8d6e63', '#ec407a'];
+  // Warm, map-readable accents (no cool blues)
+  const palette = ['#f5c518', '#26a69a', '#e53935', '#e67e22', '#8d6e63', '#ec407a'];
   return palette[index % palette.length]!;
 }
 
@@ -224,16 +226,15 @@ export function VenueSectionSeatPicker({
 
   return (
     <div className="space-y-4">
-      {/* Biletix-style tabs */}
-      <div className="flex overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
+      <div className="flex overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         <button
           type="button"
           onClick={() => setMode('map')}
           className={cn(
             'flex-1 px-4 py-3 text-sm font-bold transition-colors',
             mode === 'map'
-              ? 'bg-[#d6ebf9] text-[#005a9e]'
-              : 'bg-white text-[#0072ce] hover:bg-zinc-50'
+              ? 'bg-primary/15 text-[var(--bf-accent-ink)]'
+              : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
           Harita Üzerinden Seçim
@@ -242,10 +243,10 @@ export function VenueSectionSeatPicker({
           type="button"
           onClick={() => setMode('auto')}
           className={cn(
-            'flex-1 border-l border-zinc-200 px-4 py-3 text-sm font-bold transition-colors',
+            'flex-1 border-l border-border px-4 py-3 text-sm font-bold transition-colors',
             mode === 'auto'
-              ? 'bg-[#d6ebf9] text-[#005a9e]'
-              : 'bg-white text-[#0072ce] hover:bg-zinc-50'
+              ? 'bg-primary/15 text-[var(--bf-accent-ink)]'
+              : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
           Otomatik Seçim
@@ -279,7 +280,7 @@ export function VenueSectionSeatPicker({
                     <span className="text-sm font-semibold">{c.label}</span>
                     <span className="text-xs text-zinc-500">{c.available} müsait</span>
                   </span>
-                  <span className="font-bold" style={{ color: BILETIX_BLUE }}>
+                  <span className="font-bold text-[var(--bf-accent-ink)]">
                     {c.price != null ? formatTry(c.price) : '—'}
                   </span>
                 </button>
@@ -366,7 +367,7 @@ export function VenueSectionSeatPicker({
                     width={viewW}
                     height={viewH}
                     fill="none"
-                    stroke="#f5a623"
+                    stroke="var(--bf-neon)"
                     strokeWidth={14}
                   />
                 </svg>
@@ -423,7 +424,7 @@ export function VenueSectionSeatPicker({
                           cy={dot.y}
                           r={selected ? dot.r + 1.4 : dot.r}
                           fill={fill}
-                          stroke={selected ? '#0d7a3e' : 'transparent'}
+                          stroke={selected ? SELECTED_STROKE : 'transparent'}
                           strokeWidth={selected ? 1.4 : 0}
                           className={interactive ? 'cursor-pointer' : undefined}
                           style={
@@ -469,20 +470,16 @@ export function VenueSectionSeatPicker({
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-5 border-t border-zinc-100 px-3 py-2.5 text-[11px] text-zinc-600">
-              <LegendDot color={SELECTED_COLOR} label="Seçildi" />
+              <LegendDot color={SELECTED_COLOR} label="Seçili" />
               <LegendDot color={SOLD_COLOR} label="Dolu" />
-              <LegendDot color="#ff9800" label="Başka Sepette" />
+              <LegendDot color={OTHER_BASKET_COLOR} label="Başka Sepette" />
             </div>
           </div>
 
-          {/* Right cart / categories — Biletix sidebar */}
-          <aside className="mt-4 flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm lg:mt-0 lg:h-[min(72vh,640px)]">
-            <div
-              className="border-b px-4 py-3"
-              style={{ borderTop: `3px solid ${BILETIX_BLUE}` }}
-            >
-              <p className="flex items-center gap-2 text-sm font-bold text-zinc-900">
-                <ShoppingBag className="size-4" style={{ color: BILETIX_BLUE }} />
+          <aside className="mt-4 flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:mt-0 lg:h-[min(72vh,640px)]">
+            <div className="border-b border-border border-t-[3px] border-t-primary px-4 py-3">
+              <p className="flex items-center gap-2 text-sm font-bold text-foreground">
+                <ShoppingBag className="size-4 text-[var(--bf-accent-ink)]" />
                 Sepet
               </p>
             </div>
@@ -490,13 +487,12 @@ export function VenueSectionSeatPicker({
             <div className="flex-1 overflow-y-auto px-2 py-2">
               {selectedSeats.length === 0 ? (
                 <div className="px-3 py-8 text-center">
-                  <p className="text-sm text-zinc-600">
+                  <p className="text-sm text-muted-foreground">
                     Henüz bilet seçmediniz. Hemen bilet seçebilirsiniz.
                   </p>
                   <Button
                     type="button"
-                    className="mt-4 rounded-lg font-bold text-white"
-                    style={{ backgroundColor: BILETIX_BLUE }}
+                    className="mt-4 rounded-lg font-bold"
                     onClick={() => setMode('map')}
                   >
                     Bilet Bul
@@ -554,7 +550,9 @@ export function VenueSectionSeatPicker({
                         }
                         className={cn(
                           'flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm',
-                          activeZone === c.code ? 'bg-[#d6ebf9]' : 'hover:bg-zinc-50'
+                          activeZone === c.code
+                            ? 'bg-primary/15 text-[var(--bf-accent-ink)]'
+                            : 'hover:bg-muted'
                         )}
                       >
                         <span className="flex min-w-0 items-center gap-2">
@@ -564,10 +562,7 @@ export function VenueSectionSeatPicker({
                           />
                           <span className="truncate font-medium">{c.label}</span>
                         </span>
-                        <span
-                          className="shrink-0 font-bold tabular-nums"
-                          style={{ color: BILETIX_BLUE }}
-                        >
+                        <span className="shrink-0 font-bold tabular-nums text-[var(--bf-accent-ink)]">
                           {c.price != null ? formatTry(c.price) : '—'}
                         </span>
                       </button>
@@ -586,8 +581,7 @@ export function VenueSectionSeatPicker({
               <Button
                 type="button"
                 disabled={selectedSeats.length === 0}
-                className="h-12 w-full rounded-lg text-base font-bold text-white"
-                style={{ backgroundColor: BILETIX_BLUE_DARK }}
+                className="h-12 w-full rounded-lg text-base font-bold"
                 onClick={goCheckout}
               >
                 Ödemeye Geç
@@ -631,8 +625,7 @@ export function VenueSectionSeatPicker({
             </div>
             <Button
               type="button"
-              className="h-12 rounded-xl px-5 font-bold text-white"
-              style={{ backgroundColor: BILETIX_BLUE_DARK }}
+              className="h-12 rounded-xl px-5 font-bold"
               onClick={goCheckout}
             >
               <Ticket className="size-4" />
