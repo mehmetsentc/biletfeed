@@ -3,6 +3,7 @@ import { PurchaseEventBar } from '@/components/tickets/purchase/purchase-event-b
 import { TicketTierList } from '@/components/tickets/purchase/ticket-tier-list';
 import { getTicketPurchaseContext } from '@/lib/tickets/purchase-context';
 import { createPageMetadata } from '@/lib/seo/metadata';
+import { cn } from '@/lib/utils';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -36,28 +37,36 @@ export default async function TicketTierPage({ params }: Props) {
     redirect(`/etkinlik/${slug}/bilet/${ticketTypes[0].id}`);
   }
 
-  const containerClass =
-    seatPlan?.layout === 'sections'
+  const isSections = seatPlan?.layout === 'sections';
+
+  const containerClass = isSections
+    ? 'container mx-auto max-w-6xl px-4 py-4 md:py-6'
+    : seatPlan?.layout === 'tables'
       ? 'container mx-auto max-w-4xl px-4 py-6 md:py-8'
       : 'container mx-auto max-w-3xl px-4 py-6 md:py-8';
 
   const subtitle =
     seatPlan?.layout === 'tables'
       ? 'Haritadan masa veya loca seçin. Her birim, kişi sayısı kadar QR bilet üretir.'
-      : seatPlan?.layout === 'sections'
-        ? 'Krokiden koltuk seçin; seçtiğiniz koltuklar sepete eklenir.'
+      : isSections
+        ? 'Amfiden koltuk seçin. Renkli noktalar müsait kategoriler, gri dolu koltuklardır.'
         : 'Satın almak istediğiniz bilet türünü seçin.';
 
   return (
-    <div className="bg-background pb-10">
+    <div className={cn('pb-10', isSections ? 'bg-[#f4f5f7]' : 'bg-background')}>
       <PurchaseEventBar event={event} backHref={`/etkinlik/${slug}`} />
       <div className={containerClass}>
-        <header className="mb-6 text-foreground">
-          <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            {seatPlan?.layout === 'sections' ? 'Koltuk Seçin' : 'Bilet Seçin'}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-        </header>
+        {!isSections && (
+          <header className="mb-6 text-foreground">
+            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
+              Bilet Seçin
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+          </header>
+        )}
+        {isSections && (
+          <p className="mb-3 text-sm text-zinc-500">{subtitle}</p>
+        )}
         <TicketTierList
           eventSlug={slug}
           ticketTypes={ticketTypes}
