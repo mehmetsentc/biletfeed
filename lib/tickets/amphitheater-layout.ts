@@ -69,15 +69,23 @@ export function buildAmphitheaterDots(): AmphitheaterDot[] {
   const dots: AmphitheaterDot[] = [];
   const totalRows = ROW_ORDER.length;
 
+  // halfSpan ≤ ~0.48π and radius ≤ (cx-pad)/sin(halfSpanMax) keep every
+  // seat inside the viewBox below the stage. Wider arcs (old 0.78π × r≈780)
+  // put Parter 4 V/Z seats 1–10 at y<0 — K3/K5 invisible on the map.
+  const pad = 18;
+  const halfSpanMax = Math.PI * 0.48;
+  const radiusMax = (cx - pad) / Math.sin(halfSpanMax) - 4;
+
   ROW_ORDER.forEach((rowLabel, ri) => {
     const seats = byRow.get(rowLabel);
     if (!seats?.length) return;
 
     const t = totalRows === 1 ? 0 : ri / (totalRows - 1);
-    const radius = lerp(88, 780, t);
+    const radius = lerp(88, radiusMax, t);
     const isVip = rowLabel.startsWith('VIP');
-    // VIP daha dar yay; arka sıralar daha geniş
-    const halfSpan = lerp(0.22, 0.78, t) * Math.PI * (isVip ? 0.55 : 1);
+    // VIP daha dar yay; arka sıralar daha geniş (viewBox içinde)
+    const halfSpan =
+      lerp(0.22, 0.48, t) * Math.PI * (isVip ? 0.55 : 1);
     const a0 = Math.PI / 2 - halfSpan;
     const a1 = Math.PI / 2 + halfSpan;
     const rDot = lerp(5.2, 2.6, t);
