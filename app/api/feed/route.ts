@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const q = searchParams.get('q');
   if (q) {
-    const posts = await searchFeedPosts(q);
+    const categorySlug = searchParams.get('category') || undefined;
+    const posts = await searchFeedPosts(q, { categorySlug, limit: 24 });
     return NextResponse.json({ posts, nextCursor: null });
   }
 

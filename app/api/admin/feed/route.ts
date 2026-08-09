@@ -8,7 +8,8 @@ import {
   createManualAdminFeedPost,
   bulkDeleteFeedPosts,
   bulkUnfeatureFeedPosts,
-  pullCoverFromSource
+  pullCoverFromSource,
+  generateBrandedCoverForPost
 } from '@/lib/services/feed';
 import {
   listEditorialQueue,
@@ -167,6 +168,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       fetched: true,
+      coverImage: result.coverImage,
+      message: result.message
+    });
+  }
+
+  if (action === 'generate-branded-cover') {
+    const postId = (json as { postId?: string }).postId;
+    if (!postId || !z.string().uuid().safeParse(postId).success) {
+      return NextResponse.json({ error: 'postId gerekli' }, { status: 400 });
+    }
+    const result = await generateBrandedCoverForPost(postId, { force: true });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.message, generated: false }, { status: 422 });
+    }
+    return NextResponse.json({
+      success: true,
+      generated: true,
       coverImage: result.coverImage,
       message: result.message
     });

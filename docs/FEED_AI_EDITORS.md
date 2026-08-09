@@ -113,6 +113,12 @@ Feed magazine + AI editör programı FAZ 5 ile kapanır; aşağıdaki opsiyonel 
 
 Üç ürünleştirme adımı (FAZ 1–5 / cover-assist sonrası):
 
-1. **Auto cover on ingest** — `createFeedPostFromDraft` / admin update: `sourceUrl` var ve kapak eksikse `maybeAutoCoverOnIngest` → `pullCoverFromSource` (`normalizeCoverImageUrl`). Editorial kuyruk artık ayrı OG fetch yapmaz (tek yol). Cooldown: `aiMetadata.lastCoverFetchAt` + `FEED_COVER_AUTO_FETCH_COOLDOWN_MS` (6s). Fail soft → `review`, placeholder yok; yayın kapısı aynı. Admin “Kaynaktan kapak” `force: true` ile cooldown’u aşar.
+1. **Auto cover on ingest** — `createFeedPostFromDraft` / admin update: `sourceUrl` var ve kapak eksikse `maybeAutoCoverOnIngest` → `pullCoverFromSource` (`normalizeCoverImageUrl`). Editorial kuyruk artık ayrı OG fetch yapmaz (tek yol). Cooldown: `aiMetadata.lastCoverFetchAt` + `FEED_COVER_AUTO_FETCH_COOLDOWN_MS` (6 saat). Fail soft → `review`, placeholder yok; yayın kapısı aynı. Admin “Kaynaktan kapak” `force: true` ile cooldown’u aşar.
 2. **İlgili hikâyeler** — `/feed/[slug]` footer: 3 kart; önce aynı `feedCategoryId`, sonra aynı `contentType`, kalanı kapaklı güncel yayınlar. UI: `FeedMagazineCard` `size="small"`.
 3. **Admin analytics strip** — `/admin/feed` üstü: mevcut sayaçlara ek top 5 `viewCount` + top 5 `ctaClickCount` (`getFeedAdminStats`). BI stack yok.
+
+## Sonraki faz — Marka kapak + arama + paylaşım
+
+1. **Marka kapak (OG son çare)** — `lib/feed/branded-cover.ts` Sharp SVG → WebP (1200×630, koyu `#0c1017` + başlık + kategori vurgu). Yükleme: `uploadAdminImage('feed', …)`. Servis: `generateBrandedCoverForPost`. Ingest: `maybeAutoCoverOnIngest` önce OG, başarısızsa (cooldown değilse) marka kapak. Admin: **“Marka kapak üret”** → `POST /api/admin/feed` `{ action: "generate-branded-cover", postId }` (`force: true`). `isMissingFeedCoverImage` / yayın kapısı aynı; `og-default` / logo / Unsplash fallback “gerçek kapak” sayılmaz.
+2. **Feed arama** — `/feed` üstü debounced arama (`FeedSearchInput` → `GET /api/feed?q=&category=`). `searchFeedPosts` title/summary/tags/artistName; kategori chip ile birlikte çalışır.
+3. **Paylaşım** — `FeedShareButton`: WhatsApp, X, link kopyala; mobilde Web Share API varsa “Cihazda paylaş”.

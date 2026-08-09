@@ -4,7 +4,17 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AlertTriangle, Download, ImagePlus, Loader2, Plus, Sparkles, Trash2, Video } from 'lucide-react';
+import {
+  AlertTriangle,
+  Download,
+  ImagePlus,
+  Loader2,
+  Palette,
+  Plus,
+  Sparkles,
+  Trash2,
+  Video
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -186,6 +196,34 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     }
   }
 
+  async function generateBrandedCover() {
+    if (props.mode !== 'edit') return;
+    setUploading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate-branded-cover', postId: props.post.id })
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        coverImage?: string;
+        generated?: boolean;
+      };
+      if (!res.ok || !data.generated || !data.coverImage) {
+        throw new Error(
+          data.error ?? 'Marka kapak üretilemedi. Manuel kapak ekleyin; kapaksız yayınlanamaz.'
+        );
+      }
+      setForm((f) => ({ ...f, coverImage: data.coverImage! }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Marka kapak üretilemedi');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function uploadGalleryFile(file: File) {
     setUploading(true);
     setError(null);
@@ -354,6 +392,8 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     props.mode === 'edit' &&
     missingCover &&
     Boolean(props.post.sourceUrl?.trim());
+  const canBrandedCover =
+    props.mode === 'edit' && missingCover && Boolean(form.title.trim());
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -543,6 +583,22 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
                     <Download className="mr-2 size-4" />
                   )}
                   Kaynaktan kapak çek
+                </Button>
+              )}
+              {canBrandedCover && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={uploading}
+                  onClick={() => void generateBrandedCover()}
+                  title="Koyu BiletFeed marka kapağı üret"
+                >
+                  {uploading ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <Palette className="mr-2 size-4" />
+                  )}
+                  Marka kapak üret
                 </Button>
               )}
             </div>

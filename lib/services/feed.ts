@@ -17,7 +17,9 @@ import { applyCitySoftBoost } from '@/lib/feed/ranking';
 import { sanitizeFeedTags } from '@/lib/feed/tags';
 import { scoreFeedContentQuality } from '@/lib/feed/quality';
 import { fetchOgImage } from '@/lib/feed/discovery/og-image';
+import { generateAndUploadBrandedFeedCover } from '@/lib/feed/branded-cover';
 import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
+import { isFirebaseStorageUploadConfigured } from '@/lib/firebase/admin-storage';
 
 /** Kategori chip filtresi: atanmış kategori VEYA eşleşen contentType. */
 function categoryFilterWhere(categorySlug: string): Prisma.FeedPostWhereInput {
@@ -464,6 +466,10 @@ export async function recordFeedCtaClick(postId: string): Promise<void> {
 
 export type PullCoverFromSourceResult =
   | { ok: true; coverImage: string; message: string }
+  | { ok: false; message: string; reason?: 'not_found' | 'cooldown' | 'no_source' | 'missing_post' | 'normalize_failed' };
+
+export type BrandedCoverResult =
+  | { ok: true; coverImage: string; message: string }
   | { ok: false; message: string };
 
 function readAiMetadata(value: unknown): Record<string, unknown> {
@@ -506,10 +512,10 @@ export async function pullCoverFromSource(
     select: { id: true, sourceUrl: true, coverImage: true, aiMetadata: true }
   });
   if (!post) {
-    return { ok: false, message: 'Haber bulunamadı' };
+    return { ok: false, message: 'Haber bulunamadı', reason: 'missing_post' };
   }
   if (!post.sourceUrl?.trim()) {
-    return { ok: false, message: 'Kaynak URL yok — kapak çekilemez.' };
+    return { ok: false, message: 'Kaynak URL yok — kapak çekilemez.', reason: 'no_source' };
   }
 
   if (!force && !isMissingFeedCoverImage(post.coverImage)) {
@@ -523,7 +529,8 @@ export async function pullCoverFromSource(
     if (Number.isFinite(lastMs) && Date.now() - lastMs < FEED_COVER_AUTO_FETCH_COOLDOWN_MS) {
       return {
         ok: false,
-        message: 'Kapak yakın zamanda denenmiş; tekrar için bekleyin veya manuel çekin.'
+        message: 'Kapak yakın zamanda denenmiş; tekrar için bekleyin veya manuel çekin.',
+        reason: 'cooldown'
       };
     }
   }
@@ -531,7 +538,11 @@ export async function pullCoverFromSource(
   const raw = await fetchOgImage(post.sourceUrl);
   if (!raw) {
     await stampCoverFetchAttempt(post.id, meta, { lastCoverFetchOk: false });
-    return { ok: false, message: FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE };
+    return {
+      ok: false,
+      message: FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE,
+      reason: 'not_found'
+    };
   }
 
   const normalized = await normalizeCoverImageUrl(raw, post.sourceUrl);
@@ -539,7 +550,8 @@ export async function pullCoverFromSource(
     await stampCoverFetchAttempt(post.id, meta, { lastCoverFetchOk: false });
     return {
       ok: false,
-      message: 'Kapak adresi alındı ama işlenemedi. Manuel kapak ekleyin; kapaksız yayınlanamaz.'
+      message: 'Kapak adresi alındı ama işlenemedi. Manuel kapak ekleyin; kapaksız yayınlanamaz.',
+      reason: 'normalize_failed'
     };
   }
 
@@ -559,11 +571,80 @@ export async function pullCoverFromSource(
 }
 
 /**
- * Ingest sonrası yumuşak kapak denemesi — hata fırlatmaz, yayınlamaz, placeholder yazmaz.
+ * OG yoksa / başarısızsa Sharp ile marka kapağı üretir, Firebase’e yükler.
+ * Placeholder / og-default yazmaz — yalnızca storage URL. Yayın kapısı aynı.
+ */
+export async function generateBrandedCoverForPost(
+  postId: string,
+  options?: { force?: boolean }
+): Promise<BrandedCoverResult> {
+  await ensureDbConnection();
+  const force = options?.force === true;
+  const post = await prisma.feedPost.findFirst({
+    where: { id: postId, deletedAt: null },
+    select: {
+      id: true,
+      title: true,
+      coverImage: true,
+      contentType: true,
+      aiMetadata: true,
+      feedCategory: { select: { slug: true } }
+    }
+  });
+  if (!post) {
+    return { ok: false, message: 'Haber bulunamadı' };
+  }
+  if (!force && !isMissingFeedCoverImage(post.coverImage)) {
+    return { ok: true, coverImage: post.coverImage, message: 'Kapak zaten mevcut.' };
+  }
+  if (!post.title.trim()) {
+    return { ok: false, message: 'Başlık yok — marka kapak üretilemez.' };
+  }
+  if (!isFirebaseStorageUploadConfigured()) {
+    return { ok: false, message: 'Storage yapılandırılmamış — marka kapak yüklenemez.' };
+  }
+
+  const url = await generateAndUploadBrandedFeedCover({
+    title: post.title,
+    categorySlug: post.feedCategory?.slug ?? null,
+    contentType: post.contentType
+  });
+  if (!url || isMissingFeedCoverImage(url)) {
+    return {
+      ok: false,
+      message: 'Marka kapak üretilemedi. Manuel kapak ekleyin; kapaksız yayınlanamaz.'
+    };
+  }
+
+  const meta = readAiMetadata(post.aiMetadata);
+  await prisma.feedPost.update({
+    where: { id: post.id },
+    data: {
+      coverImage: url,
+      aiMetadata: {
+        ...meta,
+        lastCoverFetchAt: new Date().toISOString(),
+        lastCoverFetchOk: true,
+        brandedCoverAt: new Date().toISOString(),
+        coverSource: 'branded'
+      } as Prisma.InputJsonValue
+    }
+  });
+
+  return { ok: true, coverImage: url, message: 'Marka kapak üretildi ve kaydedildi.' };
+}
+
+/**
+ * Ingest sonrası yumuşak kapak denemesi — OG, sonra marka kapak (son çare).
+ * Hata fırlatmaz, yayınlamaz, placeholder yazmaz.
  */
 export async function maybeAutoCoverOnIngest(postId: string): Promise<void> {
   try {
-    await pullCoverFromSource(postId, { force: false });
+    const pulled = await pullCoverFromSource(postId, { force: false });
+    if (pulled.ok && !isMissingFeedCoverImage(pulled.coverImage)) return;
+    if (pulled.ok === false && pulled.reason === 'cooldown') return;
+
+    await generateBrandedCoverForPost(postId, { force: false });
   } catch {
     // Fail soft: incelemede kalır
   }
@@ -617,17 +698,23 @@ export async function toggleFeedBookmark(postId: string, userId: string): Promis
   return { bookmarked: true };
 }
 
-export async function searchFeedPosts(query: string, limit = 12): Promise<FeedPostCard[]> {
+export async function searchFeedPosts(
+  query: string,
+  options?: { limit?: number; categorySlug?: string }
+): Promise<FeedPostCard[]> {
   if (!isDatabaseConfigured()) return [];
 
   try {
     await ensureDbConnection();
     const q = query.trim();
     if (!q) return [];
+    const limit = options?.limit ?? 12;
+    const categorySlug = options?.categorySlug?.trim() || undefined;
 
     const rows = await prisma.feedPost.findMany({
       where: {
         ...publishedWithImageWhere(),
+        ...(categorySlug ? categoryFilterWhere(categorySlug) : {}),
         OR: [
           { title: { contains: q, mode: 'insensitive' } },
           { summary: { contains: q, mode: 'insensitive' } },

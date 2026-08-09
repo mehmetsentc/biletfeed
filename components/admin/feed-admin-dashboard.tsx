@@ -2,7 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Download, ImageOff, Loader2, Pencil, Plus, Sparkles, StarOff, Trash2, X } from 'lucide-react';
+import {
+  Download,
+  ImageOff,
+  Loader2,
+  Palette,
+  Pencil,
+  Plus,
+  Sparkles,
+  StarOff,
+  Trash2,
+  X
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
@@ -203,6 +214,34 @@ export function FeedAdminDashboard() {
         return;
       }
       setActionInfo(data.message ?? 'Kapak kaynaktan alındı.');
+      await load(showMissingOnly);
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function generateBrandedCover(postId: string) {
+    setActionId(postId);
+    setActionError(null);
+    setActionInfo(null);
+    try {
+      const res = await fetch('/api/admin/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate-branded-cover', postId })
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        message?: string;
+        generated?: boolean;
+      };
+      if (!res.ok || !data.generated) {
+        setActionError(
+          data.error ?? 'Marka kapak üretilemedi. Manuel kapak ekleyin; kapaksız yayınlanamaz.'
+        );
+        return;
+      }
+      setActionInfo(data.message ?? 'Marka kapak üretildi.');
       await load(showMissingOnly);
     } finally {
       setActionId(null);
@@ -706,6 +745,7 @@ export function FeedAdminDashboard() {
                   post.status === 'review' || Boolean(post.qualityLow);
                 const canUnfeature = post.isFeatured && missingCover;
                 const canPullCover = missingCover && Boolean(post.sourceUrl?.trim());
+                const canBrandedCover = missingCover && Boolean(post.title?.trim());
 
                 return (
                   <tr
@@ -791,6 +831,22 @@ export function FeedAdminDashboard() {
                               <Download className="mr-1 size-3.5" />
                             )}
                             Kaynaktan kapak çek
+                          </Button>
+                        )}
+                        {canBrandedCover && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={actionId === post.id}
+                            title="Koyu BiletFeed marka kapağı üret (Sharp)"
+                            onClick={() => void generateBrandedCover(post.id)}
+                          >
+                            {actionId === post.id ? (
+                              <Loader2 className="mr-1 size-3.5 animate-spin" />
+                            ) : (
+                              <Palette className="mr-1 size-3.5" />
+                            )}
+                            Marka kapak üret
                           </Button>
                         )}
                         {canQuickRewrite && (
