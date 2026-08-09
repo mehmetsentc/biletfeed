@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight, Clock } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
+import { FeedCardMeta } from '@/components/feed/feed-card-meta';
 import { feedBadgeClass, feedStoryShortLabel, isMissingFeedCoverImage } from '@/lib/feed/constants';
-import { formatFeedTimeLabel } from '@/lib/feed/format-date';
 import type { FeedPostCard } from '@/lib/feed/types';
 import { cn } from '@/lib/utils';
 
@@ -64,16 +64,25 @@ export function FeedLeadStory({ post }: { post: FeedPostCard }) {
           </p>
         ) : null}
 
-        <div className="mt-5 flex items-center justify-between gap-3 text-sm text-muted-foreground">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {post.publishedAt && <span>{formatFeedTimeLabel(post.publishedAt)}</span>}
-            <span className="inline-flex items-center gap-1">
-              <Clock className="size-3.5" />
-              {post.readingTimeMinutes} dk
-            </span>
-            {post.cityName && <span>{post.cityName}</span>}
-          </div>
-          <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-[var(--bf-accent-ink)]">
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <FeedCardMeta
+            categoryLabel={label}
+            readingTimeMinutes={post.readingTimeMinutes}
+            publishedAt={post.publishedAt}
+            omitCategory
+            className="text-sm"
+            trailing={
+              post.cityName ? (
+                <>
+                  <span className="text-muted-foreground/45" aria-hidden>
+                    ·
+                  </span>
+                  <span>{post.cityName}</span>
+                </>
+              ) : null
+            }
+          />
+          <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--bf-accent-ink)]">
             Oku
             <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
           </span>

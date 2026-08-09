@@ -1,7 +1,7 @@
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
+import { FeedCardMeta } from '@/components/feed/feed-card-meta';
 import Link from 'next/link';
 import { feedBadgeClass, feedStoryShortLabel, isMissingFeedCoverImage } from '@/lib/feed/constants';
-import { formatFeedTimeLabel } from '@/lib/feed/format-date';
 import type { FeedPostCard } from '@/lib/feed/types';
 import { cn } from '@/lib/utils';
 
@@ -30,21 +30,14 @@ export function FeedFeatureTile({ post }: { post: FeedPostCard }) {
         <div className="h-12 border-b border-border bg-muted/50" aria-hidden />
       )}
       <div className="flex flex-1 flex-col p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <span
-            className={cn(
-              'rounded px-2 py-0.5 text-[10px] font-semibold tracking-wide',
-              feedBadgeClass(post.categorySlug, post.contentType)
-            )}
-          >
-            {label}
-          </span>
-          {post.publishedAt && (
-            <span className="text-[11px] text-muted-foreground">
-              {formatFeedTimeLabel(post.publishedAt)}
-            </span>
+        <span
+          className={cn(
+            'mb-2 w-fit rounded px-2 py-0.5 text-[10px] font-semibold tracking-wide',
+            feedBadgeClass(post.categorySlug, post.contentType)
           )}
-        </div>
+        >
+          {label}
+        </span>
         <h3 className="line-clamp-2 text-base font-bold leading-snug text-foreground transition group-hover:text-[var(--bf-accent-ink)] md:text-[1.0625rem]">
           {post.title}
         </h3>
@@ -53,6 +46,13 @@ export function FeedFeatureTile({ post }: { post: FeedPostCard }) {
             {summary}
           </p>
         ) : null}
+        <FeedCardMeta
+          categoryLabel={label}
+          readingTimeMinutes={post.readingTimeMinutes}
+          publishedAt={post.publishedAt}
+          omitCategory
+          className="mt-auto pt-3"
+        />
       </div>
     </Link>
   );

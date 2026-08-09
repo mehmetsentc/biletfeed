@@ -6,6 +6,7 @@ import { FeedMarkdown } from '@/components/feed/feed-markdown';
 import { FeedPostCardView } from '@/components/feed/feed-post-card';
 import { FeedEventCta } from '@/components/feed/feed-event-cta';
 import { FEED_POST_TYPE_LABELS, isMissingFeedCoverImage } from '@/lib/feed/constants';
+import { resolveFeedEventSlug } from '@/lib/feed/resolve-event-link';
 import { formatFeedSourceLabel } from '@/lib/feed/source-display';
 import { sanitizeFeedTags } from '@/lib/feed/tags';
 import type { FeedPostDetail } from '@/lib/feed/types';
@@ -78,9 +79,15 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
   const midGallery = post.media.slice(0, Math.min(2, post.media.length));
   const endGallery = post.media.slice(midGallery.length);
 
+  const eventSlug = resolveFeedEventSlug({
+    eventSlug: post.eventSlug,
+    eventId: post.eventId,
+    seo: post.seo
+  });
+
   const ticketCallout = (
     <FeedEventCta
-      eventSlug={post.eventSlug}
+      eventSlug={eventSlug}
       eventTitle={post.eventTitle}
       eventHasTickets={post.eventHasTickets}
       contentType={post.contentType}
@@ -126,12 +133,16 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
         </span>
       </div>
 
-      <p className="mt-6 text-lg leading-relaxed text-foreground">{post.summary}</p>
+      {post.summary?.trim() ? (
+        <p className="mt-8 max-w-3xl text-xl font-medium leading-[1.65] tracking-[-0.01em] text-muted-foreground md:mt-10 md:text-[1.35rem] md:leading-[1.7]">
+          {post.summary.trim()}
+        </p>
+      ) : null}
 
       {/* Erken callout — etkinlik sinyali varsa özet sonrası */}
-      {(post.eventSlug || post.artistName || post.cityName) && ticketCallout}
+      {(eventSlug || post.artistName || post.cityName) && ticketCallout}
 
-      <div className="mt-8">
+      <div className={post.summary?.trim() ? 'mt-8' : 'mt-6'}>
         <FeedMarkdown
           content={post.content}
           title={post.title}
@@ -140,7 +151,7 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
             <>
               {endGallery.length > 0 ? <GalleryGrid items={endGallery} /> : null}
               {/* Gövde sonu callout — üstte gösterilmediyse */}
-              {!post.eventSlug && !post.artistName && !post.cityName ? ticketCallout : null}
+              {!eventSlug && !post.artistName && !post.cityName ? ticketCallout : null}
             </>
           }
         />

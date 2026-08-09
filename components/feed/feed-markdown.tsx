@@ -169,6 +169,12 @@ export function FeedMarkdown({
   const blocks = parseBlocks(normalized);
   let insertedAfterH2 = false;
   const firstH2Index = blocks.findIndex((b) => b.type === 'h2');
+  const firstParagraphIndex = blocks.findIndex((b) => b.type === 'p');
+  // Açılış paragrafı (ilk H2 öncesi) — dergi lead; özet yoksa daha belirgin
+  const leadParagraphIndex =
+    firstParagraphIndex >= 0 && (firstH2Index < 0 || firstParagraphIndex < firstH2Index)
+      ? firstParagraphIndex
+      : -1;
 
   return (
     <div className="prose-feed max-w-none">
@@ -210,8 +216,16 @@ export function FeedMarkdown({
             </ol>
           );
         } else {
+          const isLead = i === leadParagraphIndex;
           nodes.push(
-            <p key={`p-${i}`} className="mt-4 text-base leading-relaxed text-muted-foreground">
+            <p
+              key={`p-${i}`}
+              className={
+                isLead
+                  ? 'mt-6 max-w-3xl text-lg leading-[1.7] text-muted-foreground md:text-xl md:leading-[1.65]'
+                  : 'mt-4 text-base leading-relaxed text-muted-foreground'
+              }
+            >
               {renderInline(block.text)}
             </p>
           );

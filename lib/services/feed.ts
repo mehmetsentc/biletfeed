@@ -873,7 +873,11 @@ export async function updateAdminFeedPost(
   const nextStatus = input.status ?? existing.status;
   const nextFeatured = input.isFeatured !== undefined ? input.isFeatured : existing.isFeatured;
 
-  if (missingCover && (nextStatus === 'published' || nextFeatured)) {
+  // Kapak kapısı: yeni yayın / öne çıkarma engellenir.
+  // Kapağı olmayan eski yayında yalnızca öne çıkarmayı kaldırmak ve diğer alanları
+  // güncellemek serbest (kalite backlog temizliği).
+  const becomingPublished = nextStatus === 'published' && existing.status !== 'published';
+  if (missingCover && (becomingPublished || nextFeatured)) {
     throw new Error(FEED_COVER_REQUIRED_MESSAGE);
   }
 

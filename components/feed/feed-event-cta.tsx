@@ -45,8 +45,14 @@ function inferEventContext(props: FeedTicketCalloutProps): boolean {
   return /\b(bilet|konser|festival|etkinlik|turne)\b/i.test(body);
 }
 
+function discoveryHref(cityName: string | null | undefined): string {
+  const slug = citySlugFromName(cityName);
+  return slug ? `/etkinlikler?sehir=${encodeURIComponent(slug)}` : '/etkinlikler';
+}
+
 /**
  * “Bilet & katılım” callout — etkinlik alanları veya içerik sinyali varsa gösterilir.
+ * Bağlı etkinlik varsa her zaman `/etkinlik/[slug]`; yoksa yumuşak keşif kopyası.
  */
 export function FeedEventCta(props: FeedTicketCalloutProps) {
   if (!inferEventContext(props)) return null;
@@ -63,6 +69,26 @@ export function FeedEventCta(props: FeedTicketCalloutProps) {
     (bit, index, arr) => arr.findIndex((x) => x.text === bit.text) === index
   );
 
+  const href = isEventLinked ? `/etkinlik/${props.eventSlug}` : discoveryHref(props.cityName);
+
+  const title = isEventLinked
+    ? props.eventTitle
+    : props.artistName
+      ? `${props.artistName} — sahne ve biletler`
+      : 'Şehrinizdeki etkinlikler';
+
+  const body = isEventLinked
+    ? props.eventHasTickets
+      ? 'Biletler sınırlı olabilir — etkinlik sayfasından detaylara bakın.'
+      : 'Tarih, mekan ve katılım bilgileri etkinlik sayfasında.'
+    : 'Bağlı bir etkinlik yoksa benzer konser ve festivallere göz atabilirsiniz.';
+
+  const ctaLabel = isEventLinked
+    ? props.eventHasTickets
+      ? 'Etkinliğe git'
+      : 'Etkinlik detayı'
+    : 'Etkinlikleri keşfet';
+
   return (
     <aside
       className="my-10 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card shadow-sm"
@@ -74,13 +100,7 @@ export function FeedEventCta(props: FeedTicketCalloutProps) {
             <CalendarDays className="size-3.5" />
             Bilet &amp; katılım
           </div>
-          <p className="text-lg font-bold leading-snug text-foreground sm:text-xl">
-            {isEventLinked
-              ? props.eventTitle
-              : props.artistName
-                ? `${props.artistName} — etkinlikleri keşfet`
-                : 'Benzer etkinlikleri keşfedin'}
-          </p>
+          <p className="text-lg font-bold leading-snug text-foreground sm:text-xl">{title}</p>
           {uniqueMeta.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
               {uniqueMeta.map((bit) => (
@@ -91,37 +111,24 @@ export function FeedEventCta(props: FeedTicketCalloutProps) {
               ))}
             </ul>
           )}
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {isEventLinked
-              ? props.eventHasTickets
-                ? 'Biletler sınırlı — hemen yerinizi ayırtın.'
-                : 'Program ve detaylar için etkinlik sayfasına göz atın.'
-              : 'Konser, festival ve sahne etkinliklerini şehrinize göre filtreleyin.'}
-          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
         </div>
 
-        <Button asChild size="lg" className="h-12 shrink-0 rounded-xl px-8 font-bold sm:min-w-[200px]">
-          <Link
-            href={
-              isEventLinked
-                ? props.eventHasTickets
-                  ? `/etkinlik/${props.eventSlug}`
-                  : '/etkinlikler'
-                : (() => {
-                    const slug = citySlugFromName(props.cityName);
-                    return slug ? `/etkinlikler?sehir=${encodeURIComponent(slug)}` : '/etkinlikler';
-                  })()
-            }
-            className="inline-flex items-center justify-center gap-2"
-          >
+        <Button
+          asChild
+          size="lg"
+          variant={isEventLinked ? 'default' : 'outline'}
+          className="h-12 shrink-0 rounded-xl px-8 font-bold sm:min-w-[200px]"
+        >
+          <Link href={href} className="inline-flex items-center justify-center gap-2">
             {isEventLinked && props.eventHasTickets ? (
               <>
                 <Ticket className="size-4" />
-                Bilet Al
+                {ctaLabel}
               </>
             ) : (
               <>
-                Etkinlikleri Gör
+                {ctaLabel}
                 <ArrowRight className="size-4" />
               </>
             )}
