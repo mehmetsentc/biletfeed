@@ -8,6 +8,7 @@ import {
 import type { AiEditorDraft, FeedEditorDefinition, FeedEditorId } from '@/lib/feed/editors/types';
 import type { FeedPostType } from '@prisma/client';
 import type { AiChatResult } from '@/lib/ai/types';
+import { sanitizeFeedTags } from '@/lib/feed/tags';
 
 export const BASE_SYSTEM_PROMPT = `Sen BiletFeed AI Editörüsün — Türkiye'nin etkinlik keşif platformunun otonom editörüsün.
 Uzmanlık: konser, parti/gece hayatı, festival, tiyatro ve sinema haberciliği.
@@ -119,10 +120,9 @@ export function finalizeAiDraft(
 ): AiEditorDraft {
   const title = stripHashPrefix(parsed.title) || defaults.title;
   const content = stripLeakedH1(parsed.content);
-  const tags = (parsed.tags?.length ? parsed.tags : defaults.tags ?? [])
-    .map(cleanTag)
-    .filter(Boolean)
-    .slice(0, 8);
+  const tags = sanitizeFeedTags(
+    (parsed.tags?.length ? parsed.tags : defaults.tags ?? []).map(cleanTag).filter(Boolean)
+  ).slice(0, 8);
   const slugSource = parsed.slug?.trim() || title;
   const slug = slugify(slugSource) || 'haber';
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 
 function normalizeMarkdownBody(content: string, title?: string | null): string {
   const titleNorm = (title ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -142,57 +142,96 @@ function parseBlocks(content: string): Block[] {
 
 export function FeedMarkdown({
   content,
-  title
+  title,
+  afterFirstH2,
+  beforeEnd
 }: {
   content: string;
   title?: string | null;
+  /** İlk H2’den hemen sonra enjekte (ör. galeri dilimi) */
+  afterFirstH2?: ReactNode;
+  /** Son bloktan önce enjekte */
+  beforeEnd?: ReactNode;
 }) {
   const normalized = normalizeMarkdownBody(content, title);
-  if (!normalized) return null;
+  if (!normalized) {
+    if (afterFirstH2 || beforeEnd) {
+      return (
+        <div className="prose-feed max-w-none">
+          {afterFirstH2}
+          {beforeEnd}
+        </div>
+      );
+    }
+    return null;
+  }
 
   const blocks = parseBlocks(normalized);
+  let insertedAfterH2 = false;
+  const firstH2Index = blocks.findIndex((b) => b.type === 'h2');
 
   return (
     <div className="prose-feed max-w-none">
       {blocks.map((block, i) => {
+        const nodes: ReactNode[] = [];
+
         if (block.type === 'h2') {
-          return (
-            <h2 key={i} className="mt-8 text-xl font-bold tracking-tight text-foreground">
+          nodes.push(
+            <h2 key={`h2-${i}`} className="mt-8 text-xl font-bold tracking-tight text-foreground">
               {renderInline(block.text)}
             </h2>
           );
-        }
-        if (block.type === 'h3') {
-          return (
-            <h3 key={i} className="mt-6 text-lg font-semibold text-foreground">
+        } else if (block.type === 'h3') {
+          nodes.push(
+            <h3 key={`h3-${i}`} className="mt-6 text-lg font-semibold text-foreground">
               {renderInline(block.text)}
             </h3>
           );
-        }
-        if (block.type === 'ul') {
-          return (
-            <ul key={i} className="mt-4 list-disc space-y-2 pl-5 text-base leading-relaxed text-muted-foreground">
+        } else if (block.type === 'ul') {
+          nodes.push(
+            <ul
+              key={`ul-${i}`}
+              className="mt-4 list-disc space-y-2 pl-5 text-base leading-relaxed text-muted-foreground"
+            >
               {block.items.map((item, j) => (
                 <li key={j}>{renderInline(item)}</li>
               ))}
             </ul>
           );
-        }
-        if (block.type === 'ol') {
-          return (
-            <ol key={i} className="mt-4 list-decimal space-y-2 pl-5 text-base leading-relaxed text-muted-foreground">
+        } else if (block.type === 'ol') {
+          nodes.push(
+            <ol
+              key={`ol-${i}`}
+              className="mt-4 list-decimal space-y-2 pl-5 text-base leading-relaxed text-muted-foreground"
+            >
               {block.items.map((item, j) => (
                 <li key={j}>{renderInline(item)}</li>
               ))}
             </ol>
           );
+        } else {
+          nodes.push(
+            <p key={`p-${i}`} className="mt-4 text-base leading-relaxed text-muted-foreground">
+              {renderInline(block.text)}
+            </p>
+          );
         }
-        return (
-          <p key={i} className="mt-4 text-base leading-relaxed text-muted-foreground">
-            {renderInline(block.text)}
-          </p>
-        );
+
+        // İlk H2 bloğunun hemen ardından galeri / callout
+        if (
+          afterFirstH2 &&
+          !insertedAfterH2 &&
+          firstH2Index >= 0 &&
+          i === firstH2Index
+        ) {
+          insertedAfterH2 = true;
+          nodes.push(<div key="after-first-h2">{afterFirstH2}</div>);
+        }
+
+        return nodes;
       })}
+      {!insertedAfterH2 && afterFirstH2 ? <div key="after-h2-fallback">{afterFirstH2}</div> : null}
+      {beforeEnd}
     </div>
   );
 }

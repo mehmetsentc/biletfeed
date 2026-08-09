@@ -10,6 +10,7 @@ import { FeedStoryRow } from '@/components/feed/feed-story-row';
 import { FeedRecentSidebar } from '@/components/feed/feed-recent-sidebar';
 import { Button } from '@/components/ui/button';
 import { isMissingFeedCoverImage } from '@/lib/feed/constants';
+import { pickFeaturedRail } from '@/lib/feed/ranking';
 import type { FeedPostCard } from '@/lib/feed/types';
 
 export function FeedGridClient({
@@ -81,10 +82,14 @@ export function FeedGridClient({
   }
 
   const lead = posts[0]!;
-  const secondary = posts.slice(1, 4);
-  const list = posts.slice(4);
+  // Öne çıkan ray: gerçek kapak + kalite tercih, en fazla 2–3 kart (yoğunluk)
+  const { featured: secondary, remainder } = pickFeaturedRail(
+    posts.slice(1).filter((p) => !isMissingFeedCoverImage(p.coverImage)),
+    3
+  );
+  const list = remainder;
   const sidebarPosts = (trending.length > 0 ? trending : posts)
-    .filter((p) => p.id !== lead.id)
+    .filter((p) => p.id !== lead.id && !isMissingFeedCoverImage(p.coverImage))
     .slice(0, 8);
 
   return (

@@ -9,6 +9,7 @@ import {
 } from '@/lib/services/feed';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { getSelectedCityNameOrNull } from '@/lib/location/city-preference.server';
 
 export const metadata = createFeedListMetadata();
 
@@ -39,9 +40,10 @@ export default async function FeedPage({ searchParams }: Props) {
 
   await ensureFeedCategories();
   const userId = await resolveCurrentUserId();
+  const preferredCityName = await getSelectedCityNameOrNull();
   const [{ posts, nextCursor }, trending, categories] = await Promise.all([
-    listPublishedFeedPosts({ limit: 12, userId, categorySlug }),
-    getTrendingFeedPosts(8),
+    listPublishedFeedPosts({ limit: 12, userId, categorySlug, preferredCityName }),
+    getTrendingFeedPosts(6, preferredCityName),
     listFeedCategoriesWithPosts()
   ]);
 

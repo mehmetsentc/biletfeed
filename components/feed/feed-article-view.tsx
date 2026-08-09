@@ -6,11 +6,91 @@ import { FeedMarkdown } from '@/components/feed/feed-markdown';
 import { FeedPostCardView } from '@/components/feed/feed-post-card';
 import { FeedEventCta } from '@/components/feed/feed-event-cta';
 import { FEED_POST_TYPE_LABELS, isMissingFeedCoverImage } from '@/lib/feed/constants';
+import { formatFeedSourceLabel } from '@/lib/feed/source-display';
+import { sanitizeFeedTags } from '@/lib/feed/tags';
 import type { FeedPostDetail } from '@/lib/feed/types';
+
+function GalleryFigure({
+  item
+}: {
+  item: FeedPostDetail['media'][number];
+}) {
+  return (
+    <figure className="overflow-hidden rounded-xl border border-border bg-muted/30">
+      <div className="relative aspect-video overflow-hidden">
+        {item.type === 'video' ? (
+          <video
+            src={item.url}
+            controls
+            className="size-full object-cover"
+            poster={item.thumbnail ?? undefined}
+          />
+        ) : item.type === 'embed' ? (
+          <iframe
+            src={item.url}
+            title={item.alt ?? 'Video'}
+            className="size-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : (
+          <Image src={item.url} alt={item.alt ?? ''} fill className="object-cover" unoptimized />
+        )}
+      </div>
+      {item.caption && (
+        <figcaption className="px-3 py-2 text-xs text-muted-foreground">{item.caption}</figcaption>
+      )}
+    </figure>
+  );
+}
+
+function GalleryGrid({ items }: { items: FeedPostDetail['media'] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="my-8 grid gap-4 sm:grid-cols-2">
+      {items.map((item) => (
+        <GalleryFigure key={item.id} item={item} />
+      ))}
+    </div>
+  );
+}
 
 export function FeedArticleView({ post }: { post: FeedPostDetail }) {
   const typeLabel = FEED_POST_TYPE_LABELS[post.contentType];
   const hasCover = !isMissingFeedCoverImage(post.coverImage);
+  const tags = sanitizeFeedTags(post.tags);
+  const source = formatFeedSourceLabel({
+    sourceName: post.sourceName,
+    sourceUrl: post.sourceUrl,
+    sourceAttribution: post.sourceAttribution
+  });
+
+  const seoKeywords = Array.isArray(post.seo.keywords)
+    ? post.seo.keywords.map(String).filter(Boolean)
+    : typeof post.seo.keywords === 'string'
+      ? post.seo.keywords
+          .split(',')
+          .map((k) => k.trim())
+          .filter(Boolean)
+      : [];
+
+  // Galeri: ilk dilim ilk H2 sonrası, kalanı gövde sonu — altta yığın yok
+  const midGallery = post.media.slice(0, Math.min(2, post.media.length));
+  const endGallery = post.media.slice(midGallery.length);
+
+  const ticketCallout = (
+    <FeedEventCta
+      eventSlug={post.eventSlug}
+      eventTitle={post.eventTitle}
+      eventHasTickets={post.eventHasTickets}
+      contentType={post.contentType}
+      cityName={post.cityName}
+      venueName={post.venueName}
+      artistName={post.artistName}
+      tags={tags}
+      content={post.content}
+    />
+  );
 
   return (
     <article className="pb-24">
@@ -48,68 +128,70 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
 
       <p className="mt-6 text-lg leading-relaxed text-foreground">{post.summary}</p>
 
+      {/* Erken callout — etkinlik sinyali varsa özet sonrası */}
+      {(post.eventSlug || post.artistName || post.cityName) && ticketCallout}
+
       <div className="mt-8">
-        <FeedMarkdown content={post.content} title={post.title} />
+        <FeedMarkdown
+          content={post.content}
+          title={post.title}
+          afterFirstH2={midGallery.length > 0 ? <GalleryGrid items={midGallery} /> : undefined}
+          beforeEnd={
+            <>
+              {endGallery.length > 0 ? <GalleryGrid items={endGallery} /> : null}
+              {/* Gövde sonu callout — üstte gösterilmediyse */}
+              {!post.eventSlug && !post.artistName && !post.cityName ? ticketCallout : null}
+            </>
+          }
+        />
       </div>
 
-      {post.media.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-xl font-bold text-foreground">Galeri</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {post.media.map((item) => (
-              <figure key={item.id} className="overflow-hidden rounded-xl border border-border bg-muted/30">
-                <div className="relative aspect-video overflow-hidden">
-                  {item.type === 'video' ? (
-                    <video
-                      src={item.url}
-                      controls
-                      className="size-full object-cover"
-                      poster={item.thumbnail ?? undefined}
-                    />
-                  ) : item.type === 'embed' ? (
-                    <iframe
-                      src={item.url}
-                      title={item.alt ?? 'Video'}
-                      className="size-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <Image src={item.url} alt={item.alt ?? ''} fill className="object-cover" unoptimized />
-                  )}
-                </div>
-                {item.caption && (
-                  <figcaption className="px-3 py-2 text-xs text-muted-foreground">{item.caption}</figcaption>
-                )}
-              </figure>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {post.sourceAttribution && (
-        <p className="mt-8 text-sm text-muted-foreground">
-          {post.sourceAttribution}
-          {post.sourceUrl && (
-            <>
-              {' '}
-              <Link href={post.sourceUrl} className="text-[var(--bf-accent-ink)] underline" target="_blank" rel="noopener noreferrer">
-                Kaynağı görüntüle
+      <footer className="mt-12 space-y-6 border-t border-border pt-8">
+        {source.label && (
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground/80">Kaynak</span>
+            <span className="mx-2 text-border">·</span>
+            {source.href ? (
+              <Link
+                href={source.href}
+                className="text-[var(--bf-accent-ink)] underline underline-offset-2"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {source.label}
               </Link>
-            </>
-          )}
-        </p>
-      )}
+            ) : (
+              <span>{source.label}</span>
+            )}
+          </p>
+        )}
 
-      {post.tags.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-2">
-          {post.tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
+        {tags.length > 0 && (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Etiketler
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {seoKeywords.length > 0 && (
+          <p className="text-xs leading-relaxed text-muted-foreground/70">
+            <span className="font-medium text-muted-foreground">Konular</span>
+            <span className="mx-1.5">·</span>
+            {seoKeywords.slice(0, 8).join(' · ')}
+          </p>
+        )}
+      </footer>
 
       {post.relatedPosts.length > 0 && (
         <section className="mt-14">
@@ -121,12 +203,6 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
           </div>
         </section>
       )}
-
-      <FeedEventCta
-        eventSlug={post.eventSlug}
-        eventTitle={post.eventTitle}
-        hasTickets={post.eventHasTickets}
-      />
     </article>
   );
 }

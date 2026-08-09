@@ -31,6 +31,8 @@ type AdminPost = {
   publishedAt: string | null;
   createdAt: string;
   isFeatured: boolean;
+  qualityLow?: boolean;
+  qualityScore?: number;
 };
 
 export function FeedAdminDashboard() {
@@ -397,6 +399,11 @@ export function FeedAdminDashboard() {
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
                           <ImageOff className="size-3" />
                           Görsel eksik
+                        </span>
+                      )}
+                      {post.qualityLow && !isMissingFeedCoverImage(post.coverImage) && (
+                        <span className="inline-flex items-center rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                          Kalite düşük
                         </span>
                       )}
                     </div>

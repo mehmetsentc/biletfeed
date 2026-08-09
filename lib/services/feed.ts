@@ -11,6 +11,9 @@ import {
   isMissingFeedCoverImage
 } from '@/lib/feed/constants';
 import type { FeedPostCard, FeedPostDetail } from '@/lib/feed/types';
+import { applyCitySoftBoost } from '@/lib/feed/ranking';
+import { sanitizeFeedTags } from '@/lib/feed/tags';
+import { scoreFeedContentQuality } from '@/lib/feed/quality';
 
 /** Kategori chip filtresi: atanmış kategori VEYA eşleşen contentType. */
 function categoryFilterWhere(categorySlug: string): Prisma.FeedPostWhereInput {
@@ -109,7 +112,7 @@ function mapPostCard(row: Prisma.FeedPostGetPayload<{ select: typeof postCardSel
     eventSlug: row.event?.slug ?? null,
     eventTitle: row.event?.title ?? null,
     cityName: row.city?.name ?? null,
-    tags: row.tags
+    tags: sanitizeFeedTags(row.tags)
   };
 }
 
@@ -152,6 +155,12 @@ export async function listPublishedFeedPosts(params: {
    * haberler önce, en yeniden en eskiye doğru sıralanır. Yeni haber yoksa
    * otomatik olarak kullanıcının henüz görmediği eski haberlere düşer. */
   userId?: string;
+  /**
+   * Soft city boost (FAZ 3): `bf_city` cookie / CityProvider adı.
+   * Eşleşen şehir haberleri pencere içinde öne alınır — sert filtre değil.
+   * Yalnızca ilk sayfada (cursor yokken) uygulanır.
+   */
+  preferredCityName?: string | null;
 }): Promise<{ posts: FeedPostCard[]; nextCursor: string | null }> {
   if (!isDatabaseConfigured()) {
     return { posts: [], nextCursor: null };
@@ -161,9 +170,10 @@ export async function listPublishedFeedPosts(params: {
     await ensureDbConnection();
     const limit = Math.min(params.limit ?? 12, 24);
     const personalize = Boolean(params.userId) && !params.cursor;
-    // Kişiselleştirme için daha geniş bir pencere çekip görülmemiş/görülmüş
-    // olarak yeniden sıralıyoruz; normal sayfalarda pencere = limit + 1.
-    const windowSize = personalize ? Math.min(limit * 3, 60) : limit + 1;
+    const cityBoost = Boolean(params.preferredCityName) && !params.cursor;
+    // Kişiselleştirme / şehir boost için daha geniş pencere; cursor sayfalarında limit+1.
+    const windowSize =
+      personalize || cityBoost ? Math.min(limit * 3, 60) : limit + 1;
 
     const where: Prisma.FeedPostWhereInput = {
       ...publishedWithImageWhere(),
@@ -185,34 +195,32 @@ export async function listPublishedFeedPosts(params: {
         : {})
     });
 
-    if (!personalize) {
-      const hasMore = rows.length > limit;
-      const slice = hasMore ? rows.slice(0, limit) : rows;
-      return {
-        posts: slice.map(mapPostCard),
-        nextCursor: hasMore ? slice[slice.length - 1]?.id ?? null : null
-      };
+    let orderedCards = rows.map(mapPostCard);
+
+    if (personalize) {
+      const seenIds = new Set(
+        (
+          await prisma.feedView.findMany({
+            where: { userId: params.userId, postId: { in: rows.map((r) => r.id) } },
+            select: { postId: true }
+          })
+        ).map((v) => v.postId)
+      );
+
+      const unseen = orderedCards.filter((r) => !seenIds.has(r.id));
+      const seen = orderedCards.filter((r) => seenIds.has(r.id));
+      orderedCards = [
+        ...applyCitySoftBoost(unseen, params.preferredCityName),
+        ...applyCitySoftBoost(seen, params.preferredCityName)
+      ];
+    } else if (cityBoost) {
+      orderedCards = applyCitySoftBoost(orderedCards, params.preferredCityName);
     }
 
-    // Kullanıcının bu pencere içinde daha önce gördüğü haberleri bul
-    const seenIds = new Set(
-      (
-        await prisma.feedView.findMany({
-          where: { userId: params.userId, postId: { in: rows.map((r) => r.id) } },
-          select: { postId: true }
-        })
-      ).map((v) => v.postId)
-    );
-
-    // Görülmemiş haberler önce (yeniden eskiye), sonra görülmüşler (yeniden eskiye)
-    const unseen = rows.filter((r) => !seenIds.has(r.id));
-    const seen = rows.filter((r) => seenIds.has(r.id));
-    const ordered = [...unseen, ...seen];
-
-    const hasMore = ordered.length > limit;
-    const slice = hasMore ? ordered.slice(0, limit) : ordered;
+    const hasMore = orderedCards.length > limit;
+    const slice = hasMore ? orderedCards.slice(0, limit) : orderedCards;
     return {
-      posts: slice.map(mapPostCard),
+      posts: slice,
       nextCursor: hasMore ? slice[slice.length - 1]?.id ?? null : null
     };
   } catch (error) {
@@ -223,18 +231,37 @@ export async function listPublishedFeedPosts(params: {
   }
 }
 
-export async function getTrendingFeedPosts(limit = 6): Promise<FeedPostCard[]> {
+export async function getTrendingFeedPosts(
+  limit = 6,
+  preferredCityName?: string | null
+): Promise<FeedPostCard[]> {
   if (!isDatabaseConfigured()) return [];
 
   try {
     await ensureDbConnection();
+    const take = Math.min(Math.max(limit * 2, limit), 16);
     const rows = await prisma.feedPost.findMany({
       where: publishedWithImageWhere(),
       select: postCardSelect,
       orderBy: [{ trendingScore: 'desc' }, { viewCount: 'desc' }],
-      take: limit
+      take
     });
-    return rows.map(mapPostCard);
+    // Trend: önce kalite (özet + okuma), sonra şehir soft boost — soft boost sırayı korur
+    const qualityRanked = [...rows.map(mapPostCard)].sort((a, b) => {
+      const qa = scoreFeedContentQuality({
+        coverImage: a.coverImage,
+        summary: a.summary,
+        readingTimeMinutes: a.readingTimeMinutes
+      }).score;
+      const qb = scoreFeedContentQuality({
+        coverImage: b.coverImage,
+        summary: b.summary,
+        readingTimeMinutes: b.readingTimeMinutes
+      }).score;
+      if (qb !== qa) return qb - qa;
+      return (b.viewCount ?? 0) - (a.viewCount ?? 0);
+    });
+    return applyCitySoftBoost(qualityRanked, preferredCityName).slice(0, limit);
   } catch (error) {
     if (isFeedDbUnavailable(error)) return [];
     throw error;
@@ -532,7 +559,7 @@ export async function createFeedPostFromDraft(input: {
     editorialStage: 'review',
     coverImage: input.coverImage,
     authorName: FEED_AUTHOR_NAME,
-    tags: input.tags ?? [],
+    tags: sanitizeFeedTags(input.tags),
     sourceUrl: input.sourceUrl,
     sourceName: input.sourceName,
     sourceAttribution: input.sourceAttribution,
@@ -591,7 +618,7 @@ export async function bulkDeleteFeedPosts(ids: string[]): Promise<number> {
 
 export async function listAdminFeedPosts(status?: FeedPostStatus, missingImageOnly = false) {
   await ensureDbConnection();
-  return prisma.feedPost.findMany({
+  const rows = await prisma.feedPost.findMany({
     where: {
       deletedAt: null,
       ...(status ? { status } : {}),
@@ -604,6 +631,9 @@ export async function listAdminFeedPosts(status?: FeedPostStatus, missingImageOn
       status: true,
       contentType: true,
       coverImage: true,
+      summary: true,
+      content: true,
+      readingTimeMinutes: true,
       viewCount: true,
       likeCount: true,
       publishedAt: true,
@@ -614,6 +644,23 @@ export async function listAdminFeedPosts(status?: FeedPostStatus, missingImageOn
     // Eksik görselli haberler eski/yayınlanmamış olabilir ve normal 100'lük
     // pencerenin dışında kalabilir — filtre aktifken daha geniş bir pencere çekilir.
     take: missingImageOnly ? 300 : 100
+  });
+
+  return rows.map(({ content, summary, readingTimeMinutes, coverImage, ...rest }) => {
+    const quality = scoreFeedContentQuality({
+      content,
+      summary,
+      coverImage,
+      readingTimeMinutes
+    });
+    return {
+      ...rest,
+      coverImage,
+      summary,
+      readingTimeMinutes,
+      qualityLow: quality.isLowQuality,
+      qualityScore: quality.score
+    };
   });
 }
 
@@ -844,7 +891,7 @@ export async function updateAdminFeedPost(
     ...(input.coverImage !== undefined
       ? { coverImage: isMissingFeedCoverImage(input.coverImage) ? '' : input.coverImage }
       : {}),
-    ...(input.tags !== undefined ? { tags: input.tags } : {}),
+    ...(input.tags !== undefined ? { tags: sanitizeFeedTags(input.tags) } : {}),
     ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
     ...(input.feedCategoryId !== undefined ? { feedCategoryId: input.feedCategoryId } : {}),
     ...(input.status !== undefined ? { status: input.status } : {}),
