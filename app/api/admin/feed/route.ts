@@ -11,6 +11,7 @@ import {
   pullCoverFromSource,
   generateBrandedCoverForPost
 } from '@/lib/services/feed';
+import { parseFeedAdminStatsPeriod } from '@/lib/feed/constants';
 import {
   listEditorialQueue,
   processEditorialQueueItem,
@@ -73,8 +74,9 @@ export async function GET(request: NextRequest) {
 
   const status = request.nextUrl.searchParams.get('status') ?? undefined;
   const missingImage = request.nextUrl.searchParams.get('missingImage') === '1';
+  const periodDays = parseFeedAdminStatsPeriod(request.nextUrl.searchParams.get('period'));
   const [stats, posts, queue] = await Promise.all([
-    getFeedAdminStats(),
+    getFeedAdminStats(periodDays),
     listAdminFeedPosts(status as never, missingImage),
     listEditorialQueue(30)
   ]);

@@ -179,6 +179,19 @@ export const FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE =
 /** Ingest / otomatik kapak denemeleri arası bekleme — çift istek ve kaynak rate-limit önler (6 saat). */
 export const FEED_COVER_AUTO_FETCH_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
+/** Admin editöryel analytics dönem seçenekleri (gün). */
+export type FeedAdminStatsPeriodDays = 7 | 30 | 90;
+
+export const FEED_ADMIN_STATS_PERIODS: FeedAdminStatsPeriodDays[] = [7, 30, 90];
+
+export function parseFeedAdminStatsPeriod(
+  raw: string | null | undefined
+): FeedAdminStatsPeriodDays {
+  const n = Number(raw);
+  if (n === 7 || n === 30 || n === 90) return n;
+  return 30;
+}
+
 export const FEED_DISCOVERY_SOURCES = [
   {
     name: 'BiletFeed Events RSS',

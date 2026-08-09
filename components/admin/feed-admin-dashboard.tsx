@@ -14,11 +14,24 @@ import {
   Trash2,
   X
 } from 'lucide-react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import type { EditorialQueueItem } from '@/lib/feed/types';
-import { isMissingFeedCoverImage } from '@/lib/feed/constants';
+import {
+  FEED_ADMIN_STATS_PERIODS,
+  isMissingFeedCoverImage,
+  type FeedAdminStatsPeriodDays
+} from '@/lib/feed/constants';
 import { adminHref, getSiteUrl } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
@@ -34,8 +47,13 @@ type FeedStats = {
   published: number;
   inReview: number;
   queuePending: number;
-  totalViews: number;
   missingImages: number;
+  lowQualityCount: number;
+  periodDays: FeedAdminStatsPeriodDays;
+  periodPublished: number;
+  totalViews: number;
+  totalCtaClicks: number;
+  engagementNote: string;
   topByViews?: FeedAdminTopPost[];
   topByCta?: FeedAdminTopPost[];
 };
@@ -78,11 +96,18 @@ type AiDraft = {
   };
 };
 
+function truncateLabel(title: string, max = 22): string {
+  const t = title.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1)}…`;
+}
+
 export function FeedAdminDashboard() {
   const [stats, setStats] = useState<FeedStats | null>(null);
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [queue, setQueue] = useState<EditorialQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [periodDays, setPeriodDays] = useState<FeedAdminStatsPeriodDays>(30);
   const [actionId, setActionId] = useState<string | null>(null);
   const [showMissingOnly, setShowMissingOnly] = useState(false);
   const [showQualityLowOnly, setShowQualityLowOnly] = useState(false);
@@ -94,10 +119,13 @@ export function FeedAdminDashboard() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionInfo, setActionInfo] = useState<string | null>(null);
 
-  const load = useCallback(async (missingImage: boolean) => {
+  const load = useCallback(async (missingImage: boolean, period: FeedAdminStatsPeriodDays) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/feed${missingImage ? '?missingImage=1' : ''}`);
+      const params = new URLSearchParams();
+      params.set('period', String(period));
+      if (missingImage) params.set('missingImage', '1');
+      const res = await fetch(`/api/admin/feed?${params.toString()}`);
       const data = (await res.json()) as {
         stats: FeedStats;
         posts: AdminPost[];
@@ -113,12 +141,20 @@ export function FeedAdminDashboard() {
   }, []);
 
   useEffect(() => {
-    void load(showMissingOnly);
-  }, [load, showMissingOnly]);
+    void load(showMissingOnly, periodDays);
+  }, [load, showMissingOnly, periodDays]);
 
-  const qualityLowCount = useMemo(
-    () => posts.filter((p) => p.qualityLow).length,
-    [posts]
+  const qualityLowCount = stats?.lowQualityCount ?? posts.filter((p) => p.qualityLow).length;
+
+  const viewsChartData = useMemo(
+    () =>
+      (stats?.topByViews ?? []).map((row) => ({
+        id: row.id,
+        name: truncateLabel(row.title),
+        fullTitle: row.title,
+        views: row.viewCount
+      })),
+    [stats?.topByViews]
   );
 
   const displayPosts = useMemo(() => {
@@ -151,7 +187,7 @@ export function FeedAdminDashboard() {
         setActionError(data.error ?? 'Yayınlanamadı');
         return;
       }
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setActionId(null);
     }
@@ -163,7 +199,7 @@ export function FeedAdminDashboard() {
     setActionError(null);
     try {
       await fetch(`/api/admin/feed/${postId}`, { method: 'DELETE' });
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setActionId(null);
     }
@@ -185,7 +221,7 @@ export function FeedAdminDashboard() {
         return;
       }
       setActionInfo('Öne çıkarma kaldırıldı.');
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setActionId(null);
     }
@@ -214,7 +250,7 @@ export function FeedAdminDashboard() {
         return;
       }
       setActionInfo(data.message ?? 'Kapak kaynaktan alındı.');
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setActionId(null);
     }
@@ -242,7 +278,7 @@ export function FeedAdminDashboard() {
         return;
       }
       setActionInfo(data.message ?? 'Marka kapak üretildi.');
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setActionId(null);
     }
@@ -319,7 +355,7 @@ export function FeedAdminDashboard() {
       }
       const editorLabel = regenData.editor?.label ?? draft.meta?.editorLabel ?? 'editör';
       setActionInfo(`AI yeniden yazıldı (${editorLabel}). Gözden geçirip yayınlayın.`);
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setActionId(null);
     }
@@ -354,7 +390,7 @@ export function FeedAdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'bulk-delete', ids: Array.from(selectedIds) })
       });
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setBulkDeleting(false);
     }
@@ -391,7 +427,7 @@ export function FeedAdminDashboard() {
         return;
       }
       setActionInfo(`${data.updated ?? 0} haberden öne çıkarma kaldırıldı.`);
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setBulkUnfeaturing(false);
     }
@@ -405,7 +441,7 @@ export function FeedAdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'process-queue', queueId })
       });
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     } finally {
       setActionId(null);
     }
@@ -432,7 +468,7 @@ export function FeedAdminDashboard() {
     } finally {
       setBatchProcessing(false);
       setBatchRemaining(null);
-      await load(showMissingOnly);
+      await load(showMissingOnly, periodDays);
     }
   }
 
@@ -465,123 +501,209 @@ export function FeedAdminDashboard() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {[
-          { label: 'Yayında', value: stats?.published ?? 0 },
-          { label: 'İncelemede', value: stats?.inReview ?? 0 },
-          { label: 'AI Kuyruğu', value: stats?.queuePending ?? 0 },
-          { label: 'Toplam Görüntülenme', value: stats?.totalViews ?? 0 },
-          {
-            label: 'Görsel Eksik',
-            value: stats?.missingImages ?? 0,
-            warn: true,
-            clickable: true as const,
-            active: showMissingOnly,
-            onActivate: () => {
-              setShowMissingOnly((v) => !v);
-              setShowQualityLowOnly(false);
-            }
-          },
-          {
-            label: 'Kalite düşük',
-            value: qualityLowCount,
-            warn: true,
-            clickable: true as const,
-            active: showQualityLowOnly,
-            onActivate: () => {
-              setShowQualityLowOnly((v) => !v);
-              setShowMissingOnly(false);
-            }
-          }
-        ].map((item) => (
-          <Card
-            key={item.label}
-            role={item.clickable ? 'button' : undefined}
-            tabIndex={item.clickable ? 0 : undefined}
-            onClick={item.clickable ? item.onActivate : undefined}
-            className={cn(
-              item.warn && (item.value ?? 0) > 0 && 'border-amber-500/50',
-              item.clickable && 'cursor-pointer transition hover:border-amber-500',
-              item.clickable && item.active && 'ring-2 ring-amber-500'
+      <section className="space-y-4 rounded-xl border border-border bg-card/40 p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-foreground">Editöryel analitikleri</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Envanter KPI’ları güncel stok · engagement son{' '}
+              {(stats?.periodDays ?? periodDays).toLocaleString('tr-TR')} günde yayımlanan yazılar
+              {typeof stats?.periodPublished === 'number'
+                ? ` (${stats.periodPublished.toLocaleString('tr-TR')} yayın)`
+                : ''}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1">
+            {FEED_ADMIN_STATS_PERIODS.map((days) => (
+              <Button
+                key={days}
+                type="button"
+                size="sm"
+                variant={periodDays === days ? 'default' : 'ghost'}
+                className="h-8 px-3"
+                onClick={() => setPeriodDays(days)}
+              >
+                {days} gün
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {[
+            { label: 'Yayında', value: stats?.published ?? 0 },
+            { label: 'İncelemede', value: stats?.inReview ?? 0 },
+            {
+              label: 'Kapaksız',
+              value: stats?.missingImages ?? 0,
+              warn: true,
+              clickable: true as const,
+              active: showMissingOnly,
+              onActivate: () => {
+                setShowMissingOnly((v) => !v);
+                setShowQualityLowOnly(false);
+              }
+            },
+            {
+              label: 'Kalite düşük',
+              value: qualityLowCount,
+              warn: true,
+              clickable: true as const,
+              active: showQualityLowOnly,
+              onActivate: () => {
+                setShowQualityLowOnly((v) => !v);
+                setShowMissingOnly(false);
+              }
+            },
+            { label: 'Görüntülenme', value: stats?.totalViews ?? 0 },
+            { label: 'CTA tıklama', value: stats?.totalCtaClicks ?? 0 }
+          ].map((item) => (
+            <Card
+              key={item.label}
+              role={item.clickable ? 'button' : undefined}
+              tabIndex={item.clickable ? 0 : undefined}
+              onClick={item.clickable ? item.onActivate : undefined}
+              onKeyDown={
+                item.clickable
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        item.onActivate?.();
+                      }
+                    }
+                  : undefined
+              }
+              className={cn(
+                item.warn && (item.value ?? 0) > 0 && 'border-amber-500/50',
+                item.clickable && 'cursor-pointer transition hover:border-amber-500',
+                item.clickable && item.active && 'ring-2 ring-amber-500'
+              )}
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {item.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p
+                  className={cn(
+                    'text-3xl font-bold tabular-nums',
+                    item.warn && (item.value ?? 0) > 0 && 'text-amber-600 dark:text-amber-400'
+                  )}
+                >
+                  {item.value.toLocaleString('tr-TR')}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {stats?.engagementNote && (
+          <p className="text-xs text-muted-foreground">{stats.engagementNote}</p>
+        )}
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Top 10 görüntülenme
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-56">
+            {viewsChartData.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Bu dönemde yayın yok veya henüz görüntülenme yok.
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={viewsChartData} margin={{ top: 4, right: 8, left: 0, bottom: 28 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10 }}
+                    interval={0}
+                    angle={-28}
+                    textAnchor="end"
+                    height={48}
+                  />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={40} />
+                  <Tooltip
+                    formatter={(value) => [
+                      Number(value ?? 0).toLocaleString('tr-TR'),
+                      'Görüntülenme'
+                    ]}
+                    labelFormatter={(_, payload) => {
+                      const full = payload?.[0]?.payload?.fullTitle;
+                      return typeof full === 'string' ? full : '';
+                    }}
+                  />
+                  <Bar dataKey="views" name="Görüntülenme" fill="#f5a623" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
-          >
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{item.label}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                En çok görüntülenen (top 10)
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p
-                className={cn(
-                  'text-3xl font-bold',
-                  item.warn && (item.value ?? 0) > 0 && 'text-amber-600 dark:text-amber-400'
-                )}
-              >
-                {item.value.toLocaleString('tr-TR')}
-              </p>
+              {(stats?.topByViews?.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">Henüz veri yok.</p>
+              ) : (
+                <ol className="space-y-2">
+                  {(stats?.topByViews ?? []).map((row, index) => (
+                    <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
+                      <Link
+                        href={adminHref(`/feed/${row.id}`)}
+                        className="min-w-0 truncate font-medium text-foreground hover:text-primary"
+                      >
+                        <span className="mr-2 text-muted-foreground">{index + 1}.</span>
+                        {row.title}
+                      </Link>
+                      <span className="shrink-0 tabular-nums text-muted-foreground">
+                        {row.viewCount.toLocaleString('tr-TR')}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              En çok görüntülenen (top 5)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(stats?.topByViews?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">Henüz veri yok.</p>
-            ) : (
-              <ol className="space-y-2">
-                {(stats?.topByViews ?? []).map((row, index) => (
-                  <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
-                    <Link
-                      href={adminHref(`/feed/${row.id}`)}
-                      className="min-w-0 truncate font-medium text-foreground hover:text-primary"
-                    >
-                      <span className="mr-2 text-muted-foreground">{index + 1}.</span>
-                      {row.title}
-                    </Link>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {row.viewCount.toLocaleString('tr-TR')}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              En çok CTA tıklanan (top 5)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(stats?.topByCta?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">Henüz veri yok.</p>
-            ) : (
-              <ol className="space-y-2">
-                {(stats?.topByCta ?? []).map((row, index) => (
-                  <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
-                    <Link
-                      href={adminHref(`/feed/${row.id}`)}
-                      className="min-w-0 truncate font-medium text-foreground hover:text-primary"
-                    >
-                      <span className="mr-2 text-muted-foreground">{index + 1}.</span>
-                      {row.title}
-                    </Link>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {row.ctaClickCount.toLocaleString('tr-TR')}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                En çok CTA tıklanan (top 10)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(stats?.topByCta?.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">Henüz veri yok.</p>
+              ) : (
+                <ol className="space-y-2">
+                  {(stats?.topByCta ?? []).map((row, index) => (
+                    <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
+                      <Link
+                        href={adminHref(`/feed/${row.id}`)}
+                        className="min-w-0 truncate font-medium text-foreground hover:text-primary"
+                      >
+                        <span className="mr-2 text-muted-foreground">{index + 1}.</span>
+                        {row.title}
+                      </Link>
+                      <span className="shrink-0 tabular-nums text-muted-foreground">
+                        {row.ctaClickCount.toLocaleString('tr-TR')}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

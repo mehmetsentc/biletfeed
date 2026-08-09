@@ -106,19 +106,21 @@ Feed magazine + AI editör programı FAZ 5 ile kapanır; aşağıdaki opsiyonel 
 
 - Makale görüntüleme: `FeedView` + `FeedPost.viewCount` (`recordFeedView` → `/feed/[slug]`).
 - CTA tıklama (opsiyonel): `FeedPost.ctaClickCount` — `POST /api/feed/[id]/cta` (rate-limit + same-origin); `FeedEventCta` beacon.
-- Admin `/admin/feed`: satırda görüntülenme + CTA; istatistik kartında toplam görüntülenme.
+- Admin `/admin/feed` üst panel (**Editöryel analitikleri**):
+  - KPI: yayında, incelemede, kapaksız, kalite düşük, görüntülenme, CTA.
+  - Dönem: 7 / 30 / 90 gün (`GET /api/admin/feed?period=`). Engagement listeleri `publishedAt` penceresiyle sınırlı; **görüntülenme/CTA toplamları o yazıların tüm zaman sayaçları** (günlük `FeedView` kırılımı yok — not UI’da).
+  - Top 10 views (recharts bar + liste) + Top 10 CTA → düzenleme linki.
+  - Tek agregasyon: `getFeedAdminStats(periodDays)` (`lib/services/feed.ts`).
 - SiteTracker pageview yolu ayrıca path bazlı site analitiğine düşer; feed sayaçları editör operasyonu içindir — ağır BI yok.
 
-## Sıradaki faz — Ingest kapak + ilgili + admin strip
+## Tamamlanan faz — Ingest kapak + ilgili + admin strip
 
-Üç ürünleştirme adımı (FAZ 1–5 / cover-assist sonrası):
+1. **Auto cover on ingest** — `maybeAutoCoverOnIngest` → `pullCoverFromSource`; cooldown + soft fail.
+2. **İlgili hikâyeler** — `/feed/[slug]` footer, 3 kart.
+3. **Admin analytics strip** → genişletildi: dönem filtresi + top 10 + CTA toplamı (yukarı).
 
-1. **Auto cover on ingest** — `createFeedPostFromDraft` / admin update: `sourceUrl` var ve kapak eksikse `maybeAutoCoverOnIngest` → `pullCoverFromSource` (`normalizeCoverImageUrl`). Editorial kuyruk artık ayrı OG fetch yapmaz (tek yol). Cooldown: `aiMetadata.lastCoverFetchAt` + `FEED_COVER_AUTO_FETCH_COOLDOWN_MS` (6 saat). Fail soft → `review`, placeholder yok; yayın kapısı aynı. Admin “Kaynaktan kapak” `force: true` ile cooldown’u aşar.
-2. **İlgili hikâyeler** — `/feed/[slug]` footer: 3 kart; önce aynı `feedCategoryId`, sonra aynı `contentType`, kalanı kapaklı güncel yayınlar. UI: `FeedMagazineCard` `size="small"`.
-3. **Admin analytics strip** — `/admin/feed` üstü: mevcut sayaçlara ek top 5 `viewCount` + top 5 `ctaClickCount` (`getFeedAdminStats`). BI stack yok.
+## Tamamlanan faz — Marka kapak + arama + paylaşım
 
-## Sonraki faz — Marka kapak + arama + paylaşım
-
-1. **Marka kapak (OG son çare)** — `lib/feed/branded-cover.ts` Sharp SVG → WebP (1200×630, koyu `#0c1017` + başlık + kategori vurgu). Yükleme: `uploadAdminImage('feed', …)`. Servis: `generateBrandedCoverForPost`. Ingest: `maybeAutoCoverOnIngest` önce OG, başarısızsa (cooldown değilse) marka kapak. Admin: **“Marka kapak üret”** → `POST /api/admin/feed` `{ action: "generate-branded-cover", postId }` (`force: true`). `isMissingFeedCoverImage` / yayın kapısı aynı; `og-default` / logo / Unsplash fallback “gerçek kapak” sayılmaz.
-2. **Feed arama** — `/feed` üstü debounced arama (`FeedSearchInput` → `GET /api/feed?q=&category=`). `searchFeedPosts` title/summary/tags/artistName; kategori chip ile birlikte çalışır.
-3. **Paylaşım** — `FeedShareButton`: WhatsApp, X, link kopyala; mobilde Web Share API varsa “Cihazda paylaş”.
+1. **Marka kapak (OG son çare)** — `lib/feed/branded-cover.ts` + admin “Marka kapak üret”.
+2. **Feed arama** — `FeedSearchInput` → `GET /api/feed?q=`.
+3. **Paylaşım** — `FeedShareButton` (WhatsApp, X, kopyala, Web Share).

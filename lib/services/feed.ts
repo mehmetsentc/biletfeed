@@ -10,8 +10,11 @@ import {
   FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE,
   FEED_COVER_REQUIRED_MESSAGE,
   FEED_FALLBACK_COVER,
-  isMissingFeedCoverImage
+  isMissingFeedCoverImage,
+  type FeedAdminStatsPeriodDays
 } from '@/lib/feed/constants';
+export type { FeedAdminStatsPeriodDays } from '@/lib/feed/constants';
+export { FEED_ADMIN_STATS_PERIODS, parseFeedAdminStatsPeriod } from '@/lib/feed/constants';
 import type { FeedPostCard, FeedPostDetail } from '@/lib/feed/types';
 import { applyCitySoftBoost } from '@/lib/feed/ranking';
 import { sanitizeFeedTags } from '@/lib/feed/tags';
@@ -741,16 +744,43 @@ export type FeedAdminTopPost = {
   ctaClickCount: number;
 };
 
-export async function getFeedAdminStats(): Promise<{
+export type FeedAdminStats = {
+  /** Güncel envanter — dönem filtresinden bağımsız. */
   published: number;
   inReview: number;
   queuePending: number;
-  totalViews: number;
   missingImages: number;
+  lowQualityCount: number;
+  /** Dönem: `publishedAt >= since` olan yayınlar. */
+  periodDays: FeedAdminStatsPeriodDays;
+  periodPublished: number;
+  /**
+   * Dönem içinde yayımlanan yazıların `viewCount` toplamı (tüm zaman sayacı).
+   * Günlük FeedView kırılımı yok — CTA da tüm zaman `ctaClickCount`.
+   */
+  totalViews: number;
+  totalCtaClicks: number;
+  /** Sayaçların tüm zaman olduğu; listenin dönem yayınlarıyla sınırlı olduğu notu. */
+  engagementNote: string;
   topByViews: FeedAdminTopPost[];
   topByCta: FeedAdminTopPost[];
-}> {
+};
+
+/**
+ * Admin feed analytics — tek Promise.all agregasyonu.
+ * Envanter KPI’ları güncel stok; engagement top-listeleri dönem içinde
+ * yayımlanan (`publishedAt`) yazılarla sınırlı, sayaçlar tüm zaman.
+ */
+export async function getFeedAdminStats(
+  periodDays: FeedAdminStatsPeriodDays = 30
+): Promise<FeedAdminStats> {
   await ensureDbConnection();
+  const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+  const periodPublishedWhere: Prisma.FeedPostWhereInput = {
+    status: 'published',
+    deletedAt: null,
+    publishedAt: { gte: since }
+  };
   const topSelect = {
     id: true,
     slug: true,
@@ -759,34 +789,85 @@ export async function getFeedAdminStats(): Promise<{
     ctaClickCount: true
   } satisfies Prisma.FeedPostSelect;
 
-  const [published, inReview, queuePending, views, missingImages, topByViews, topByCta] =
-    await Promise.all([
-      prisma.feedPost.count({ where: { status: 'published', deletedAt: null } }),
-      prisma.feedPost.count({ where: { status: 'review', deletedAt: null } }),
-      prisma.feedEditorialQueue.count({ where: { status: 'pending' } }),
-      prisma.feedPost.aggregate({ _sum: { viewCount: true }, where: { deletedAt: null } }),
-      prisma.feedPost.count({
-        where: { deletedAt: null, ...missingImageWhere() }
-      }),
-      prisma.feedPost.findMany({
-        where: { status: 'published', deletedAt: null },
-        orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
-        take: 5,
-        select: topSelect
-      }),
-      prisma.feedPost.findMany({
-        where: { status: 'published', deletedAt: null },
-        orderBy: [{ ctaClickCount: 'desc' }, { viewCount: 'desc' }],
-        take: 5,
-        select: topSelect
-      })
-    ]);
+  const [
+    published,
+    inReview,
+    queuePending,
+    missingImages,
+    periodPublished,
+    engagementSums,
+    topByViews,
+    topByCta,
+    qualityCandidates
+  ] = await Promise.all([
+    prisma.feedPost.count({ where: { status: 'published', deletedAt: null } }),
+    prisma.feedPost.count({ where: { status: 'review', deletedAt: null } }),
+    prisma.feedEditorialQueue.count({ where: { status: 'pending' } }),
+    prisma.feedPost.count({
+      where: { deletedAt: null, ...missingImageWhere() }
+    }),
+    prisma.feedPost.count({ where: periodPublishedWhere }),
+    prisma.feedPost.aggregate({
+      _sum: { viewCount: true, ctaClickCount: true },
+      where: periodPublishedWhere
+    }),
+    prisma.feedPost.findMany({
+      where: periodPublishedWhere,
+      orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
+      take: 10,
+      select: topSelect
+    }),
+    prisma.feedPost.findMany({
+      where: {
+        ...periodPublishedWhere,
+        ctaClickCount: { gt: 0 }
+      },
+      orderBy: [{ ctaClickCount: 'desc' }, { viewCount: 'desc' }],
+      take: 10,
+      select: topSelect
+    }),
+    // Kalite skoru JS’te; admin paneliyle aynı sinyal — sınırlı pencere.
+    prisma.feedPost.findMany({
+      where: {
+        deletedAt: null,
+        status: { in: ['published', 'review'] }
+      },
+      select: {
+        coverImage: true,
+        summary: true,
+        content: true,
+        readingTimeMinutes: true
+      },
+      orderBy: [{ updatedAt: 'desc' }],
+      take: 400
+    })
+  ]);
+
+  let lowQualityCount = 0;
+  for (const row of qualityCandidates) {
+    if (
+      scoreFeedContentQuality({
+        content: row.content,
+        coverImage: row.coverImage,
+        summary: row.summary,
+        readingTimeMinutes: row.readingTimeMinutes
+      }).isLowQuality
+    ) {
+      lowQualityCount += 1;
+    }
+  }
+
   return {
     published,
     inReview,
     queuePending,
-    totalViews: views._sum.viewCount ?? 0,
     missingImages,
+    lowQualityCount,
+    periodDays,
+    periodPublished,
+    totalViews: engagementSums._sum.viewCount ?? 0,
+    totalCtaClicks: engagementSums._sum.ctaClickCount ?? 0,
+    engagementNote: `Görüntülenme ve CTA: son ${periodDays} günde yayımlanan yazıların tüm zaman sayaçları (günlük kırılım yok). Yayında / incelemede / kapaksız / kalite düşük güncel envanterdir.`,
     topByViews,
     topByCta
   };
