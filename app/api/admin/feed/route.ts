@@ -57,7 +57,11 @@ const createSchema = z.object({
         caption: z.string().max(500).optional().nullable()
       })
     )
-    .optional()
+    .optional(),
+  aiProvider: z.string().max(40).optional(),
+  aiModel: z.string().max(80).optional(),
+  aiMetadata: z.record(z.string(), z.unknown()).optional(),
+  readingTimeMinutes: z.number().int().min(1).max(60).optional()
 });
 
 export async function GET(request: NextRequest) {

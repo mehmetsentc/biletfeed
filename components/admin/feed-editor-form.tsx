@@ -13,11 +13,36 @@ import {
   FEED_POST_TYPE_LABELS,
   isMissingFeedCoverImage
 } from '@/lib/feed/constants';
+import { resolveFeedEditor } from '@/lib/feed/editors/router';
+import type { FeedEditorId } from '@/lib/feed/editors/types';
 import type { AdminFeedPostEditor, FeedMediaInput } from '@/lib/services/feed';
 import type { FeedPostStatus, FeedPostType } from '@prisma/client';
 import { adminHref, getSiteUrl } from '@/lib/config/domain';
 
 type CategoryOption = { id: string; slug: string; name: string };
+
+type AiDraftMeta = {
+  editorId: FeedEditorId;
+  editorLabel: string;
+  provider: string;
+  model: string;
+};
+
+type AiDraftResponse = {
+  title: string;
+  slug?: string;
+  headline: string;
+  summary: string;
+  content: string;
+  contentType: FeedPostType;
+  tags: string[];
+  seoTitle: string;
+  seoDescription: string;
+  seoKeywords?: string[];
+  readingTimeMinutes?: number;
+  isFeatured?: boolean;
+  meta?: AiDraftMeta;
+};
 
 type FeedEditorFormProps =
   | { mode: 'create'; categories: CategoryOption[] }
@@ -53,6 +78,29 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
 
   const [regenerating, setRegenerating] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
+  const [lastEditorLabel, setLastEditorLabel] = useState<string | null>(
+    typeof initial?.aiMetadata?.editorLabel === 'string'
+      ? (initial.aiMetadata.editorLabel as string)
+      : null
+  );
+  const [aiMeta, setAiMeta] = useState<AiDraftMeta | null>(
+    initial?.aiProvider && initial?.aiModel
+      ? {
+          editorId: (typeof initial.aiMetadata?.editorId === 'string'
+            ? initial.aiMetadata.editorId
+            : 'general') as FeedEditorId,
+          editorLabel:
+            typeof initial.aiMetadata?.editorLabel === 'string'
+              ? (initial.aiMetadata.editorLabel as string)
+              : 'AI Editör',
+          provider: initial.aiProvider,
+          model: initial.aiModel
+        }
+      : null
+  );
+  const [readingTimeMinutes, setReadingTimeMinutes] = useState<number | undefined>(
+    initial?.readingTimeMinutes
+  );
 
   const [form, setForm] = useState({
     title: initial?.title ?? '',
@@ -70,6 +118,13 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     seoTitle: (initial?.seo?.title ?? '').slice(0, 70),
     seoDescription: (initial?.seo?.description ?? '').slice(0, 200),
     seoKeywords: (initial?.seo?.keywords ?? []).join(', ')
+  });
+
+  const selectedCategorySlug =
+    props.categories.find((c) => c.id === form.feedCategoryId)?.slug ?? null;
+  const activeEditor = resolveFeedEditor({
+    contentType: form.contentType,
+    categorySlug: selectedCategorySlug
   });
 
   const [media, setMedia] = useState<MediaRow[]>(
@@ -126,6 +181,31 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     }
   }
 
+  function applyAiDraft(draft: AiDraftResponse, editorLabel?: string) {
+    const coverOk = !isMissingFeedCoverImage(form.coverImage);
+    setForm((f) => ({
+      ...f,
+      title: draft.title,
+      headline: draft.headline,
+      summary: draft.summary,
+      content: draft.content,
+      contentType: draft.contentType,
+      tags: draft.tags.map((t) => t.replace(/^#/, '')).join(', '),
+      seoTitle: draft.seoTitle.slice(0, 70),
+      seoDescription: draft.seoDescription.slice(0, 200),
+      seoKeywords: (draft.seoKeywords ?? []).join(', '),
+      // AI isFeatured yalnızca kapak varken öneri olarak uygulanır
+      isFeatured: coverOk && draft.isFeatured === true ? true : f.isFeatured && coverOk
+    }));
+    if (draft.readingTimeMinutes) setReadingTimeMinutes(draft.readingTimeMinutes);
+    if (draft.meta) {
+      setAiMeta(draft.meta);
+      setLastEditorLabel(draft.meta.editorLabel);
+    } else if (editorLabel) {
+      setLastEditorLabel(editorLabel);
+    }
+  }
+
   async function handleGenerateWithAi() {
     if (!brief.trim() || brief.trim().length < 10) {
       setAiError('Lütfen en az birkaç cümlelik bir haber içeriği/notu girin');
@@ -137,37 +217,19 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
       const res = await fetch('/api/admin/feed/ai-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief: brief.trim() })
+        body: JSON.stringify({
+          brief: brief.trim(),
+          contentType: form.contentType,
+          categorySlug: selectedCategorySlug
+        })
       });
       const data = (await res.json()) as {
-        draft?: {
-          title: string;
-          headline: string;
-          summary: string;
-          content: string;
-          contentType: FeedPostType;
-          tags: string[];
-          seoTitle: string;
-          seoDescription: string;
-          seoKeywords?: string[];
-        };
+        draft?: AiDraftResponse;
+        editor?: { id: string; label: string };
         error?: string;
       };
       if (!res.ok || !data.draft) throw new Error(data.error ?? 'AI oluşturma başarısız');
-
-      const draft = data.draft;
-      setForm((f) => ({
-        ...f,
-        title: draft.title,
-        headline: draft.headline,
-        summary: draft.summary,
-        content: draft.content,
-        contentType: draft.contentType,
-        tags: draft.tags.join(', '),
-        seoTitle: draft.seoTitle.slice(0, 70),
-        seoDescription: draft.seoDescription.slice(0, 200),
-        seoKeywords: (draft.seoKeywords ?? []).join(', ')
-      }));
+      applyAiDraft(data.draft, data.editor?.label);
     } catch (err) {
       setAiError(err instanceof Error ? err.message : 'AI oluşturma başarısız');
     } finally {
@@ -179,7 +241,7 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     if (props.mode !== 'edit') return;
     if (
       !confirm(
-        'Bu haberin başlığı, manşeti, özeti, gövde metni, etiketleri ve SEO alanları DeepSeek AI Festival & Parti Editörü tarafından tamamen yeniden yazılacak. Formu doldurduktan sonra kaydetmeden önce gözden geçirebilirsiniz. Devam edilsin mi?'
+        `Bu haberin başlığı, manşeti, özeti, gövde metni, etiketleri ve SEO alanları DeepSeek + ${activeEditor.label} tarafından tamamen yeniden yazılacak. Formu doldurduktan sonra kaydetmeden önce gözden geçirebilirsiniz. Devam edilsin mi?`
       )
     ) {
       return;
@@ -188,37 +250,20 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     setRegenerateError(null);
     try {
       const res = await fetch(`/api/admin/feed/${props.post.id}/ai-regenerate`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contentType: form.contentType,
+          categorySlug: selectedCategorySlug
+        })
       });
       const data = (await res.json()) as {
-        draft?: {
-          title: string;
-          headline: string;
-          summary: string;
-          content: string;
-          contentType: FeedPostType;
-          tags: string[];
-          seoTitle: string;
-          seoDescription: string;
-          seoKeywords?: string[];
-        };
+        draft?: AiDraftResponse;
+        editor?: { id: string; label: string };
         error?: string;
       };
       if (!res.ok || !data.draft) throw new Error(data.error ?? 'AI yeniden oluşturma başarısız');
-
-      const draft = data.draft;
-      setForm((f) => ({
-        ...f,
-        title: draft.title,
-        headline: draft.headline,
-        summary: draft.summary,
-        content: draft.content,
-        contentType: draft.contentType,
-        tags: draft.tags.join(', '),
-        seoTitle: draft.seoTitle.slice(0, 70),
-        seoDescription: draft.seoDescription.slice(0, 200),
-        seoKeywords: (draft.seoKeywords ?? []).join(', ')
-      }));
+      applyAiDraft(data.draft, data.editor?.label);
     } catch (err) {
       setRegenerateError(err instanceof Error ? err.message : 'AI yeniden oluşturma başarısız');
     } finally {
@@ -251,6 +296,18 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
         description: form.seoDescription.trim().slice(0, 200) || undefined,
         ...(keywords.length ? { keywords } : {})
       },
+      ...(readingTimeMinutes ? { readingTimeMinutes } : {}),
+      ...(aiMeta
+        ? {
+            aiProvider: aiMeta.provider,
+            aiModel: aiMeta.model,
+            aiMetadata: {
+              editorId: aiMeta.editorId,
+              editorLabel: aiMeta.editorLabel,
+              ranAt: new Date().toISOString()
+            }
+          }
+        : {}),
       media: media
         .filter((m) => m.url.trim())
         .map(({ type, url, thumbnail, alt, caption }) => ({
@@ -326,9 +383,15 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
           </h2>
         </div>
         <p className="text-xs text-muted-foreground">
-          Konser, parti, festival veya sinema haberinin ham içeriğini/notunu aşağıya yapıştırın —
-          AI Editör başlık, özet, tam metin, etiket ve SEO alanlarını sizin için oluştursun. Oluşan
-          içeriği kaydetmeden önce gözden geçirebilirsiniz.
+          Ham haber notunu yapıştırın. Aktif specialty:{' '}
+          <span className="font-medium text-foreground">{activeEditor.label}</span>
+          {' — '}
+          içerik türü ve kategori seçimine göre Konser / Party / Festival / Müzik / Trend editörü
+          çalışır. Zod şema + DeepSeek; kaydetmeden önce gözden geçirin.
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          İpucu: Konser → içerik türü &quot;Konser Haberi&quot; veya kategori &quot;Konser
+          Haberleri&quot;. Party → &quot;Eğlence Haberi&quot; / kategori &quot;Eğlence Haberi&quot;.
         </p>
         <textarea
           rows={4}
@@ -338,21 +401,23 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         />
         {aiError && <p className="text-sm text-destructive">{aiError}</p>}
+        {lastEditorLabel && (
+          <p className="text-xs text-muted-foreground">Son çalışan editör: {lastEditorLabel}</p>
+        )}
         <Button type="button" size="sm" disabled={generating} onClick={() => void handleGenerateWithAi()}>
           {generating ? (
             <Loader2 className="mr-2 size-4 animate-spin" />
           ) : (
             <Sparkles className="mr-2 size-4" />
           )}
-          {generating ? 'Oluşturuluyor…' : 'AI ile Oluştur'}
+          {generating ? 'Oluşturuluyor…' : `AI ile Oluştur (${activeEditor.label})`}
         </Button>
 
         {props.mode === 'edit' && (
           <div className="mt-2 border-t border-primary/20 pt-4">
             <p className="mb-2 text-xs text-muted-foreground">
-              Bu mevcut haberi tek tuşla DeepSeek destekli Festival & Parti Dergisi Editörü ile
-              tamamen yeniden yazdırın — başlık, manşet, özet, H2/H3 alt başlıklı gövde metni,
-              etiketler ve SEO alanlarının (uzunluk sınırlarına uygun) tümü yeniden oluşturulur.
+              Mevcut haberi DeepSeek + {activeEditor.label} ile sıfırdan yeniden yazdırın — başlık,
+              manşet, özet, H2 gövde, etiketler ve SEO alanları yeniden oluşturulur.
             </p>
             {regenerateError && <p className="mb-2 text-sm text-destructive">{regenerateError}</p>}
             <Button
@@ -368,7 +433,9 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
               ) : (
                 <Sparkles className="mr-2 size-4" />
               )}
-              {regenerating ? 'Yeniden yazılıyor…' : 'AI Festival & Parti Editörü — Yeniden Oluştur'}
+              {regenerating
+                ? 'Yeniden yazılıyor…'
+                : `${activeEditor.label} — Yeniden Oluştur`}
             </Button>
           </div>
         )}

@@ -43,7 +43,11 @@ const updateSchema = z.object({
       keywords: z.array(z.string().max(40)).max(12).optional()
     })
     .optional(),
-  media: z.array(mediaSchema).optional()
+  media: z.array(mediaSchema).optional(),
+  aiProvider: z.string().max(40).optional().nullable(),
+  aiModel: z.string().max(80).optional().nullable(),
+  aiMetadata: z.record(z.string(), z.unknown()).optional(),
+  readingTimeMinutes: z.number().int().min(1).max(60).optional()
 });
 
 interface RouteParams {

@@ -504,6 +504,7 @@ export async function createFeedPostFromDraft(input: {
   seo?: { title?: string; description?: string; keywords?: string[] };
   aiProvider?: string;
   aiModel?: string;
+  aiMetadata?: Record<string, unknown>;
   readingTimeMinutes?: number;
   eventId?: string;
   organizerId?: string;
@@ -519,34 +520,39 @@ export async function createFeedPostFromDraft(input: {
     return Boolean(row);
   });
 
+  const data: Prisma.FeedPostUncheckedCreateInput = {
+    slug,
+    title: input.title,
+    headline: input.headline ?? input.title,
+    summary: input.summary,
+    content: input.content,
+    excerpt: input.excerpt ?? input.summary,
+    contentType: input.contentType,
+    status: input.status ?? 'review',
+    editorialStage: 'review',
+    coverImage: input.coverImage,
+    authorName: FEED_AUTHOR_NAME,
+    tags: input.tags ?? [],
+    sourceUrl: input.sourceUrl,
+    sourceName: input.sourceName,
+    sourceAttribution: input.sourceAttribution,
+    seo: (input.seo ?? {}) as Prisma.InputJsonValue,
+    aiProvider: input.aiProvider,
+    aiModel: input.aiModel,
+    ...(input.aiMetadata
+      ? { aiMetadata: input.aiMetadata as Prisma.InputJsonValue }
+      : {}),
+    readingTimeMinutes: input.readingTimeMinutes ?? 3,
+    eventId: input.eventId,
+    organizerId: input.organizerId,
+    cityId: input.cityId,
+    venueId: input.venueId,
+    artistName: input.artistName,
+    feedCategoryId: input.feedCategoryId
+  };
+
   const post = await prisma.feedPost.create({
-    data: {
-      slug,
-      title: input.title,
-      headline: input.headline ?? input.title,
-      summary: input.summary,
-      content: input.content,
-      excerpt: input.excerpt ?? input.summary,
-      contentType: input.contentType,
-      status: input.status ?? 'review',
-      editorialStage: 'review',
-      coverImage: input.coverImage,
-      authorName: FEED_AUTHOR_NAME,
-      tags: input.tags ?? [],
-      sourceUrl: input.sourceUrl,
-      sourceName: input.sourceName,
-      sourceAttribution: input.sourceAttribution,
-      seo: input.seo ?? {},
-      aiProvider: input.aiProvider,
-      aiModel: input.aiModel,
-      readingTimeMinutes: input.readingTimeMinutes ?? 3,
-      eventId: input.eventId,
-      organizerId: input.organizerId,
-      cityId: input.cityId,
-      venueId: input.venueId,
-      artistName: input.artistName,
-      feedCategoryId: input.feedCategoryId
-    },
+    data,
     select: { id: true, slug: true }
   });
 
@@ -633,7 +639,13 @@ export type AdminFeedPostEditor = {
   tags: string[];
   isFeatured: boolean;
   feedCategoryId: string | null;
+  categorySlug: string | null;
+  categoryName: string | null;
+  artistName: string | null;
   readingTimeMinutes: number;
+  aiProvider: string | null;
+  aiModel: string | null;
+  aiMetadata: Record<string, unknown>;
   seo: { title?: string; description?: string; keywords?: string[] };
   media: Array<{
     id: string;
@@ -669,7 +681,10 @@ export async function getAdminFeedPostById(id: string): Promise<AdminFeedPostEdi
   }
   const row = await prisma.feedPost.findFirst({
     where: { id, deletedAt: null },
-    include: { media: { orderBy: { sortOrder: 'asc' } } }
+    include: {
+      media: { orderBy: { sortOrder: 'asc' } },
+      feedCategory: { select: { slug: true, name: true } }
+    }
   });
   if (!row) return null;
   return {
@@ -685,7 +700,13 @@ export async function getAdminFeedPostById(id: string): Promise<AdminFeedPostEdi
     tags: row.tags,
     isFeatured: row.isFeatured,
     feedCategoryId: row.feedCategoryId,
+    categorySlug: row.feedCategory?.slug ?? null,
+    categoryName: row.feedCategory?.name ?? null,
+    artistName: row.artistName,
     readingTimeMinutes: row.readingTimeMinutes,
+    aiProvider: row.aiProvider,
+    aiModel: row.aiModel,
+    aiMetadata: (row.aiMetadata as Record<string, unknown>) ?? {},
     seo: (row.seo as { title?: string; description?: string; keywords?: string[] }) ?? {},
     media: row.media.map((m) => ({
       id: m.id,
@@ -729,13 +750,17 @@ export async function createManualAdminFeedPost(input: {
   status?: FeedPostStatus;
   media?: FeedMediaInput[];
   seo?: { title?: string; description?: string; keywords?: string[] };
+  aiProvider?: string;
+  aiModel?: string;
+  aiMetadata?: Record<string, unknown>;
+  readingTimeMinutes?: number;
 }): Promise<{ id: string; slug: string }> {
   const missingCover = isMissingFeedCoverImage(input.coverImage);
   if (missingCover && (input.status === 'published' || input.isFeatured)) {
     throw new Error(FEED_COVER_REQUIRED_MESSAGE);
   }
 
-  const readingTimeMinutes = estimateReadingMinutes(input.content);
+  const readingTimeMinutes = input.readingTimeMinutes ?? estimateReadingMinutes(input.content);
   const post = await createFeedPostFromDraft({
     title: input.title,
     headline: input.headline,
@@ -747,7 +772,10 @@ export async function createManualAdminFeedPost(input: {
     feedCategoryId: input.feedCategoryId ?? undefined,
     status: input.status ?? 'review',
     readingTimeMinutes,
-    seo: input.seo
+    seo: input.seo,
+    aiProvider: input.aiProvider,
+    aiModel: input.aiModel,
+    aiMetadata: input.aiMetadata
   });
 
   if (input.media?.length) {
@@ -783,6 +811,10 @@ export async function updateAdminFeedPost(
     status?: FeedPostStatus;
     media?: FeedMediaInput[];
     seo?: { title?: string; description?: string; keywords?: string[] };
+    aiProvider?: string | null;
+    aiModel?: string | null;
+    aiMetadata?: Record<string, unknown>;
+    readingTimeMinutes?: number;
   }
 ): Promise<{ slug: string }> {
   await ensureDbConnection();
@@ -799,31 +831,38 @@ export async function updateAdminFeedPost(
   }
 
   const content = input.content ?? existing.content;
-  const readingTimeMinutes = estimateReadingMinutes(content);
+  const readingTimeMinutes = input.readingTimeMinutes ?? estimateReadingMinutes(content);
 
   const shouldPublish = input.status === 'published' && existing.status !== 'published';
 
+  const data: Prisma.FeedPostUncheckedUpdateInput = {
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.headline !== undefined ? { headline: input.headline } : {}),
+    ...(input.summary !== undefined ? { summary: input.summary } : {}),
+    ...(input.content !== undefined ? { content: input.content, excerpt: input.content.slice(0, 280) } : {}),
+    ...(input.contentType !== undefined ? { contentType: input.contentType } : {}),
+    ...(input.coverImage !== undefined
+      ? { coverImage: isMissingFeedCoverImage(input.coverImage) ? '' : input.coverImage }
+      : {}),
+    ...(input.tags !== undefined ? { tags: input.tags } : {}),
+    ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
+    ...(input.feedCategoryId !== undefined ? { feedCategoryId: input.feedCategoryId } : {}),
+    ...(input.status !== undefined ? { status: input.status } : {}),
+    ...(input.seo !== undefined ? { seo: input.seo as Prisma.InputJsonValue } : {}),
+    ...(input.aiProvider !== undefined ? { aiProvider: input.aiProvider } : {}),
+    ...(input.aiModel !== undefined ? { aiModel: input.aiModel } : {}),
+    ...(input.aiMetadata !== undefined
+      ? { aiMetadata: input.aiMetadata as Prisma.InputJsonValue }
+      : {}),
+    readingTimeMinutes,
+    ...(shouldPublish
+      ? { publishedAt: new Date(), editorialStage: 'publish' as const }
+      : {})
+  };
+
   await prisma.feedPost.update({
     where: { id },
-    data: {
-      ...(input.title !== undefined ? { title: input.title } : {}),
-      ...(input.headline !== undefined ? { headline: input.headline } : {}),
-      ...(input.summary !== undefined ? { summary: input.summary } : {}),
-      ...(input.content !== undefined ? { content: input.content, excerpt: input.content.slice(0, 280) } : {}),
-      ...(input.contentType !== undefined ? { contentType: input.contentType } : {}),
-      ...(input.coverImage !== undefined
-        ? { coverImage: isMissingFeedCoverImage(input.coverImage) ? '' : input.coverImage }
-        : {}),
-      ...(input.tags !== undefined ? { tags: input.tags } : {}),
-      ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
-      ...(input.feedCategoryId !== undefined ? { feedCategoryId: input.feedCategoryId } : {}),
-      ...(input.status !== undefined ? { status: input.status } : {}),
-      ...(input.seo !== undefined ? { seo: input.seo } : {}),
-      readingTimeMinutes,
-      ...(shouldPublish
-        ? { publishedAt: new Date(), editorialStage: 'publish' as const }
-        : {})
-    }
+    data
   });
 
   if (input.media !== undefined) {

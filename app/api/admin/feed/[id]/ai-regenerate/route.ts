@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { guardAdminMutation } from '@/lib/auth/guard-admin-api';
 import { getAdminFeedPostById } from '@/lib/services/feed';
 import { regeneratePostAsMagazineEditor } from '@/lib/feed/ai-editor';
+import { resolveFeedEditor, type FeedEditorId } from '@/lib/feed/editors';
 import { isScraperAiReady } from '@/lib/scraper/ai/config';
+import { zodErrorMessage } from '@/lib/api/zod-validation';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+const bodySchema = z
+  .object({
+    editorId: z.enum(['concert', 'party', 'festival', 'music', 'trend', 'general']).optional().nullable(),
+    categorySlug: z.string().max(80).optional().nullable(),
+    contentType: z.string().optional()
+  })
+  .optional();
+
 /**
- * Tek tuşla "Festival & Parti Dergisi Editörü" — mevcut haberi DeepSeek ile
- * tamamen yeniden oluşturur (başlık, manşet, özet, H2/H3/H4 yapılandırılmış
- * gövde, etiketler, SEO). Sonucu doğrudan kaydetmez; admin ekranı taslağı
- * forma doldurur, kaydetmek için yine "Güncelle" gerekir.
+ * Kategori specialty editörü + DeepSeek — mevcut haberi tamamen yeniden oluşturur.
+ * Sonucu doğrudan kaydetmez; admin formu doldurur, "Güncelle" gerekir.
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const guard = await guardAdminMutation(request, 'feed.manage');
@@ -31,16 +40,47 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: 'Haber bulunamadı' }, { status: 404 });
   }
 
+  let body: z.infer<typeof bodySchema> = {};
+  try {
+    const json = await request.json();
+    const parsed = bodySchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: zodErrorMessage(parsed.error), details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+    body = parsed.data ?? {};
+  } catch {
+    body = {};
+  }
+
+  const categorySlug = body?.categorySlug ?? post.categorySlug;
+  const contentType = post.contentType;
+  const editor = resolveFeedEditor({
+    contentType,
+    categorySlug,
+    editorId: body?.editorId as FeedEditorId | null | undefined
+  });
+
   try {
     const draft = await regeneratePostAsMagazineEditor({
       title: post.title,
       headline: post.headline,
       summary: post.summary,
       content: post.content,
-      contentType: post.contentType,
-      tags: post.tags
+      contentType,
+      tags: post.tags,
+      artistName: post.artistName,
+      categorySlug,
+      categoryName: post.categoryName,
+      editorId: body?.editorId as FeedEditorId | null | undefined
     });
-    return NextResponse.json({ success: true, draft });
+    return NextResponse.json({
+      success: true,
+      draft,
+      editor: { id: editor.id, label: editor.label }
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'AI yeniden oluşturma başarısız';
     return NextResponse.json({ error: message }, { status: 500 });

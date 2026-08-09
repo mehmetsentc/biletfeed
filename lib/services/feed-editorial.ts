@@ -5,6 +5,7 @@ import {
   rewriteDiscoveryItem,
   type DiscoveredItem
 } from '@/lib/feed/ai-editor';
+import { editorMetaForStorage } from '@/lib/feed/editors';
 import { createFeedPostFromDraft } from '@/lib/services/feed';
 import type { EditorialQueueItem } from '@/lib/feed/types';
 import { fetchOgImage } from '@/lib/feed/discovery/og-image';
@@ -117,9 +118,16 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
         description: draft.seoDescription,
         ...(draft.seoKeywords?.length ? { keywords: draft.seoKeywords } : {})
       },
+      aiProvider: draft.meta.provider,
+      aiModel: draft.meta.model,
+      aiMetadata: {
+        ...editorMetaForStorage(draft.meta),
+        isFeaturedSuggested: draft.isFeatured
+      },
       readingTimeMinutes: draft.readingTimeMinutes,
       artistName: draft.artistName,
       // Kapaksız içerik asla otomatik yayınlanmaz / öne çıkarılmaz
+      // isFeatured AI önerisi sunucu kapak kapısı olmadan uygulanmaz
       status: 'review'
     });
 
