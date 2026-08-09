@@ -7,7 +7,8 @@ import {
   publishFeedPost,
   createManualAdminFeedPost,
   bulkDeleteFeedPosts,
-  bulkUnfeatureFeedPosts
+  bulkUnfeatureFeedPosts,
+  pullCoverFromSource
 } from '@/lib/services/feed';
 import {
   listEditorialQueue,
@@ -154,8 +155,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, reset: result.count });
   }
 
+  if (action === 'fetch-cover') {
+    const postId = (json as { postId?: string }).postId;
+    if (!postId || !z.string().uuid().safeParse(postId).success) {
+      return NextResponse.json({ error: 'postId gerekli' }, { status: 400 });
+    }
+    const result = await pullCoverFromSource(postId);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.message, fetched: false }, { status: 422 });
+    }
+    return NextResponse.json({
+      success: true,
+      fetched: true,
+      coverImage: result.coverImage,
+      message: result.message
+    });
+  }
+
   if (action === 'fix-images') {
-    // Logo veya harici kapak görsellerini og:image + WebP dönüşümü ile düzelt
+    // Kapaksız + logo + harici kapakları og:image + WebP ile düzelt
     const { prisma } = await import('@/lib/db/prisma');
     const batchSize = Math.min(Number((json as { batchSize?: number }).batchSize ?? 20), 50);
 
@@ -163,7 +181,9 @@ export async function POST(request: NextRequest) {
       where: {
         deletedAt: null,
         OR: [
+          { coverImage: '' },
           { coverImage: { contains: 'brand/logo' } },
+          { coverImage: { contains: 'og-default' } },
           {
             AND: [
               { coverImage: { startsWith: 'http' } },
@@ -175,22 +195,30 @@ export async function POST(request: NextRequest) {
       },
       select: { id: true, sourceUrl: true, coverImage: true },
       take: batchSize,
-      orderBy: { publishedAt: 'desc' }
+      orderBy: { updatedAt: 'desc' }
     });
 
     let updated = 0;
     const errors: string[] = [];
+    let skippedNoOg = 0;
     for (const post of posts) {
       try {
+        const needsSourceOg =
+          isMissingFeedCoverImage(post.coverImage) || post.coverImage.includes('brand/logo');
         const raw =
-          post.coverImage.includes('brand/logo') && post.sourceUrl
+          needsSourceOg && post.sourceUrl
             ? await fetchOgImage(post.sourceUrl)
-            : post.coverImage;
+            : isMissingFeedCoverImage(post.coverImage)
+              ? null
+              : post.coverImage;
 
-        if (!raw) continue;
+        if (!raw) {
+          if (needsSourceOg) skippedNoOg += 1;
+          continue;
+        }
 
         const normalized = await normalizeCoverImageUrl(raw, post.sourceUrl ?? undefined);
-        if (normalized && normalized !== post.coverImage) {
+        if (normalized && normalized !== post.coverImage && !isMissingFeedCoverImage(normalized)) {
           await prisma.feedPost.update({ where: { id: post.id }, data: { coverImage: normalized } });
           updated += 1;
         }
@@ -199,7 +227,13 @@ export async function POST(request: NextRequest) {
       }
       await new Promise((r) => setTimeout(r, 400));
     }
-    return NextResponse.json({ success: true, total: posts.length, updated, errors });
+    return NextResponse.json({
+      success: true,
+      total: posts.length,
+      updated,
+      skippedNoOg,
+      errors
+    });
   }
 
   if (action === 'bulk-delete') {

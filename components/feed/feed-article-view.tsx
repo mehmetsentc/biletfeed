@@ -87,6 +87,7 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
 
   const ticketCallout = (
     <FeedEventCta
+      postId={post.id}
       eventSlug={eventSlug}
       eventTitle={post.eventTitle}
       eventHasTickets={post.eventHasTickets}

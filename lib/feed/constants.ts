@@ -172,6 +172,10 @@ export function isMissingFeedCoverImage(coverImage: string | null | undefined): 
 export const FEED_COVER_REQUIRED_MESSAGE =
   'Kapak görseli eksik. Yayınlamak veya öne çıkarmak için gerçek bir kapak görseli ekleyin.';
 
+/** Kaynaktan og:image çekilemediğinde admin’e gösterilen mesaj — incelemede kalır. */
+export const FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE =
+  'Kaynakta og:image bulunamadı. Manuel kapak ekleyin; kapaksız yayınlanamaz.';
+
 export const FEED_DISCOVERY_SOURCES = [
   {
     name: 'BiletFeed Events RSS',

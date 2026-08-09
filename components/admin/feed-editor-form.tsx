@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AlertTriangle, ImagePlus, Loader2, Plus, Sparkles, Trash2, Video } from 'lucide-react';
+import { AlertTriangle, Download, ImagePlus, Loader2, Plus, Sparkles, Trash2, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -152,6 +152,35 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
       setForm((f) => ({ ...f, coverImage: data.url! }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kapak yüklenemedi');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function pullCoverFromSource() {
+    if (props.mode !== 'edit' || !props.post.sourceUrl?.trim()) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'fetch-cover', postId: props.post.id })
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        coverImage?: string;
+        fetched?: boolean;
+      };
+      if (!res.ok || !data.fetched || !data.coverImage) {
+        throw new Error(
+          data.error ??
+            'Kaynakta og:image bulunamadı. Manuel kapak ekleyin; kapaksız yayınlanamaz.'
+        );
+      }
+      setForm((f) => ({ ...f, coverImage: data.coverImage! }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kapak çekilemedi');
     } finally {
       setUploading(false);
     }
@@ -321,6 +350,10 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
   }
 
   const missingCover = isMissingFeedCoverImage(form.coverImage);
+  const canPullCover =
+    props.mode === 'edit' &&
+    missingCover &&
+    Boolean(props.post.sourceUrl?.trim());
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -452,9 +485,19 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
               <p className="mt-0.5 text-[13px] leading-snug opacity-90">
                 Kapak olmadan yayınlayamaz veya öne çıkaramazsınız. Taslak / incelemede
                 kaydedebilirsiniz; feed&apos;de görünmesi için gerçek bir kapak ekleyin.
+                {canPullCover
+                  ? ' Kaynak URL varsa “Kaynaktan kapak çek” ile og:image denenebilir.'
+                  : ''}
               </p>
             </div>
           </div>
+        )}
+        {props.mode === 'edit' && (props.post.viewCount > 0 || props.post.ctaClickCount > 0) && (
+          <p className="text-xs text-muted-foreground">
+            Görüntülenme: {props.post.viewCount.toLocaleString('tr-TR')}
+            {' · '}
+            CTA tıklama: {props.post.ctaClickCount.toLocaleString('tr-TR')}
+          </p>
         )}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-muted sm:max-w-xs">
@@ -477,15 +520,32 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
                 if (file) void uploadCover(file);
               }}
             />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={uploading}
-              onClick={() => coverInputRef.current?.click()}
-            >
-              {uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ImagePlus className="mr-2 size-4" />}
-              Görsel Yükle
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={uploading}
+                onClick={() => coverInputRef.current?.click()}
+              >
+                {uploading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ImagePlus className="mr-2 size-4" />}
+                Görsel Yükle
+              </Button>
+              {canPullCover && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={uploading}
+                  onClick={() => void pullCoverFromSource()}
+                >
+                  {uploading ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 size-4" />
+                  )}
+                  Kaynaktan kapak çek
+                </Button>
+              )}
+            </div>
             <div>
               <Label htmlFor="coverUrl">veya URL</Label>
               <Input

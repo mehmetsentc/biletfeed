@@ -91,4 +91,20 @@ npm run feed:flag-coverless -- --apply
 | 4 | `35c9b63` | Lead tipografi, event CTA, admin kalite filtreleri / unfeature |
 | 5 | `fa52ace` | NewsArticle SEO, toplu unfeature, kalite scriptleri, docs, discovery polish |
 
-Feed magazine + AI editör programı bu paket ile kapanır.
+Feed magazine + AI editör programı FAZ 5 ile kapanır; aşağıdaki opsiyonel faz ürünleştirmeyi tamamlar.
+
+## Sonraki faz (ops.) — Kapak kaynağı + görüntülenme
+
+### Kaynaktan kapak (`og:image`)
+
+- Editorial kuyruk zaten draft oluştururken `fetchOgImage(sourceUrl)` + `normalizeCoverImageUrl` dener; yoksa **boş kapak + `review`** (placeholder yok).
+- Admin listesi / düzenleme: kapaksız ve `sourceUrl` olan öğelerde **“Kaynaktan kapak çek”** → `POST /api/admin/feed` `{ action: "fetch-cover", postId }`.
+- Toplu: `fix-images` artık boş/logo kapakları da kaynak OG ile dener; OG yoksa sayacı artırır, yayın kapısı değişmez.
+- OG yoksa net mesaj: incelemede kalır; **kapaksız yayın hâlâ engelli** (`publishFeedPost` / FAZ 1).
+
+### Editorial analytics (hafif)
+
+- Makale görüntüleme: `FeedView` + `FeedPost.viewCount` (`recordFeedView` → `/feed/[slug]`).
+- CTA tıklama (opsiyonel): `FeedPost.ctaClickCount` — `POST /api/feed/[id]/cta` (rate-limit + same-origin); `FeedEventCta` beacon.
+- Admin `/admin/feed`: satırda görüntülenme + CTA; istatistik kartında toplam görüntülenme.
+- SiteTracker pageview yolu ayrıca path bazlı site analitiğine düşer; feed sayaçları editör operasyonu içindir — ağır BI yok.

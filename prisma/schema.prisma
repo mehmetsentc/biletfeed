@@ -1165,6 +1165,7 @@ model FeedPost {
   commentCount       Int               @default(0) @map("comment_count")
   bookmarkCount      Int               @default(0) @map("bookmark_count")
   shareCount         Int               @default(0) @map("share_count")
+  ctaClickCount      Int               @default(0) @map("cta_click_count")
   sourceUrl          String?           @map("source_url")
   sourceName         String?           @map("source_name")
   sourceAttribution  String?           @map("source_attribution")

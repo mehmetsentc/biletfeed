@@ -6,6 +6,7 @@ import {
   FEED_AUTHOR_NAME,
   FEED_CATEGORY_CONTENT_TYPES,
   FEED_CATEGORY_SHORT_LABELS,
+  FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE,
   FEED_COVER_REQUIRED_MESSAGE,
   FEED_FALLBACK_COVER,
   isMissingFeedCoverImage
@@ -14,6 +15,8 @@ import type { FeedPostCard, FeedPostDetail } from '@/lib/feed/types';
 import { applyCitySoftBoost } from '@/lib/feed/ranking';
 import { sanitizeFeedTags } from '@/lib/feed/tags';
 import { scoreFeedContentQuality } from '@/lib/feed/quality';
+import { fetchOgImage } from '@/lib/feed/discovery/og-image';
+import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 
 /** Kategori chip filtresi: atanmış kategori VEYA eşleşen contentType. */
 function categoryFilterWhere(categorySlug: string): Prisma.FeedPostWhereInput {
@@ -414,6 +417,69 @@ export async function recordFeedView(postId: string, userId?: string, ipHash?: s
   }
 }
 
+/** Makale içi etkinlik CTA tıklaması — hafif sayaç (BI değil). */
+export async function recordFeedCtaClick(postId: string): Promise<void> {
+  if (!isDatabaseConfigured()) return;
+
+  try {
+    await ensureDbConnection();
+    const exists = await prisma.feedPost.findFirst({
+      where: { id: postId, deletedAt: null, status: 'published' },
+      select: { id: true }
+    });
+    if (!exists) return;
+    await prisma.feedPost.update({
+      where: { id: postId },
+      data: { ctaClickCount: { increment: 1 }, trendingScore: { increment: 0.25 } }
+    });
+  } catch (error) {
+    if (isFeedDbUnavailable(error)) return;
+    throw error;
+  }
+}
+
+export type PullCoverFromSourceResult =
+  | { ok: true; coverImage: string; message: string }
+  | { ok: false; message: string };
+
+/**
+ * sourceUrl üzerinden og:image çeker, normalize eder ve kapak olarak yazar.
+ * Bulunamazsa review’da bırakır — asla placeholder ile yayınlamaz.
+ */
+export async function pullCoverFromSource(postId: string): Promise<PullCoverFromSourceResult> {
+  await ensureDbConnection();
+  const post = await prisma.feedPost.findFirst({
+    where: { id: postId, deletedAt: null },
+    select: { id: true, sourceUrl: true, coverImage: true }
+  });
+  if (!post) {
+    return { ok: false, message: 'Haber bulunamadı' };
+  }
+  if (!post.sourceUrl?.trim()) {
+    return { ok: false, message: 'Kaynak URL yok — kapak çekilemez.' };
+  }
+
+  const raw = await fetchOgImage(post.sourceUrl);
+  if (!raw) {
+    return { ok: false, message: FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE };
+  }
+
+  const normalized = await normalizeCoverImageUrl(raw, post.sourceUrl);
+  if (!normalized || isMissingFeedCoverImage(normalized)) {
+    return {
+      ok: false,
+      message: 'Kapak adresi alındı ama işlenemedi. Manuel kapak ekleyin; kapaksız yayınlanamaz.'
+    };
+  }
+
+  await prisma.feedPost.update({
+    where: { id: post.id },
+    data: { coverImage: normalized }
+  });
+
+  return { ok: true, coverImage: normalized, message: 'Kapak kaynaktan alındı ve kaydedildi.' };
+}
+
 export async function toggleFeedLike(postId: string, userId: string): Promise<{ liked: boolean }> {
   await ensureDbConnection();
   const existing = await prisma.feedLike.findUnique({
@@ -646,10 +712,12 @@ export async function listAdminFeedPosts(status?: FeedPostStatus, missingImageOn
       content: true,
       readingTimeMinutes: true,
       viewCount: true,
+      ctaClickCount: true,
       likeCount: true,
       publishedAt: true,
       createdAt: true,
-      isFeatured: true
+      isFeatured: true,
+      sourceUrl: true
     },
     orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
     // Eksik görselli haberler eski/yayınlanmamış olabilir ve normal 100'lük
@@ -694,6 +762,7 @@ export type AdminFeedPostEditor = {
   contentType: FeedPostType;
   status: FeedPostStatus;
   coverImage: string;
+  sourceUrl: string | null;
   tags: string[];
   isFeatured: boolean;
   feedCategoryId: string | null;
@@ -701,6 +770,8 @@ export type AdminFeedPostEditor = {
   categoryName: string | null;
   artistName: string | null;
   readingTimeMinutes: number;
+  viewCount: number;
+  ctaClickCount: number;
   aiProvider: string | null;
   aiModel: string | null;
   aiMetadata: Record<string, unknown>;
@@ -755,6 +826,7 @@ export async function getAdminFeedPostById(id: string): Promise<AdminFeedPostEdi
     contentType: row.contentType,
     status: row.status,
     coverImage: row.coverImage,
+    sourceUrl: row.sourceUrl,
     tags: row.tags,
     isFeatured: row.isFeatured,
     feedCategoryId: row.feedCategoryId,
@@ -762,6 +834,8 @@ export async function getAdminFeedPostById(id: string): Promise<AdminFeedPostEdi
     categoryName: row.feedCategory?.name ?? null,
     artistName: row.artistName,
     readingTimeMinutes: row.readingTimeMinutes,
+    viewCount: row.viewCount,
+    ctaClickCount: row.ctaClickCount,
     aiProvider: row.aiProvider,
     aiModel: row.aiModel,
     aiMetadata: (row.aiMetadata as Record<string, unknown>) ?? {},

@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, CalendarDays, MapPin, Ticket, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +33,8 @@ export type FeedTicketCalloutProps = {
   tags?: string[];
   /** Makale gövdesi — tarih/şehir çıkarımı için (opsiyonel) */
   content?: string | null;
+  /** CTA tıklama sayacı için feed post id */
+  postId?: string | null;
 };
 
 function inferEventContext(props: FeedTicketCalloutProps): boolean {
@@ -89,6 +93,18 @@ export function FeedEventCta(props: FeedTicketCalloutProps) {
       : 'Etkinlik detayı'
     : 'Etkinlikleri keşfet';
 
+  function trackCtaClick() {
+    if (!props.postId) return;
+    const payload = JSON.stringify({});
+    void fetch(`/api/feed/${props.postId}/cta`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      credentials: 'same-origin',
+      keepalive: true
+    }).catch(() => {});
+  }
+
   return (
     <aside
       className="my-10 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card shadow-sm"
@@ -120,7 +136,11 @@ export function FeedEventCta(props: FeedTicketCalloutProps) {
           variant={isEventLinked ? 'default' : 'outline'}
           className="h-12 shrink-0 rounded-xl px-8 font-bold sm:min-w-[200px]"
         >
-          <Link href={href} className="inline-flex items-center justify-center gap-2">
+          <Link
+            href={href}
+            className="inline-flex items-center justify-center gap-2"
+            onClick={trackCtaClick}
+          >
             {isEventLinked && props.eventHasTickets ? (
               <>
                 <Ticket className="size-4" />

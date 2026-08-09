@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ImageOff, Loader2, Pencil, Plus, Sparkles, StarOff, Trash2, X } from 'lucide-react';
+import { Download, ImageOff, Loader2, Pencil, Plus, Sparkles, StarOff, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
@@ -26,7 +26,9 @@ type AdminPost = {
   status: string;
   contentType: string;
   coverImage: string;
+  sourceUrl: string | null;
   viewCount: number;
+  ctaClickCount: number;
   likeCount: number;
   publishedAt: string | null;
   createdAt: string;
@@ -162,6 +164,35 @@ export function FeedAdminDashboard() {
         return;
       }
       setActionInfo('Öne çıkarma kaldırıldı.');
+      await load(showMissingOnly);
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function pullCoverFromSource(postId: string) {
+    setActionId(postId);
+    setActionError(null);
+    setActionInfo(null);
+    try {
+      const res = await fetch('/api/admin/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'fetch-cover', postId })
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        message?: string;
+        fetched?: boolean;
+      };
+      if (!res.ok || !data.fetched) {
+        setActionError(
+          data.error ??
+            'Kaynakta og:image bulunamadı. Manuel kapak ekleyin; kapaksız yayınlanamaz.'
+        );
+        return;
+      }
+      setActionInfo(data.message ?? 'Kapak kaynaktan alındı.');
       await load(showMissingOnly);
     } finally {
       setActionId(null);
@@ -593,6 +624,7 @@ export function FeedAdminDashboard() {
                 <th className="px-4 py-3 font-semibold">Başlık</th>
                 <th className="px-4 py-3 font-semibold">Durum</th>
                 <th className="px-4 py-3 font-semibold">Görüntülenme</th>
+                <th className="px-4 py-3 font-semibold">CTA</th>
                 <th className="px-4 py-3 font-semibold">İşlem</th>
               </tr>
             </thead>
@@ -602,6 +634,7 @@ export function FeedAdminDashboard() {
                 const canQuickRewrite =
                   post.status === 'review' || Boolean(post.qualityLow);
                 const canUnfeature = post.isFeatured && missingCover;
+                const canPullCover = missingCover && Boolean(post.sourceUrl?.trim());
 
                 return (
                   <tr
@@ -663,7 +696,8 @@ export function FeedAdminDashboard() {
                       </div>
                     </td>
                     <td className="px-4 py-3">{post.status}</td>
-                    <td className="px-4 py-3">{post.viewCount}</td>
+                    <td className="px-4 py-3">{post.viewCount.toLocaleString('tr-TR')}</td>
+                    <td className="px-4 py-3">{(post.ctaClickCount ?? 0).toLocaleString('tr-TR')}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         <Button size="sm" variant="outline" asChild>
@@ -672,6 +706,22 @@ export function FeedAdminDashboard() {
                             Düzenle
                           </Link>
                         </Button>
+                        {canPullCover && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={actionId === post.id}
+                            title="sourceUrl üzerinden og:image çek"
+                            onClick={() => void pullCoverFromSource(post.id)}
+                          >
+                            {actionId === post.id ? (
+                              <Loader2 className="mr-1 size-3.5 animate-spin" />
+                            ) : (
+                              <Download className="mr-1 size-3.5" />
+                            )}
+                            Kaynaktan kapak çek
+                          </Button>
+                        )}
                         {canQuickRewrite && (
                           <Button
                             size="sm"
