@@ -70,13 +70,19 @@ export function FeedGridClient({
   if (posts.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
-        <p className="text-lg font-semibold text-foreground">Bu kategoride henüz haber yok</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Konser, festival ve sanatçı gündemi yakında burada olacak.
+        <p className="text-lg font-semibold text-foreground">
+          {categorySlug ? 'Bu kategoride henüz haber yok' : 'Henüz yayınlanmış haber yok'}
         </p>
-        <Button asChild className="mt-6">
-          <Link href="/feed">Tüm gündeme dön</Link>
-        </Button>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {categorySlug
+            ? 'Konser, festival ve sanatçı gündemi yakında burada olacak.'
+            : 'Editöryel ekip yeni hikâyeler yayınladığında burada görünecek.'}
+        </p>
+        {categorySlug ? (
+          <Button asChild className="mt-6">
+            <Link href="/feed">Tüm gündeme dön</Link>
+          </Button>
+        ) : null}
       </div>
     );
   }
@@ -179,12 +185,14 @@ export function FeedGridClient({
       )}
 
       <div ref={sentinelRef} className="flex justify-center py-6">
-        {loading && (
+        {loading ? (
           <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
-            Yükleniyor…
+            Daha fazla yükleniyor…
           </span>
-        )}
+        ) : !cursor && posts.length > 0 ? (
+          <span className="text-sm text-muted-foreground">Gündemin sonuna geldiniz</span>
+        ) : null}
       </div>
     </div>
   );

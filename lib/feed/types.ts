@@ -37,6 +37,7 @@ export type FeedPostDetail = FeedPostCard & {
   venueName: string | null;
   eventId: string | null;
   eventHasTickets: boolean;
+  updatedAt: string;
   media: Array<{
     id: string;
     type: string;

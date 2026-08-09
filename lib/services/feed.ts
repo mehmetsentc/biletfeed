@@ -372,6 +372,7 @@ export async function getFeedPostBySlug(slug: string): Promise<FeedPostDetail | 
       venueName: row.venue?.name ?? null,
       eventId: row.event?.id ?? null,
       eventHasTickets: Boolean(row.event?.ticketTypes.length),
+      updatedAt: row.updatedAt.toISOString(),
       media: row.media.map((m) => ({
         id: m.id,
         type: m.type,
@@ -612,6 +613,16 @@ export async function bulkDeleteFeedPosts(ids: string[]): Promise<number> {
   const result = await prisma.feedPost.updateMany({
     where: { id: { in: ids }, deletedAt: null },
     data: { deletedAt: new Date(), status: 'archived' }
+  });
+  return result.count;
+}
+
+/** Seçili haberlerden öne çıkarma bayrağını kaldırır (kalite / kapaksız kuyruk için). */
+export async function bulkUnfeatureFeedPosts(ids: string[]): Promise<number> {
+  await ensureDbConnection();
+  const result = await prisma.feedPost.updateMany({
+    where: { id: { in: ids }, deletedAt: null, isFeatured: true },
+    data: { isFeatured: false }
   });
   return result.count;
 }

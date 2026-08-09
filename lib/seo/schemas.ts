@@ -226,3 +226,53 @@ export function buildOrganizerSchema(organizer: MockOrganizer) {
     ...(organizer.logo ? { logo: organizer.logo } : {})
   };
 }
+
+/** Feed makale sayfası — NewsArticle JSON-LD (title, description, image, dates, author). */
+export function buildFeedNewsArticleSchema(post: {
+  slug: string;
+  title: string;
+  summary: string;
+  coverImage?: string | null;
+  publishedAt?: string | null;
+  updatedAt?: string | null;
+  authorName?: string | null;
+  seo?: { title?: string; description?: string } | null;
+}) {
+  const url = `${siteConfig.url}/feed/${post.slug}`;
+  const headline = post.seo?.title?.trim() || post.title;
+  const description = post.seo?.description?.trim() || post.summary;
+  const image =
+    post.coverImage && post.coverImage.trim() && !post.coverImage.includes('brand/logo')
+      ? [post.coverImage]
+      : [getDefaultOgImage()];
+  const datePublished = post.publishedAt ?? undefined;
+  const dateModified = post.updatedAt ?? post.publishedAt ?? undefined;
+  const authorName = post.authorName?.trim() || siteConfig.name;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline,
+    description,
+    image,
+    ...(datePublished ? { datePublished } : {}),
+    ...(dateModified ? { dateModified } : {}),
+    author: {
+      '@type': 'Person',
+      name: authorName
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: siteConfig.name,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${siteConfig.url}/brand/logo-dark.png`
+      }
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': url
+    },
+    url
+  };
+}

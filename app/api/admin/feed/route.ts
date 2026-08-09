@@ -6,7 +6,8 @@ import {
   listAdminFeedPosts,
   publishFeedPost,
   createManualAdminFeedPost,
-  bulkDeleteFeedPosts
+  bulkDeleteFeedPosts,
+  bulkUnfeatureFeedPosts
 } from '@/lib/services/feed';
 import {
   listEditorialQueue,
@@ -212,6 +213,19 @@ export async function POST(request: NextRequest) {
     }
     const deleted = await bulkDeleteFeedPosts(parsedIds.data.ids);
     return NextResponse.json({ success: true, deleted });
+  }
+
+  if (action === 'bulk-unfeature') {
+    const idsSchema = z.object({ ids: z.array(z.string().uuid()).min(1).max(200) });
+    const parsedIds = idsSchema.safeParse(json);
+    if (!parsedIds.success) {
+      return NextResponse.json(
+        { error: zodErrorMessage(parsedIds.error), details: parsedIds.error.flatten() },
+        { status: 400 }
+      );
+    }
+    const updated = await bulkUnfeatureFeedPosts(parsedIds.data.ids);
+    return NextResponse.json({ success: true, updated });
   }
 
   if (action === 'process-queue') {

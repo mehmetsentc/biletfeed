@@ -4,7 +4,7 @@ import { FeedArticleView } from '@/components/feed/feed-article-view';
 import { FeedBackButton } from '@/components/feed/feed-back-button';
 import { FeedShareButton } from '@/components/feed/feed-share-button';
 import { JsonLd } from '@/lib/seo/json-ld';
-import { buildBreadcrumbSchema } from '@/lib/seo/schemas';
+import { buildBreadcrumbSchema, buildFeedNewsArticleSchema } from '@/lib/seo/schemas';
 import { createFeedArticleMetadata } from '@/lib/seo/feed-metadata';
 import { getFeedPostBySlug, recordFeedView } from '@/lib/services/feed';
 import { siteConfig } from '@/lib/config/site';
@@ -33,22 +33,7 @@ export default async function FeedArticlePage({ params }: Props) {
     { name: post.title, url: `${siteConfig.url}/feed/${post.slug}` }
   ]);
 
-  const articleSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'NewsArticle',
-    headline: post.title,
-    description: post.summary,
-    image: [post.coverImage],
-    datePublished: post.publishedAt,
-    dateModified: (post as { updatedAt?: string }).updatedAt ?? post.publishedAt,
-    author: { '@type': 'Organization', name: post.authorName },
-    publisher: {
-      '@type': 'Organization',
-      name: siteConfig.name,
-      logo: { '@type': 'ImageObject', url: `${siteConfig.url}/brand/logo-dark.png` }
-    },
-    mainEntityOfPage: `${siteConfig.url}/feed/${post.slug}`
-  };
+  const articleSchema = buildFeedNewsArticleSchema(post);
 
   return (
     <div className="min-h-screen bg-background">

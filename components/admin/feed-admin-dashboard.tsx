@@ -67,6 +67,7 @@ export function FeedAdminDashboard() {
   const [batchRemaining, setBatchRemaining] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkUnfeaturing, setBulkUnfeaturing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionInfo, setActionInfo] = useState<string | null>(null);
 
@@ -266,6 +267,7 @@ export function FeedAdminDashboard() {
     if (selectedIds.size === 0) return;
     if (!confirm(`${selectedIds.size} haberi silmek istediğinize emin misiniz?`)) return;
     setBulkDeleting(true);
+    setActionError(null);
     try {
       await fetch('/api/admin/feed', {
         method: 'POST',
@@ -275,6 +277,43 @@ export function FeedAdminDashboard() {
       await load(showMissingOnly);
     } finally {
       setBulkDeleting(false);
+    }
+  }
+
+  async function bulkUnfeatureSelected() {
+    if (selectedIds.size === 0) return;
+    const featuredCount = posts.filter(
+      (p) => selectedIds.has(p.id) && p.isFeatured
+    ).length;
+    if (featuredCount === 0) {
+      setActionError('Seçimde öne çıkan haber yok.');
+      return;
+    }
+    if (
+      !confirm(
+        `${featuredCount} öne çıkan haberin öne çıkarma bayrağı kaldırılacak. Devam?`
+      )
+    ) {
+      return;
+    }
+    setBulkUnfeaturing(true);
+    setActionError(null);
+    setActionInfo(null);
+    try {
+      const res = await fetch('/api/admin/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bulk-unfeature', ids: Array.from(selectedIds) })
+      });
+      const data = (await res.json()) as { updated?: number; error?: string };
+      if (!res.ok) {
+        setActionError(data.error ?? 'Toplu öne çıkarma kaldırılamadı');
+        return;
+      }
+      setActionInfo(`${data.updated ?? 0} haberden öne çıkarma kaldırıldı.`);
+      await load(showMissingOnly);
+    } finally {
+      setBulkUnfeaturing(false);
     }
   }
 
@@ -480,15 +519,30 @@ export function FeedAdminDashboard() {
               </button>
             )}
             {selectedIds.size > 0 && (
-              <div className="flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/5 py-1 pl-3 pr-1">
-                <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+              <div className="flex flex-wrap items-center gap-2 rounded-full border border-border bg-muted/40 py-1 pl-3 pr-1">
+                <span className="text-xs font-semibold text-foreground">
                   {selectedIds.size} seçili
                 </span>
                 <Button
                   type="button"
                   size="sm"
+                  variant="outline"
+                  disabled={bulkUnfeaturing || bulkDeleting}
+                  onClick={() => void bulkUnfeatureSelected()}
+                  title="Seçili öne çıkanlardan bayrağı kaldır"
+                >
+                  {bulkUnfeaturing ? (
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                  ) : (
+                    <StarOff className="mr-1.5 size-3.5" />
+                  )}
+                  Öne çıkarmayı kaldır
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   variant="destructive"
-                  disabled={bulkDeleting}
+                  disabled={bulkDeleting || bulkUnfeaturing}
                   onClick={() => void bulkDeleteSelected()}
                 >
                   {bulkDeleting ? (
