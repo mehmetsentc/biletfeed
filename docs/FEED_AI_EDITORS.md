@@ -89,6 +89,6 @@ npm run feed:flag-coverless -- --apply
 | 2 | `be8ffd4` | Kategori editörleri, Zod şema, DeepSeek router |
 | 3 | `d46e862` | Dergi UX, kaynak temizliği, şehir soft boost, kalite sinyalleri |
 | 4 | `35c9b63` | Lead tipografi, event CTA, admin kalite filtreleri / unfeature |
-| 5 | *(bu sürüm)* | NewsArticle SEO, toplu unfeature, kalite scriptleri, docs, discovery polish |
+| 5 | `fa52ace` | NewsArticle SEO, toplu unfeature, kalite scriptleri, docs, discovery polish |
 
 Feed magazine + AI editör programı bu paket ile kapanır.
