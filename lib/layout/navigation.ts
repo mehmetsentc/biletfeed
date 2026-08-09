@@ -43,6 +43,11 @@ export function shouldShowNewsletterBanner(pathname: string): boolean {
   return pathname === '/';
 }
 
+/** `/feed/[slug]` okuma modu — şehir seçici / arama şeridini sadeleştir. */
+export function isFeedArticlePath(pathname: string): boolean {
+  return /^\/feed\/[^/]+\/?$/.test(pathname);
+}
+
 export function getMainNavLinks(t: {
   chrome: {
     home: string;

@@ -7,7 +7,6 @@ import {
 } from '@/lib/feed/ai-editor';
 import { createFeedPostFromDraft } from '@/lib/services/feed';
 import type { EditorialQueueItem } from '@/lib/feed/types';
-import { getDefaultOgImage } from '@/lib/seo/constants';
 import { fetchOgImage } from '@/lib/feed/discovery/og-image';
 import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { discoverViaTavily } from '@/lib/feed/discovery/tavily';
@@ -94,12 +93,12 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
       data: { stage: 'seo' }
     });
 
-    // Kaynak URL'den og:image çek → WebP/JPEG olarak Firebase'e kaydet
+    // Kaynak görselini tercih et; yoksa placeholder kapak koyma — taslakta bırak.
     const rawCover = await fetchOgImage(item.sourceUrl);
     const normalizedCover = rawCover
       ? await normalizeCoverImageUrl(rawCover, item.sourceUrl)
       : null;
-    const coverImage = normalizedCover ?? getDefaultOgImage();
+    const coverImage = normalizedCover ?? '';
 
     const post = await createFeedPostFromDraft({
       title: draft.title,
@@ -113,9 +112,14 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
       sourceUrl: item.sourceUrl,
       sourceName: item.sourceName ?? undefined,
       sourceAttribution: item.sourceName ? `Kaynak: ${item.sourceName}` : undefined,
-      seo: { title: draft.seoTitle, description: draft.seoDescription },
+      seo: {
+        title: draft.seoTitle,
+        description: draft.seoDescription,
+        ...(draft.seoKeywords?.length ? { keywords: draft.seoKeywords } : {})
+      },
       readingTimeMinutes: draft.readingTimeMinutes,
       artistName: draft.artistName,
+      // Kapaksız içerik asla otomatik yayınlanmaz / öne çıkarılmaz
       status: 'review'
     });
 

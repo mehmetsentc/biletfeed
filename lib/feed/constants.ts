@@ -158,13 +158,19 @@ export const DEFAULT_FEED_CATEGORIES = [
   }
 ] as const;
 
-/** Kapak görseli eksik veya placeholder ise true döner (admin panelde uyarı için) */
+/** Kapak görseli eksik veya placeholder ise true döner (admin panelde uyarı / yayın engeli için) */
 export function isMissingFeedCoverImage(coverImage: string | null | undefined): boolean {
   if (!coverImage || !coverImage.trim()) return true;
-  if (coverImage.includes('brand/logo')) return true;
-  if (coverImage === FEED_FALLBACK_COVER) return true;
+  const value = coverImage.trim();
+  if (value.includes('brand/logo')) return true;
+  if (value.includes('og-default')) return true;
+  if (value === FEED_FALLBACK_COVER) return true;
   return false;
 }
+
+/** Yayın / öne çıkarma için gerçek kapak zorunlu — hata mesajı. */
+export const FEED_COVER_REQUIRED_MESSAGE =
+  'Kapak görseli eksik. Yayınlamak veya öne çıkarmak için gerçek bir kapak görseli ekleyin.';
 
 export const FEED_DISCOVERY_SOURCES = [
   {

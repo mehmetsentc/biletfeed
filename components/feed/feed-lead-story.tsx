@@ -1,7 +1,7 @@
-import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
 import { ArrowRight, Clock } from 'lucide-react';
-import { feedBadgeClass, feedStoryShortLabel } from '@/lib/feed/constants';
+import { FeedCoverImage } from '@/components/feed/feed-cover-image';
+import { feedBadgeClass, feedStoryShortLabel, isMissingFeedCoverImage } from '@/lib/feed/constants';
 import { formatFeedTimeLabel } from '@/lib/feed/format-date';
 import type { FeedPostCard } from '@/lib/feed/types';
 import { cn } from '@/lib/utils';
@@ -10,22 +10,32 @@ import { cn } from '@/lib/utils';
 export function FeedLeadStory({ post }: { post: FeedPostCard }) {
   const label = feedStoryShortLabel(post.categorySlug, post.categoryName, post.contentType);
   const summary = post.summary?.trim();
+  const hasCover = !isMissingFeedCoverImage(post.coverImage);
 
   return (
     <Link
       href={`/feed/${post.slug}`}
-      className="group grid overflow-hidden rounded-2xl border border-border bg-card transition hover:border-primary/35 md:grid-cols-[1.15fr_1fr]"
+      className={cn(
+        'group grid overflow-hidden rounded-2xl border border-border bg-card transition hover:border-primary/35',
+        hasCover && 'md:grid-cols-[1.15fr_1fr]'
+      )}
     >
-      <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[320px]">
-        <FeedCoverImage
-          src={post.coverImage}
-          alt={post.title}
-          fill
-          priority
-          className="object-cover transition duration-500 group-hover:scale-[1.02]"
-          sizes="(max-width: 768px) 100vw, 55vw"
-        />
-      </div>
+      {hasCover ? (
+        <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[320px]">
+          <FeedCoverImage
+            src={post.coverImage}
+            alt={post.title}
+            fill
+            priority
+            className="object-cover transition duration-500 group-hover:scale-[1.02]"
+            sizes="(max-width: 768px) 100vw, 55vw"
+          />
+        </div>
+      ) : (
+        <div className="flex h-14 items-center border-b border-border bg-muted/40 px-5 text-xs font-medium text-muted-foreground md:hidden">
+          Kapak görseli yok
+        </div>
+      )}
 
       <div className="flex flex-col justify-center p-5 sm:p-6 md:p-8">
         <div className="mb-3 flex flex-wrap items-center gap-2">

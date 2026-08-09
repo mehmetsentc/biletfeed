@@ -16,6 +16,13 @@ export function createFeedListMetadata(): Metadata {
 export function createFeedArticleMetadata(post: FeedPostDetail): Metadata {
   const title = post.seo?.title ?? post.title;
   const description = post.seo?.description ?? post.summary;
+  const seoKeywordsRaw = post.seo?.keywords;
+  const seoKeywords =
+    typeof seoKeywordsRaw === 'string'
+      ? seoKeywordsRaw.split(',').map((k) => k.trim()).filter(Boolean)
+      : Array.isArray(seoKeywordsRaw)
+        ? seoKeywordsRaw.filter((k): k is string => typeof k === 'string')
+        : [];
 
   return createPageMetadata({
     title,
@@ -23,6 +30,7 @@ export function createFeedArticleMetadata(post: FeedPostDetail): Metadata {
     path: `/feed/${post.slug}`,
     image: post.coverImage,
     keywords: [
+      ...seoKeywords,
       FEED_POST_TYPE_LABELS[post.contentType],
       ...(post.tags ?? []),
       post.cityName ?? '',

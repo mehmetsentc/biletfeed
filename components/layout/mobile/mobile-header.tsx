@@ -14,6 +14,7 @@ import {
 } from '@/lib/config/domain';
 import { PanelExternalLink } from '@/components/native/panel-external-link';
 import { corporateMobileLinks } from '@/lib/layout/corporate-links';
+import { isFeedArticlePath } from '@/lib/layout/navigation';
 import { trackClientSearch } from '@/lib/analytics/track-client-search';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
   }
 
   const isRootPage = MOBILE_HEADER_ROOT_PATHS.includes(pathname);
+  const readingMode = isFeedArticlePath(pathname);
 
   const currentCity = cities.find((c) => c.slug === citySlug);
   const cityName = currentCity?.name ?? t.location.selectCity;
@@ -86,52 +88,56 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
 
           <Logo variant="auto" className="pointer-events-auto" />
 
-          <button
-            type="button"
-            onClick={() => {
-              const input = document.getElementById('mobile-search-input');
-              input?.focus();
-            }}
-            className="absolute right-3 flex size-9 items-center justify-center text-[var(--header-fg)]"
-            aria-label={t.common.search}
-          >
-            <Search className="size-5" />
-          </button>
+          {!readingMode && (
+            <button
+              type="button"
+              onClick={() => {
+                const input = document.getElementById('mobile-search-input');
+                input?.focus();
+              }}
+              className="absolute right-3 flex size-9 items-center justify-center text-[var(--header-fg)]"
+              aria-label={t.common.search}
+            >
+              <Search className="size-5" />
+            </button>
+          )}
         </div>
 
-        {/* Şehir + arama */}
-        <div className="flex items-center gap-2 border-t border-[var(--header-border)] px-3 py-2">
-          <button
-            type="button"
-            onClick={openCityPicker}
-            className="flex shrink-0 items-center gap-1 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-[var(--bf-accent-ink)]"
-            aria-label={t.filters.changeCity}
-          >
-            <MapPin className="size-3.5 shrink-0" />
-            <span className="max-w-[80px] truncate">{cityName}</span>
-          </button>
+        {/* Şehir + arama — makale okuma modunda gizlenir */}
+        {!readingMode && (
+          <div className="flex items-center gap-2 border-t border-[var(--header-border)] px-3 py-2">
+            <button
+              type="button"
+              onClick={openCityPicker}
+              className="flex shrink-0 items-center gap-1 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-[var(--bf-accent-ink)]"
+              aria-label={t.filters.changeCity}
+            >
+              <MapPin className="size-3.5 shrink-0" />
+              <span className="max-w-[80px] truncate">{cityName}</span>
+            </button>
 
-          <form onSubmit={handleSearch} className="flex flex-1">
-            <div className="relative flex flex-1 items-center">
-              <Search
-                className="pointer-events-none absolute left-3 size-4 text-[var(--header-fg-muted)]"
-                aria-hidden
-              />
-              <input
-                id="mobile-search-input"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t.home.heroSearchPlaceholder}
-                className={cn(
-                  'h-9 w-full rounded-full border border-[var(--header-border)] pl-9 pr-3 text-sm outline-none',
-                  'bg-[var(--muted)] text-[var(--foreground)] placeholder:text-[var(--header-fg-muted)]',
-                  'focus:border-primary/50 focus:ring-2 focus:ring-primary/20'
-                )}
-              />
-            </div>
-          </form>
-        </div>
+            <form onSubmit={handleSearch} className="flex flex-1">
+              <div className="relative flex flex-1 items-center">
+                <Search
+                  className="pointer-events-none absolute left-3 size-4 text-[var(--header-fg-muted)]"
+                  aria-hidden
+                />
+                <input
+                  id="mobile-search-input"
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t.home.heroSearchPlaceholder}
+                  className={cn(
+                    'h-9 w-full rounded-full border border-[var(--header-border)] pl-9 pr-3 text-sm outline-none',
+                    'bg-[var(--muted)] text-[var(--foreground)] placeholder:text-[var(--header-fg-muted)]',
+                    'focus:border-primary/50 focus:ring-2 focus:ring-primary/20'
+                  )}
+                />
+              </div>
+            </form>
+          </div>
+        )}
       </header>
 
       {menuOpen && (

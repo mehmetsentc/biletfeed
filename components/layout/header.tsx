@@ -10,7 +10,7 @@ import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { getMainNavLinks } from '@/lib/layout/navigation';
+import { getMainNavLinks, isFeedArticlePath } from '@/lib/layout/navigation';
 import { useTranslations } from '@/components/providers';
 
 export function Header() {
@@ -18,6 +18,7 @@ export function Header() {
   const { user, loading } = useAuth();
   const t = useTranslations();
   const isHome = pathname === '/';
+  const readingMode = isFeedArticlePath(pathname);
   const [scrolled, setScrolled] = useState(false);
   const navLinks = getMainNavLinks(t);
 
@@ -47,7 +48,7 @@ export function Header() {
         />
 
         <nav className="hidden items-center gap-7 md:flex">
-          <CitySelectorButton className="hidden md:inline-flex" />
+          {!readingMode && <CitySelectorButton className="hidden md:inline-flex" />}
           {navLinks.map((link) => {
             const active =
               pathname === link.href ||

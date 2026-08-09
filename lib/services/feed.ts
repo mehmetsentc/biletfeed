@@ -6,6 +6,7 @@ import {
   FEED_AUTHOR_NAME,
   FEED_CATEGORY_CONTENT_TYPES,
   FEED_CATEGORY_SHORT_LABELS,
+  FEED_COVER_REQUIRED_MESSAGE,
   FEED_FALLBACK_COVER,
   isMissingFeedCoverImage
 } from '@/lib/feed/constants';
@@ -47,7 +48,11 @@ function publishedWithImageWhere(): Prisma.FeedPostWhereInput {
     deletedAt: null,
     publishedAt: { not: null },
     coverImage: { not: '' },
-    NOT: [{ coverImage: { contains: 'brand/logo' } }, { coverImage: FEED_FALLBACK_COVER }]
+    NOT: [
+      { coverImage: { contains: 'brand/logo' } },
+      { coverImage: { contains: 'og-default' } },
+      { coverImage: FEED_FALLBACK_COVER }
+    ]
   };
 }
 
@@ -58,6 +63,7 @@ function missingImageWhere(): Prisma.FeedPostWhereInput {
     OR: [
       { coverImage: '' },
       { coverImage: { contains: 'brand/logo' } },
+      { coverImage: { contains: 'og-default' } },
       { coverImage: FEED_FALLBACK_COVER }
     ]
   };
@@ -348,7 +354,11 @@ export async function getFeedPostBySlug(slug: string): Promise<FeedPostDetail | 
         caption: m.caption
       })),
       relatedPosts: related.map(mapPostCard),
-      seo: (row.seo as Record<string, string>) ?? {}
+      seo: (row.seo as {
+        title?: string;
+        description?: string;
+        keywords?: string[] | string;
+      }) ?? {}
     };
   } catch (error) {
     if (isFeedDbUnavailable(error)) return null;
@@ -491,7 +501,7 @@ export async function createFeedPostFromDraft(input: {
   sourceUrl?: string;
   sourceName?: string;
   sourceAttribution?: string;
-  seo?: { title?: string; description?: string };
+  seo?: { title?: string; description?: string; keywords?: string[] };
   aiProvider?: string;
   aiModel?: string;
   readingTimeMinutes?: number;
@@ -545,6 +555,14 @@ export async function createFeedPostFromDraft(input: {
 
 export async function publishFeedPost(postId: string): Promise<void> {
   await ensureDbConnection();
+  const existing = await prisma.feedPost.findFirst({
+    where: { id: postId, deletedAt: null },
+    select: { coverImage: true, isFeatured: true }
+  });
+  if (!existing) throw new Error('Haber bulunamadı');
+  if (isMissingFeedCoverImage(existing.coverImage)) {
+    throw new Error(FEED_COVER_REQUIRED_MESSAGE);
+  }
   await prisma.feedPost.update({
     where: { id: postId },
     data: {
@@ -616,7 +634,7 @@ export type AdminFeedPostEditor = {
   isFeatured: boolean;
   feedCategoryId: string | null;
   readingTimeMinutes: number;
-  seo: { title?: string; description?: string };
+  seo: { title?: string; description?: string; keywords?: string[] };
   media: Array<{
     id: string;
     type: string;
@@ -668,7 +686,7 @@ export async function getAdminFeedPostById(id: string): Promise<AdminFeedPostEdi
     isFeatured: row.isFeatured,
     feedCategoryId: row.feedCategoryId,
     readingTimeMinutes: row.readingTimeMinutes,
-    seo: (row.seo as { title?: string; description?: string }) ?? {},
+    seo: (row.seo as { title?: string; description?: string; keywords?: string[] }) ?? {},
     media: row.media.map((m) => ({
       id: m.id,
       type: m.type,
@@ -710,8 +728,13 @@ export async function createManualAdminFeedPost(input: {
   feedCategoryId?: string | null;
   status?: FeedPostStatus;
   media?: FeedMediaInput[];
-  seo?: { title?: string; description?: string };
+  seo?: { title?: string; description?: string; keywords?: string[] };
 }): Promise<{ id: string; slug: string }> {
+  const missingCover = isMissingFeedCoverImage(input.coverImage);
+  if (missingCover && (input.status === 'published' || input.isFeatured)) {
+    throw new Error(FEED_COVER_REQUIRED_MESSAGE);
+  }
+
   const readingTimeMinutes = estimateReadingMinutes(input.content);
   const post = await createFeedPostFromDraft({
     title: input.title,
@@ -719,7 +742,7 @@ export async function createManualAdminFeedPost(input: {
     summary: input.summary,
     content: input.content,
     contentType: input.contentType,
-    coverImage: input.coverImage,
+    coverImage: missingCover ? '' : input.coverImage,
     tags: input.tags,
     feedCategoryId: input.feedCategoryId ?? undefined,
     status: input.status ?? 'review',
@@ -731,7 +754,7 @@ export async function createManualAdminFeedPost(input: {
     await syncFeedPostMedia(post.id, input.media);
   }
 
-  if (input.isFeatured) {
+  if (input.isFeatured && !missingCover) {
     await prisma.feedPost.update({
       where: { id: post.id },
       data: { isFeatured: true }
@@ -759,12 +782,21 @@ export async function updateAdminFeedPost(
     feedCategoryId?: string | null;
     status?: FeedPostStatus;
     media?: FeedMediaInput[];
-    seo?: { title?: string; description?: string };
+    seo?: { title?: string; description?: string; keywords?: string[] };
   }
 ): Promise<{ slug: string }> {
   await ensureDbConnection();
   const existing = await prisma.feedPost.findFirst({ where: { id, deletedAt: null } });
   if (!existing) throw new Error('Haber bulunamadı');
+
+  const nextCover = input.coverImage !== undefined ? input.coverImage : existing.coverImage;
+  const missingCover = isMissingFeedCoverImage(nextCover);
+  const nextStatus = input.status ?? existing.status;
+  const nextFeatured = input.isFeatured !== undefined ? input.isFeatured : existing.isFeatured;
+
+  if (missingCover && (nextStatus === 'published' || nextFeatured)) {
+    throw new Error(FEED_COVER_REQUIRED_MESSAGE);
+  }
 
   const content = input.content ?? existing.content;
   const readingTimeMinutes = estimateReadingMinutes(content);
@@ -779,7 +811,9 @@ export async function updateAdminFeedPost(
       ...(input.summary !== undefined ? { summary: input.summary } : {}),
       ...(input.content !== undefined ? { content: input.content, excerpt: input.content.slice(0, 280) } : {}),
       ...(input.contentType !== undefined ? { contentType: input.contentType } : {}),
-      ...(input.coverImage !== undefined ? { coverImage: input.coverImage } : {}),
+      ...(input.coverImage !== undefined
+        ? { coverImage: isMissingFeedCoverImage(input.coverImage) ? '' : input.coverImage }
+        : {}),
       ...(input.tags !== undefined ? { tags: input.tags } : {}),
       ...(input.isFeatured !== undefined ? { isFeatured: input.isFeatured } : {}),
       ...(input.feedCategoryId !== undefined ? { feedCategoryId: input.feedCategoryId } : {}),

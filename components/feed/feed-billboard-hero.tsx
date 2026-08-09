@@ -4,7 +4,8 @@ import { ArrowRight, Clock, Sparkles } from 'lucide-react';
 import {
   FEED_CATEGORY_BADGE_COLORS,
   FEED_CATEGORY_BADGE_FALLBACK,
-  FEED_POST_TYPE_LABELS
+  FEED_POST_TYPE_LABELS,
+  isMissingFeedCoverImage
 } from '@/lib/feed/constants';
 import { formatFeedTimeLabel } from '@/lib/feed/format-date';
 import type { FeedPostCard } from '@/lib/feed/types';
@@ -19,22 +20,27 @@ function badgeClass(categorySlug: string | null, contentType: string): string {
 
 export function FeedBillboardHero({ post }: { post: FeedPostCard }) {
   const label = post.categoryName ?? FEED_POST_TYPE_LABELS[post.contentType];
+  const hasCover = !isMissingFeedCoverImage(post.coverImage);
 
   return (
     <Link
       href={`/feed/${post.slug}`}
       className="group block overflow-hidden rounded-2xl border border-border bg-card md:rounded-3xl"
     >
-      <div className="relative aspect-[4/5] sm:aspect-[16/10]">
-        <FeedCoverImage
-          src={post.coverImage}
-          alt={post.title}
-          fill
-          priority
-          className="object-cover transition duration-700 group-hover:scale-[1.02]"
-          sizes="100vw"
-        />
-      </div>
+      {hasCover ? (
+        <div className="relative aspect-[4/5] sm:aspect-[16/10]">
+          <FeedCoverImage
+            src={post.coverImage}
+            alt={post.title}
+            fill
+            priority
+            className="object-cover transition duration-700 group-hover:scale-[1.02]"
+            sizes="100vw"
+          />
+        </div>
+      ) : (
+        <div className="h-14 border-b border-border bg-muted/50" aria-hidden />
+      )}
 
       <div className="p-5 pb-6 sm:p-6">
         <div className="mb-3 flex flex-wrap items-center gap-2">

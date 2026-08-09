@@ -1,41 +1,26 @@
-import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Clock, Heart, MessageCircle } from 'lucide-react';
+import { FeedCoverImage } from '@/components/feed/feed-cover-image';
+import { FeedMarkdown } from '@/components/feed/feed-markdown';
 import { FeedPostCardView } from '@/components/feed/feed-post-card';
 import { FeedEventCta } from '@/components/feed/feed-event-cta';
-import { FEED_POST_TYPE_LABELS } from '@/lib/feed/constants';
+import { FEED_POST_TYPE_LABELS, isMissingFeedCoverImage } from '@/lib/feed/constants';
 import type { FeedPostDetail } from '@/lib/feed/types';
-
-function renderContent(content: string) {
-  return content.split('\n\n').map((block, i) => {
-    const trimmed = block.trim();
-    if (!trimmed) return null;
-    if (trimmed.startsWith('## ')) {
-      return (
-        <h2 key={i} className="mt-8 text-xl font-bold text-foreground">
-          {trimmed.replace(/^##\s+/, '')}
-        </h2>
-      );
-    }
-    return (
-      <p key={i} className="mt-4 text-base leading-relaxed text-muted-foreground">
-        {trimmed}
-      </p>
-    );
-  });
-}
 
 export function FeedArticleView({ post }: { post: FeedPostDetail }) {
   const typeLabel = FEED_POST_TYPE_LABELS[post.contentType];
+  const hasCover = !isMissingFeedCoverImage(post.coverImage);
 
   return (
     <article className="pb-24">
-      <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
-        <FeedCoverImage src={post.coverImage} alt={post.title} fill className="object-cover" priority />
-      </div>
+      {hasCover ? (
+        <div className="relative aspect-[16/9] overflow-hidden rounded-2xl">
+          <FeedCoverImage src={post.coverImage} alt={post.title} fill className="object-cover" priority />
+        </div>
+      ) : null}
 
-      <div className="mt-6">
+      <div className={hasCover ? 'mt-6' : 'mt-0'}>
         <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
           {typeLabel}
         </span>
@@ -63,7 +48,9 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
 
       <p className="mt-6 text-lg leading-relaxed text-foreground">{post.summary}</p>
 
-      <div className="prose-feed mt-8 max-w-none">{renderContent(post.content)}</div>
+      <div className="mt-8">
+        <FeedMarkdown content={post.content} title={post.title} />
+      </div>
 
       {post.media.length > 0 && (
         <section className="mt-10">

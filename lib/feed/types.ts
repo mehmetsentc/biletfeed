@@ -46,7 +46,7 @@ export type FeedPostDetail = FeedPostCard & {
     caption: string | null;
   }>;
   relatedPosts: FeedPostCard[];
-  seo: Record<string, string>;
+  seo: { title?: string; description?: string; keywords?: string[] | string; [key: string]: unknown };
 };
 
 export type EditorialQueueItem = {

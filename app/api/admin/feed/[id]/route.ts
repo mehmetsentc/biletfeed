@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { FeedPostType, FeedPostStatus } from '@prisma/client';
 import { guardAdminMutation, guardAdminRead } from '@/lib/auth/guard-admin-api';
 import { getAdminFeedPostById, updateAdminFeedPost } from '@/lib/services/feed';
+import { isMissingFeedCoverImage } from '@/lib/feed/constants';
 import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { zodErrorMessage } from '@/lib/api/zod-validation';
@@ -21,7 +22,7 @@ const updateSchema = z.object({
   summary: z.string().min(10).max(500).optional(),
   content: z.string().min(20).optional(),
   contentType: z.nativeEnum(FeedPostType).optional(),
-  coverImage: z.string().url().optional(),
+  coverImage: z.union([z.string().url(), z.literal('')]).optional(),
   tags: z.array(z.string()).optional(),
   isFeatured: z.boolean().optional(),
   feedCategoryId: z.string().uuid().nullable().optional(),
@@ -38,7 +39,8 @@ const updateSchema = z.object({
       description: z
         .string()
         .optional()
-        .transform((v) => v?.slice(0, 200))
+        .transform((v) => v?.slice(0, 200)),
+      keywords: z.array(z.string().max(40)).max(12).optional()
     })
     .optional(),
   media: z.array(mediaSchema).optional()
@@ -75,9 +77,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   try {
     const data = { ...parsed.data };
-    if (data.coverImage) {
-      const normalized = await normalizeCoverImageUrl(data.coverImage);
-      if (normalized) data.coverImage = normalized;
+    if (data.coverImage !== undefined) {
+      if (isMissingFeedCoverImage(data.coverImage)) {
+        data.coverImage = '';
+      } else {
+        const normalized = await normalizeCoverImageUrl(data.coverImage);
+        if (normalized) data.coverImage = normalized;
+      }
     }
     const result = await updateAdminFeedPost(id, data);
     return NextResponse.json({ success: true, slug: result.slug });

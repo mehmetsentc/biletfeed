@@ -44,6 +44,7 @@ export function FeedAdminDashboard() {
   const [batchRemaining, setBatchRemaining] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const load = useCallback(async (missingImage: boolean) => {
     setLoading(true);
@@ -68,13 +69,24 @@ export function FeedAdminDashboard() {
   }, [load, showMissingOnly]);
 
   async function publishPost(postId: string) {
+    const post = posts.find((p) => p.id === postId);
+    if (post && isMissingFeedCoverImage(post.coverImage)) {
+      setActionError('Görsel eksik — yayınlamak için önce kapak görseli ekleyin.');
+      return;
+    }
     setActionId(postId);
+    setActionError(null);
     try {
-      await fetch('/api/admin/feed', {
+      const res = await fetch('/api/admin/feed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postId })
       });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setActionError(data.error ?? 'Yayınlanamadı');
+        return;
+      }
       await load(showMissingOnly);
     } finally {
       setActionId(null);
@@ -177,6 +189,12 @@ export function FeedAdminDashboard() {
           </Link>
         </Button>
       </div>
+
+      {actionError && (
+        <div className="rounded-lg border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+          {actionError}
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
@@ -378,7 +396,7 @@ export function FeedAdminDashboard() {
                       {isMissingFeedCoverImage(post.coverImage) && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
                           <ImageOff className="size-3" />
-                          Görsel yok
+                          Görsel eksik
                         </span>
                       )}
                     </div>
@@ -396,7 +414,14 @@ export function FeedAdminDashboard() {
                       {post.status === 'review' && (
                         <Button
                           size="sm"
-                          disabled={actionId === post.id}
+                          disabled={
+                            actionId === post.id || isMissingFeedCoverImage(post.coverImage)
+                          }
+                          title={
+                            isMissingFeedCoverImage(post.coverImage)
+                              ? 'Kapak görseli olmadan yayınlanamaz'
+                              : undefined
+                          }
                           onClick={() => void publishPost(post.id)}
                         >
                           Yayınla

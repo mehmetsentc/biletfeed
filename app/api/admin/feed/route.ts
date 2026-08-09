@@ -14,6 +14,7 @@ import {
   runEditorialPipeline
 } from '@/lib/services/feed-editorial';
 import { fetchOgImage } from '@/lib/feed/discovery/og-image';
+import { isMissingFeedCoverImage } from '@/lib/feed/constants';
 import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { FeedPostType, FeedPostStatus } from '@prisma/client';
 import { zodErrorMessage } from '@/lib/api/zod-validation';
@@ -25,7 +26,8 @@ const createSchema = z.object({
   summary: z.string().min(10).max(500),
   content: z.string().min(20),
   contentType: z.nativeEnum(FeedPostType),
-  coverImage: z.string().url(),
+  /** Taslak/incelemede boş kapak kabul; yayın/öne çıkarma serviste engellenir. */
+  coverImage: z.union([z.string().url(), z.literal('')]),
   tags: z.array(z.string()).optional(),
   isFeatured: z.boolean().optional(),
   feedCategoryId: z.string().uuid().nullable().optional(),
@@ -41,7 +43,8 @@ const createSchema = z.object({
       description: z
         .string()
         .optional()
-        .transform((v) => v?.slice(0, 200))
+        .transform((v) => v?.slice(0, 200)),
+      keywords: z.array(z.string().max(40)).max(12).optional()
     })
     .optional(),
   media: z
@@ -90,12 +93,20 @@ export async function POST(request: NextRequest) {
       );
     }
     const { action: _a, ...payload } = parsed.data;
-    const normalizedCover = await normalizeCoverImageUrl(payload.coverImage);
-    const post = await createManualAdminFeedPost({
-      ...payload,
-      coverImage: normalizedCover ?? payload.coverImage
-    });
-    return NextResponse.json({ success: true, id: post.id, slug: post.slug });
+    const normalizedCover =
+      payload.coverImage && !isMissingFeedCoverImage(payload.coverImage)
+        ? await normalizeCoverImageUrl(payload.coverImage)
+        : null;
+    try {
+      const post = await createManualAdminFeedPost({
+        ...payload,
+        coverImage: normalizedCover ?? (isMissingFeedCoverImage(payload.coverImage) ? '' : payload.coverImage)
+      });
+      return NextResponse.json({ success: true, id: post.id, slug: post.slug });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Oluşturulamadı';
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
   }
 
   if (action === 'discover') {
@@ -213,6 +224,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Geçersiz veri' }, { status: 400 });
   }
 
-  await publishFeedPost(parsed.data.postId);
-  return NextResponse.json({ success: true });
+  try {
+    await publishFeedPost(parsed.data.postId);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Yayınlanamadı';
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 }

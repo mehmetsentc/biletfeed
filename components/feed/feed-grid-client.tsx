@@ -9,6 +9,7 @@ import { FeedFeatureTile } from '@/components/feed/feed-feature-tile';
 import { FeedStoryRow } from '@/components/feed/feed-story-row';
 import { FeedRecentSidebar } from '@/components/feed/feed-recent-sidebar';
 import { Button } from '@/components/ui/button';
+import { isMissingFeedCoverImage } from '@/lib/feed/constants';
 import type { FeedPostCard } from '@/lib/feed/types';
 
 export function FeedGridClient({
@@ -139,28 +140,35 @@ export function FeedGridClient({
             Trend
           </h2>
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {sidebarPosts.slice(0, 6).map((post) => (
-              <Link
-                key={post.id}
-                href={`/feed/${post.slug}`}
-                className="w-[70vw] max-w-[240px] shrink-0 overflow-hidden rounded-xl border border-border bg-card"
-              >
-                <div className="relative h-28">
-                  <FeedCoverImage
-                    src={post.coverImage}
-                    alt={post.title}
-                    fill
-                    className="object-cover"
-                    sizes="240px"
-                  />
-                </div>
-                <div className="p-3">
-                  <p className="line-clamp-2 text-sm font-bold leading-snug text-foreground">
-                    {post.title}
-                  </p>
-                </div>
-              </Link>
-            ))}
+            {sidebarPosts.slice(0, 6).map((post) => {
+              const hasCover = !isMissingFeedCoverImage(post.coverImage);
+              return (
+                <Link
+                  key={post.id}
+                  href={`/feed/${post.slug}`}
+                  className="w-[70vw] max-w-[240px] shrink-0 overflow-hidden rounded-xl border border-border bg-card"
+                >
+                  {hasCover ? (
+                    <div className="relative h-28">
+                      <FeedCoverImage
+                        src={post.coverImage}
+                        alt={post.title}
+                        fill
+                        className="object-cover"
+                        sizes="240px"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-10 bg-muted/50" aria-hidden />
+                  )}
+                  <div className="p-3">
+                    <p className="line-clamp-2 text-sm font-bold leading-snug text-foreground">
+                      {post.title}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

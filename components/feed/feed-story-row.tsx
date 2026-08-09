@@ -1,7 +1,7 @@
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import Link from 'next/link';
-import { Clock } from 'lucide-react';
-import { feedBadgeClass, feedStoryShortLabel } from '@/lib/feed/constants';
+import { Clock, ImageOff } from 'lucide-react';
+import { feedBadgeClass, feedStoryShortLabel, isMissingFeedCoverImage } from '@/lib/feed/constants';
 import { formatFeedTimeLabel } from '@/lib/feed/format-date';
 import type { FeedPostCard } from '@/lib/feed/types';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ export function FeedStoryRow({
 }) {
   const label = feedStoryShortLabel(post.categorySlug, post.categoryName, post.contentType);
   const summary = post.summary?.trim();
+  const hasCover = !isMissingFeedCoverImage(post.coverImage);
 
   return (
     <Link
@@ -28,16 +29,24 @@ export function FeedStoryRow({
       <div
         className={cn(
           'relative shrink-0 overflow-hidden rounded-xl bg-muted',
-          dense ? 'h-[72px] w-[96px] sm:h-20 sm:w-[112px]' : 'h-[88px] w-[118px] sm:h-[104px] sm:w-[148px]'
+          hasCover
+            ? dense
+              ? 'h-[72px] w-[96px] sm:h-20 sm:w-[112px]'
+              : 'h-[88px] w-[118px] sm:h-[104px] sm:w-[148px]'
+            : 'flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16'
         )}
       >
-        <FeedCoverImage
-          src={post.coverImage}
-          alt={post.title}
-          fill
-          className="object-cover transition duration-300 group-hover:scale-[1.03]"
-          sizes="148px"
-        />
+        {hasCover ? (
+          <FeedCoverImage
+            src={post.coverImage}
+            alt={post.title}
+            fill
+            className="object-cover transition duration-300 group-hover:scale-[1.03]"
+            sizes="148px"
+          />
+        ) : (
+          <ImageOff className="size-4 text-muted-foreground/70" aria-hidden />
+        )}
       </div>
 
       <div className="min-w-0 flex-1">

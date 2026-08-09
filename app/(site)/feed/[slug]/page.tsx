@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { HomeFeedTabs } from '@/components/feed/home-feed-tabs';
 import { FeedArticleView } from '@/components/feed/feed-article-view';
 import { FeedBackButton } from '@/components/feed/feed-back-button';
+import { FeedShareButton } from '@/components/feed/feed-share-button';
 import { JsonLd } from '@/lib/seo/json-ld';
 import { buildBreadcrumbSchema } from '@/lib/seo/schemas';
 import { createFeedArticleMetadata } from '@/lib/seo/feed-metadata';
@@ -55,19 +55,19 @@ export default async function FeedArticlePage({ params }: Props) {
       <JsonLd data={breadcrumbs} />
       <JsonLd data={articleSchema} />
 
-      <section className="border-b border-border bg-card/50 py-4">
-        <div className="container mx-auto px-4">
-          <HomeFeedTabs />
-          <div className="mt-4">
+      <section className="border-b border-border bg-card/40 py-3">
+        <div className="container mx-auto flex max-w-3xl items-center justify-between gap-3 px-4">
+          <div className="min-w-0 flex-1">
             <FeedBackButton />
+            <nav className="mt-1 truncate text-sm text-muted-foreground">
+              <Link href="/feed" className="hover:text-primary">
+                Feed
+              </Link>
+              <span className="mx-2">/</span>
+              <span className="text-foreground">{post.title}</span>
+            </nav>
           </div>
-          <nav className="mt-2 text-sm text-muted-foreground">
-            <Link href="/feed" className="hover:text-primary">
-              Feed
-            </Link>
-            <span className="mx-2">/</span>
-            <span className="text-foreground">{post.title}</span>
-          </nav>
+          <FeedShareButton title={post.title} />
         </div>
       </section>
 

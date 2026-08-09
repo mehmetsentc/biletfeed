@@ -8,7 +8,11 @@ import { AlertTriangle, ImagePlus, Loader2, Plus, Sparkles, Trash2, Video } from
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FEED_POST_TYPE_LABELS, isMissingFeedCoverImage } from '@/lib/feed/constants';
+import {
+  FEED_COVER_REQUIRED_MESSAGE,
+  FEED_POST_TYPE_LABELS,
+  isMissingFeedCoverImage
+} from '@/lib/feed/constants';
 import type { AdminFeedPostEditor, FeedMediaInput } from '@/lib/services/feed';
 import type { FeedPostStatus, FeedPostType } from '@prisma/client';
 import { adminHref, getSiteUrl } from '@/lib/config/domain';
@@ -64,7 +68,8 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     // Eski AI taslaklarında SEO alanları sınırı aşmış olabilir — düzenleme
     // ekranında da kaydetme hatası vermemesi için baştan kırpılır.
     seoTitle: (initial?.seo?.title ?? '').slice(0, 70),
-    seoDescription: (initial?.seo?.description ?? '').slice(0, 200)
+    seoDescription: (initial?.seo?.description ?? '').slice(0, 200),
+    seoKeywords: (initial?.seo?.keywords ?? []).join(', ')
   });
 
   const [media, setMedia] = useState<MediaRow[]>(
@@ -144,6 +149,7 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
           tags: string[];
           seoTitle: string;
           seoDescription: string;
+          seoKeywords?: string[];
         };
         error?: string;
       };
@@ -159,7 +165,8 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
         contentType: draft.contentType,
         tags: draft.tags.join(', '),
         seoTitle: draft.seoTitle.slice(0, 70),
-        seoDescription: draft.seoDescription.slice(0, 200)
+        seoDescription: draft.seoDescription.slice(0, 200),
+        seoKeywords: (draft.seoKeywords ?? []).join(', ')
       }));
     } catch (err) {
       setAiError(err instanceof Error ? err.message : 'AI oluşturma başarısız');
@@ -193,6 +200,7 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
           tags: string[];
           seoTitle: string;
           seoDescription: string;
+          seoKeywords?: string[];
         };
         error?: string;
       };
@@ -208,7 +216,8 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
         contentType: draft.contentType,
         tags: draft.tags.join(', '),
         seoTitle: draft.seoTitle.slice(0, 70),
-        seoDescription: draft.seoDescription.slice(0, 200)
+        seoDescription: draft.seoDescription.slice(0, 200),
+        seoKeywords: (draft.seoKeywords ?? []).join(', ')
       }));
     } catch (err) {
       setRegenerateError(err instanceof Error ? err.message : 'AI yeniden oluşturma başarısız');
@@ -218,6 +227,11 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
   }
 
   function buildPayload() {
+    const keywords = form.seoKeywords
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .slice(0, 12);
     return {
       title: form.title.trim(),
       headline: form.headline.trim() || undefined,
@@ -234,7 +248,8 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
       status: form.status,
       seo: {
         title: form.seoTitle.trim().slice(0, 70) || undefined,
-        description: form.seoDescription.trim().slice(0, 200) || undefined
+        description: form.seoDescription.trim().slice(0, 200) || undefined,
+        ...(keywords.length ? { keywords } : {})
       },
       media: media
         .filter((m) => m.url.trim())
@@ -248,10 +263,12 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
     };
   }
 
+  const missingCover = isMissingFeedCoverImage(form.coverImage);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.coverImage) {
-      setError('Kapak görseli zorunludur');
+    if (missingCover && (form.status === 'published' || form.isFeatured)) {
+      setError(FEED_COVER_REQUIRED_MESSAGE);
       return;
     }
 
@@ -360,10 +377,16 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
       {/* Kapak */}
       <section className="space-y-4 rounded-xl border border-border bg-card p-5">
         <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Kapak Görseli</h2>
-        {isMissingFeedCoverImage(form.coverImage) && (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+        {missingCover && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-400 bg-amber-50 px-3 py-2.5 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <span>Bu haberde kapak görseli yok. Feed&apos;de düzgün görünmesi için bir görsel ekleyin.</span>
+            <div>
+              <p className="font-semibold">Görsel eksik</p>
+              <p className="mt-0.5 text-[13px] leading-snug opacity-90">
+                Kapak olmadan yayınlayamaz veya öne çıkaramazsınız. Taslak / incelemede
+                kaydedebilirsiniz; feed&apos;de görünmesi için gerçek bir kapak ekleyin.
+              </p>
+            </div>
           </div>
         )}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -495,13 +518,20 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
             <select
               id="status"
               value={form.status}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, status: e.target.value as FeedPostStatus }))
-              }
+              onChange={(e) => {
+                const next = e.target.value as FeedPostStatus;
+                if (missingCover && next === 'published') {
+                  setError(FEED_COVER_REQUIRED_MESSAGE);
+                  return;
+                }
+                setForm((f) => ({ ...f, status: next }));
+              }}
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="review">İncelemede</option>
-              <option value="published">Yayında</option>
+              <option value="published" disabled={missingCover}>
+                Yayında{missingCover ? ' (görsel gerekli)' : ''}
+              </option>
               <option value="discovered">Taslak</option>
             </select>
           </div>
@@ -520,9 +550,19 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
           <input
             type="checkbox"
             checked={form.isFeatured}
-            onChange={(e) => setForm((f) => ({ ...f, isFeatured: e.target.checked }))}
+            disabled={missingCover}
+            onChange={(e) => {
+              if (missingCover && e.target.checked) {
+                setError(FEED_COVER_REQUIRED_MESSAGE);
+                return;
+              }
+              setForm((f) => ({ ...f, isFeatured: e.target.checked }));
+            }}
           />
           Öne çıkan haber
+          {missingCover ? (
+            <span className="text-xs text-amber-700 dark:text-amber-300">(görsel gerekli)</span>
+          ) : null}
         </label>
       </section>
 
@@ -553,6 +593,17 @@ export function FeedEditorForm(props: FeedEditorFormProps) {
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
           <p className="mt-1 text-xs text-muted-foreground">{form.seoDescription.length}/200</p>
+        </div>
+        <div>
+          <Label htmlFor="seoKeywords">SEO Anahtar Kelimeler</Label>
+          <Input
+            id="seoKeywords"
+            value={form.seoKeywords}
+            onChange={(e) => setForm((f) => ({ ...f, seoKeywords: e.target.value }))}
+            placeholder="konser, istanbul, festival"
+            className="mt-1"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Virgülle ayırın (en fazla 12)</p>
         </div>
       </section>
 
