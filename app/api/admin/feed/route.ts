@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     if (!postId || !z.string().uuid().safeParse(postId).success) {
       return NextResponse.json({ error: 'postId gerekli' }, { status: 400 });
     }
-    const result = await pullCoverFromSource(postId);
+    const result = await pullCoverFromSource(postId, { force: true });
     if (!result.ok) {
       return NextResponse.json({ error: result.message, fetched: false }, { status: 422 });
     }

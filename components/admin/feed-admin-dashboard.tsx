@@ -11,12 +11,22 @@ import { isMissingFeedCoverImage } from '@/lib/feed/constants';
 import { adminHref, getSiteUrl } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
 
+type FeedAdminTopPost = {
+  id: string;
+  slug: string;
+  title: string;
+  viewCount: number;
+  ctaClickCount: number;
+};
+
 type FeedStats = {
   published: number;
   inReview: number;
   queuePending: number;
   totalViews: number;
   missingImages: number;
+  topByViews?: FeedAdminTopPost[];
+  topByCta?: FeedAdminTopPost[];
 };
 
 type AdminPost = {
@@ -471,6 +481,67 @@ export function FeedAdminDashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              En çok görüntülenen (top 5)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(stats?.topByViews?.length ?? 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">Henüz veri yok.</p>
+            ) : (
+              <ol className="space-y-2">
+                {(stats?.topByViews ?? []).map((row, index) => (
+                  <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
+                    <Link
+                      href={adminHref(`/feed/${row.id}`)}
+                      className="min-w-0 truncate font-medium text-foreground hover:text-primary"
+                    >
+                      <span className="mr-2 text-muted-foreground">{index + 1}.</span>
+                      {row.title}
+                    </Link>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {row.viewCount.toLocaleString('tr-TR')}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              En çok CTA tıklanan (top 5)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(stats?.topByCta?.length ?? 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">Henüz veri yok.</p>
+            ) : (
+              <ol className="space-y-2">
+                {(stats?.topByCta ?? []).map((row, index) => (
+                  <li key={row.id} className="flex items-baseline justify-between gap-3 text-sm">
+                    <Link
+                      href={adminHref(`/feed/${row.id}`)}
+                      className="min-w-0 truncate font-medium text-foreground hover:text-primary"
+                    >
+                      <span className="mr-2 text-muted-foreground">{index + 1}.</span>
+                      {row.title}
+                    </Link>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {row.ctaClickCount.toLocaleString('tr-TR')}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <section>

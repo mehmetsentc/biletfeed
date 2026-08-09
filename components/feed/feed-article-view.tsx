@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Clock, Heart, MessageCircle } from 'lucide-react';
 import { FeedCoverImage } from '@/components/feed/feed-cover-image';
 import { FeedMarkdown } from '@/components/feed/feed-markdown';
-import { FeedPostCardView } from '@/components/feed/feed-post-card';
+import { FeedMagazineCard } from '@/components/feed/feed-magazine-card';
 import { FeedEventCta } from '@/components/feed/feed-event-cta';
 import { FEED_POST_TYPE_LABELS, isMissingFeedCoverImage } from '@/lib/feed/constants';
 import { resolveFeedEventSlug } from '@/lib/feed/resolve-event-link';
@@ -208,9 +208,9 @@ export function FeedArticleView({ post }: { post: FeedPostDetail }) {
       {post.relatedPosts.length > 0 && (
         <section className="mt-14">
           <h2 className="text-xl font-bold text-foreground">İlgili Hikâyeler</h2>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
             {post.relatedPosts.map((related) => (
-              <FeedPostCardView key={related.id} post={related} />
+              <FeedMagazineCard key={related.id} post={related} size="small" />
             ))}
           </div>
         </section>

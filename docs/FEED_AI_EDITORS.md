@@ -108,3 +108,11 @@ Feed magazine + AI editör programı FAZ 5 ile kapanır; aşağıdaki opsiyonel 
 - CTA tıklama (opsiyonel): `FeedPost.ctaClickCount` — `POST /api/feed/[id]/cta` (rate-limit + same-origin); `FeedEventCta` beacon.
 - Admin `/admin/feed`: satırda görüntülenme + CTA; istatistik kartında toplam görüntülenme.
 - SiteTracker pageview yolu ayrıca path bazlı site analitiğine düşer; feed sayaçları editör operasyonu içindir — ağır BI yok.
+
+## Sıradaki faz — Ingest kapak + ilgili + admin strip
+
+Üç ürünleştirme adımı (FAZ 1–5 / cover-assist sonrası):
+
+1. **Auto cover on ingest** — `createFeedPostFromDraft` / admin update: `sourceUrl` var ve kapak eksikse `maybeAutoCoverOnIngest` → `pullCoverFromSource` (`normalizeCoverImageUrl`). Editorial kuyruk artık ayrı OG fetch yapmaz (tek yol). Cooldown: `aiMetadata.lastCoverFetchAt` + `FEED_COVER_AUTO_FETCH_COOLDOWN_MS` (6s). Fail soft → `review`, placeholder yok; yayın kapısı aynı. Admin “Kaynaktan kapak” `force: true` ile cooldown’u aşar.
+2. **İlgili hikâyeler** — `/feed/[slug]` footer: 3 kart; önce aynı `feedCategoryId`, sonra aynı `contentType`, kalanı kapaklı güncel yayınlar. UI: `FeedMagazineCard` `size="small"`.
+3. **Admin analytics strip** — `/admin/feed` üstü: mevcut sayaçlara ek top 5 `viewCount` + top 5 `ctaClickCount` (`getFeedAdminStats`). BI stack yok.

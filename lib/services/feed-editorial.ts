@@ -8,8 +8,6 @@ import {
 import { editorMetaForStorage } from '@/lib/feed/editors';
 import { createFeedPostFromDraft } from '@/lib/services/feed';
 import type { EditorialQueueItem } from '@/lib/feed/types';
-import { fetchOgImage } from '@/lib/feed/discovery/og-image';
-import { normalizeCoverImageUrl } from '@/lib/images/normalize-remote-image';
 import { discoverViaTavily } from '@/lib/feed/discovery/tavily';
 import { discoverViaRss } from '@/lib/feed/discovery/rss';
 import { TAVILY_QUERIES, RSS_SOURCES } from '@/lib/feed/discovery/sources';
@@ -94,13 +92,8 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
       data: { stage: 'seo' }
     });
 
-    // Kaynak görselini tercih et; yoksa placeholder kapak koyma — taslakta bırak.
-    const rawCover = await fetchOgImage(item.sourceUrl);
-    const normalizedCover = rawCover
-      ? await normalizeCoverImageUrl(rawCover, item.sourceUrl)
-      : null;
-    const coverImage = normalizedCover ?? '';
-
+    // Kapak: createFeedPostFromDraft içinde sourceUrl + eksik kapak → maybeAutoCoverOnIngest
+    // (OG fetch tek yol; cooldown ile çift istek yok). Başarısızsa boş kapak + review.
     const post = await createFeedPostFromDraft({
       title: draft.title,
       headline: draft.headline,
@@ -108,7 +101,7 @@ export async function processEditorialQueueItem(queueId: string): Promise<{ post
       content: draft.content,
       excerpt: draft.excerpt,
       contentType: draft.contentType,
-      coverImage,
+      coverImage: '',
       tags: draft.tags,
       sourceUrl: item.sourceUrl,
       sourceName: item.sourceName ?? undefined,

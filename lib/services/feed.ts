@@ -6,6 +6,7 @@ import {
   FEED_AUTHOR_NAME,
   FEED_CATEGORY_CONTENT_TYPES,
   FEED_CATEGORY_SHORT_LABELS,
+  FEED_COVER_AUTO_FETCH_COOLDOWN_MS,
   FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE,
   FEED_COVER_REQUIRED_MESSAGE,
   FEED_FALLBACK_COVER,
@@ -334,25 +335,11 @@ export async function getFeedPostBySlug(slug: string): Promise<FeedPostDetail | 
     });
     if (!row) return null;
 
-    const relatedFilters = [
-      row.feedCategoryId ? { feedCategoryId: row.feedCategoryId } : null,
-      row.eventId ? { eventId: row.eventId } : null,
-      row.cityId ? { cityId: row.cityId } : null
-    ].filter((clause): clause is { feedCategoryId: string } | { eventId: string } | { cityId: string } => clause !== null);
-
-    const related =
-      relatedFilters.length > 0
-        ? await prisma.feedPost.findMany({
-            where: {
-              ...publishedWithImageWhere(),
-              id: { not: row.id },
-              OR: relatedFilters
-            },
-            select: postCardSelect,
-            orderBy: { publishedAt: 'desc' },
-            take: 4
-          })
-        : [];
+    const relatedPosts = await getRelatedFeedPosts({
+      id: row.id,
+      feedCategoryId: row.feedCategoryId,
+      contentType: row.contentType
+    });
 
     return {
       ...mapPostCard({
@@ -384,7 +371,7 @@ export async function getFeedPostBySlug(slug: string): Promise<FeedPostDetail | 
         alt: m.alt,
         caption: m.caption
       })),
-      relatedPosts: related.map(mapPostCard),
+      relatedPosts,
       seo: (row.seo as {
         title?: string;
         description?: string;
@@ -395,6 +382,43 @@ export async function getFeedPostBySlug(slug: string): Promise<FeedPostDetail | 
     if (isFeedDbUnavailable(error)) return null;
     throw error;
   }
+}
+
+/** Aynı kategori tercih, yoksa aynı contentType, kalanı kapaklı güncel yayınlar — en fazla 3. */
+async function getRelatedFeedPosts(params: {
+  id: string;
+  feedCategoryId: string | null;
+  contentType: FeedPostType;
+}): Promise<FeedPostCard[]> {
+  const limit = 3;
+  const exclude = new Set<string>([params.id]);
+  const collected: Prisma.FeedPostGetPayload<{ select: typeof postCardSelect }>[] = [];
+
+  const append = async (whereExtra: Prisma.FeedPostWhereInput) => {
+    if (collected.length >= limit) return;
+    const rows = await prisma.feedPost.findMany({
+      where: {
+        ...publishedWithImageWhere(),
+        id: { notIn: [...exclude] },
+        ...whereExtra
+      },
+      select: postCardSelect,
+      orderBy: { publishedAt: 'desc' },
+      take: limit - collected.length
+    });
+    for (const row of rows) {
+      exclude.add(row.id);
+      collected.push(row);
+    }
+  };
+
+  if (params.feedCategoryId) {
+    await append({ feedCategoryId: params.feedCategoryId });
+  }
+  await append({ contentType: params.contentType });
+  await append({});
+
+  return collected.map(mapPostCard);
 }
 
 export async function recordFeedView(postId: string, userId?: string, ipHash?: string): Promise<void> {
@@ -442,15 +466,44 @@ export type PullCoverFromSourceResult =
   | { ok: true; coverImage: string; message: string }
   | { ok: false; message: string };
 
+function readAiMetadata(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return { ...(value as Record<string, unknown>) };
+  }
+  return {};
+}
+
+async function stampCoverFetchAttempt(
+  postId: string,
+  existingMeta: Record<string, unknown>,
+  extra: Record<string, unknown> = {}
+): Promise<void> {
+  await prisma.feedPost.update({
+    where: { id: postId },
+    data: {
+      aiMetadata: {
+        ...existingMeta,
+        lastCoverFetchAt: new Date().toISOString(),
+        ...extra
+      } as Prisma.InputJsonValue
+    }
+  });
+}
+
 /**
  * sourceUrl üzerinden og:image çeker, normalize eder ve kapak olarak yazar.
  * Bulunamazsa review’da bırakır — asla placeholder ile yayınlamaz.
+ * `force: false` (varsayılan ingest): cooldown içinde tekrar denemez.
  */
-export async function pullCoverFromSource(postId: string): Promise<PullCoverFromSourceResult> {
+export async function pullCoverFromSource(
+  postId: string,
+  options?: { force?: boolean }
+): Promise<PullCoverFromSourceResult> {
   await ensureDbConnection();
+  const force = options?.force === true;
   const post = await prisma.feedPost.findFirst({
     where: { id: postId, deletedAt: null },
-    select: { id: true, sourceUrl: true, coverImage: true }
+    select: { id: true, sourceUrl: true, coverImage: true, aiMetadata: true }
   });
   if (!post) {
     return { ok: false, message: 'Haber bulunamadı' };
@@ -459,13 +512,31 @@ export async function pullCoverFromSource(postId: string): Promise<PullCoverFrom
     return { ok: false, message: 'Kaynak URL yok — kapak çekilemez.' };
   }
 
+  if (!force && !isMissingFeedCoverImage(post.coverImage)) {
+    return { ok: true, coverImage: post.coverImage, message: 'Kapak zaten mevcut.' };
+  }
+
+  const meta = readAiMetadata(post.aiMetadata);
+  if (!force) {
+    const lastRaw = meta.lastCoverFetchAt;
+    const lastMs = typeof lastRaw === 'string' ? Date.parse(lastRaw) : NaN;
+    if (Number.isFinite(lastMs) && Date.now() - lastMs < FEED_COVER_AUTO_FETCH_COOLDOWN_MS) {
+      return {
+        ok: false,
+        message: 'Kapak yakın zamanda denenmiş; tekrar için bekleyin veya manuel çekin.'
+      };
+    }
+  }
+
   const raw = await fetchOgImage(post.sourceUrl);
   if (!raw) {
+    await stampCoverFetchAttempt(post.id, meta, { lastCoverFetchOk: false });
     return { ok: false, message: FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE };
   }
 
   const normalized = await normalizeCoverImageUrl(raw, post.sourceUrl);
   if (!normalized || isMissingFeedCoverImage(normalized)) {
+    await stampCoverFetchAttempt(post.id, meta, { lastCoverFetchOk: false });
     return {
       ok: false,
       message: 'Kapak adresi alındı ama işlenemedi. Manuel kapak ekleyin; kapaksız yayınlanamaz.'
@@ -474,10 +545,28 @@ export async function pullCoverFromSource(postId: string): Promise<PullCoverFrom
 
   await prisma.feedPost.update({
     where: { id: post.id },
-    data: { coverImage: normalized }
+    data: {
+      coverImage: normalized,
+      aiMetadata: {
+        ...meta,
+        lastCoverFetchAt: new Date().toISOString(),
+        lastCoverFetchOk: true
+      } as Prisma.InputJsonValue
+    }
   });
 
   return { ok: true, coverImage: normalized, message: 'Kapak kaynaktan alındı ve kaydedildi.' };
+}
+
+/**
+ * Ingest sonrası yumuşak kapak denemesi — hata fırlatmaz, yayınlamaz, placeholder yazmaz.
+ */
+export async function maybeAutoCoverOnIngest(postId: string): Promise<void> {
+  try {
+    await pullCoverFromSource(postId, { force: false });
+  } catch {
+    // Fail soft: incelemede kalır
+  }
 }
 
 export async function toggleFeedLike(postId: string, userId: string): Promise<{ liked: boolean }> {
@@ -557,29 +646,62 @@ export async function searchFeedPosts(query: string, limit = 12): Promise<FeedPo
   }
 }
 
+export type FeedAdminTopPost = {
+  id: string;
+  slug: string;
+  title: string;
+  viewCount: number;
+  ctaClickCount: number;
+};
+
 export async function getFeedAdminStats(): Promise<{
   published: number;
   inReview: number;
   queuePending: number;
   totalViews: number;
   missingImages: number;
+  topByViews: FeedAdminTopPost[];
+  topByCta: FeedAdminTopPost[];
 }> {
   await ensureDbConnection();
-  const [published, inReview, queuePending, views, missingImages] = await Promise.all([
-    prisma.feedPost.count({ where: { status: 'published', deletedAt: null } }),
-    prisma.feedPost.count({ where: { status: 'review', deletedAt: null } }),
-    prisma.feedEditorialQueue.count({ where: { status: 'pending' } }),
-    prisma.feedPost.aggregate({ _sum: { viewCount: true }, where: { deletedAt: null } }),
-    prisma.feedPost.count({
-      where: { deletedAt: null, ...missingImageWhere() }
-    })
-  ]);
+  const topSelect = {
+    id: true,
+    slug: true,
+    title: true,
+    viewCount: true,
+    ctaClickCount: true
+  } satisfies Prisma.FeedPostSelect;
+
+  const [published, inReview, queuePending, views, missingImages, topByViews, topByCta] =
+    await Promise.all([
+      prisma.feedPost.count({ where: { status: 'published', deletedAt: null } }),
+      prisma.feedPost.count({ where: { status: 'review', deletedAt: null } }),
+      prisma.feedEditorialQueue.count({ where: { status: 'pending' } }),
+      prisma.feedPost.aggregate({ _sum: { viewCount: true }, where: { deletedAt: null } }),
+      prisma.feedPost.count({
+        where: { deletedAt: null, ...missingImageWhere() }
+      }),
+      prisma.feedPost.findMany({
+        where: { status: 'published', deletedAt: null },
+        orderBy: [{ viewCount: 'desc' }, { publishedAt: 'desc' }],
+        take: 5,
+        select: topSelect
+      }),
+      prisma.feedPost.findMany({
+        where: { status: 'published', deletedAt: null },
+        orderBy: [{ ctaClickCount: 'desc' }, { viewCount: 'desc' }],
+        take: 5,
+        select: topSelect
+      })
+    ]);
   return {
     published,
     inReview,
     queuePending,
     totalViews: views._sum.viewCount ?? 0,
-    missingImages
+    missingImages,
+    topByViews,
+    topByCta
   };
 }
 
@@ -649,6 +771,10 @@ export async function createFeedPostFromDraft(input: {
     data,
     select: { id: true, slug: true }
   });
+
+  if (input.sourceUrl?.trim() && isMissingFeedCoverImage(input.coverImage)) {
+    await maybeAutoCoverOnIngest(post.id);
+  }
 
   return post;
 }
@@ -1005,6 +1131,13 @@ export async function updateAdminFeedPost(
     await syncFeedPostMedia(id, input.media);
   }
 
-  const updated = await prisma.feedPost.findUnique({ where: { id }, select: { slug: true } });
-  return { slug: updated!.slug };
+  const after = await prisma.feedPost.findUnique({
+    where: { id },
+    select: { slug: true, coverImage: true, sourceUrl: true }
+  });
+  if (after?.sourceUrl?.trim() && isMissingFeedCoverImage(after.coverImage)) {
+    await maybeAutoCoverOnIngest(id);
+  }
+
+  return { slug: after!.slug };
 }

@@ -176,6 +176,9 @@ export const FEED_COVER_REQUIRED_MESSAGE =
 export const FEED_COVER_FROM_SOURCE_NOT_FOUND_MESSAGE =
   'Kaynakta og:image bulunamadı. Manuel kapak ekleyin; kapaksız yayınlanamaz.';
 
+/** Ingest / otomatik kapak denemeleri arası bekleme — çift istek ve kaynak rate-limit önler. */
+export const FEED_COVER_AUTO_FETCH_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
 export const FEED_DISCOVERY_SOURCES = [
   {
     name: 'BiletFeed Events RSS',
