@@ -8,7 +8,8 @@ import {
   getAccountingOrganizersOverview,
   getAccountingExpenses,
   getAccountingInvoiceAlertCounts,
-  getAccountingVatSummary
+  getAccountingVatSummary,
+  archiveLegacyGibInvoices
 } from '@/lib/services/accounting-admin';
 import { Badge } from '@/components/ui/badge';
 import { formatCompanyTaxLine } from '@/lib/config/company';
@@ -229,6 +230,7 @@ export default async function AdminAccountingPage({ searchParams }: PageProps) {
   let organizers: Awaited<ReturnType<typeof getAccountingOrganizersOverview>> = [];
   let expenses: Awaited<ReturnType<typeof getAccountingExpenses>> = [];
   let vatSummary: Awaited<ReturnType<typeof getAccountingVatSummary>> | null = null;
+  let legacyArchivedCount = 0;
 
   try {
     // Özet + rozetler her zaman; sekme gövdesi yalnızca aktif tab için
@@ -245,12 +247,14 @@ export default async function AdminAccountingPage({ searchParams }: PageProps) {
         break;
       }
       case 'faturalar': {
+        const archive = await archiveLegacyGibInvoices();
         const [summaryResult, invs] = await Promise.all([
           getAccountingSummary(),
-          getAccountingInvoices()
+          getAccountingInvoices(100, { parasutBoardOnly: true })
         ]);
         summary = summaryResult;
         invoices = invs;
+        legacyArchivedCount = archive.archived;
         break;
       }
       case 'hakedis': {
@@ -437,7 +441,11 @@ export default async function AdminAccountingPage({ searchParams }: PageProps) {
 
             <Section
               title="Faturalar"
-              description="Akış: sipariş ödenir → iç fatura oluşur → Paraşüt’te e-belge kesilir → müşteriye mail. İade satırları listede görünür."
+              description={
+                legacyArchivedCount > 0
+                  ? `Eski GİB / başarısız denemeler arşivlendi (${legacyArchivedCount}). Liste yalnızca Paraşüt aktif faturaları gösterir.`
+                  : 'Akış: sipariş ödenir → iç fatura oluşur → Paraşüt’te e-belge kesilir → müşteriye mail. Eski GİB denemeleri listede görünmez.'
+              }
             >
               <InvoiceGibTable rows={gibRows} providerMode="parasut" />
             </Section>

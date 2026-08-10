@@ -10,6 +10,12 @@ import {
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 import { classifyGibError } from '@/lib/accounting/einvoice/gib-errors';
 import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
+import {
+  isLegacyGibInvoiceAttempt,
+  shouldShowOnParasutInvoiceBoard
+} from '@/lib/accounting/einvoice/legacy-filter';
+import { logAccountingAudit } from '@/lib/accounting/audit';
+import type { Prisma } from '@prisma/client';
 
 export async function getAccountingSummary() {
   await ensureDbConnection();
@@ -57,7 +63,7 @@ export async function getAccountingSummary() {
   };
 }
 
-/** Hafif fatura taraması — sekme rozeti (SMS bekleyen + GEÇİŞ hatası). */
+/** Hafif fatura taraması — sekme rozeti (Paraşüt aktif satırlar). */
 export async function getAccountingInvoiceAlertCounts(limit = 100) {
   await ensureDbConnection();
 
@@ -70,14 +76,18 @@ export async function getAccountingInvoiceAlertCounts(limit = 100) {
       metadata: true,
       issuedAt: true,
       buyerTaxNumber: true,
-      type: true
+      type: true,
+      status: true
     }
   });
 
   let smsPending = 0;
   let gecisErrors = 0;
+  let faturalarBadge = 0;
 
   for (const inv of invoices) {
+    if (!shouldShowOnParasutInvoiceBoard(inv.metadata, inv.status)) continue;
+
     const einv = readEInvoiceMeta(inv.metadata);
     const gibStatus = einv.status ?? (inv.eInvoiceUuid ? 'submitted' : '—');
     const lastError = einv.lastError ?? null;
@@ -95,14 +105,109 @@ export async function getAccountingInvoiceAlertCounts(limit = 100) {
     if (classified?.category === 'gecis_tarih' || eligibility.issuedOutsideGecis) {
       gecisErrors += 1;
     }
+    if (!einv.status || einv.status === 'pending') {
+      faturalarBadge += 1;
+    }
   }
 
   return {
     smsPending,
     gecisErrors,
-    /** Rozet: SMS + GEÇİŞ birleşik uyarı sayısı */
-    faturalarBadge: smsPending + gecisErrors
+    faturalarBadge,
+    pendingFailed: faturalarBadge
   };
+}
+
+/**
+ * Eski GİB / başarısız e-belge denemelerini iptal eder (bir kerelik arşiv).
+ * Paraşüt paneli sıfırdan temiz kalsın.
+ */
+export async function archiveLegacyGibInvoices(limit = 500): Promise<{
+  archived: number;
+}> {
+  await ensureDbConnection();
+
+  const candidates = await prisma.invoice.findMany({
+    where: { status: { not: 'cancelled' } },
+    orderBy: { issuedAt: 'desc' },
+    take: limit,
+    select: { id: true, status: true, metadata: true }
+  });
+
+  let archived = 0;
+  const now = new Date();
+
+  for (const inv of candidates) {
+    const einv = readEInvoiceMeta(inv.metadata);
+    if (!isLegacyGibInvoiceAttempt(einv, inv.status)) continue;
+
+    const meta =
+      inv.metadata && typeof inv.metadata === 'object' && !Array.isArray(inv.metadata)
+        ? { ...(inv.metadata as Record<string, unknown>) }
+        : {};
+    const prevEinv =
+      meta.einvoice && typeof meta.einvoice === 'object' && !Array.isArray(meta.einvoice)
+        ? { ...(meta.einvoice as Record<string, unknown>) }
+        : {};
+
+    meta.einvoice = {
+      ...prevEinv,
+      status: 'rejected',
+      cancelledAt: now.toISOString(),
+      cancelReason: 'legacy_gib_archive',
+      lastError: undefined,
+      needsSmsSign: false,
+      archivedFromGib: true
+    };
+    meta.legacyGibArchivedAt = now.toISOString();
+
+    await prisma.invoice.update({
+      where: { id: inv.id },
+      data: {
+        status: 'cancelled',
+        cancelledAt: now,
+        metadata: meta as Prisma.InputJsonValue
+      }
+    });
+
+    await logAccountingAudit({
+      action: 'einvoice.legacy_gib_archived',
+      entityType: 'invoice',
+      entityId: inv.id,
+      actorRole: 'system',
+      after: { reason: 'legacy_gib_archive' }
+    });
+
+    archived += 1;
+  }
+
+  return { archived };
+}
+
+export async function getAccountingInvoices(
+  limit = 100,
+  options?: { parasutBoardOnly?: boolean }
+) {
+  await ensureDbConnection();
+  const rows = await prisma.invoice.findMany({
+    where:
+      options?.parasutBoardOnly === false
+        ? undefined
+        : { status: { not: 'cancelled' } },
+    orderBy: { issuedAt: 'desc' },
+    take: limit * (options?.parasutBoardOnly === false ? 1 : 3),
+    include: {
+      lines: true,
+      order: { select: { id: true, event: { select: { title: true } } } },
+      user: { select: { email: true, displayName: true } }
+    }
+  });
+
+  if (options?.parasutBoardOnly === false) return rows;
+
+  return rows
+    .filter((inv) => shouldShowOnParasutInvoiceBoard(inv.metadata, inv.status))
+    .slice(0, limit);
 }
 
 /** Vergi sekmesi için kısa KDV özeti. */
@@ -122,19 +227,6 @@ export async function getAccountingVatSummary() {
     totalGross: issued._sum.totalGross ?? 0,
     defaultVatRate: companyLegal.defaultVatRate
   };
-}
-
-export async function getAccountingInvoices(limit = 100) {
-  await ensureDbConnection();
-  return prisma.invoice.findMany({
-    orderBy: { issuedAt: 'desc' },
-    take: limit,
-    include: {
-      lines: true,
-      order: { select: { id: true, event: { select: { title: true } } } },
-      user: { select: { email: true, displayName: true } }
-    }
-  });
 }
 
 export async function getAccountingEmailDeliveries(limit = 50) {
