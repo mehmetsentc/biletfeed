@@ -18,14 +18,22 @@ export async function findContactByTaxOrEmail(
   const tax = digits(buyer.taxNumber);
   if (tax.length >= 10) {
     const byTax = await parasutRequest(config, '/contacts', {
-      query: { 'filter[tax_number]': tax, page: 1 }
+      query: {
+        'filter[tax_number]': tax,
+        'page[number]': 1,
+        'page[size]': 15
+      }
     });
     const hit = asResourceList(byTax)[0];
     if (hit) return hit;
   }
   if (buyer.email?.trim()) {
     const byEmail = await parasutRequest(config, '/contacts', {
-      query: { 'filter[email]': buyer.email.trim(), page: 1 }
+      query: {
+        'filter[email]': buyer.email.trim(),
+        'page[number]': 1,
+        'page[size]': 15
+      }
     });
     const hit = asResourceList(byEmail)[0];
     if (hit) return hit;

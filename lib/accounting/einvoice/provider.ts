@@ -24,10 +24,12 @@ export function getEInvoiceProvider(
     if (!isParasutConfigured(config.parasut)) {
       if (process.env.NODE_ENV !== 'production') {
         console.warn(
-          '[einvoice] EINVOICE_PROVIDER=parasut ama PARASUT_* eksik — mock'
+          '[einvoice] EINVOICE_PROVIDER=parasut ama PARASUT_* eksik — mock (yalnızca development)'
         );
+        return createMockEInvoiceProvider();
       }
-      return createMockEInvoiceProvider();
+      // Production’da sessiz mock yasak — Paraşüt’e gitmeden “kesildi” görünmesin
+      return null;
     }
     return createParasutEInvoiceProvider(config.parasut);
   }

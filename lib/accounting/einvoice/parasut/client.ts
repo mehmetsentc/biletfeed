@@ -55,6 +55,14 @@ export async function parasutRequest(
   if (init?.query) {
     for (const [k, v] of Object.entries(init.query)) {
       if (v === undefined || v === null || v === '') continue;
+      // Paraşüt JSON:API — page=1 geçersiz; page[number]/page[size] zorunlu
+      if (k === 'page') {
+        url.searchParams.set('page[number]', String(v));
+        if (!init.query['page[size]']) {
+          url.searchParams.set('page[size]', '15');
+        }
+        continue;
+      }
       url.searchParams.set(k, String(v));
     }
   }

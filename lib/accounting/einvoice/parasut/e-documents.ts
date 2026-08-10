@@ -49,7 +49,11 @@ export async function findEInvoiceInboxAddress(
   if (vkn.length !== 10) return null;
   try {
     const doc = await parasutRequest(config, '/e_invoice_inboxes', {
-      query: { 'filter[vkn]': vkn, page: 1 }
+      query: {
+        'filter[vkn]': vkn,
+        'page[number]': 1,
+        'page[size]': 15
+      }
     });
     const hit = asResourceList(doc)[0];
     return (

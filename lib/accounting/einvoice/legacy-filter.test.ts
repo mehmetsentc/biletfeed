@@ -30,11 +30,15 @@ describe('isLegacyGibInvoiceAttempt', () => {
     ).toBe(true);
   });
 
-  it('keeps clean draft and parasut success', () => {
-    expect(isLegacyGibInvoiceAttempt({}, 'issued')).toBe(false);
+  it('keeps Paraşüt failures visible for retry', () => {
     expect(
       isLegacyGibInvoiceAttempt(
-        { channel: 'parasut', provider: 'parasut', status: 'submitted' },
+        {
+          channel: 'parasut',
+          provider: 'parasut',
+          status: 'failed',
+          lastError: 'parameter->page must be sent as page[number] and page[size]'
+        },
         'issued'
       )
     ).toBe(false);

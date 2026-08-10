@@ -9,7 +9,11 @@ export async function ensureProductId(config: ParasutConfig): Promise<string> {
   if (config.defaultProductId) return config.defaultProductId;
 
   const listed = await parasutRequest(config, '/products', {
-    query: { 'filter[code]': config.productCode, page: 1 }
+    query: {
+      'filter[code]': config.productCode,
+      'page[number]': 1,
+      'page[size]': 15
+    }
   });
   const hit = asResourceList(listed)[0];
   if (hit?.id) return hit.id;

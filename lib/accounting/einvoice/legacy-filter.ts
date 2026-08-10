@@ -18,6 +18,9 @@ export function isLegacyGibInvoiceAttempt(
   const channel = String(meta.channel ?? '');
   const provider = String(meta.provider ?? '');
 
+  // Paraşüt denemeleri (başarılı veya hatalı) arşivlenmez — tekrar gönderilebilir
+  if (channel === 'parasut' || provider === 'parasut') return false;
+
   if (channel === 'gib-earsiv' || channel === 'gib-efatura') return true;
   if (provider === 'gib' || provider === 'gib-efatura') return true;
   if (meta.mock === true && channel !== 'parasut') return true;
