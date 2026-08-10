@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGibEfaturaProvider } from '@/lib/accounting/einvoice/providers/gib-efatura';
 import type { EInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import { getParasutConfig } from '@/lib/accounting/einvoice/parasut/config';
 import type { EInvoicePayload } from '@/lib/accounting/einvoice/types';
 import { createEttn } from '@/lib/accounting/einvoice/ubl';
 
@@ -28,7 +29,8 @@ function baseConfig(overrides?: Partial<EInvoiceConfig['efatura']>): EInvoiceCon
       username: '',
       password: '',
       ...overrides
-    }
+    },
+    parasut: getParasutConfig()
   };
 }
 

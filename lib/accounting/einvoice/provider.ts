@@ -3,6 +3,8 @@ import {
   isEFaturaChannelReady,
   type EInvoiceConfig
 } from '@/lib/accounting/einvoice/config';
+import { isParasutConfigured } from '@/lib/accounting/einvoice/parasut/config';
+import { createParasutEInvoiceProvider } from '@/lib/accounting/einvoice/parasut/provider';
 import { createGibEarsivProvider } from '@/lib/accounting/einvoice/providers/gib-earsiv';
 import { createGibEfaturaProvider } from '@/lib/accounting/einvoice/providers/gib-efatura';
 import { createHttpEInvoiceProvider } from '@/lib/accounting/einvoice/providers/http';
@@ -17,6 +19,18 @@ export function getEInvoiceProvider(
   config: EInvoiceConfig = getEInvoiceConfig()
 ): EInvoiceProvider | null {
   if (!config.enabled || config.provider === 'none') return null;
+
+  if (config.provider === 'parasut') {
+    if (!isParasutConfigured(config.parasut)) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(
+          '[einvoice] EINVOICE_PROVIDER=parasut ama PARASUT_* eksik — mock'
+        );
+      }
+      return createMockEInvoiceProvider();
+    }
+    return createParasutEInvoiceProvider(config.parasut);
+  }
 
   if (config.provider === 'gib' || config.provider === 'gib-efatura') {
     // gib-efatura EINVOICE_PROVIDER değeri e-Arşiv için gib portalına düşer;
@@ -45,6 +59,7 @@ export function getEInvoiceProvider(
 
 /**
  * Belge tipine göre kanal seçimi:
+ * - parasut → hem e-Arşiv hem e-Fatura aynı provider
  * - e_arsiv / credit_note → GİB e-Arşiv portal (veya mock/http)
  * - e_fatura → BiletFeed e-Fatura kanalı (gib-efatura); asla sessizce earsiv’e düşmez
  */
@@ -52,6 +67,9 @@ export function resolveProviderForKind(
   kind: EInvoiceDocumentKind,
   config: EInvoiceConfig = getEInvoiceConfig()
 ): EInvoiceProvider | null {
+  if (config.provider === 'parasut') {
+    return getEInvoiceProvider(config);
+  }
   if (kind === 'e_fatura') {
     return getEFaturaProvider(config);
   }
@@ -62,6 +80,10 @@ export function resolveProviderForKind(
 export function getEFaturaProvider(
   config: EInvoiceConfig = getEInvoiceConfig()
 ): EInvoiceProvider | null {
+  if (config.provider === 'parasut') {
+    return getEInvoiceProvider(config);
+  }
+
   if (!isEFaturaChannelReady(config)) {
     return null;
   }

@@ -34,10 +34,8 @@ import {
 import { readEInvoiceMeta } from '@/lib/accounting/einvoice/meta';
 import { classifyGibError } from '@/lib/accounting/einvoice/gib-errors';
 import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
-import {
-  describeEFaturaChannel,
-  isEFaturaChannelReady
-} from '@/lib/accounting/einvoice/config';
+import { getEInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import { describeParasutChannel } from '@/lib/accounting/einvoice/parasut/config';
 import { resolveLifecycleStatus } from '@/lib/accounting/einvoice/lifecycle';
 import {
   canEditInvoiceIssuedAt,
@@ -73,12 +71,13 @@ function parseMuhasebeTab(raw?: string): MuhasebeTabKey {
 function toGibRows(
   invoices: Awaited<ReturnType<typeof getAccountingInvoices>>
 ): InvoiceGibRow[] {
-  const efaturaReady = isEFaturaChannelReady();
+  const parasut = describeParasutChannel();
   return invoices.map((inv) => {
     const einv = readEInvoiceMeta(inv.metadata);
     const gibStatus = einv.status ?? (inv.eInvoiceUuid ? 'submitted' : '—');
     const lastError = einv.lastError ?? null;
     const classified = classifyGibError(lastError);
+    // Paraşüt kanalı: GİB GEÇİŞ / SMS engelleri uygulanmaz
     const eligibility = evaluateGibSendEligibility({
       issuedAt: inv.issuedAt,
       invoiceType: inv.type,
@@ -103,6 +102,17 @@ function toGibRows(
         ? (inv.metadata as Record<string, unknown>)
         : {};
 
+    const channelLabel = parasut.ready
+      ? parasut.label
+      : (eligibility.channelLabel ?? 'Paraşüt');
+    // GİB geçmiş hataları gönderimi kilitlemesin — Paraşüt’e yeniden denenebilir
+    const gibLegacyBlock =
+      classified?.category === 'gecis_tarih' ||
+      classified?.category === 'efatura_satici';
+    const sendDisabled =
+      inv.status === 'cancelled' ||
+      (!parasut.ready && !eligibility.canSend);
+
     return {
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
@@ -117,36 +127,35 @@ function toGibRows(
       status: inv.status,
       gibStatus,
       lifecycle,
-      needsSmsSign: Boolean(einv.needsSmsSign),
+      needsSmsSign: false,
       eInvoiceUuid: inv.eInvoiceUuid ?? einv.uuid ?? null,
       ettn: typeof einv.ettn === 'string' ? einv.ettn : null,
       envelopeUuid:
         typeof einv.envelopeUuid === 'string' ? einv.envelopeUuid : null,
-      lastError,
-      phoneMasked: einv.smsPhoneMasked ?? null,
-      errorCategory: classified?.category ?? null,
-      errorTitle: classified?.title ?? null,
-      errorExplanation: classified?.explanation ?? null,
-      sendDisabled: !eligibility.canSend || inv.status === 'cancelled',
-      sendDisabledReason:
-        inv.status === 'cancelled'
+      lastError: gibLegacyBlock ? null : lastError,
+      phoneMasked: null,
+      errorCategory: gibLegacyBlock ? null : (classified?.category ?? null),
+      errorTitle: gibLegacyBlock ? null : (classified?.title ?? null),
+      errorExplanation: gibLegacyBlock
+        ? null
+        : (classified?.explanation ?? null),
+      sendDisabled,
+      sendDisabledReason: sendDisabled
+        ? inv.status === 'cancelled'
           ? 'Fatura iptal edilmiş'
-          : (eligibility.blockReason ?? null),
+          : (parasut.setupHint ?? eligibility.blockReason ?? null)
+        : null,
       canEditIssuedAt: canEdit && inv.status !== 'cancelled',
       canEditDocumentType:
         canEdit &&
         inv.status !== 'cancelled' &&
         (inv.type === 'e_arsiv' || inv.type === 'e_fatura'),
-      issuedOutsideGecis: Boolean(eligibility.issuedOutsideGecis),
-      gecisRangeLabel: eligibility.gecisRange
-        ? `${eligibility.gecisRange.fromLabel} – ${eligibility.gecisRange.toLabel}`
-        : null,
+      issuedOutsideGecis: false,
+      gecisRangeLabel: null,
       isRetry,
-      channelLabel: eligibility.channelLabel ?? einv.channel ?? null,
-      channelId:
-        eligibility.channelId ??
-        (typeof einv.channel === 'string' ? einv.channel : null),
-      efaturaChannelReady: efaturaReady,
+      channelLabel,
+      channelId: 'parasut',
+      efaturaChannelReady: parasut.ready,
       mock: Boolean(einv.mock),
       isCreditNote: inv.type === 'credit_note',
       originalInvoiceNumber:
@@ -304,27 +313,23 @@ export default async function AdminAccountingPage({ searchParams }: PageProps) {
   const payoutRows = toPayoutRows(payouts);
   const expenseRows = toExpenseRows(expenses);
 
-  const pendingSms =
-    tab === 'faturalar'
-      ? gibRows.filter((r) => r.needsSmsSign || r.gibStatus === 'submitted').length
-      : (invoiceAlerts?.smsPending ?? 0);
-  const gecisIssueCount =
+  const pendingFailed =
     tab === 'faturalar'
       ? gibRows.filter(
-          (r) => r.errorCategory === 'gecis_tarih' || r.issuedOutsideGecis
+          (r) =>
+            r.lifecycle === 'red' ||
+            r.lifecycle === 'taslak' ||
+            r.gibStatus === 'failed'
         ).length
-      : (invoiceAlerts?.gecisErrors ?? 0);
+      : (invoiceAlerts?.smsPending ?? 0);
   const faturalarBadge =
     tab === 'faturalar'
-      ? pendingSms + gecisIssueCount
+      ? gibRows.filter((r) => r.lifecycle === 'red' || r.lifecycle === 'taslak')
+          .length
       : (invoiceAlerts?.faturalarBadge ?? 0);
 
-  const efaturaSellerCount = gibRows.filter(
-    (r) => r.errorCategory === 'efatura_satici'
-  ).length;
-  const efaturaTypeCount = gibRows.filter((r) => r.type === 'e_fatura').length;
-  const efaturaChannel = describeEFaturaChannel();
-  const showEfaturaSetup = efaturaTypeCount > 0 && !efaturaChannel.ready;
+  const einvoiceConfig = getEInvoiceConfig();
+  const parasutChannel = describeParasutChannel(einvoiceConfig.parasut);
 
   const badges: Partial<Record<MuhasebeTabKey, number>> = {
     faturalar: faturalarBadge,
@@ -338,8 +343,15 @@ export default async function AdminAccountingPage({ searchParams }: PageProps) {
       <div>
         <h1 className="text-2xl font-bold">Muhasebe</h1>
         <p className="text-muted-foreground">
-          Fatura, GİB e-Arşiv, mutabakat, hakediş, gider ve e-posta izleme
+          Faturalar Paraşüt üzerinden otomatik kesilir · mutabakat, hakediş, gider ve
+          e-posta izleme
           {summary ? ` — ${summary.company.tradeName}` : ''}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Aktif kanal: {parasutChannel.label}
+          {parasutChannel.ready
+            ? ' — sipariş sonrası kesim + müşteriye e-posta'
+            : ` — ${parasutChannel.setupHint ?? 'yapılandırma eksik'}`}
         </p>
         {summary && (
           <p className="mt-1 text-xs text-muted-foreground">{formatCompanyTaxLine()}</p>
@@ -375,68 +387,33 @@ export default async function AdminAccountingPage({ searchParams }: PageProps) {
 
         {tab === 'faturalar' && (
           <div className="space-y-6">
-            {(gecisIssueCount > 0 || efaturaSellerCount > 0 || showEfaturaSetup) && (
-              <div className="space-y-2">
-                {gecisIssueCount > 0 && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-                    <p className="font-medium">
-                      GİB GEÇİŞ penceresi — {gecisIssueCount} fatura
-                    </p>
-                    <p className="mt-1 text-amber-900/90">
-                      Bu faturalar GİB’in izin verdiği tarih aralığı dışında veya GEÇİŞ
-                      hatası almış. Muhasebeci IVD’den e-Arşiv yetkisi/tarih açmalı;
-                      gerekirse aşağıdaki listeden fatura tarihini pencere içine
-                      taşıyın. Opsiyonel env:{' '}
-                      <code className="rounded bg-amber-100 px-1 text-xs">
-                        EINVOICE_GECIS_DATE_FROM
-                      </code>{' '}
-                      /{' '}
-                      <code className="rounded bg-amber-100 px-1 text-xs">
-                        EINVOICE_GECIS_DATE_TO
-                      </code>
-                    </p>
-                  </div>
-                )}
-                {efaturaSellerCount > 0 && (
-                  <div className="rounded-lg border border-orange-300 bg-orange-50 p-4 text-sm text-orange-950">
-                    <p className="font-medium">
-                      Satıcı e-Fatura / geçiş çakışması — {efaturaSellerCount} fatura
-                    </p>
-                    <p className="mt-1 text-orange-900/90">
-                      Satıcı VKN e-Fatura kullanıcısı olarak görünüyor olabilir.
-                      e-Arşiv portal gönderimi bu satırlar için kapatıldı — muhasebeciye
-                      danışın veya belge tipini e-Fatura kanalına alın.
-                    </p>
-                  </div>
-                )}
-                {showEfaturaSetup && (
-                  <div className="rounded-lg border border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-800">
-                    <p className="font-medium">
-                      BiletFeed e-Fatura kanalı yapılandırılmadı — {efaturaTypeCount}{' '}
-                      fatura
-                    </p>
-                    <p className="mt-1 text-zinc-600">
-                      e-Fatura satırları e-Arşiv portalına gönderilmez. Kanalı açmak
-                      için:{' '}
-                      <code className="rounded bg-zinc-200 px-1 text-xs">
-                        EINVOICE_EFATURA_ENABLED=true
-                      </code>
-                      {', '}
-                      geliştirme için{' '}
-                      <code className="rounded bg-zinc-200 px-1 text-xs">
-                        EINVOICE_EFATURA_MOCK=true
-                      </code>{' '}
-                      veya canlı endpoint{' '}
-                      <code className="rounded bg-zinc-200 px-1 text-xs">
-                        EINVOICE_EFATURA_BASE_URL
-                      </code>
-                      . GİB özel entegratör lisansı ayrı yasal süreçtir — yazılım
-                      kanalı hazır olsa da lisans olmadan üretim gönderimi yapılamaz.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+            <div
+              className={`rounded-lg border p-4 text-sm ${
+                parasutChannel.ready
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-950'
+                  : 'border-amber-300 bg-amber-50 text-amber-950'
+              }`}
+            >
+              <p className="font-medium">Paraşüt e-fatura kanalı</p>
+              <p className="mt-1 opacity-90">
+                {parasutChannel.ready
+                  ? 'Ödeme sonrası fatura Paraşüt’te kesilir ve müşteriye e-posta ile gider. Aşağıdan manuel “Paraşüt’e gönder” de kullanabilirsiniz.'
+                  : parasutChannel.setupHint}
+              </p>
+              {parasutChannel.companyId ? (
+                <p className="mt-2 text-xs opacity-80">
+                  Şirket #{parasutChannel.companyId} ·{' '}
+                  <a
+                    href={`https://uygulama.parasut.com/${parasutChannel.companyId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    Paraşüt’te aç
+                  </a>
+                </p>
+              ) : null}
+            </div>
 
             {summary && (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -446,23 +423,23 @@ export default async function AdminAccountingPage({ searchParams }: PageProps) {
                   sub={money(summary.invoiceTotal)}
                 />
                 <StatCard
-                  label="GİB SMS / taslak"
-                  value={String(pendingSms)}
-                  sub="Onay bekleyen e-Arşiv"
+                  label="Bekleyen / taslak"
+                  value={String(pendingFailed)}
+                  sub="Henüz Paraşüt’e gitmemiş veya hata"
                 />
                 <StatCard
-                  label="GEÇİŞ uyarısı"
-                  value={String(gecisIssueCount)}
-                  sub="Tarih penceresi / hata"
+                  label="Kanal"
+                  value={parasutChannel.ready ? 'Hazır' : 'Eksik'}
+                  sub="Paraşüt API"
                 />
               </div>
             )}
 
             <Section
               title="Faturalar"
-              description="Paraşüt-benzeri akış: tip → gönder → SMS/kabul → PDF / iptal. İade (credit note) satırları listede görünür."
+              description="Akış: sipariş ödenir → iç fatura oluşur → Paraşüt’te e-belge kesilir → müşteriye mail. İade satırları listede görünür."
             >
-              <InvoiceGibTable rows={gibRows} />
+              <InvoiceGibTable rows={gibRows} providerMode="parasut" />
             </Section>
           </div>
         )}

@@ -4,6 +4,12 @@ export {
   isEFaturaChannelReady
 } from '@/lib/accounting/einvoice/config';
 export {
+  describeParasutChannel,
+  getParasutConfig,
+  isParasutConfigured
+} from '@/lib/accounting/einvoice/parasut/config';
+export { createParasutEInvoiceProvider } from '@/lib/accounting/einvoice/parasut/provider';
+export {
   getEInvoiceProvider,
   getEFaturaProvider,
   resolveProviderForKind

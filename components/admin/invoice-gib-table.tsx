@@ -100,7 +100,14 @@ type DetailState = {
   data: Record<string, unknown> | null;
 };
 
-export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
+export function InvoiceGibTable({
+  rows,
+  providerMode = 'parasut'
+}: {
+  rows: InvoiceGibRow[];
+  /** parasut: GİB SMS / GEÇİŞ UI kapalı, sade Paraşüt dili */
+  providerMode?: 'parasut' | 'legacy';
+}) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [codes, setCodes] = useState<Record<string, string>>({});
@@ -261,7 +268,10 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
           window.open(data.pdfUrl, '_blank', 'noopener,noreferrer');
           setInfo((p) => ({
             ...p,
-            [row.id]: 'GİB portal PDF linki açıldı'
+            [row.id]:
+              providerMode === 'parasut'
+                ? 'PDF linki açıldı'
+                : 'GİB portal PDF linki açıldı'
           }));
           return;
         }
@@ -431,7 +441,7 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
               <th className="p-3 font-medium">Alıcı</th>
               <th className="p-3 font-medium">Etkinlik</th>
               <th className="p-3 font-medium">Tutar</th>
-              <th className="p-3 font-medium">Belge / kanal</th>
+              <th className="p-3 font-medium">Belge</th>
               <th className="p-3 font-medium">Durum</th>
               <th className="p-3 font-medium">İşlem</th>
             </tr>
@@ -440,22 +450,40 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
             {filtered.map((row) => {
               const lifecycleVariant = lifecycleBadgeVariant(row.lifecycle);
               const dateValue = dates[row.id] ?? row.issuedAtDate;
-              const sendLabel = row.isRetry ? 'Tekrar dene' : 'Gönder';
               const docType = currentType(row);
               const isEfatura = docType === 'e_fatura';
               const isCredit = row.isCreditNote;
+              const isParasut =
+                providerMode === 'parasut' ||
+                row.channelId === 'parasut' ||
+                row.channelLabel?.toLowerCase().includes('paraşüt') ||
+                row.channelLabel?.toLowerCase().includes('parasut');
               const channelHint = isCredit
-                ? 'İade → tip/orijinale göre kanal'
-                : isEfatura
-                  ? row.efaturaChannelReady
-                    ? 'Kanal: BiletFeed e-Fatura'
-                    : 'Kanal yapılandırılmadı'
-                  : 'Kanal: GİB e-Arşiv portal';
+                ? 'İade faturası'
+                : isParasut
+                  ? 'Paraşüt ile kesilir'
+                  : isEfatura
+                    ? row.efaturaChannelReady
+                      ? 'Kanal: BiletFeed e-Fatura'
+                      : 'Kanal yapılandırılmadı'
+                    : 'Kanal: GİB e-Arşiv portal';
               const sendBlocked =
                 row.status === 'cancelled' ||
                 row.lifecycle === 'iptal' ||
                 row.sendDisabled ||
-                (isEfatura && !row.efaturaChannelReady && !isCredit);
+                (isEfatura &&
+                  !isParasut &&
+                  !row.efaturaChannelReady &&
+                  !isCredit);
+              const lifecycleLabel =
+                isParasut && row.lifecycle === 'sms_bekliyor'
+                  ? 'İşleniyor'
+                  : LIFECYCLE_LABELS[row.lifecycle];
+              const sendLabel = row.isRetry
+                ? 'Tekrar gönder'
+                : isParasut
+                  ? 'Paraşüt’e gönder'
+                  : 'Gönder';
 
               return (
                 <tr key={row.id} className="border-b last:border-0 align-top">
@@ -524,7 +552,9 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                           </Button>
                         </div>
                       )}
-                      {row.issuedOutsideGecis && row.gecisRangeLabel && (
+                      {row.issuedOutsideGecis &&
+                        !isParasut &&
+                        row.gecisRangeLabel && (
                         <p className="max-w-[160px] text-[10px] text-amber-700">
                           GEÇİŞ dışı (izinli: {row.gecisRangeLabel})
                         </p>
@@ -591,17 +621,20 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                       >
                         {channelHint}
                       </p>
-                      {row.channelLabel && (
+                      {!isParasut && row.channelLabel && (
                         <p className="text-[10px] text-zinc-500">
                           Son: {row.channelLabel}
                           {row.mock ? ' (mock)' : ''}
                         </p>
                       )}
+                      {isParasut && row.mock ? (
+                        <p className="text-[10px] text-zinc-500">(mock)</p>
+                      ) : null}
                     </div>
                   </td>
                   <td className="p-3">
                     <Badge variant={lifecycleVariant}>
-                      {LIFECYCLE_LABELS[row.lifecycle]}
+                      {lifecycleLabel}
                     </Badge>
                     {row.errorTitle && (
                       <div className="mt-1.5 max-w-[220px] space-y-0.5">
@@ -706,7 +739,7 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                           )}
                       </div>
 
-                      {!isCredit && (
+                      {!isCredit && !isParasut && (
                         <Button
                           type="button"
                           size="sm"
@@ -730,7 +763,8 @@ export function InvoiceGibTable({ rows }: { rows: InvoiceGibRow[] }) {
                         </p>
                       )}
 
-                      {(row.needsSmsSign || row.lifecycle === 'sms_bekliyor') &&
+                      {!isParasut &&
+                        (row.needsSmsSign || row.lifecycle === 'sms_bekliyor') &&
                         !isEfatura &&
                         row.status !== 'cancelled' && (
                           <div className="space-y-1.5 rounded-md border bg-muted/30 p-2">
@@ -955,7 +989,9 @@ function DetailBody({
 
       {data.lastError ? (
         <div className="rounded border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-          <p className="font-medium">GİB log</p>
+          <p className="font-medium">
+            {providerMode === 'parasut' ? 'Paraşüt / e-belge log' : 'GİB log'}
+          </p>
           <p className="mt-1 break-words">{String(data.lastError)}</p>
         </div>
       ) : null}

@@ -78,7 +78,8 @@ export const EFATURA_SELLER_BLOCK_MESSAGE =
   'Satıcı hesabı e-Fatura / geçiş çakışması — e-Arşiv gönderimi kapalı; muhasebeciye danışın';
 
 /**
- * Panel ve submit yolu için ortak GİB gönderim uygunluk kontrolü.
+ * Panel ve submit yolu için ortak gönderim uygunluk kontrolü.
+ * Paraşüt kanalında GİB GEÇİŞ / SMS kuralları uygulanmaz.
  * Başarılı (accepted/submitted) durumlar burada kontrol edilmez.
  */
 export function evaluateGibSendEligibility(params: {
@@ -87,6 +88,28 @@ export function evaluateGibSendEligibility(params: {
   buyerTaxNumber?: string | null;
   lastError?: string | null;
 }): GibSendEligibility {
+  const config = getEInvoiceConfig();
+
+  // ── Paraşüt: GİB-özel engeller yok ───────────────────────────
+  if (config.provider === 'parasut') {
+    const channel = describeEFaturaChannel(config);
+    if (!channel.ready) {
+      return {
+        canSend: false,
+        blockReason:
+          channel.setupHint ?? 'Paraşüt yapılandırılmamış',
+        errorCategory: 'unknown',
+        channelLabel: channel.label,
+        channelId: channel.channelId
+      };
+    }
+    return {
+      canSend: true,
+      channelLabel: channel.label,
+      channelId: 'parasut'
+    };
+  }
+
   const classified = classifyGibError(params.lastError);
   const invoiceType = params.invoiceType;
 

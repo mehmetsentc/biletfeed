@@ -7,7 +7,7 @@ import {
 } from '@/lib/accounting/commission';
 import { deferRevenueRecognition } from '@/lib/accounting/revenue';
 import { sendInvoiceEmail } from '@/lib/accounting/email';
-import { submitInvoiceToGib } from '@/lib/accounting/einvoice';
+import { getEInvoiceConfig, submitInvoiceToGib } from '@/lib/accounting/einvoice';
 
 /**
  * Ödeme tamamlandıktan sonra muhasebe işlemlerini çalıştırır.
@@ -66,7 +66,7 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
     }))
   });
 
-  // GİB e-belge gönderimi (entegratör / mock). Hata siparişi bozmaz (failSoft).
+  // e-belge gönderimi (Paraşüt / GİB / mock). Hata siparişi bozmaz (failSoft).
   await submitInvoiceToGib({
     invoiceId: invoice.id,
     buyerEmail: order.user.email ?? order.attendeeEmail
@@ -99,7 +99,12 @@ export async function processOrderAccounting(orderId: string): Promise<void> {
     eventDate: order.event.endDate
   });
 
-  if (order.user.email) {
+  const einvoiceConfig = getEInvoiceConfig();
+  const skipResend =
+    einvoiceConfig.provider === 'parasut' &&
+    einvoiceConfig.parasut.skipResendInvoice;
+
+  if (order.user.email && !skipResend) {
     await sendInvoiceEmail({
       to: order.user.email,
       invoiceNumber: invoice.invoiceNumber,

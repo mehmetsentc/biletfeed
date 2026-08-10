@@ -1,3 +1,8 @@
+import {
+  describeParasutChannel,
+  getParasutConfig,
+  type ParasutConfig
+} from '@/lib/accounting/einvoice/parasut/config';
 import type {
   EInvoiceChannelId,
   EInvoiceProviderName
@@ -23,6 +28,8 @@ export interface EInvoiceConfig {
   gecisDateTo: string;
   /** BiletFeed kendi e-Fatura kanalı */
   efatura: EFaturaChannelConfig;
+  /** Paraşüt API V4 (EINVOICE_PROVIDER=parasut) */
+  parasut: ParasutConfig;
 }
 
 /**
@@ -77,7 +84,8 @@ export function getEInvoiceConfig(): EInvoiceConfig {
     raw === 'none' ||
     raw === 'mock' ||
     raw === 'gib' ||
-    raw === 'gib-efatura'
+    raw === 'gib-efatura' ||
+    raw === 'parasut'
       ? (raw as EInvoiceProviderName)
       : 'mock';
 
@@ -101,15 +109,19 @@ export function getEInvoiceConfig(): EInvoiceConfig {
     failSoft: process.env.EINVOICE_FAIL_SOFT !== 'false',
     gecisDateFrom: process.env.EINVOICE_GECIS_DATE_FROM?.trim() ?? '',
     gecisDateTo: process.env.EINVOICE_GECIS_DATE_TO?.trim() ?? '',
-    efatura: getEFaturaChannelConfig()
+    efatura: getEFaturaChannelConfig(),
+    parasut: getParasutConfig()
   };
 }
 
-/** e-Fatura kanalı gönderime hazır mı? (mock dahil) */
+/** e-Fatura kanalı gönderime hazır mı? (mock / Paraşüt dahil) */
 export function isEFaturaChannelReady(
   config: EInvoiceConfig = getEInvoiceConfig()
 ): boolean {
   if (config.provider === 'mock') return true;
+  if (config.provider === 'parasut') {
+    return describeParasutChannel(config.parasut).ready;
+  }
   if (config.provider === 'http' && config.apiBaseUrl) return true;
   return config.efatura.enabled || config.efatura.mock;
 }
@@ -128,6 +140,15 @@ export function describeEFaturaChannel(
       channelId: 'mock',
       label: 'Mock e-Fatura kanalı',
       setupHint: null
+    };
+  }
+  if (config.provider === 'parasut') {
+    const p = describeParasutChannel(config.parasut);
+    return {
+      ready: p.ready,
+      channelId: p.channelId,
+      label: p.label,
+      setupHint: p.setupHint
     };
   }
   if (config.provider === 'http' && config.apiBaseUrl) {

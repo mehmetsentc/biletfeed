@@ -94,34 +94,58 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 | `RESEND_FROM_EMAIL` | Varsayılan gönderen (tickets@biletfeed.com) |
 | `RESEND_INVOICE_FROM` | Fatura gönderen (fatura@biletfeed.com) |
 | `CRON_SECRET` | Gelir tanıma cron yetkisi |
-| `EINVOICE_PROVIDER` | `mock` \| `gib` \| `http` \| `none` — **`gib` = GİB e-Arşiv Portal (bağlı)** |
+| `EINVOICE_PROVIDER` | `mock` \| `gib` \| `parasut` \| `http` \| `none` — **canlı öneri: `parasut`** |
 | `EINVOICE_ENABLED` | `true` / `false` — gönderimi aç/kapa |
 | `EINVOICE_USERNAME` | IVD / e-Arşiv kullanıcı kodu (GİB) |
 | `EINVOICE_PASSWORD` | IVD şifresi |
 | `EINVOICE_SANDBOX` | `true` = test portal; `gib` için varsayılan `false` (canlı) |
 | `EINVOICE_API_BASE_URL` | Yalnızca `http` provider |
 | `EINVOICE_API_KEY` | Bearer token (`http`) |
-| `EINVOICE_FAIL_SOFT` | GİB hatası siparişi bozmasın (varsayılan true) |
+| `EINVOICE_FAIL_SOFT` | Gönderim hatası siparişi bozmasın (varsayılan true) |
 | `EINVOICE_GECIS_DATE_FROM` | Opsiyonel GEÇİŞ penceresi başlangıç (`dd/MM/yyyy` veya ISO) |
 | `EINVOICE_GECIS_DATE_TO` | Opsiyonel GEÇİŞ penceresi bitiş |
-| `EINVOICE_EFATURA_ENABLED` | BiletFeed e-Fatura kanalını aç |
+| `EINVOICE_EFATURA_ENABLED` | BiletFeed e-Fatura kanalını aç (GİB yolu) |
 | `EINVOICE_EFATURA_MOCK` | Endpoint’siz mock e-Fatura |
 | `EINVOICE_EFATURA_BASE_URL` | e-Fatura HTTP kök (kendi gateway) |
+| `PARASUT_CLIENT_ID` | Paraşüt OAuth client id |
+| `PARASUT_CLIENT_SECRET` | Paraşüt OAuth secret |
+| `PARASUT_USERNAME` | Paraşüt hesap e-postası |
+| `PARASUT_PASSWORD` | Paraşüt şifre |
+| `PARASUT_COMPANY_ID` | Firma id (`/v4/{company_id}/…`) |
+| `PARASUT_DEFAULT_PRODUCT_ID` | Opsiyonel sabit ürün id |
+| `PARASUT_PAYMENT_ACCOUNT_ID` | Peşin satış kasa/banka hesabı id |
+| `PARASUT_PRODUCT_CODE` | Ürün kodu (varsayılan `BILETFEED_TICKET`) |
+| `PARASUT_SKIP_RESEND_INVOICE` | `true` (varsayılan): resmi mail Paraşüt’ten; Resend fatura atlanır |
 
 ---
 
-## e-Fatura / e-Arşiv (GİB)
+## e-Fatura / e-Arşiv
 
 Modül: `lib/accounting/einvoice/`
 
+### Paraşüt (önerilen canlı kanal)
+
+`EINVOICE_PROVIDER=parasut` — sipariş ödenince:
+
+1. İç fatura (`BF…`) oluşturulur  
+2. Paraşüt: contact → product → `sales_invoices`  
+3. e-Arşiv veya e-Fatura (`e_archives` / `e_invoices`) + `trackable_jobs` poll  
+4. Alıcıya Paraşüt `sharings` e-postası  
+5. `PARASUT_SKIP_RESEND_INVOICE=true` iken Resend fatura maili atlanır (çift PDF önlenir)
+
+Kod: `lib/accounting/einvoice/parasut/`  
+Admin: `/admin/muhasebe` faturalar sekmesinde Paraşüt kanal banner’ı; “Gönder / Tekrar dene” aynı `submit-einvoice` API’sini kullanır.
+
+### GİB (alternatif)
+
 | Parça | Rol |
 |-------|-----|
-| `providers/gib-earsiv.ts` | **GİB e-Arşiv Portal** — login + taslak fatura (bağlı) |
+| `providers/gib-earsiv.ts` | **GİB e-Arşiv Portal** — login + taslak fatura |
 | `providers/gib-efatura.ts` | **BiletFeed e-Fatura kanalı** — UBL + outbox + HTTP/mock |
-| `provider.ts` | `resolveProviderForKind` — tip → kanal |
+| `provider.ts` | `resolveProviderForKind` — tip → kanal (`parasut` her iki tip) |
 | `ubl.ts` | Invoice → UBL-TR 1.2 XML + ETTN |
 | `gib-errors.ts` | GİB hata sınıflandırma (GEÇİŞ, satıcı e-Fatura, oturum, ETTN) |
-| `gib-send-guard.ts` | Panel + submit öncesi engel (GEÇİŞ, kanal hazırlığı) |
+| `gib-send-guard.ts` | Panel + submit öncesi engel (Paraşüt’te GEÇİŞ atlanır) |
 | `providers/mock.ts` | Credential yokken simülasyon |
 | `providers/http.ts` | Genel REST entegratör köprüsü |
 | `submit.ts` | Tip’e göre kanal + DB güncelleme |
@@ -132,16 +156,16 @@ Detay: `docs/INVOICING.md` — **BiletFeed e-Fatura kanalı (kendi entegratör y
 
 **GİB portal notu:** Yeni taslakta `faturaUuid` **boş** gönderilir. Resmi onay için SMS.  
 **GEÇİŞ kullanıcısı:** Bazı hesaplar yalnızca GİB’in verdiği kısa tarih aralığında fatura kesebilir. Panel hata metninden aralığı okur; fatura tarihi dışarıdaysa gönderimi kapatır. Muhasebeci `/admin/muhasebe` üzerinden tarihi düzeltebilir veya IVD’den yetki açtırır. Env: `EINVOICE_GECIS_DATE_FROM` / `EINVOICE_GECIS_DATE_TO`.  
-**e-Fatura:** `type=e_fatura` → `gib-efatura`; yapılandırılmamışsa net Türkçe hata (e-Arşiv’e düşmez). Admin tip seçer: `PATCH .../document-type`.  
+**e-Fatura (GİB yolu):** `type=e_fatura` → `gib-efatura`; yapılandırılmamışsa net Türkçe hata (e-Arşiv’e düşmez). Admin tip seçer: `PATCH .../document-type`.  
 **Başarısız create:** Üretilen ETTN `eInvoiceUuid` olarak saklanmaz.
 
 Admin:
-- Liste + aksiyonlar: `/admin/muhasebe` (üstte GEÇİŞ / e-Fatura kanal banner’ları)
+- Liste + aksiyonlar: `/admin/muhasebe` (üstte Paraşüt / GEÇİŞ / e-Fatura kanal banner’ları)
 - Yeniden gönderim: `POST /api/admin/accounting/invoices/[invoiceId]/submit-einvoice` `{ force?, documentType?, overrideConfirmed? }`
 - Belge tipi: `PATCH .../document-type` `{ "type": "e_arsiv"|"e_fatura", "overrideConfirmed?" }`
 - Tarih düzelt: `PATCH /api/admin/accounting/invoices/[invoiceId]/issued-at` `{ "issuedAt": "..." }`
-- SMS başlat: `POST .../sms-start`
-- SMS onay: `POST .../sms-confirm` body `{ "code": "123456" }`
+- SMS başlat: `POST .../sms-start` (GİB)
+- SMS onay: `POST .../sms-confirm` body `{ "code": "123456" }` (GİB)
 - Hakediş öde: `POST /api/admin/accounting/payouts/[payoutId]/mark-paid` `{ "paymentRef": "..." }`
 - Hakediş iptal: `POST /api/admin/accounting/payouts/[payoutId]/cancel`
 - Giderler: `GET|POST /api/admin/accounting/expenses`, `PATCH|DELETE .../expenses/[expenseId]`

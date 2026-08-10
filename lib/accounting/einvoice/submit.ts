@@ -146,9 +146,10 @@ export async function submitInvoiceToGib(params: {
     };
   }
 
-  // Güvenlik: e_fatura asla gib-earsiv portalına düşmesin
+  // Güvenlik: e_fatura asla gib-earsiv portalına düşmesin (Paraşüt hariç)
   if (
     kind === 'e_fatura' &&
+    config.provider !== 'parasut' &&
     (provider.channelId === 'gib-earsiv' || provider.name === 'gib')
   ) {
     return {

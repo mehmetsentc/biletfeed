@@ -30,10 +30,17 @@ export type EInvoiceProviderName =
   | 'http'
   | 'gib'
   | 'gib-efatura'
+  | 'parasut'
   | 'none';
 
 /** İnsan okunur kanal etiketi (admin UI) */
-export type EInvoiceChannelId = 'gib-earsiv' | 'gib-efatura' | 'mock' | 'http' | 'none';
+export type EInvoiceChannelId =
+  | 'gib-earsiv'
+  | 'gib-efatura'
+  | 'parasut'
+  | 'mock'
+  | 'http'
+  | 'none';
 
 export interface EInvoiceSeller {
   tradeName: string;

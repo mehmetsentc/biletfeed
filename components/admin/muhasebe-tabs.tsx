@@ -21,7 +21,7 @@ const TAB_DEFS: ReadonlyArray<{
   { key: 'satis', label: 'Satış özeti', href: adminHref('/muhasebe') },
   {
     key: 'faturalar',
-    label: 'Faturalar (GİB)',
+    label: 'Faturalar',
     href: adminHref('/muhasebe?tab=faturalar')
   },
   {
