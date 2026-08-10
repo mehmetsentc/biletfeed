@@ -9,6 +9,7 @@ import { withGibSessionLock } from '@/lib/accounting/einvoice/gib-lock';
 import { evaluateGibSendEligibility } from '@/lib/accounting/einvoice/gib-send-guard';
 import { resolveProviderForKind } from '@/lib/accounting/einvoice/provider';
 import { buildEInvoicePayload } from '@/lib/accounting/einvoice/ubl';
+import { effectiveGibBuyerTaxId } from '@/lib/accounting/einvoice/nihai-tuketici';
 import type {
   EInvoiceDocumentKind,
   InvoiceEInvoiceMeta
@@ -174,9 +175,9 @@ export async function submitInvoiceToGib(params: {
     totalGross: invoice.totalGross,
     buyer: {
       name: invoice.buyerName,
-      taxNumber: invoice.buyerTaxNumber,
+      taxNumber: effectiveGibBuyerTaxId(invoice.buyerTaxNumber),
       taxOffice: invoice.buyerTaxOffice,
-      address: invoice.buyerAddress,
+      address: invoice.buyerAddress?.trim() || 'Türkiye',
       email: params.buyerEmail,
       isCorporate: taxDigits.length === 10
     },

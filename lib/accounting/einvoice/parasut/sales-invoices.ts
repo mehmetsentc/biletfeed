@@ -49,10 +49,10 @@ export function buildSalesInvoiceBody(params: {
           : {}),
         tax_number: payload.buyer.taxNumber
           ? payload.buyer.taxNumber.replace(/\D/g, '')
-          : undefined,
+          : '11111111111',
         tax_office: payload.buyer.taxOffice ?? undefined,
-        billing_address: payload.buyer.address ?? undefined,
-        city: undefined,
+        billing_address: payload.buyer.address?.trim() || 'Türkiye',
+        city: 'İstanbul',
         country: 'Türkiye'
       },
       relationships: {

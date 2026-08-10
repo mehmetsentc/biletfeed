@@ -47,6 +47,9 @@ export async function createContact(
 ): Promise<JsonApiResource> {
   const tax = digits(buyer.taxNumber);
   const isCompany = buyer.isCorporate || tax.length === 10;
+  // Paraşüt e-belge: kişi için 11 hane TCKN zorunlu; boşsa nihai tüketici
+  const taxNumber =
+    tax.length >= 10 ? tax : isCompany ? undefined : '11111111111';
   const doc = await parasutRequest(config, '/contacts', {
     method: 'POST',
     body: {
@@ -56,11 +59,11 @@ export async function createContact(
           name: buyer.name || (isCompany ? 'Kurumsal Müşteri' : 'Bireysel Müşteri'),
           email: buyer.email?.trim() || undefined,
           contact_type: isCompany ? 'company' : 'person',
-          tax_number: tax.length >= 10 ? tax : undefined,
+          tax_number: taxNumber,
           tax_office: buyer.taxOffice?.trim() || undefined,
-          address: buyer.address?.trim() || undefined,
-          district: undefined,
-          city: undefined,
+          address: buyer.address?.trim() || 'Türkiye',
+          district: 'Merkez',
+          city: 'İstanbul',
           country: 'Türkiye',
           account_type: 'customer'
         }
@@ -77,7 +80,36 @@ export async function ensureContact(
   buyer: EInvoiceBuyer
 ): Promise<string> {
   const existing = await findContactByTaxOrEmail(config, buyer);
-  if (existing?.id) return existing.id;
+  if (existing?.id) {
+    const attrs = existing.attributes ?? {};
+    const needsAddress =
+      !attrs.city ||
+      !attrs.district ||
+      !attrs.address ||
+      !digits(String(attrs.tax_number ?? ''));
+    if (needsAddress) {
+      const tax = digits(buyer.taxNumber);
+      const isCompany = buyer.isCorporate || tax.length === 10;
+      await parasutRequest(config, `/contacts/${existing.id}`, {
+        method: 'PUT',
+        body: {
+          data: {
+            id: existing.id,
+            type: 'contacts',
+            attributes: {
+              address: buyer.address?.trim() || 'Türkiye',
+              district: 'Merkez',
+              city: 'İstanbul',
+              country: 'Türkiye',
+              tax_number:
+                tax.length >= 10 ? tax : isCompany ? undefined : '11111111111'
+            }
+          }
+        }
+      });
+    }
+    return existing.id;
+  }
   const created = await createContact(config, buyer);
   return created.id;
 }
