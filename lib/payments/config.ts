@@ -12,7 +12,7 @@ export function getAppBaseUrl(): string {
 
 export function getPaymentProviderName(): PaymentProviderName {
   const fallback =
-    process.env.NODE_ENV === 'production' ? 'tosla' : 'mock';
+    process.env.NODE_ENV === 'production' ? 'iyzico' : 'mock';
   const raw = (process.env.PAYMENT_PROVIDER || fallback).toLowerCase();
   if (
     raw === 'free' ||
@@ -25,6 +25,13 @@ export function getPaymentProviderName(): PaymentProviderName {
     return raw;
   }
   return fallback;
+}
+
+/** iyzipay SDK `uri` — prod veya sandbox */
+export function getIyzicoBaseUrl(): string {
+  return (
+    process.env.IYZICO_BASE_URL?.trim() || 'https://api.iyzipay.com'
+  ).replace(/\/$/, '');
 }
 
 export function isMockPaymentAllowed(): boolean {

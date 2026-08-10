@@ -113,7 +113,7 @@ Cron yetkilendirme: `Authorization: Bearer $CRON_SECRET` veya `x-cron-secret` ba
 | `PARASUT_PASSWORD` | Paraşüt şifre |
 | `PARASUT_COMPANY_ID` | Firma id (`/v4/{company_id}/…`) |
 | `PARASUT_DEFAULT_PRODUCT_ID` | Opsiyonel sabit ürün id |
-| `PARASUT_PAYMENT_ACCOUNT_ID` | Peşin satış kasa/banka hesabı id |
+| `PARASUT_PAYMENT_ACCOUNT_ID` | Peşin satış kasa/banka hesabı id (**İyzico tahsilatının düştüğü hesap**) |
 | `PARASUT_PRODUCT_CODE` | Ürün kodu (varsayılan `BILETFEED_TICKET`) |
 | `PARASUT_SKIP_RESEND_INVOICE` | `true` (varsayılan): resmi mail Paraşüt’ten; Resend fatura atlanır |
 

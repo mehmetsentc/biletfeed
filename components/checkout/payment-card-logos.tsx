@@ -7,7 +7,7 @@ type PaymentCardLogosProps = {
 };
 
 /** Public asset cache-bust — dosya değişince artır */
-const PAYMENT_LOGO_ASSET_V = '2';
+const PAYMENT_LOGO_ASSET_V = '3';
 
 const PAYMENT_LOGOS = [
   {
@@ -27,14 +27,14 @@ const PAYMENT_LOGOS = [
   {
     id: 'troy',
     src: `/payment/troy.png?v=${PAYMENT_LOGO_ASSET_V}`,
-    alt: 'Troy — Türkiye\'nin Ödeme Yöntemi',
+    alt: "Troy — Türkiye'nin Ödeme Yöntemi",
     width: 80,
     height: 40
   },
   {
-    id: 'tosla',
-    src: `/payment/tosla.png?v=${PAYMENT_LOGO_ASSET_V}`,
-    alt: 'Tosla',
+    id: 'iyzico',
+    src: `/payment/iyzico.png?v=${PAYMENT_LOGO_ASSET_V}`,
+    alt: 'iyzico',
     width: 96,
     height: 36
   }
@@ -47,7 +47,7 @@ export function PaymentCardLogos({
   return (
     <div
       role="img"
-      aria-label="Kabul edilen ödeme yöntemleri: Visa, Mastercard, Troy ve Tosla"
+      aria-label="Kabul edilen ödeme yöntemleri: Visa, Mastercard, Troy ve iyzico"
       className={cn('flex flex-wrap items-center gap-2.5', className)}
     >
       {PAYMENT_LOGOS.map((logo) => (

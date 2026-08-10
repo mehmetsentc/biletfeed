@@ -11,10 +11,10 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com https://www.google.com wss://*.firebaseio.com https://vitals.vercel-insights.com",
-      "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.google.com https://apis.google.com https://www.gstatic.com",
+      "frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://*.google.com https://apis.google.com https://www.gstatic.com https://*.iyzipay.com https://*.iyzico.com",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self' https://accounts.google.com https://*.firebaseapp.com https://*.tosla.com",
+      "form-action 'self' https://accounts.google.com https://*.firebaseapp.com https://*.iyzipay.com https://*.iyzico.com https://*.tosla.com",
       "frame-ancestors 'none'",
       "media-src 'self' blob:"
     ].join('; ');

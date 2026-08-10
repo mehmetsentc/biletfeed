@@ -10,7 +10,7 @@ export interface ParasutConfig {
   username: string;
   password: string;
   companyId: string;
-  /** Peşin satış (cash_sale) için Paraşüt kasa/banka hesabı */
+  /** Peşin satış (cash_sale) — İyzico hakedişinin düştüğü Paraşüt kasa/banka */
   paymentAccountId: string;
   /** Opsiyonel sabit ürün; yoksa kod ile bul/oluştur */
   defaultProductId: string;

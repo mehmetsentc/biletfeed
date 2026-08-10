@@ -4,7 +4,7 @@ Production-grade QR bilet altyapısı. Veri katmanı **PostgreSQL + Prisma**; Fi
 
 ---
 
-## Tamamlanan Özellikler (iyzico hariç)
+## Tamamlanan Özellikler
 
 | Özellik | Durum |
 |---------|--------|
@@ -20,12 +20,12 @@ Production-grade QR bilet altyapısı. Veri katmanı **PostgreSQL + Prisma**; Fi
 | Wallet pass kayıt (Apple/Google stub) | ✅ |
 | Offline scan kuyruğu + Service Worker | ✅ |
 | My Tickets: davetiye & devir sekmeleri | ✅ |
+| iyzico Checkout Form ödeme | ✅ |
 
 ---
 
-## Bekleyen (iyzico onayı sonrası)
+## Bekleyen
 
-- **iyzico production ödeme** — `lib/payments/providers/iyzico.ts`
 - **FCM push** — `lib/notifications/push.ts` stub hazır
 - **Apple/Google Wallet .pkpass** — `WalletPass` modeli + API kayıt hazır
 

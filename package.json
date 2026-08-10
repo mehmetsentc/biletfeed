@@ -78,6 +78,7 @@
     "frimousse": "^0.2.0",
     "geist": "^1.7.2",
     "html5-qrcode": "^2.3.8",
+    "iyzipay": "^2.0.69",
     "jszip": "^3.10.1",
     "lucide-react": "^0.510.0",
     "next": "^15.3.6",
@@ -96,6 +97,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.6",
+    "@types/iyzipay": "^2.0.3",
     "@types/node": "^22.15.17",
     "@types/pdfkit": "^0.17.6",
     "@types/qrcode": "^1.5.6",

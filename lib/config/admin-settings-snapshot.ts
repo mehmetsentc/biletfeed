@@ -53,7 +53,7 @@ export function getAdminSettingsSnapshot(
           label: 'Ödeme sağlayıcı',
           key: 'PAYMENT_PROVIDER',
           value: getPaymentProviderName(),
-          hint: 'Production için iyzico (banka onayı sonrası)'
+          hint: 'Production varsayılan: iyzico; Tosla yalnızca PAYMENT_PROVIDER=tosla ile'
         },
         {
           label: 'KDV Oranı (%)',

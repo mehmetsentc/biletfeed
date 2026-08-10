@@ -9,8 +9,8 @@ import {
   fulfillPaidOrder
 } from '@/lib/services/orders';
 
-/** Tosla 3D Host, JSON değil browser redirect ile callback yapar */
-const BROWSER_REDIRECT_PROVIDERS: PaymentProviderName[] = ['tosla'];
+/** Browser POST + 302 — Tosla / İyzico Checkout Form */
+const BROWSER_REDIRECT_PROVIDERS: PaymentProviderName[] = ['tosla', 'iyzico'];
 
 function isBrowserRedirectProvider(p: PaymentProviderName) {
   return BROWSER_REDIRECT_PROVIDERS.includes(p);
@@ -21,7 +21,6 @@ function redirectResponse(provider: PaymentProviderName, orderId: string, succes
   const url = success
     ? `${base}/odeme/basarili?order=${orderId}`
     : `${base}/odeme/basarisiz?order=${orderId}`;
-  // Tosla, POST callback'e dönen 302'yi takip eder
   return NextResponse.redirect(url, { status: 302 });
 }
 
@@ -40,6 +39,24 @@ const ALLOWED: PaymentProviderName[] = [
 
 interface RouteParams {
   params: Promise<{ provider: string }>;
+}
+
+/** Tarayıcı / panel URL kontrolü — ödeme callback’i POST ile gelir */
+export async function GET(
+  _request: NextRequest,
+  { params }: RouteParams
+) {
+  const { provider: raw } = await params;
+  const provider = raw.toLowerCase() as PaymentProviderName;
+  if (!ALLOWED.includes(provider)) {
+    return NextResponse.json({ error: 'Geçersiz sağlayıcı' }, { status: 400 });
+  }
+  return NextResponse.json({
+    ok: true,
+    provider,
+    message:
+      'Ödeme callback endpoint’i hazır. İyzico / ödeme kuruluşu bu adrese POST atar; tarayıcıda açmak gerekmez.'
+  });
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {

@@ -4,6 +4,7 @@ import { logAccountingAudit } from '@/lib/accounting/audit';
 /** Ödeme geçidi komisyon oranı tahmini — gerçek mutabakat raporuyla güncellenir */
 const PROVIDER_FEE_RATES: Record<string, number> = {
   iyzico: 0.0289,
+  tosla: 0.0299,
   paytr: 0.0299,
   stripe: 0.029,
   mock: 0,

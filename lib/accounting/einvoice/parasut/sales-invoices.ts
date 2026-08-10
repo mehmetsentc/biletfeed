@@ -44,7 +44,7 @@ export function buildSalesInvoiceBody(params: {
                 ? Number(paymentAccountId)
                 : paymentAccountId,
               payment_date: issueDate,
-              payment_description: `BiletFeed ${payload.invoiceNumber}`
+              payment_description: `BiletFeed İyzico — ${payload.invoiceNumber}`
             }
           : {}),
         tax_number: payload.buyer.taxNumber

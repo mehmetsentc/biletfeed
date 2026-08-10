@@ -27,8 +27,9 @@ Copy `.env.example` to `.env.local` for local development. In Vercel, set:
 | `UPSTASH_REDIS_REST_URL` | Prod | Upstash Redis REST URL for distributed rate limiting |
 | `UPSTASH_REDIS_REST_TOKEN` | Prod | Upstash Redis REST token |
 | `RESEND_API_KEY` | Prod | Email delivery (log-only if missing) |
-| `PAYMENT_PROVIDER` | Prod | `iyzico` after provider implementation |
-| `IYZICO_API_KEY` / `IYZICO_SECRET_KEY` | Prod | iyzico credentials (when live) |
+| `PAYMENT_PROVIDER` | Prod | `iyzico` |
+| `IYZICO_API_KEY` / `IYZICO_SECRET_KEY` | Prod | iyzico credentials |
+| `IYZICO_BASE_URL` | Prod | `https://api.iyzipay.com` (sandbox: `https://sandbox-api.iyzipay.com`) |
 | `ENABLE_MOCK_PAYMENTS` | Never in prod | Development only — must be unset/false in production |
 
 ## 2. Database Setup

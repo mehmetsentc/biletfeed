@@ -1,16 +1,16 @@
 # Ödeme Altyapısı (Bilet Feed)
 
-Ödeme kuruluşu API anahtarları olmadan çalışan altyapı. Şirket onayı sonrası yalnızca env değişkenleri ve provider dosyaları tamamlanır.
+Ödeme kuruluşu API anahtarları olmadan çalışan altyapı. Canlıda varsayılan sağlayıcı **iyzico** (Checkout Form).
 
 ## Akış
 
 ```
-Checkout → pending sipariş → ödeme sayfası (hosted) → callback/webhook → paid → QR bilet
+Checkout → pending sipariş → iyzico ödeme sayfası → callback → paid → QR bilet
 ```
 
 1. `POST /api/orders/checkout` — `pending` sipariş oluşturur (ücretsiz etkinlikte doğrudan `paid`)
-2. Kullanıcı `redirectUrl` ile ödeme sayfasına gider (kart bilgisi Bilet Feed'de toplanmaz)
-3. `POST /api/payments/callback/{provider}` — ödeme onayı, bilet üretimi
+2. Kullanıcı `redirectUrl` ile iyzico Checkout Form sayfasına gider (kart bilgisi Bilet Feed'de toplanmaz)
+3. `POST /api/payments/callback/iyzico` — token ile `checkoutForm.retrieve`, bilet üretimi
 4. `/odeme/basarili?order=...` — başarı sayfası
 
 ## Ortam değişkenleri
@@ -20,20 +20,18 @@ Checkout → pending sipariş → ödeme sayfası (hosted) → callback/webhook 
 PAYMENT_PROVIDER=mock
 ENABLE_MOCK_PAYMENTS=true
 
-# Canlı — şirket onayı sonrası
-# PAYMENT_PROVIDER=iyzico
-# IYZICO_API_KEY=
-# IYZICO_SECRET_KEY=
-# IYZICO_BASE_URL=https://api.iyzipay.com
+# Canlı — iyzico
+PAYMENT_PROVIDER=iyzico
+IYZICO_API_KEY=
+IYZICO_SECRET_KEY=
+IYZICO_BASE_URL=https://api.iyzipay.com
+# Sandbox: https://sandbox-api.iyzipay.com
 
-# PAYMENT_PROVIDER=paytr
-# PAYTR_MERCHANT_ID=
-# PAYTR_MERCHANT_KEY=
-# PAYTR_MERCHANT_SALT=
-
-# PAYMENT_PROVIDER=stripe
-# STRIPE_SECRET_KEY=
-# STRIPE_WEBHOOK_SECRET=
+# Rollback (pasif — yalnızca acil durum)
+# PAYMENT_PROVIDER=tosla
+# TOSLA_CLIENT_ID=
+# TOSLA_API_USER=
+# TOSLA_STORE_KEY=
 ```
 
 ## Mock test (geliştirme)
@@ -42,43 +40,39 @@ ENABLE_MOCK_PAYMENTS=true
 2. Etkinlikten checkout → test ödeme sayfası (`/odeme/islem/{orderId}`)
 3. "Ödemeyi Simüle Et" → bilet oluşur
 
-## Şirket onayı sonrası yapılacaklar
+## iyzico (canlı)
 
-1. `lib/payments/providers/iyzico.ts` (veya paytr/stripe) içinde `createCheckoutSession` ve `verifyCallback` implement et
-2. Ödeme kuruluşu panelinde callback URL: `https://biletfeed.com/api/payments/callback/iyzico`
-3. Vercel production env anahtarlarını gir
-4. `PAYMENT_PROVIDER=iyzico` yap, `ENABLE_MOCK_PAYMENTS` kaldır
-5. Küçük tutarla canlı test
+1. `PAYMENT_PROVIDER=iyzico` (production fallback da `iyzico`)
+2. `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`, isteğe bağlı `IYZICO_BASE_URL`
+3. İyzico panelinde callback URL: `https://biletfeed.com/api/payments/callback/iyzico`
+4. Kod: `lib/payments/providers/iyzico.ts` — Checkout Form initialize + retrieve
+5. TCKN checkout’ta toplanmadığı için İyzico `identityNumber` placeholder (`11111111111`) kullanılır
+6. **iOS/Android Capacitor:** `mobile/capacitor.config.ts` → `server.allowNavigation: ['*']` — banka 3DS ACS WebView’da kalır
 
-## Tosla (canlı)
+## Paraşüt bağlantısı
 
-1. `PAYMENT_PROVIDER=tosla`
-2. `TOSLA_CLIENT_ID`, `TOSLA_API_USER`, `TOSLA_STORE_KEY`
-3. İsteğe bağlı: `TOSLA_API_BASE_URL`, `TOSLA_PROCESS_CARD_FORM_URL`, `TOSLA_3D_HOST_URL`
-4. Callback URL: `https://biletfeed.com/api/payments/callback/tosla`
-5. Kart formu BiletFeed `/odeme/kart/[orderId]` sayfasında; kart bilgisi doğrudan Tosla `processCardForm` endpoint'ine POST edilir (`application/x-www-form-urlencoded`)
-6. **iOS/Android Capacitor (uygulama içi ödeme):** `mobile/capacitor.config.ts` → `server.allowNavigation: ['*']` — Tosla + banka 3DS ACS WebView'da kalır (Safari'ye düşmez). Bu ayar native binary'de; `cd mobile && npx cap sync ios` sonrası yeni App Store build gerekir.
-7. Yedek (web): aynı sayfada Tosla ortak ödeme sayfası
+Ödeme İyzico’dan tahsil edilir; e-belge Paraşüt’ten kesilir. Peşin satış için Paraşüt’te **İyzico’nun hakedişinin düştüğü kasa/banka** id’sini verin:
 
-- `/admin/islemler` — sipariş listesi
-- `POST /api/admin/orders/{id}/refund` — mock/free iade; gerçek provider için 501 döner
+```
+PARASUT_PAYMENT_ACCOUNT_ID=<iyzico_tahsilat_banka_hesabi_id>
+```
+
+Satış faturası `cash_sale` + bu hesap ile oluşturulur (`payment_description`: `BiletFeed İyzico — BF…`).
+
+## Tosla (pasif / rollback)
+
+`PAYMENT_PROVIDER=tosla` ile geri açılabilir. Kart formu `/odeme/kart/[orderId]` Tosla ProcessCardForm kullanır. Varsayılan değildir.
 
 ## Veritabanı
 
 Yeni alanlar (`orders`):
 
-- `payment_session_id`
+- `payment_session_id` (iyzico: Checkout Form `token`)
 - `expires_at` — pending sipariş süresi (15 dk)
 - `paid_at`
-
-```bash
-npx prisma db push
-```
 
 ## Yasal sayfalar
 
 - `/mesafeli-satis`
-- `/iade-iptal`
 - `/gizlilik`
-
-Şirket bilgileri eklendikçe mesafeli satış sayfası güncellenmelidir.
+- `/iade`
