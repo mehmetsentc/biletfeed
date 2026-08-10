@@ -881,6 +881,7 @@ export function InvoiceGibTable({
               {detail.data && (
                 <DetailBody
                   data={detail.data}
+                  providerMode={providerMode}
                   onPdf={() => {
                     const row = rows.find((r) => r.id === detailId);
                     if (row) void downloadPdf(row);
@@ -890,6 +891,7 @@ export function InvoiceGibTable({
               {!detail.loading && !detail.data && !detail.error && (
                 <DetailBodyFromRow
                   row={rows.find((r) => r.id === detailId)!}
+                  providerMode={providerMode}
                   onPdf={() => {
                     const row = rows.find((r) => r.id === detailId);
                     if (row) void downloadPdf(row);
@@ -906,10 +908,12 @@ export function InvoiceGibTable({
 
 function DetailBody({
   data,
-  onPdf
+  onPdf,
+  providerMode = 'parasut'
 }: {
   data: Record<string, unknown>;
   onPdf: () => void;
+  providerMode?: 'parasut' | 'legacy';
 }) {
   const lines = Array.isArray(data.lines)
     ? (data.lines as InvoiceGibLine[])
@@ -931,7 +935,7 @@ function DetailBody({
           {isNihaiTuketiciTaxId(
             typeof data.buyerTaxNumber === 'string' ? data.buyerTaxNumber : null
           )
-            ? `${buyerInvoiceKindLabel('nihai_tuketici')} (GİB: 11111111111)`
+            ? buyerInvoiceKindLabel('nihai_tuketici')
             : String(data.buyerTaxNumber ?? '—')}
         </dd>
         <dt className="text-muted-foreground">Kanal</dt>
@@ -1006,13 +1010,16 @@ function DetailBody({
 
 function DetailBodyFromRow({
   row,
-  onPdf
+  onPdf,
+  providerMode = 'parasut'
 }: {
   row: InvoiceGibRow;
   onPdf: () => void;
+  providerMode?: 'parasut' | 'legacy';
 }) {
   return (
     <DetailBody
+      providerMode={providerMode}
       data={{
         type: row.type,
         lifecycleLabel: LIFECYCLE_LABELS[row.lifecycle],
