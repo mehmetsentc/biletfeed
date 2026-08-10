@@ -74,10 +74,28 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname)
   },
-  serverExternalPackages: ['firebase-admin', '@prisma/client', 'prisma', 'pdfkit', 'isomorphic-dompurify', 'jsdom'],
+  serverExternalPackages: [
+    'firebase-admin',
+    '@prisma/client',
+    'prisma',
+    'pdfkit',
+    'fontkit',
+    'linebreak',
+    'isomorphic-dompurify',
+    'jsdom',
+    'iyzipay'
+  ],
   outputFileTracingIncludes: {
+    '/api/**/*': [
+      './node_modules/pdfkit/js/data/**',
+      './assets/fonts/**'
+    ],
     '/api/tickets/**': ['./assets/fonts/**'],
-    '/api/invitations/**': ['./assets/fonts/**']
+    '/api/invitations/**': ['./assets/fonts/**'],
+    '/api/admin/accounting/**': [
+      './node_modules/pdfkit/js/data/**',
+      './assets/fonts/**'
+    ]
   },
   experimental: {
     optimizePackageImports: ['lucide-react', 'date-fns'],

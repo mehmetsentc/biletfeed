@@ -12,8 +12,7 @@ import {
 } from '@/lib/payments/config';
 import { startPaymentCheckout } from '@/lib/payments/process';
 import { createPaymentAccessToken } from '@/lib/payments/payment-access-token';
-import { processOrderAccounting } from '@/lib/accounting/fulfillment';
-import { processOrderRefundAccounting } from '@/lib/accounting/refund';
+// Muhasebe/pdfkit — checkout serverless bundle'ına girmesin (Vercel ENOENT)
 // Email modülleri dynamic import — statik importlar webpack'i client bundle'a
 // fs/Node.js built-in çekebileceğinden, runtime'da yüklenir
 import { validateCoupon, incrementCouponUsage } from '@/lib/services/coupons';
@@ -526,9 +525,11 @@ async function fulfillFreeOrder(params: {
     return created;
   });
 
-  void processOrderAccounting(order.id).catch((err) => {
-    console.error('[accounting] free order', order.id, err);
-  });
+  void import('@/lib/accounting/fulfillment')
+    .then(({ processOrderAccounting }) => processOrderAccounting(order.id))
+    .catch((err) => {
+      console.error('[accounting] free order', order.id, err);
+    });
 
   void import('@/lib/email/send-ticket-purchase-email').then(({ sendTicketPurchaseEmail }) =>
     sendTicketPurchaseEmail(order.id)
@@ -737,9 +738,13 @@ export async function fulfillPaidOrder(params: {
           () => {}
         );
       }
-      void processOrderAccounting(result.orderId).catch((err) => {
-        console.error('[accounting] paid order', result.orderId, err);
-      });
+      void import('@/lib/accounting/fulfillment')
+        .then(({ processOrderAccounting }) =>
+          processOrderAccounting(result.orderId)
+        )
+        .catch((err) => {
+          console.error('[accounting] paid order', result.orderId, err);
+        });
       void import('@/lib/email/send-ticket-purchase-email').then(({ sendTicketPurchaseEmail }) =>
         sendTicketPurchaseEmail(result.orderId)
       ).catch((err) => {
@@ -981,9 +986,13 @@ export async function requestOrderRefund(params: {
     }
   });
 
-  void processOrderRefundAccounting(order.id).catch((err) => {
-    console.error('[accounting] refund reverse entries', order.id, err);
-  });
+  void import('@/lib/accounting/refund')
+    .then(({ processOrderRefundAccounting }) =>
+      processOrderRefundAccounting(order.id)
+    )
+    .catch((err) => {
+      console.error('[accounting] refund reverse entries', order.id, err);
+    });
 
   void import('@/lib/email/send-refund-email').then(({ sendRefundNotificationEmail }) =>
     sendRefundNotificationEmail(order.id, params.reason)

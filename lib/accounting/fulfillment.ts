@@ -7,7 +7,8 @@ import {
 } from '@/lib/accounting/commission';
 import { deferRevenueRecognition } from '@/lib/accounting/revenue';
 import { sendInvoiceEmail } from '@/lib/accounting/email';
-import { getEInvoiceConfig, submitInvoiceToGib } from '@/lib/accounting/einvoice';
+import { getEInvoiceConfig } from '@/lib/accounting/einvoice/config';
+import { submitInvoiceToGib } from '@/lib/accounting/einvoice/submit';
 
 /**
  * Ödeme tamamlandıktan sonra muhasebe işlemlerini çalıştırır.
