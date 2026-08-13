@@ -17,6 +17,9 @@ export const hideBottomNavPrefixes = [
   '/etkinlik'
 ];
 
+/** Site header / chrome’un tamamen gizleneceği rotalar (odaklanmış akış) */
+export const hideSiteHeaderPrefixes = ['/odeme'];
+
 /** Footer ve bülten şeridinin gizleneceği hesap / profil rotaları */
 export const hideSiteFooterPrefixes = [
   '/profil',
@@ -24,11 +27,18 @@ export const hideSiteFooterPrefixes = [
   '/favorilerim',
   '/degerlendirmelerim',
   '/destek',
-  '/bildirimler'
+  '/bildirimler',
+  '/odeme'
 ];
 
 export function shouldHideBottomNav(pathname: string): boolean {
   return hideBottomNavPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+export function shouldHideSiteHeader(pathname: string): boolean {
+  return hideSiteHeaderPrefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 }

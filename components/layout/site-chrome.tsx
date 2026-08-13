@@ -11,6 +11,7 @@ import { SkipToContent } from '@/components/layout/skip-to-content';
 import {
   shouldHideBottomNav,
   shouldHideSiteFooter,
+  shouldHideSiteHeader,
   shouldShowNewsletterBanner
 } from '@/lib/layout/navigation';
 import type { CategoryNavItem } from '@/lib/categories/nav-links';
@@ -32,35 +33,46 @@ export function SiteChrome({
   const pathname = usePathname();
   const hideBottomNav = shouldHideBottomNav(pathname);
   const hideSiteFooter = shouldHideSiteFooter(pathname);
+  const hideSiteHeader = shouldHideSiteHeader(pathname);
   const showNewsletter = shouldShowNewsletterBanner(pathname);
   /** Mobilde fixed alt nav iOS'ta scroll ile kayıyor — flex kabuk + iç scroll kullan */
-  const mobileNavShell = !hideBottomNav;
+  const mobileNavShell = !hideBottomNav && !hideSiteHeader;
 
   return (
     <div
       className={cn(
         'flex min-h-screen flex-col',
-        mobileNavShell && 'max-md:h-dvh max-md:overflow-hidden'
+        mobileNavShell && 'max-md:h-dvh max-md:overflow-hidden',
+        hideSiteHeader && 'h-dvh max-h-dvh overflow-hidden'
       )}
     >
       <SkipToContent />
-      <div className="shrink-0 md:hidden">
-        <MobileHeader categories={categories} />
-      </div>
-      <div className="hidden md:block">
-        <Header />
-      </div>
+      {!hideSiteHeader && (
+        <>
+          <div className="shrink-0 md:hidden">
+            <MobileHeader categories={categories} />
+          </div>
+          <div className="hidden md:block">
+            <Header />
+          </div>
+        </>
+      )}
 
       <div
         className={cn(
           'flex min-h-0 flex-1 flex-col',
           mobileNavShell &&
-            'max-md:overflow-y-auto max-md:overscroll-y-contain'
+            'max-md:overflow-y-auto max-md:overscroll-y-contain',
+          hideSiteHeader && 'overflow-hidden'
         )}
       >
-        <HomeCityBar />
+        {!hideSiteHeader && <HomeCityBar />}
 
-        <main id="main-content" className="flex-1" tabIndex={-1}>
+        <main
+          id="main-content"
+          className={cn('flex-1', hideSiteHeader && 'min-h-0 overflow-hidden')}
+          tabIndex={-1}
+        >
           {children}
         </main>
 
@@ -80,7 +92,7 @@ export function SiteChrome({
         </div>
       )}
 
-      <NotificationPermissionPrompt />
+      {!hideSiteHeader && <NotificationPermissionPrompt />}
     </div>
   );
 }
