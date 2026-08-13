@@ -42,7 +42,7 @@ const PAYMENT_LOGOS = [
 
 export function PaymentCardLogos({
   className,
-  logoClassName = 'h-8 w-auto sm:h-9'
+  logoClassName
 }: PaymentCardLogosProps) {
   return (
     <div
@@ -53,7 +53,7 @@ export function PaymentCardLogos({
       {PAYMENT_LOGOS.map((logo) => (
         <span
           key={logo.id}
-          className="inline-flex shrink-0 items-center overflow-hidden rounded-md"
+          className="inline-flex h-8 max-h-8 shrink-0 items-center overflow-hidden rounded-md sm:h-9 sm:max-h-9"
           title={logo.alt}
         >
           <Image
@@ -61,7 +61,10 @@ export function PaymentCardLogos({
             alt={logo.alt}
             width={logo.width}
             height={logo.height}
-            className={cn('w-auto object-contain', logoClassName)}
+            className={cn(
+              'h-full w-auto max-h-8 object-contain sm:max-h-9',
+              logoClassName
+            )}
             unoptimized
           />
         </span>

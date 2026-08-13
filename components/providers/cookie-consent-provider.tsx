@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode
 } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   type CookieConsentChoice,
   type CookiePreferences,
@@ -25,6 +26,7 @@ import {
   isTrackingAuthorized,
   purgeTrackingArtifacts
 } from '@/lib/tracking/att';
+import { shouldHideSiteHeader } from '@/lib/layout/navigation';
 
 interface CookieConsentContextValue {
   choice: CookieConsentChoice | null;
@@ -52,6 +54,8 @@ function forceNecessaryOnly(
 }
 
 export function CookieConsentProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const hideChromeOverlays = shouldHideSiteHeader(pathname);
   const [choice, setChoice] = useState<CookieConsentChoice | null>(null);
   const [preferences, setPreferences] = useState<CookiePreferences | null>(
     null
@@ -162,7 +166,9 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
   );
 
   // ATT reddinde banner gösterme — tracking teklifi App Review'u düşürür
-  const showBanner = ready && choice === null && !trackingBlockedByAtt;
+  // Ödeme ekranında da gizle (odak + viewport)
+  const showBanner =
+    ready && choice === null && !trackingBlockedByAtt && !hideChromeOverlays;
 
   return (
     <CookieConsentContext.Provider value={value}>
@@ -176,22 +182,24 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
           onOpenPreferences={() => setPrefsOpen(true)}
         />
       )}
-      <CookiePreferencesDialog
-        open={prefsOpen}
-        onOpenChange={setPrefsOpen}
-        initialPreferences={
-          trackingBlockedByAtt
-            ? necessaryOnlyPreferences
-            : (preferences ?? defaultPreferences)
-        }
-        trackingBlockedByAtt={trackingBlockedByAtt}
-        onSave={(prefs) => {
-          void savePreferences(prefs);
-        }}
-        onAcceptAll={() => {
-          void acceptAll();
-        }}
-      />
+      {!hideChromeOverlays && (
+        <CookiePreferencesDialog
+          open={prefsOpen}
+          onOpenChange={setPrefsOpen}
+          initialPreferences={
+            trackingBlockedByAtt
+              ? necessaryOnlyPreferences
+              : (preferences ?? defaultPreferences)
+          }
+          trackingBlockedByAtt={trackingBlockedByAtt}
+          onSave={(prefs) => {
+            void savePreferences(prefs);
+          }}
+          onAcceptAll={() => {
+            void acceptAll();
+          }}
+        />
+      )}
     </CookieConsentContext.Provider>
   );
 }
