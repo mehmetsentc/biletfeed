@@ -27,12 +27,16 @@ export const brandTheme = {
 } as const;
 
 export const brandLogos = {
-  forDarkSurface: '/brand/logo-light.png',
-  forLightSurface: '/brand/logo-dark.png',
+  /** UI header/footer — 480px geniş; büyük PNG (1658px) yalnızca OG/e-posta için */
+  forDarkSurface: '/brand/logo-light-sm.png',
+  forLightSurface: '/brand/logo-dark-sm.png',
+  /** Yüksek çözünürlük — e-posta, OG, basılı */
+  forDarkSurfaceHiRes: '/brand/logo-light.png',
+  forLightSurfaceHiRes: '/brand/logo-dark.png',
   favicon: '/brand/favicon.png'
 } as const;
 
-export const brandAssetsVersion = '21';
+export const brandAssetsVersion = '22';
 
 export function brandAssetUrl(path: string): string {
   return `${path}?v=${brandAssetsVersion}`;

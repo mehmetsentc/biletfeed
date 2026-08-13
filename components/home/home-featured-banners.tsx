@@ -31,7 +31,7 @@ function BannerSlide({
           alt={alt}
           fill
           priority={priority}
-          className="object-cover"
+          className="object-cover object-center"
           sizes="100vw"
         />
       </div>
@@ -41,17 +41,17 @@ function BannerSlide({
           alt={alt}
           fill
           priority={priority}
-          className="object-cover"
+          className="object-cover object-center"
           sizes="100vw"
         />
       </div>
-      <div className="relative hidden aspect-[2440/688] w-full lg:block">
+      <div className="relative hidden aspect-[21/9] w-full lg:block">
         <Image
           src={banner.imageDesktop}
           alt={alt}
           fill
           priority={priority}
-          className="object-cover"
+          className="object-cover object-center"
           sizes="100vw"
         />
       </div>

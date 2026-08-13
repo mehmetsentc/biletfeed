@@ -12,6 +12,7 @@ import {
   Newspaper,
   Palette,
   Shield,
+  Smartphone,
   Trash2
 } from 'lucide-react';
 import { ThemeSelector } from '@/components/theme/theme-selector';
@@ -19,7 +20,6 @@ import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
 import { useTranslations } from '@/components/providers';
 import { ChangePasswordDialog } from '@/components/account/change-password-dialog';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/components/providers/auth-provider';
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -27,6 +27,11 @@ import {
   saveNotificationPreferences,
   type NotificationPreferences
 } from '@/lib/account/notification-preferences';
+import {
+  registerPushTokenOnServer,
+  requestNotificationPermission,
+  syncPreferencesToServer
+} from '@/lib/notifications/client';
 
 function SettingsCard({
   title,
@@ -127,6 +132,20 @@ export function SettingsPageClient() {
   useEffect(() => {
     if (!user) return;
     setPrefs(loadNotificationPreferences(user.uid));
+
+    void (async () => {
+      try {
+        const res = await fetch('/api/account/notification-preferences', {
+          credentials: 'same-origin'
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { prefs: NotificationPreferences };
+        setPrefs(data.prefs);
+        saveNotificationPreferences(user.uid, data.prefs);
+      } catch {
+        // local fallback
+      }
+    })();
   }, [user]);
 
   useEffect(() => {
@@ -135,14 +154,27 @@ export function SettingsPageClient() {
     }
   }, [searchParams]);
 
-  function updatePref<K extends keyof NotificationPreferences>(
+  async function updatePref<K extends keyof NotificationPreferences>(
     key: K,
     value: NotificationPreferences[K]
   ) {
     if (!user) return;
     const next = { ...prefs, [key]: value };
+
+    if (key === 'push' && value) {
+      const result = await requestNotificationPermission();
+      if (!result.granted) {
+        next.push = false;
+      } else if (result.token) {
+        await registerPushTokenOnServer(result.token, result.platform);
+      }
+    }
+
     setPrefs(next);
     saveNotificationPreferences(user.uid, next);
+    await syncPreferencesToServer(next, {
+      subscribeNewsletter: next.newsletter
+    });
   }
 
   async function handleSignOut() {
@@ -196,21 +228,36 @@ export function SettingsPageClient() {
             title={t.account.emailNotifications}
             description={t.account.emailNotificationsHint}
             checked={prefs.email}
-            onCheckedChange={(checked) => updatePref('email', checked)}
+            onCheckedChange={(checked) => {
+              void updatePref('email', checked);
+            }}
+          />
+          <NotificationRow
+            icon={Smartphone}
+            title={t.account.pushNotifications}
+            description={t.account.pushNotificationsHint}
+            checked={prefs.push}
+            onCheckedChange={(checked) => {
+              void updatePref('push', checked);
+            }}
           />
           <NotificationRow
             icon={MessageSquare}
             title={t.account.smsNotifications}
             description={t.account.smsNotificationsHint}
             checked={prefs.sms}
-            onCheckedChange={(checked) => updatePref('sms', checked)}
+            onCheckedChange={(checked) => {
+              void updatePref('sms', checked);
+            }}
           />
           <NotificationRow
             icon={Newspaper}
             title={t.account.newsletterSubscription}
             description={t.account.newsletterSubscriptionHint}
             checked={prefs.newsletter}
-            onCheckedChange={(checked) => updatePref('newsletter', checked)}
+            onCheckedChange={(checked) => {
+              void updatePref('newsletter', checked);
+            }}
           />
         </SettingsCard>
 

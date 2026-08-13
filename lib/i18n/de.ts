@@ -286,6 +286,16 @@ export const de: TranslationKeys = {
     acceptAll: 'Alle akzeptieren',
     openPreferences: 'Cookie-Einstellungen'
   },
+  notifications: {
+    promptTitle: 'Benachrichtigungen erlauben',
+    promptBody:
+      'Erhalte Push- und E-Mail-Hinweise zu Event-Erinnerungen, Ticket-Updates und neuen Events in deiner Stadt. Du kannst sie jederzeit in den Einstellungen deaktivieren.',
+    promptAllow: 'Benachrichtigungen erlauben',
+    promptLater: 'Nicht jetzt',
+    promptWorking: 'Wird aktiviert…',
+    welcomeTitle: 'BiletFeed-Benachrichtigungen aktiv',
+    welcomeBody: 'Erinnerungen und neue Events sind bereit.'
+  },
   location: {
     selectCity: 'Stadt auswählen',
     searchCity: 'Stadt suchen',
@@ -433,6 +443,8 @@ export const de: TranslationKeys = {
     notificationPreferences: 'Benachrichtigungseinstellungen',
     emailNotifications: 'E-Mail-Benachrichtigungen',
     emailNotificationsHint: 'Event-Erinnerungen und Kampagnen.',
+    pushNotifications: 'Push-Benachrichtigungen',
+    pushNotificationsHint: 'Sofortige Erinnerungen und Ticket-Updates.',
     smsNotifications: 'SMS-Benachrichtigungen',
     smsNotificationsHint: 'Ticketinfos und wichtige Mitteilungen.',
     newsletterSubscription: 'Newsletter-Abo',

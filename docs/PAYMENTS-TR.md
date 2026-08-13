@@ -5,11 +5,11 @@
 ## Akış
 
 ```
-Checkout → pending sipariş → iyzico ödeme sayfası → callback → paid → QR bilet
+Checkout → pending sipariş → /odeme/guvenli (BiletFeed + İyzico form) → callback → paid → QR bilet
 ```
 
 1. `POST /api/orders/checkout` — `pending` sipariş oluşturur (ücretsiz etkinlikte doğrudan `paid`)
-2. Kullanıcı `redirectUrl` ile iyzico Checkout Form sayfasına gider (kart bilgisi Bilet Feed'de toplanmaz)
+2. Kullanıcı `redirectUrl` ile `/odeme/guvenli/[orderId]` markalı sayfaya gelir; kart formu İyzico Checkout Form (iframe/embed)
 3. `POST /api/payments/callback/iyzico` — token ile `checkoutForm.retrieve`, bilet üretimi
 4. `/odeme/basarili?order=...` — başarı sayfası
 
@@ -46,8 +46,9 @@ IYZICO_BASE_URL=https://api.iyzipay.com
 2. `IYZICO_API_KEY`, `IYZICO_SECRET_KEY`, isteğe bağlı `IYZICO_BASE_URL`
 3. İyzico panelinde callback URL: `https://biletfeed.com/api/payments/callback/iyzico`
 4. Kod: `lib/payments/providers/iyzico.ts` — Checkout Form initialize + retrieve
-5. TCKN checkout’ta toplanmadığı için İyzico `identityNumber` placeholder (`11111111111`) kullanılır
-6. **iOS/Android Capacitor:** `mobile/capacitor.config.ts` → `server.allowNavigation: ['*']` — banka 3DS ACS WebView’da kalır
+5. **Markalı ödeme sayfası:** checkout sonrası kullanıcı `/odeme/guvenli/[orderId]` BiletFeed kabuğuna gider; kart formu İyzico’da (iframe / responsive embed). Kart verisi BiletFeed’de toplanmaz.
+6. TCKN checkout’ta toplanmadığı için İyzico `identityNumber` placeholder (`11111111111`) kullanılır
+7. **iOS/Android Capacitor:** `mobile/capacitor.config.ts` → `server.allowNavigation: ['*']` — banka 3DS ACS WebView’da kalır
 
 ## Paraşüt bağlantısı
 

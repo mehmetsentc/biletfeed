@@ -139,10 +139,12 @@ export function CityPickerDialog({
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              id="city-picker-search"
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t.location.searchCity}
+              aria-label={t.location.searchCity}
               className="h-11 rounded-xl border-border bg-muted/40 pl-10 text-base focus-visible:border-primary focus-visible:ring-primary/25"
               autoComplete="off"
             />

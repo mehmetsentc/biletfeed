@@ -1,5 +1,6 @@
 import { FeedGridClient } from '@/components/feed/feed-grid-client';
 import { FeedCategoryChips } from '@/components/feed/feed-category-chips';
+import { FeedCategorySideMenu } from '@/components/feed/feed-category-side-menu';
 import { createFeedListMetadata } from '@/lib/seo/feed-metadata';
 import {
   ensureFeedCategories,
@@ -72,13 +73,22 @@ export default async function FeedPage({ searchParams }: Props) {
       </section>
 
       <div className="container mx-auto px-4 py-5 md:py-8">
+        {/* Telefon: yatay chip · Tablet+: sol kategori menüsü + ana akış */}
         <FeedCategoryChips categories={categories} activeSlug={categorySlug} />
-        <FeedGridClient
-          initialPosts={posts}
-          initialCursor={nextCursor}
-          trending={categorySlug ? [] : trending}
-          categorySlug={categorySlug}
-        />
+
+        <div className="md:grid md:grid-cols-[200px_minmax(0,1fr)] md:items-start md:gap-7 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-9">
+          <aside className="hidden md:block">
+            <FeedCategorySideMenu categories={categories} activeSlug={categorySlug} />
+          </aside>
+          <div className="min-w-0">
+            <FeedGridClient
+              initialPosts={posts}
+              initialCursor={nextCursor}
+              trending={categorySlug ? [] : trending}
+              categorySlug={categorySlug}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

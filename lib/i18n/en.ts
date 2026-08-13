@@ -284,6 +284,16 @@ export const en: TranslationKeys = {
     acceptAll: 'Accept All',
     openPreferences: 'Cookie Preferences'
   },
+  notifications: {
+    promptTitle: 'Allow notifications',
+    promptBody:
+      'Get push and email alerts for event reminders, ticket updates, and new events in your city. You can turn these off anytime in Settings.',
+    promptAllow: 'Allow notifications',
+    promptLater: 'Not now',
+    promptWorking: 'Enabling…',
+    welcomeTitle: 'BiletFeed notifications are on',
+    welcomeBody: 'You’re set for reminders and new events.'
+  },
   location: {
     selectCity: 'Select your city',
     searchCity: 'Search city',
@@ -430,6 +440,8 @@ export const en: TranslationKeys = {
     notificationPreferences: 'Notification Preferences',
     emailNotifications: 'Email Notifications',
     emailNotificationsHint: 'Event reminders and campaigns.',
+    pushNotifications: 'Push Notifications',
+    pushNotificationsHint: 'Instant reminders and ticket updates.',
     smsNotifications: 'SMS Notifications',
     smsNotificationsHint: 'Ticket info and important announcements.',
     newsletterSubscription: 'Newsletter Subscription',

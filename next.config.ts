@@ -108,8 +108,12 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
-    // Scraper'dan gelen harici platform resimleri production'da da direkt yüklensin
-    unoptimized: true,
+    // Next Image optimizer: sizes/srcset ile viewport’a uygun boyut (LCP/bandwidth)
+    // Harici CDN’ler remotePatterns’te; bozulan URL’ler bileşen onError ile düşer
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [390, 640, 750, 828, 1080, 1200, 1440, 1920],
+    imageSizes: [48, 64, 96, 128, 160, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
       // Firebase Storage
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },

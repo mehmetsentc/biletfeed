@@ -38,7 +38,8 @@ export function EventMobileTicketBar({
   return (
     <div
       className={cn(
-        'fixed inset-x-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur-md md:hidden',
+        // Tablet dikey (md–lg) dahil: masaüstü yan kart yalnızca lg+ görünür
+        'fixed inset-x-0 z-40 border-t bg-background/95 px-4 py-3 backdrop-blur-md lg:hidden',
         hideBottomNav
           ? 'bottom-0 pb-[calc(0.75rem+env(safe-area-inset-bottom))]'
           : cn(mobileBottomNavOffsetClass)

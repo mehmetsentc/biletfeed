@@ -22,7 +22,7 @@ export function FeedCoverImage({ src, alt, className, ...props }: FeedCoverImage
       {...props}
       src={currentSrc}
       alt={alt}
-      className={cn(className)}
+      className={cn(className, 'object-cover object-center')}
       onError={() => {
         if (currentSrc !== FEED_FALLBACK_COVER) {
           setCurrentSrc(FEED_FALLBACK_COVER);

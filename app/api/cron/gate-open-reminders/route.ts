@@ -46,7 +46,16 @@ export async function GET(request: NextRequest) {
   for (const event of events) {
     const orders = await prisma.order.findMany({
       where: { eventId: event.id, status: 'paid', deletedAt: null },
-      include: { user: { select: { id: true, email: true, displayName: true } } }
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            notifyEmail: true
+          }
+        }
+      }
     });
 
     for (const order of orders) {
@@ -64,13 +73,15 @@ export async function GET(request: NextRequest) {
       const openTime = event.gateOpenTime ?? event.startDate;
       const timeLabel = formatTurkeyTime(openTime);
 
-      await queueEmail({
-        to: order.user.email,
-        subject: `Kapılar açılıyor: ${event.title}`,
-        template: 'gate_open_reminder',
-        html: `<p>Merhaba ${order.user.displayName ?? ''},</p><p><strong>${event.title}</strong> etkinliğinde kapılar <strong>${timeLabel}</strong> civarında açılıyor.</p><p><a href="${getSiteUrl(`/etkinlik/${event.slug}`)}">Etkinlik detayı</a> · <a href="${getSiteUrl('/biletlerim')}">Biletlerim</a></p>`,
-        orderId: order.id
-      });
+      if (order.user.notifyEmail) {
+        await queueEmail({
+          to: order.user.email,
+          subject: `Kapılar açılıyor: ${event.title}`,
+          template: 'gate_open_reminder',
+          html: `<p>Merhaba ${order.user.displayName ?? ''},</p><p><strong>${event.title}</strong> etkinliğinde kapılar <strong>${timeLabel}</strong> civarında açılıyor.</p><p><a href="${getSiteUrl(`/etkinlik/${event.slug}`)}">Etkinlik detayı</a> · <a href="${getSiteUrl('/biletlerim')}">Biletlerim</a></p>`,
+          orderId: order.id
+        });
+      }
 
       await createNotification({
         userId: order.user.id,

@@ -6,6 +6,8 @@ import { MobileBottomNav } from '@/components/layout/mobile/mobile-bottom-nav';
 import { MobileHeader } from '@/components/layout/mobile/mobile-header';
 import { HomeCityBar } from '@/components/home/home-city-bar';
 import { NewsletterBanner } from '@/components/layout/newsletter-banner';
+import { NotificationPermissionPrompt } from '@/components/notifications/notification-permission-prompt';
+import { SkipToContent } from '@/components/layout/skip-to-content';
 import {
   shouldHideBottomNav,
   shouldHideSiteFooter,
@@ -41,6 +43,7 @@ export function SiteChrome({
         mobileNavShell && 'max-md:h-dvh max-md:overflow-hidden'
       )}
     >
+      <SkipToContent />
       <div className="shrink-0 md:hidden">
         <MobileHeader categories={categories} />
       </div>
@@ -57,7 +60,9 @@ export function SiteChrome({
       >
         <HomeCityBar />
 
-        <main className="flex-1">{children}</main>
+        <main id="main-content" className="flex-1" tabIndex={-1}>
+          {children}
+        </main>
 
         {!hideSiteFooter && showNewsletter && <NewsletterBanner />}
 
@@ -74,6 +79,8 @@ export function SiteChrome({
           <MobileBottomNav />
         </div>
       )}
+
+      <NotificationPermissionPrompt />
     </div>
   );
 }

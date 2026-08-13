@@ -52,39 +52,18 @@ export function EventPurchaseCard({
             : 'overflow-hidden rounded-2xl border border-border bg-card shadow-sm'
         }
       >
-        <div
-          className={
-            variant === 'embedded'
-              ? 'rounded-xl px-1 py-1'
-              : 'bg-accent px-5 py-4'
-          }
-        >
-          {variant === 'standalone' && (
-            <>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Bilet fiyatı
-              </p>
-              <p className="mt-1 text-3xl font-extrabold tracking-tight text-accent-foreground">
-                {priceText}
-              </p>
-              {!event.isFree && event.price > 0 && (
-                <p className="mt-0.5 text-sm text-muted-foreground">{priceHint}</p>
-              )}
-            </>
-          )}
-          {variant === 'embedded' && (
-            <div className="rounded-xl bg-accent px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Bilet fiyatı
-              </p>
-              <p className="mt-1 text-3xl font-extrabold tracking-tight text-accent-foreground">
-                {priceText}
-              </p>
-              {!event.isFree && event.price > 0 && (
-                <p className="mt-0.5 text-sm text-muted-foreground">{priceHint}</p>
-              )}
-            </div>
-          )}
+        <div className={variant === 'embedded' ? 'px-1 py-1' : 'px-5 pt-5'}>
+          <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3.5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--bf-accent-ink)]">
+              {t.events.startingPrice}
+            </p>
+            <p className="mt-1 text-3xl font-extrabold tracking-tight text-foreground">
+              {priceText}
+            </p>
+            {!event.isFree && event.price > 0 && (
+              <p className="mt-0.5 text-sm text-muted-foreground">{priceHint}</p>
+            )}
+          </div>
         </div>
 
         <div className={variant === 'embedded' ? 'space-y-4 px-1' : 'space-y-4 p-5'}>

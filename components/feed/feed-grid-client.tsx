@@ -185,7 +185,7 @@ export function FeedGridClient({
                         <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.14em] text-muted-foreground">
                           Öne çıkanlar
                         </h2>
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3">
                           {secondary.map((post) => (
                             <FeedFeatureTile key={post.id} post={post} />
                           ))}
@@ -193,7 +193,12 @@ export function FeedGridClient({
                       </section>
                     )}
 
-                    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_280px]">
+                    {/*
+                      md (iPad dikey): sol kategori menüsü sayfada; ana sütun tam genişlik.
+                      lg+ (iPad yatay / masaüstü): sağda sticky Trend.
+                      Telefon: yatay Trend şeridi.
+                    */}
+                    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-10">
                       <section aria-label="Son haberler">
                         {list.length > 0 && (
                           <>

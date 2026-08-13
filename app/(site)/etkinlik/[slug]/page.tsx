@@ -8,6 +8,7 @@ import { getFavoriteEventIds } from '@/lib/services/favorites';
 import { EventLocationSection } from '@/components/events/event-location-section';
 import { EventHostedBy } from '@/components/events/event-hosted-by';
 import { EventMobileTicketBar } from '@/components/events/event-mobile-ticket-bar';
+import { EventTabletTicketBar } from '@/components/events/event-tablet-ticket-bar';
 import { EventDetailHeader } from '@/components/events/event-detail-header';
 import { EventPreviewBanner } from '@/components/events/event-preview-banner';
 import { Badge } from '@/components/ui/badge';
@@ -106,7 +107,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           ])
         ]}
       />
-      <div className="bg-muted/20 pb-28 md:pb-10">
+      <div className="bg-muted/20 pb-28 lg:pb-10">
         <div className="container mx-auto space-y-8 px-4 py-6 md:py-8">
           {isPreview && previewKind && (
             <EventPreviewBanner kind={previewKind} />
@@ -119,6 +120,9 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             isOnline={isOnline}
             purchasable={purchasable}
           />
+
+          {/* Tablet dikey: yan kart yok; başlık altında + altta sticky CTA */}
+          <EventTabletTicketBar event={event} purchasable={purchasable} />
 
           {event.mediaAssets?.sponsorBandUrl && (
             <EventSponsorBand imageUrl={event.mediaAssets.sponsorBandUrl} />

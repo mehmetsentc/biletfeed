@@ -284,6 +284,16 @@ export const ru: TranslationKeys = {
     acceptAll: 'Принять все',
     openPreferences: 'Настройки cookie'
   },
+  notifications: {
+    promptTitle: 'Разрешить уведомления',
+    promptBody:
+      'Получайте push и email о напоминаниях, билетах и новых событиях в вашем городе. Отключить можно в Настройках.',
+    promptAllow: 'Разрешить уведомления',
+    promptLater: 'Не сейчас',
+    promptWorking: 'Включаем…',
+    welcomeTitle: 'Уведомления BiletFeed включены',
+    welcomeBody: 'Готово к напоминаниям и новым событиям.'
+  },
   location: {
     selectCity: 'Выберите город',
     searchCity: 'Поиск города',
@@ -430,6 +440,8 @@ export const ru: TranslationKeys = {
     notificationPreferences: 'Настройки уведомлений',
     emailNotifications: 'Email-уведомления',
     emailNotificationsHint: 'Напоминания о событиях и акции.',
+    pushNotifications: 'Push-уведомления',
+    pushNotificationsHint: 'Мгновенные напоминания и обновления билетов.',
     smsNotifications: 'SMS-уведомления',
     smsNotificationsHint: 'Информация о билетах и важные объявления.',
     newsletterSubscription: 'Подписка на рассылку',

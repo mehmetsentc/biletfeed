@@ -22,8 +22,8 @@ export function FeedStoryRow({
     <Link
       href={`/feed/${post.slug}`}
       className={cn(
-        'group flex gap-3 border-b border-border/80 transition last:border-b-0 hover:bg-muted/30 sm:gap-4',
-        dense ? 'py-3' : 'py-4 sm:py-5',
+        'group flex gap-3 border-b border-border/80 transition last:border-b-0 hover:bg-muted/30 sm:gap-4 md:gap-5',
+        dense ? 'py-3' : 'py-4 sm:py-5 md:py-5',
         !hasCover && 'rounded-lg px-1 sm:px-1.5'
       )}
     >
@@ -33,7 +33,7 @@ export function FeedStoryRow({
           hasCover
             ? dense
               ? 'h-[72px] w-[96px] bg-muted sm:h-20 sm:w-[112px]'
-              : 'h-[88px] w-[118px] bg-muted sm:h-[104px] sm:w-[148px]'
+              : 'h-[88px] w-[118px] bg-muted sm:h-[104px] sm:w-[148px] md:h-[112px] md:w-[160px]'
             : 'flex h-14 w-14 flex-col items-center justify-center border border-dashed border-border/80 bg-muted/40 text-muted-foreground/60 sm:h-[3.75rem] sm:w-[3.75rem]'
         )}
       >

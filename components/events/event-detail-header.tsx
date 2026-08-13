@@ -46,13 +46,13 @@ export async function EventDetailHeader({
         } as React.CSSProperties
       }
     >
-      {/* Kapak: wizard ile aynı 16:9 (1920×1080) — dikey kırpma yok */}
-      <div className="relative aspect-video w-full bg-muted">
+      {/* Kapak: sabit 16:9 — cover + center ile oran korunur, kırpma ortalanır */}
+      <div className="relative aspect-video w-full overflow-hidden bg-muted">
         <Image
           src={event.coverImage}
           alt={event.title}
           fill
-          className="object-cover"
+          className="object-cover object-center"
           priority
           sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1120px"
         />

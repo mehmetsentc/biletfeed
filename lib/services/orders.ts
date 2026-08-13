@@ -432,7 +432,9 @@ export async function createCheckout(params: {
   const redirectBase =
     payment.provider === 'tosla'
       ? `${base}/odeme/kart/${order.id}?pt=${encodeURIComponent(paymentToken)}`
-      : payment.checkoutUrl;
+      : payment.provider === 'iyzico'
+        ? `${base}/odeme/guvenli/${order.id}?pt=${encodeURIComponent(paymentToken)}`
+        : payment.checkoutUrl;
 
   return {
     orderId: order.id,

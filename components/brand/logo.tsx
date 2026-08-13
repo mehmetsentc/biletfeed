@@ -20,8 +20,8 @@ interface LogoProps {
   variant?: 'on-dark' | 'on-light' | 'auto';
 }
 
-/** Yatay logo oranı — 1658×612 px kaynak dosyalar (BiletFeed_Logo_Black/White.png) */
-const LOGO_ASPECT = 1658 / 612;
+/** Yatay logo oranı — UI sm (480×177) / hi-res (1658×612) aynı oran */
+const LOGO_ASPECT = 480 / 177;
 
 function resolveLogoSrc(variant: 'on-dark' | 'on-light'): string {
   return variant === 'on-dark'
@@ -66,8 +66,8 @@ export function Logo({
         alt={siteConfig.name}
         width={width}
         height={height}
-        unoptimized
         priority
+        sizes="(max-width: 1024px) 114px, 140px"
         className="block h-[38px] w-auto max-w-[min(100%,200px)] object-contain object-left lg:h-[42px]"
       />
     </Link>
@@ -87,7 +87,10 @@ export function LogoImage({
   height?: number;
 }) {
   const width = Math.round(height * LOGO_ASPECT);
-  const src = resolveLogoSrc(variant);
+  const src =
+    variant === 'on-dark'
+      ? brandAssetUrl(brandLogos.forDarkSurfaceHiRes)
+      : brandAssetUrl(brandLogos.forLightSurfaceHiRes);
 
   return (
     <Image
@@ -95,9 +98,9 @@ export function LogoImage({
       alt={siteConfig.name}
       width={width}
       height={height}
-      unoptimized
       className={cn('h-auto object-contain', className)}
       priority={priority}
+      sizes={`${width}px`}
     />
   );
 }

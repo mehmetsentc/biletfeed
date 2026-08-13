@@ -15,6 +15,16 @@ import { Label } from '@/components/ui/label';
 import { AdminImageSourceField } from '@/components/admin/admin-image-source-field';
 import type { HomeBannerRecord } from '@/lib/services/home-banners';
 import { formatImageSpecHint, IMAGE_SPECS } from '@/lib/config/image-dimensions';
+import { getSiteUrl } from '@/lib/config/domain';
+
+/** Admin subdomaininde relative path → public site (biletfeed.com). */
+function resolvePublicBannerHref(linkUrl: string): string {
+  const trimmed = linkUrl.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('//')) return trimmed;
+  const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return getSiteUrl(path);
+}
 
 type BannerForm = {
   title: string;
@@ -370,7 +380,7 @@ export function BannerAdminPanel() {
               ) : null}
               {banner.linkUrl ? (
                 <a
-                  href={banner.linkUrl}
+                  href={resolvePublicBannerHref(banner.linkUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-1 flex items-center gap-1 text-xs text-blue-600 hover:underline"

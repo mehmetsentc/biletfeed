@@ -44,7 +44,7 @@ function BannerSlide({
           fill
           priority={priority}
           unoptimized={slideImage(slide, 'mobile').startsWith('/api/')}
-          className="object-cover"
+          className="object-cover object-center"
           sizes="100vw"
         />
       </div>
@@ -55,18 +55,18 @@ function BannerSlide({
           fill
           priority={priority}
           unoptimized={slideImage(slide, 'tablet').startsWith('/api/')}
-          className="object-cover"
+          className="object-cover object-center"
           sizes="100vw"
         />
       </div>
-      <div className="relative hidden aspect-[2440/688] w-full lg:block">
+      <div className="relative hidden aspect-[21/9] w-full lg:block">
         <Image
           src={slideImage(slide, 'desktop')}
           alt={slide.title}
           fill
           priority={priority}
           unoptimized={slideImage(slide, 'desktop').startsWith('/api/')}
-          className="object-cover"
+          className="object-cover object-center"
           sizes="100vw"
         />
       </div>

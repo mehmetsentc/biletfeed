@@ -220,7 +220,7 @@ export function PurchaseCheckoutForm({
     }
   }
 
-  // Yönlendirme overlay kaldırıldı — markalı /odeme/kart sayfasına gidilir
+  // Yönlendirme: iyzico → /odeme/guvenli, tosla → /odeme/kart
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-5 lg:gap-8">

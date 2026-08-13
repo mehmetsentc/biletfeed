@@ -1,4 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { sendPushNotification } from '@/lib/notifications/push';
 
 export type NotificationInput = {
   userId: string;
@@ -7,6 +8,18 @@ export type NotificationInput = {
   type: string;
   data?: Record<string, unknown>;
 };
+
+function dataToPushStrings(
+  data?: Record<string, unknown>
+): Record<string, string> | undefined {
+  if (!data) return undefined;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (v === undefined || v === null) continue;
+    out[k] = typeof v === 'string' ? v : JSON.stringify(v);
+  }
+  return out;
+}
 
 export async function createNotification(input: NotificationInput): Promise<string> {
   await ensureDbConnection();
@@ -19,6 +32,20 @@ export async function createNotification(input: NotificationInput): Promise<stri
       data: input.data ? (input.data as object) : undefined
     }
   });
+
+  void sendPushNotification({
+    userId: input.userId,
+    title: input.title,
+    body: input.body,
+    data: {
+      type: input.type,
+      notificationId: row.id,
+      ...dataToPushStrings(input.data)
+    }
+  }).catch(() => {
+    /* push fail-soft */
+  });
+
   return row.id;
 }
 

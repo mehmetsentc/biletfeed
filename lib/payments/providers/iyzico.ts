@@ -4,6 +4,7 @@ import {
   getIyzicoBaseUrl,
   isIyzicoConfigured
 } from '@/lib/payments/config';
+import { cacheIyzicoCheckout } from '@/lib/payments/iyzico-checkout-cache';
 import {
   PaymentNotConfiguredError,
   type PaymentInitInput,
@@ -251,15 +252,26 @@ export const iyzicoPaymentProvider: PaymentProvider = {
       typeof result.paymentPageUrl === 'string'
         ? result.paymentPageUrl.trim()
         : '';
+    const checkoutFormContent =
+      typeof result.checkoutFormContent === 'string'
+        ? result.checkoutFormContent.trim()
+        : undefined;
 
     if (!token || !paymentPageUrl) {
       throw new Error('İyzico yanıtında token veya paymentPageUrl yok');
     }
 
+    await cacheIyzicoCheckout(input.orderId, {
+      token,
+      paymentPageUrl,
+      checkoutFormContent
+    });
+
     return {
       provider: 'iyzico',
       sessionId: token,
-      checkoutUrl: paymentPageUrl
+      checkoutUrl: paymentPageUrl,
+      checkoutFormContent
     };
   },
 

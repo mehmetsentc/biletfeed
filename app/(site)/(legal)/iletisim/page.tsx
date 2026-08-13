@@ -22,21 +22,29 @@ export default function ContactPage() {
         <form className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Ad Soyad</Label>
-              <Input placeholder="Adınız" />
+              <Label htmlFor="contact-name">Ad Soyad</Label>
+              <Input id="contact-name" name="name" autoComplete="name" placeholder="Adınız" />
             </div>
             <div className="space-y-2">
-              <Label>E-posta</Label>
-              <Input type="email" placeholder="ornek@email.com" />
+              <Label htmlFor="contact-email">E-posta</Label>
+              <Input
+                id="contact-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="ornek@email.com"
+              />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Konu</Label>
-            <Input placeholder="Konu" />
+            <Label htmlFor="contact-subject">Konu</Label>
+            <Input id="contact-subject" name="subject" placeholder="Konu" />
           </div>
           <div className="space-y-2">
-            <Label>Mesaj</Label>
+            <Label htmlFor="contact-message">Mesaj</Label>
             <textarea
+              id="contact-message"
+              name="message"
               className="flex min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               placeholder="Mesajınız..."
             />

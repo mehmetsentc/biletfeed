@@ -1,5 +1,7 @@
+import path from 'path';
 import sharp from 'sharp';
 import type { FeedPostType } from '@prisma/client';
+import { designTokens } from '@/lib/config/design-tokens';
 import {
   FEED_CATEGORY_SHORT_LABELS,
   FEED_POST_TYPE_SHORT_LABELS
@@ -11,31 +13,11 @@ import {
 
 const COVER_WIDTH = 1200;
 const COVER_HEIGHT = 630;
-const BG = '#0c1017';
-const BRAND = '#f5a623';
+/** Favicon / design-tokens — tek marka aksanı (neon lime). */
+const BRAND = designTokens.color.primary;
+const BG = designTokens.color.dark.background;
 const TITLE_COLOR = '#f4f4f5';
 const MUTED = '#a1a1aa';
-
-/** Kategori / tip → SVG vurgu rengi (badge Tailwind eşleniği). */
-const CATEGORY_ACCENT: Record<string, string> = {
-  'konser-haberleri': '#e11d48',
-  'festival-haberleri': '#9333ea',
-  'muzik-haberleri': '#4f46e5',
-  'eglence-haberleri': '#d97706',
-  'etkinlik-duyurulari': '#f5a623',
-  'trend-hikayeler': '#059669'
-};
-
-const TYPE_ACCENT: Partial<Record<FeedPostType, string>> = {
-  concert_news: '#e11d48',
-  festival_news: '#9333ea',
-  music_news: '#4f46e5',
-  artist_news: '#7c3aed',
-  entertainment_news: '#d97706',
-  event_announcement: '#0284c7',
-  ticket_alert: '#ea580c',
-  trending_story: '#059669'
-};
 
 function escapeXml(value: string): string {
   return value
@@ -77,12 +59,6 @@ function wrapTitle(title: string, maxCharsPerLine: number, maxLines: number): st
   return lines.slice(0, maxLines);
 }
 
-function resolveAccent(categorySlug?: string | null, contentType?: FeedPostType | null): string {
-  if (categorySlug && CATEGORY_ACCENT[categorySlug]) return CATEGORY_ACCENT[categorySlug];
-  if (contentType && TYPE_ACCENT[contentType]) return TYPE_ACCENT[contentType]!;
-  return BRAND;
-}
-
 function resolveLabel(
   categorySlug?: string | null,
   contentType?: FeedPostType | null
@@ -102,10 +78,9 @@ export type BrandedCoverInput = {
   contentType?: FeedPostType | null;
 };
 
-/** Dark BiletFeed marka kapağı — Sharp SVG kompozit (OG boyutları). */
+/** Dark BiletFeed marka kapağı — neon lime + gerçek favicon (OG 1200×630). */
 export async function renderBrandedFeedCover(input: BrandedCoverInput): Promise<Buffer> {
   const title = input.title.trim() || 'BiletFeed';
-  const accent = resolveAccent(input.categorySlug, input.contentType);
   const label = escapeXml(resolveLabel(input.categorySlug, input.contentType));
   const lines = wrapTitle(title, 28, 3).map(escapeXml);
   const titleFontSize = lines.some((l) => l.length > 24) ? 42 : 48;
@@ -124,27 +99,49 @@ export async function renderBrandedFeedCover(input: BrandedCoverInput): Promise<
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="${BG}"/>
-      <stop offset="55%" stop-color="#121821"/>
-      <stop offset="100%" stop-color="#0a0e14"/>
+      <stop offset="55%" stop-color="#111111"/>
+      <stop offset="100%" stop-color="#050505"/>
     </linearGradient>
-    <linearGradient id="glow" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0%" stop-color="${accent}" stop-opacity="0.35"/>
-      <stop offset="60%" stop-color="${accent}" stop-opacity="0"/>
-    </linearGradient>
+    <radialGradient id="glow" cx="12%" cy="88%" r="55%">
+      <stop offset="0%" stop-color="${BRAND}" stop-opacity="0.28"/>
+      <stop offset="55%" stop-color="${BRAND}" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="${BRAND}" stop-opacity="0"/>
+    </radialGradient>
   </defs>
   <rect width="100%" height="100%" fill="url(#bg)"/>
   <rect width="100%" height="100%" fill="url(#glow)"/>
-  <rect x="0" y="0" width="14" height="100%" fill="${accent}"/>
+  <rect x="0" y="0" width="14" height="100%" fill="${BRAND}"/>
   <text x="72" y="72" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" letter-spacing="4" fill="${BRAND}">BILETFEED</text>
-  <rect x="72" y="96" width="48" height="4" rx="2" fill="${accent}"/>
+  <rect x="72" y="96" width="48" height="4" rx="2" fill="${BRAND}"/>
   <text x="72" y="140" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" letter-spacing="2" fill="${MUTED}">${label.toUpperCase()}</text>
   <text x="72" y="${titleStartY}" font-family="Arial, Helvetica, sans-serif" font-size="${titleFontSize}" font-weight="800" fill="${TITLE_COLOR}">${titleTspans}</text>
   <text x="72" y="${COVER_HEIGHT - 48}" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="${MUTED}">biletfeed.com</text>
 </svg>`;
 
-  return sharp(Buffer.from(svg))
-    .webp({ quality: 86 })
-    .toBuffer();
+  const faviconPath = path.join(process.cwd(), 'public/brand/favicon.png');
+  const markSize = 112;
+  let mark: Buffer | null = null;
+  try {
+    mark = await sharp(faviconPath)
+      .resize(markSize, markSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer();
+  } catch {
+    mark = null;
+  }
+
+  const base = sharp(Buffer.from(svg)).png();
+  const composited = mark
+    ? base.composite([
+        {
+          input: mark,
+          top: 40,
+          left: COVER_WIDTH - markSize - 48
+        }
+      ])
+    : base;
+
+  return composited.webp({ quality: 86 }).toBuffer();
 }
 
 /** Marka kapağını üretir ve feed scope’una yükler. Storage yoksa null. */

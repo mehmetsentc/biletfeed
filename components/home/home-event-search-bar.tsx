@@ -150,6 +150,7 @@ export function HomeEventSearchBar({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t.home.heroSearchPlaceholder}
+              aria-label={t.common.search}
               className="h-10 w-full rounded-xl border border-border/60 bg-muted/30 pl-9 pr-3 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
               autoComplete="off"
             />
@@ -270,6 +271,7 @@ export function HomeEventSearchBar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.home.heroSearchPlaceholder}
+            aria-label={t.common.search}
             className={fieldClassDesktop}
             autoComplete="off"
           />

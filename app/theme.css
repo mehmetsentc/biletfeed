@@ -315,3 +315,83 @@
   --sidebar-accent: rgba(223, 255, 0, 0.1);
   --sidebar-accent-foreground: var(--bf-neon);
 }
+
+/**
+ * Destek merkezi vb. her zaman açık yüzey — html.dark olsa bile light token’ları zorla.
+ * (text-foreground / bg-card dark değerlerini almasın diye.)
+ */
+.force-light-theme {
+  color-scheme: light;
+
+  --bf-bg: #ffffff;
+  --bf-surface: #fafafa;
+  --bf-card: #ffffff;
+  --bf-sidebar: #ffffff;
+  --bf-navbar: #ffffff;
+  --bf-border: #ececec;
+  --bf-input-bg: #ffffff;
+  --bf-secondary-bg: #fafafa;
+  --bf-muted-surface: #f7f7f7;
+
+  --bf-text: #050505;
+  --bf-text-secondary: #555555;
+  --bf-text-muted: #777777;
+  --bf-text-disabled: #b4b4b4;
+  --bf-text-link: var(--bf-text);
+  --bf-text-link-hover: var(--bf-neon-pressed);
+  --bf-accent-ink: var(--bf-text);
+
+  --bf-success-soft: #dcfce7;
+  --bf-warning-soft: #fef3c7;
+  --bf-danger-soft: #fee2e2;
+  --bf-info-soft: #dbeafe;
+  --bf-orange-soft: var(--bf-neon-light-surface);
+  --bf-orange-surface: var(--bf-orange-50);
+  --bf-orange-border: var(--bf-neon-soft-border);
+
+  --shadow-xs: 0 1px 2px rgba(5, 5, 5, 0.04);
+  --shadow-sm: 0 2px 8px rgba(5, 5, 5, 0.05);
+  --shadow-md: 0 8px 24px rgba(5, 5, 5, 0.07);
+  --shadow-lg: 0 24px 56px rgba(5, 5, 5, 0.1);
+  --shadow-card: 0 1px 2px rgba(5, 5, 5, 0.03), 0 12px 32px rgba(5, 5, 5, 0.05);
+  --shadow-card-hover: 0 20px 48px rgba(5, 5, 5, 0.09);
+
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(5, 5, 5, 0.06);
+
+  --background: var(--bf-bg);
+  --foreground: var(--bf-text);
+  --card: var(--bf-card);
+  --card-foreground: var(--bf-text);
+  --popover: var(--bf-card);
+  --popover-foreground: var(--bf-text);
+  --primary: var(--bf-neon);
+  --primary-foreground: var(--bf-neon-on);
+  --secondary: var(--bf-gray-100);
+  --secondary-foreground: var(--bf-text);
+  --muted: var(--bf-muted-surface);
+  --muted-foreground: var(--bf-text-secondary);
+  --accent: var(--bf-neon-light-surface);
+  --accent-foreground: var(--bf-text);
+  --border: var(--bf-border);
+  --input: var(--bf-gray-200);
+  --ring: var(--bf-neon-pressed);
+
+  --brand-surface: var(--bf-bg);
+  --brand-hero: var(--bf-bg);
+
+  --header-bg: rgba(255, 255, 255, 0.75);
+  --header-bg-solid: var(--bf-navbar);
+  --header-fg: var(--bf-text);
+  --header-fg-muted: var(--bf-text-secondary);
+  --header-border: #ececec;
+  --header-hover: rgba(5, 5, 5, 0.04);
+  --header-btn-outline: var(--bf-gray-200);
+  --header-accent: var(--bf-neon-pressed);
+
+  --sidebar: var(--bf-sidebar);
+  --sidebar-foreground: var(--bf-text);
+  --sidebar-accent: var(--bf-neon-light-surface);
+  --sidebar-accent-foreground: var(--bf-text);
+  --sidebar-border: var(--bf-border);
+}

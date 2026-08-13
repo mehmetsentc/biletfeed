@@ -285,6 +285,16 @@ export const tr = {
     acceptAll: 'Tümünü Kabul Et',
     openPreferences: 'Çerez Tercihleri'
   },
+  notifications: {
+    promptTitle: 'Bildirimlere izin ver',
+    promptBody:
+      'Etkinlik hatırlatmaları, bilet güncellemeleri ve şehrindeki yeni etkinlikler için anlık bildirim ve e-posta almak ister misin? İstediğin zaman Ayarlar’dan kapatabilirsin.',
+    promptAllow: 'Bildirimlere izin ver',
+    promptLater: 'Şimdi değil',
+    promptWorking: 'Açılıyor…',
+    welcomeTitle: 'BiletFeed bildirimleri açık',
+    welcomeBody: 'Hatırlatmalar ve yeni etkinlikler için hazırız.'
+  },
   location: {
     selectCity: 'Şehrinizi seçin',
     searchCity: 'Şehir Ara',
@@ -433,6 +443,8 @@ export const tr = {
     notificationPreferences: 'Bildirim Tercihleri',
     emailNotifications: 'E-posta Bildirimleri',
     emailNotificationsHint: 'Etkinlik hatırlatıcıları ve kampanyalar.',
+    pushNotifications: 'Push Bildirimleri',
+    pushNotificationsHint: 'Anlık hatırlatmalar ve bilet güncellemeleri.',
     smsNotifications: 'SMS Bildirimleri',
     smsNotificationsHint: 'Bilet bilgileri ve önemli duyurular.',
     newsletterSubscription: 'E-Bülten Aboneliği',

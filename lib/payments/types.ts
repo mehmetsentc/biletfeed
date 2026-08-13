@@ -35,8 +35,10 @@ export interface PaymentInitInput {
 export interface PaymentInitResult {
   provider: PaymentProviderName;
   sessionId: string;
-  /** Ödeme sayfası URL — kart bilgisi bizde toplanmaz (Tosla: BiletFeed kart sayfası) */
+  /** Ödeme sayfası URL — kart bilgisi bizde toplanmaz */
   checkoutUrl: string;
+  /** İyzico Checkout Form gömülü HTML (opsiyonel) */
+  checkoutFormContent?: string;
   /** Tosla ortak ödeme sayfası — yedek */
   hostedFallbackUrl?: string;
   processCardFormUrl?: string;

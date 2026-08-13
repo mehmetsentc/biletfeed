@@ -67,9 +67,11 @@ export function SupportHome({
           <div className="relative mt-6">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
             <Input
+              id="support-article-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Makale ara…"
+              aria-label="Makale ara"
               className="h-11 border-0 bg-white pl-9 text-zinc-900 shadow-sm placeholder:text-zinc-400"
             />
           </div>

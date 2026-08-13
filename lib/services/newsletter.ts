@@ -100,3 +100,27 @@ export async function subscribeToNewsletter(
     cityName,
   };
 }
+
+export async function unsubscribeFromNewsletter(email: string): Promise<boolean> {
+  await ensureDbConnection();
+  const normalized = email.trim().toLowerCase();
+  const existing = await prisma.newsletterSubscriber.findUnique({
+    where: { email: normalized }
+  });
+  if (!existing || existing.deletedAt) return false;
+
+  await prisma.newsletterSubscriber.update({
+    where: { id: existing.id },
+    data: { deletedAt: new Date() }
+  });
+  return true;
+}
+
+export async function isNewsletterSubscribed(email: string): Promise<boolean> {
+  await ensureDbConnection();
+  const row = await prisma.newsletterSubscriber.findUnique({
+    where: { email: email.trim().toLowerCase() },
+    select: { deletedAt: true }
+  });
+  return Boolean(row && !row.deletedAt);
+}
