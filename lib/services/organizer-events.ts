@@ -1,7 +1,7 @@
 import type { EventStatus, EventType } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { uniqueSlug } from '@/lib/utils/slug';
+import { slugify, uniqueSlug } from '@/lib/utils/slug';
 import {
   buildEventExtrasData,
   type OrganizerEventExtras
@@ -43,6 +43,8 @@ export interface CreateOrganizerEventInput extends OrganizerEventExtras {
   description: string;
   categorySlug: string;
   citySlug: string;
+  /** Mevcut mekanı bağla — seatPlan korur */
+  venueId?: string;
   venueName?: string;
   venueAddress?: string;
   startDate: Date;
@@ -77,6 +79,8 @@ export interface UpdateOrganizerEventInput extends OrganizerEventExtras {
   description?: string;
   categorySlug?: string;
   citySlug?: string;
+  /** Mevcut mekanı koru / seç — seatPlan kaybolmasın */
+  venueId?: string;
   venueName?: string;
   venueAddress?: string;
   startDate?: Date;
@@ -107,33 +111,100 @@ async function resolveCategoryId(categorySlug: string): Promise<string> {
   return category.id;
 }
 
+function normalizeVenueName(name: string): string {
+  return name
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Mekanı find-or-create. Aynı şehir+isimde mevcut satırı yeniden kullanır;
+ * seatPlan'a asla dokunmaz. uniqueSlug ile her seferinde yeni boş venue açmaz.
+ */
 async function resolveVenueId(params: {
   cityId: string;
   name?: string;
   address?: string;
+  venueId?: string | null;
+  /** Güncellemede mevcut bağlantı — isim aynıysa koru */
+  currentVenueId?: string | null;
 }): Promise<string | null> {
-  if (!params.name?.trim()) return null;
+  if (params.venueId) {
+    const byId = await prisma.venue.findFirst({
+      where: { id: params.venueId, deletedAt: null },
+      select: { id: true, cityId: true }
+    });
+    if (byId && byId.cityId === params.cityId) return byId.id;
+  }
 
-  const slug = await uniqueSlug(params.name, async (s) => {
-    const row = await prisma.venue.findUnique({ where: { slug: s } });
-    return Boolean(row);
+  const name = params.name?.trim();
+  if (!name) return params.currentVenueId ?? null;
+
+  if (params.currentVenueId) {
+    const current = await prisma.venue.findFirst({
+      where: { id: params.currentVenueId, deletedAt: null },
+      select: { id: true, name: true, cityId: true }
+    });
+    if (
+      current &&
+      current.cityId === params.cityId &&
+      normalizeVenueName(current.name) === normalizeVenueName(name)
+    ) {
+      if (params.address?.trim()) {
+        await prisma.venue.update({
+          where: { id: current.id },
+          data: { address: params.address.trim() }
+        });
+      }
+      return current.id;
+    }
+  }
+
+  const candidates = await prisma.venue.findMany({
+    where: { cityId: params.cityId, deletedAt: null },
+    select: { id: true, name: true, slug: true },
+    take: 500
   });
+  const normalized = normalizeVenueName(name);
+  const byName = candidates.find(
+    (v) => normalizeVenueName(v.name) === normalized
+  );
+  if (byName) {
+    if (params.address?.trim()) {
+      await prisma.venue.update({
+        where: { id: byName.id },
+        data: { address: params.address.trim() }
+      });
+    }
+    return byName.id;
+  }
 
-  const venue = await prisma.venue.upsert({
-    where: { slug },
-    create: {
+  const baseSlug = slugify(name) || 'mekan';
+  const existingSlug = await prisma.venue.findUnique({
+    where: { slug: baseSlug },
+    select: { id: true, cityId: true, deletedAt: true }
+  });
+  if (existingSlug && !existingSlug.deletedAt && existingSlug.cityId === params.cityId) {
+    return existingSlug.id;
+  }
+
+  const slug = existingSlug
+    ? await uniqueSlug(name, async (s) => {
+        const row = await prisma.venue.findUnique({ where: { slug: s } });
+        return Boolean(row);
+      })
+    : baseSlug;
+
+  const created = await prisma.venue.create({
+    data: {
       slug,
-      name: params.name.trim(),
-      address: params.address?.trim() || params.name.trim(),
+      name,
+      address: params.address?.trim() || name,
       cityId: params.cityId
-    },
-    update: {
-      name: params.name.trim(),
-      address: params.address?.trim() || params.name.trim()
     }
   });
-
-  return venue.id;
+  return created.id;
 }
 
 type CreateEventTxParams = {
@@ -263,7 +334,8 @@ export async function createOrganizerEvent(input: CreateOrganizerEventInput) {
   const venueId = await resolveVenueId({
     cityId,
     name: input.venueName,
-    address: input.venueAddress
+    address: input.venueAddress,
+    venueId: input.venueId
   });
 
   const price = input.isFree ? 0 : input.price;
@@ -317,7 +389,8 @@ export async function createOrganizerEventSeries(input: CreateOrganizerEventSeri
   const venueId = await resolveVenueId({
     cityId,
     name: input.venueName,
-    address: input.venueAddress
+    address: input.venueAddress,
+    venueId: input.venueId
   });
 
   const price = input.isFree ? 0 : input.price;
@@ -399,11 +472,13 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
     : event.categoryId;
 
   let venueId = event.venueId;
-  if (input.venueName !== undefined) {
+  if (input.venueId !== undefined || input.venueName !== undefined) {
     venueId = await resolveVenueId({
       cityId,
       name: input.venueName,
-      address: input.venueAddress
+      address: input.venueAddress,
+      venueId: input.venueId,
+      currentVenueId: event.venueId
     });
   }
 

@@ -413,6 +413,7 @@ export function CreateOrganizerEventWizard({
     initialData?.sessions.map(initialSession) ?? [newSession()]
   );
   const [location, setLocation] = useState<LocationMode>(initialData?.location ?? 'venue');
+  const [venueId, setVenueId] = useState<string | undefined>(initialData?.venueId);
   const [venueName, setVenueName] = useState(initialData?.venueName ?? '');
   const [venueAddress, setVenueAddress] = useState(initialData?.venueAddress ?? '');
   const [venueDetail, setVenueDetail] = useState('');
@@ -806,6 +807,7 @@ export function CreateOrganizerEventWizard({
         categorySlug: category,
         citySlug,
         venueName: location === 'online' ? 'Online' : venueName.trim() || undefined,
+        venueId: location === 'online' ? undefined : venueId,
         venueAddress: venueAddress.trim() || undefined,
         venueDetail: venueDetail.trim() || undefined,
         startDate,
@@ -1167,8 +1169,13 @@ export function CreateOrganizerEventWizard({
             <WizardStepVenue
               location={location}
               onLocationChange={setLocation}
+              venueId={venueId}
+              onVenueIdChange={setVenueId}
               venueName={venueName}
-              onVenueNameChange={setVenueName}
+              onVenueNameChange={(name) => {
+                setVenueName(name);
+                setVenueId(undefined);
+              }}
               venueAddress={venueAddress}
               onVenueAddressChange={setVenueAddress}
               venueDetail={venueDetail}

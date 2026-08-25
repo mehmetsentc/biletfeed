@@ -15,7 +15,7 @@ export const seatPlanSchema = z.object({
   zones: z
     .array(
       z.object({
-        code: z.string().min(1).max(8),
+        code: z.string().min(1).max(24),
         label: z.string().min(1).max(80),
         seatsPerUnit: z.number().int().min(1).max(50),
         color: z.string().max(32).optional(),

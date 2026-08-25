@@ -30,6 +30,7 @@ export default async function OrganizatorVenuesPage() {
           image: v.image,
           gallery: v.gallery,
           seatPlan: v.seatPlan as SeatPlan,
+          seatPlanDraft: (v.seatPlanDraft as SeatPlan | null) ?? null,
           city: v.city
         }))}
         cities={cities}

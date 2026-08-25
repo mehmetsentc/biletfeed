@@ -50,7 +50,10 @@ export async function getTicketPurchaseContext(eventSlug: string) {
   const ticketTypes = await getCheckoutTicketTypes(eventSlug);
   const normalizedTypes = ticketTypes.map((tt) => ({
     ...tt,
-    seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1)
+    seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
+    listPrice: tt.listPrice ?? tt.price,
+    isOnSale: tt.isOnSale ?? false,
+    discountPercent: tt.discountPercent ?? null
   }));
 
   await ensureDbConnection();

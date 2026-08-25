@@ -8,7 +8,7 @@ import { PurchasePriceBreakdown } from '@/components/tickets/purchase/purchase-p
 import { useTranslations } from '@/components/providers';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import { ticketTypeRemaining, splitTicketDisplay } from '@/lib/tickets/purchase-types';
-import { formatTry } from '@/lib/tickets/purchase-pricing';
+import { SalePriceLabel } from '@/components/tickets/purchase/sale-price-label';
 
 interface QuantityStepProps {
   eventSlug: string;
@@ -32,8 +32,6 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
     setQuantity((q) => Math.min(maxQty, q + 1));
   }
 
-  const unitLabel = ticketType.price <= 0 ? t.common.free : formatTry(ticketType.price);
-
   return (
     <div className="space-y-6">
       <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
@@ -44,7 +42,17 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
             {description}
           </p>
         ) : null}
-        <p className="mt-3 text-2xl font-extrabold">{unitLabel}</p>
+        <div className="mt-3">
+          <SalePriceLabel
+            price={ticketType.price}
+            listPrice={ticketType.listPrice}
+            isOnSale={ticketType.isOnSale}
+            discountPercent={ticketType.discountPercent}
+            freeLabel={t.common.free}
+            className="items-start"
+            priceClassName="text-2xl"
+          />
+        </div>
 
         <div className="mt-6 flex items-center justify-center gap-4">
           <Button

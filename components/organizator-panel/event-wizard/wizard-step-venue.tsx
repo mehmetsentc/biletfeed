@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Globe, ImageIcon, Loader2, MapPin, Monitor, Trash2, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
@@ -18,9 +18,28 @@ import { cn } from '@/lib/utils';
 
 type LocationMode = '' | 'venue' | 'online' | 'hybrid';
 
+type SavedVenue = {
+  id: string;
+  name: string;
+  address: string;
+  city?: { name: string; slug: string } | null;
+  seatPlan?: { layout?: string; zones?: unknown[]; mapImageUrl?: string } | null;
+};
+
+function hasSeatPlan(plan: SavedVenue['seatPlan']): boolean {
+  if (!plan || typeof plan !== 'object') return false;
+  if (Array.isArray(plan.zones) && plan.zones.length > 0) return true;
+  if (plan.layout === 'general' || plan.layout === 'sections' || plan.layout === 'tables') {
+    return true;
+  }
+  return Boolean(plan.mapImageUrl);
+}
+
 interface WizardStepVenueProps {
   location: LocationMode;
   onLocationChange: (value: LocationMode) => void;
+  venueId?: string;
+  onVenueIdChange: (id: string | undefined) => void;
   venueName: string;
   onVenueNameChange: (value: string) => void;
   venueAddress: string;
@@ -40,6 +59,8 @@ interface WizardStepVenueProps {
 export function WizardStepVenue({
   location,
   onLocationChange,
+  venueId,
+  onVenueIdChange,
   venueName,
   onVenueNameChange,
   venueAddress,
@@ -58,9 +79,27 @@ export function WizardStepVenue({
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [savedVenues, setSavedVenues] = useState<SavedVenue[]>([]);
+
+  useEffect(() => {
+    void fetch('/api/organizer/venues', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { venues?: SavedVenue[] } | null) => {
+        setSavedVenues(data?.venues ?? []);
+      })
+      .catch(() => setSavedVenues([]));
+  }, []);
+
+  const venuesWithPlan = savedVenues.filter((v) => hasSeatPlan(v.seatPlan));
 
   async function handleMapUpload(file: File) {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+    const allowed = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'application/pdf'
+    ];
     if (!allowed.includes(file.type)) {
       setUploadError('Sadece görsel (JPG, PNG, WebP) veya PDF yüklenebilir');
       return;
@@ -76,20 +115,12 @@ export function WizardStepVenue({
       form.append('file', file);
       const res = await fetch('/api/organizer/venue-map', { method: 'POST', body: form });
       if (!res.ok) throw new Error((await res.json()).error ?? 'Yükleme başarısız');
-      const { url } = await res.json();
+      const { url } = (await res.json()) as { url: string };
       onVenueMapUrlChange(url);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Yükleme başarısız');
     } finally {
       setUploading(false);
-    }
-  }
-
-  function toggleTag(tag: string) {
-    if (tags.includes(tag)) {
-      onTagsChange(tags.filter((t) => t !== tag));
-    } else {
-      onTagsChange([...tags, tag]);
     }
   }
 
@@ -127,6 +158,50 @@ export function WizardStepVenue({
           />
         </WizardFormRow>
 
+        {location !== 'online' && venuesWithPlan.length > 0 && (
+          <WizardFormRow label="Kayıtlı oturma planı" alignTop>
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Daha önce kaydedilmiş mekan planını seçin — her güncellemede yeniden
+                oluşturmanıza gerek kalmaz.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {venuesWithPlan.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => {
+                      onVenueIdChange(v.id);
+                      onVenueNameChange(v.name);
+                      onVenueAddressChange(v.address);
+                      const mapUrl = v.seatPlan?.mapImageUrl;
+                      if (typeof mapUrl === 'string' && mapUrl) {
+                        onVenueMapUrlChange(mapUrl);
+                      }
+                      if (v.city?.slug && onCitySlugChange) {
+                        onCitySlugChange(v.city.slug as CitySlug);
+                      }
+                    }}
+                    className={cn(
+                      'rounded-lg border px-3 py-2 text-left text-sm transition-colors',
+                      venueId === v.id
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-border hover:bg-muted/50'
+                    )}
+                  >
+                    <span className="font-medium">{v.name}</span>
+                    {v.city?.name ? (
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        {v.city.name}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </WizardFormRow>
+        )}
+
         {location !== 'online' && (
           <>
             <WizardFormRow label="Mekan adı" required={location === 'venue'}>
@@ -136,6 +211,7 @@ export function WizardStepVenue({
                 cityHint={cityHint}
                 onPlaceSelect={(place) => {
                   onVenueNameChange(place.name);
+                  onVenueIdChange(undefined);
                   if (place.address) onVenueAddressChange(place.address);
                   if (place.citySlug && onCitySlugChange) {
                     onCitySlugChange(place.citySlug);
@@ -189,86 +265,82 @@ export function WizardStepVenue({
                     alt="Etkinlik haritası"
                     width={800}
                     height={500}
-                    className="w-full object-contain max-h-80"
+                    className="max-h-80 w-full object-contain"
                     unoptimized
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileRef.current?.click()}
+                  >
                     <Upload className="mr-1.5 size-3.5" />
                     Değiştir
                   </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => { onVenueMapUrlChange(undefined); setUploadError(null); }}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onVenueMapUrlChange(undefined)}
+                  >
                     <Trash2 className="mr-1.5 size-3.5" />
                     Kaldır
                   </Button>
                 </div>
               </div>
             ) : (
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => !uploading && fileRef.current?.click()}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !uploading && fileRef.current?.click()}
-                className={cn(
-                  'flex min-h-40 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 transition-all',
-                  uploading
-                    ? 'border-primary/40 bg-primary/5 cursor-not-allowed'
-                    : 'border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5'
-                )}
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-10 text-sm text-muted-foreground transition-colors hover:bg-muted/40"
               >
                 {uploading ? (
-                  <>
-                    <Loader2 className="size-8 animate-spin text-[var(--bf-accent-ink)]" />
-                    <p className="text-sm text-muted-foreground">Yükleniyor...</p>
-                  </>
+                  <Loader2 className="size-6 animate-spin" />
                 ) : (
-                  <>
-                    <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-[var(--bf-accent-ink)]">
-                      <MapPin className="size-6" />
-                    </span>
-                    <div className="text-center">
-                      <p className="font-semibold text-foreground">Harita yükle</p>
-                      <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WebP veya PDF · max. 10 MB</p>
-                    </div>
-                  </>
+                  <Upload className="size-6" />
                 )}
-              </div>
+                {uploading ? 'Yükleniyor…' : 'Harita / oturma planı yükle'}
+              </button>
             )}
+            {uploadError ? (
+              <p className="text-sm text-destructive">{uploadError}</p>
+            ) : null}
             <input
               ref={fileRef}
               type="file"
-              accept="image/*,application/pdf"
+              accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
               className="hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleMapUpload(f);
+                const file = e.target.files?.[0];
+                if (file) void handleMapUpload(file);
                 e.target.value = '';
               }}
             />
-            {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
           </div>
         </WizardFormSection>
       )}
 
-      <WizardFormSection
-        title="Etiket Seçiniz"
-        description="Etkinliğinizi keşfedilebilir kılmak için bir veya daha fazla etiket seçin."
-        icon={MapPin}
-      >
-        <div className="flex flex-wrap gap-2 py-2">
+      <WizardFormSection title="Etiketler" description="Keşif ve filtreleme için etiket ekleyin.">
+        <div className="flex flex-wrap gap-2">
           {EVENT_WIZARD_TAGS.map((tag) => {
-            const selected = tags.includes(tag);
+            const active = tags.includes(tag);
             return (
               <button
                 key={tag}
                 type="button"
-                onClick={() => toggleTag(tag)}
+                onClick={() =>
+                  onTagsChange(
+                    active ? tags.filter((t) => t !== tag) : [...tags, tag].slice(0, 20)
+                  )
+                }
                 className={cn(
-                  'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
-                  selected
-                    ? 'border-primary bg-primary/10 text-[var(--bf-accent-ink)]'
-                    : 'border-border bg-background text-muted-foreground hover:border-primary/40'
+                  'rounded-full border px-3 py-1 text-xs',
+                  active
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border text-muted-foreground'
                 )}
               >
                 {tag}

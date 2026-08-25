@@ -26,6 +26,8 @@ import {
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
+import { effectiveTicketPrice } from '@/lib/services/event-sale-discount';
+import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 
 export interface CheckoutResult {
   orderId: string;
@@ -147,7 +149,7 @@ async function loadCheckoutContext(params: {
         lines.push({
           ticketTypeId: g.tt.id,
           name: g.tt.name,
-          unitPrice: g.tt.price,
+          unitPrice: effectiveTicketPrice(event, g.tt).unitPrice,
           quantity: g.qty,
           seatUnitIds: g.seats
         });
@@ -187,7 +189,7 @@ async function loadCheckoutContext(params: {
       lines.push({
         ticketTypeId: tt.id,
         name: tt.name,
-        unitPrice: tt.price,
+        unitPrice: effectiveTicketPrice(event, tt).unitPrice,
         quantity: 1
       });
     }
@@ -222,14 +224,15 @@ async function loadCheckoutContext(params: {
     throw new Error('Yeterli bilet kalmadı');
   }
 
-  const subtotal = ticketType.price * qty;
+  const unitPrice = effectiveTicketPrice(event, ticketType).unitPrice;
+  const subtotal = unitPrice * qty;
   const commissionRate = await resolveOrganizerCommissionRate(event.organizer.commissionRate);
   const commission = calculateOrderCommission(subtotal, commissionRate);
   const lines: CheckoutLineItem[] = [
     {
       ticketTypeId: ticketType.id,
       name: ticketType.name,
-      unitPrice: ticketType.price,
+      unitPrice,
       quantity: qty
     }
   ];
@@ -237,11 +240,18 @@ async function loadCheckoutContext(params: {
   return { user, event, ticketType, lines, qty, subtotal, commission };
 }
 
-export async function getCheckoutTicketTypes(eventSlug: string) {
+export async function getCheckoutTicketTypes(
+  eventSlug: string
+): Promise<CheckoutTicketType[]> {
   await ensureDbConnection();
   const event = await prisma.event.findFirst({
     where: { slug: eventSlug, status: 'published', deletedAt: null },
     select: {
+      isFree: true,
+      saleDiscountPercent: true,
+      saleDiscountTicketTypeIds: true,
+      saleDiscountActive: true,
+      saleDiscountEndsAt: true,
       ticketTypes: {
         where: { status: 'active', deletedAt: null },
         orderBy: { price: 'asc' },
@@ -260,7 +270,26 @@ export async function getCheckoutTicketTypes(eventSlug: string) {
       }
     }
   });
-  return event?.ticketTypes ?? [];
+  if (!event) return [];
+
+  return event.ticketTypes.map((tt) => {
+    const eff = effectiveTicketPrice(event, tt);
+    return {
+      id: tt.id,
+      name: tt.name,
+      description: tt.description ?? '',
+      type: tt.type,
+      price: eff.unitPrice,
+      listPrice: eff.listPrice,
+      isOnSale: eff.isOnSale,
+      discountPercent: eff.discountPercent,
+      currency: tt.currency,
+      capacity: tt.capacity,
+      sold: tt.sold,
+      seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
+      showLowStockBadge: tt.showLowStockBadge
+    };
+  });
 }
 
 export async function createCheckout(params: {

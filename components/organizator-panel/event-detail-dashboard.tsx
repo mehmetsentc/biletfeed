@@ -37,6 +37,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organizer-csv-download-button';
+import { EventSaleDiscountPanel } from '@/components/organizator-panel/event-sale-discount-panel';
 import { turkeyCalendarDayDiff } from '@/lib/datetime/istanbul';
 import { girisHref } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,10 @@ type EventDetailData = {
     endDate: string;
     status: EventStatus;
     isFree: boolean;
+    saleDiscountPercent: number | null;
+    saleDiscountTicketTypeIds: string[];
+    saleDiscountActive: boolean;
+    saleDiscountEndsAt: string | null;
     city: string;
     venue: string | null;
     venueAddress: string | null;
@@ -793,6 +798,25 @@ export function EventDetailDashboard({
               </Button>
             )}
           </div>
+        </Widget>
+
+        <Widget title="Yüzde indirim">
+          <EventSaleDiscountPanel
+            eventId={event.id}
+            isFree={event.isFree}
+            categories={categories.map((c) => ({
+              id: c.id,
+              name: c.name,
+              price: c.price
+            }))}
+            initial={{
+              percent: event.saleDiscountPercent,
+              ticketTypeIds: event.saleDiscountTicketTypeIds ?? [],
+              active: event.saleDiscountActive,
+              endsAt: event.saleDiscountEndsAt
+            }}
+            apiPath={`/api/organizer/events/${event.id}/sale-discount`}
+          />
         </Widget>
 
         <Widget title="Etkinlik Linkleri">

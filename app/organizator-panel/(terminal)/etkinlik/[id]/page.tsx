@@ -28,7 +28,10 @@ export default async function OrganizatorEventDetailPage({ params }: PageProps) 
         event: {
           ...detail.event,
           startDate: detail.event.startDate.toISOString(),
-          endDate: detail.event.endDate.toISOString()
+          endDate: detail.event.endDate.toISOString(),
+          saleDiscountEndsAt: detail.event.saleDiscountEndsAt
+            ? detail.event.saleDiscountEndsAt.toISOString()
+            : null
         },
         categories: detail.categories.map((c) => ({
           ...c,

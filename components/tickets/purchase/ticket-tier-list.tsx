@@ -8,7 +8,7 @@ import {
   ticketTypeRemaining,
   splitTicketDisplay
 } from '@/lib/tickets/purchase-types';
-import { formatTry } from '@/lib/tickets/purchase-pricing';
+import { SalePriceLabel } from '@/components/tickets/purchase/sale-price-label';
 import { getServerTranslations } from '@/lib/i18n/server';
 import { VenueTablePicker } from '@/components/tickets/purchase/venue-table-picker';
 import { VenueSectionSeatPicker } from '@/components/tickets/purchase/venue-section-seat-picker';
@@ -87,7 +87,6 @@ export async function TicketTierList({
         const remaining = ticketTypeRemaining(type);
         const seats = Math.max(1, type.seatsPerUnit || 1);
         const { title } = splitTicketDisplay(type.name, type.description);
-        const priceLabel = type.price <= 0 ? t.common.free : formatTry(type.price);
 
         return (
           <article
@@ -127,7 +126,13 @@ export async function TicketTierList({
             </div>
 
             <div className="flex items-center justify-between gap-4 sm:justify-end">
-              <p className="text-xl font-extrabold tracking-tight">{priceLabel}</p>
+              <SalePriceLabel
+                price={type.price}
+                listPrice={type.listPrice}
+                isOnSale={type.isOnSale}
+                discountPercent={type.discountPercent}
+                freeLabel={t.common.free}
+              />
               {available ? (
                 <Button asChild className="h-11 rounded-xl px-6 font-bold">
                   <Link href={`/etkinlik/${eventSlug}/bilet/${type.id}`}>

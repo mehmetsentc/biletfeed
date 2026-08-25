@@ -5,7 +5,12 @@ export type CheckoutTicketType = {
   name: string;
   description: string;
   type: string;
+  /** Efektif satış birim fiyatı (indirimliyse indirimli) */
   price: number;
+  /** Liste / eski fiyat — indirimde üstü çizilir */
+  listPrice: number;
+  isOnSale: boolean;
+  discountPercent: number | null;
   currency: string;
   capacity: number;
   sold: number;

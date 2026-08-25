@@ -446,6 +446,9 @@ model Venue {
   gallery     String[]  @default([])
   description String?
   seatPlan    Json      @default("{}") @map("seat_plan")
+  /** AI / editör taslağı — onaylanınca seatPlan'a yazılır */
+  seatPlanDraft     Json? @map("seat_plan_draft")
+  seatPlanDraftMeta Json? @map("seat_plan_draft_meta")
   eventCount  Int       @default(0) @map("event_count")
   deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -488,6 +491,11 @@ model Event {
   isTrending   Boolean     @default(false) @map("is_trending")
   isFree       Boolean     @default(false) @map("is_free")
   discountPercent Int?     @map("discount_percent")
+  /** Liste fiyatı üzerinden otomatik % indirim (onaya gerekmez) */
+  saleDiscountPercent       Int?      @map("sale_discount_percent")
+  saleDiscountTicketTypeIds String[]  @default([]) @map("sale_discount_ticket_type_ids")
+  saleDiscountActive        Boolean   @default(false) @map("sale_discount_active")
+  saleDiscountEndsAt        DateTime? @map("sale_discount_ends_at")
   basePrice    Float       @default(0) @map("base_price")
   currency     Currency    @default(TRY)
   attendees    Int         @default(0)

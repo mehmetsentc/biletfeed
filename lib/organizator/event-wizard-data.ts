@@ -21,6 +21,7 @@ export interface EventWizardInitialData {
   title: string;
   category: string;
   citySlug: string;
+  venueId?: string;
   venueName: string;
   venueAddress: string;
   description: string;
@@ -118,6 +119,7 @@ export function mapEventToWizardInitialData(
     title: event.title,
     category: event.category.slug,
     citySlug: event.city.slug,
+    venueId: event.venueId ?? undefined,
     venueName: (() => {
       const venueName = event.venue?.name ?? '';
       const isOnline = venueName.toLowerCase() === 'online';

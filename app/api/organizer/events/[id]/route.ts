@@ -56,6 +56,7 @@ const patchSchema = z.object({
   categorySlug: z.string().min(1).optional(),
   citySlug: z.string().min(1).optional(),
   venueName: z.string().max(200).optional(),
+  venueId: z.string().uuid().optional(),
   venueAddress: z.string().max(300).optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
@@ -196,6 +197,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         ...(data.categorySlug && { categorySlug: data.categorySlug }),
         ...(data.citySlug && { citySlug: data.citySlug }),
         ...(data.venueName !== undefined && { venueName: data.venueName }),
+        ...(data.venueId !== undefined && { venueId: data.venueId }),
         ...(data.venueAddress !== undefined && { venueAddress: data.venueAddress }),
         // For recurring edits sessions[0] carries the main event dates
         ...(data.sessions?.length

@@ -7,6 +7,7 @@ import { CancelEventButton } from '@/components/admin/cancel-event-button';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 import { Ticket, Users, TrendingUp, Ban } from 'lucide-react';
+import { AdminEventSaleDiscount } from '@/components/admin/admin-event-sale-discount';
 import { adminHref } from '@/lib/config/domain';
 
 interface PageProps {
@@ -207,6 +208,24 @@ export default async function AdminEventEditPage({ params }: PageProps) {
           Bu etkinliğe ait bilet türü tanımlanmamış.
         </div>
       )}
+
+      <AdminEventSaleDiscount
+        eventId={event.id}
+        isFree={event.isFree}
+        categories={ticketTypes.map((tt) => ({
+          id: tt.id,
+          name: tt.name,
+          price: tt.price
+        }))}
+        initial={{
+          percent: event.saleDiscountPercent,
+          ticketTypeIds: event.saleDiscountTicketTypeIds ?? [],
+          active: event.saleDiscountActive,
+          endsAt: event.saleDiscountEndsAt
+            ? event.saleDiscountEndsAt.toISOString()
+            : null
+        }}
+      />
 
       {/* Etkinlik düzenle formu */}
       <div>

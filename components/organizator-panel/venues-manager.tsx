@@ -22,6 +22,7 @@ type VenueRow = {
   image?: string | null;
   gallery?: string[];
   seatPlan: SeatPlan;
+  seatPlanDraft?: SeatPlan | null;
   city: { name: string; slug: string };
 };
 
@@ -48,6 +49,8 @@ export function VenuesManager({
   const [mediaImage, setMediaImage] = useState('');
   const [mediaGallery, setMediaGallery] = useState<string[]>([]);
   const [mediaSaving, setMediaSaving] = useState(false);
+  const [aiBusyId, setAiBusyId] = useState<string | null>(null);
+  const [mapUrlByVenue, setMapUrlByVenue] = useState<Record<string, string>>({});
 
   const reload = useCallback(async () => {
     const res = await fetch('/api/organizer/venues', { credentials: 'same-origin' });
@@ -129,6 +132,46 @@ export function VenuesManager({
       return;
     }
     setMediaVenueId(null);
+    await reload();
+  }
+
+  async function runAiGenerate(venue: VenueRow) {
+    setAiBusyId(venue.id);
+    setError(null);
+    const mapImageUrl =
+      mapUrlByVenue[venue.id]?.trim() ||
+      venue.seatPlan?.mapImageUrl ||
+      undefined;
+    const res = await fetch(`/api/organizer/venues/${venue.id}/seat-plan?action=generate`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mapImageUrl ? { mapImageUrl } : {})
+    });
+    const data = await res.json();
+    setAiBusyId(null);
+    if (!res.ok) {
+      setError(data.error || 'AI taslak üretilemedi');
+      return;
+    }
+    await reload();
+  }
+
+  async function runAiConfirm(venueId: string) {
+    setAiBusyId(venueId);
+    setError(null);
+    const res = await fetch(`/api/organizer/venues/${venueId}/seat-plan?action=confirm`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const data = await res.json();
+    setAiBusyId(null);
+    if (!res.ok) {
+      setError(data.error || 'Taslak onaylanamadı');
+      return;
+    }
     await reload();
   }
 
@@ -253,32 +296,75 @@ export function VenuesManager({
           <tbody>
             {venues.map((venue) => {
               const plan = (venue.seatPlan || {}) as SeatPlan;
+              const draft = venue.seatPlanDraft;
+              const zoneCount = plan.zones?.length ?? 0;
+              const unitCount =
+                plan.zones?.reduce((n, z) => n + (z.units?.length ?? 0), 0) ?? 0;
               const totalSeats =
-                plan.rows && plan.seatsPerRow
-                  ? plan.rows * plan.seatsPerRow
-                  : venue.capacity ?? 0;
+                unitCount > 0
+                  ? unitCount
+                  : plan.rows && plan.seatsPerRow
+                    ? plan.rows * plan.seatsPerRow
+                    : venue.capacity ?? 0;
               return (
                 <tr key={venue.id} className="border-b last:border-0">
                   <td className="p-3">
                     <p className="font-medium">{venue.name}</p>
                     <p className="text-xs text-muted-foreground">{venue.address}</p>
+                    <Input
+                      className="mt-2 h-8 text-xs"
+                      placeholder="Harita görseli URL (AI için)"
+                      value={mapUrlByVenue[venue.id] ?? plan.mapImageUrl ?? ''}
+                      onChange={(e) =>
+                        setMapUrlByVenue((prev) => ({
+                          ...prev,
+                          [venue.id]: e.target.value
+                        }))
+                      }
+                    />
                   </td>
                   <td className="p-3">{venue.city.name}</td>
                   <td className="p-3">{(venue.capacity ?? totalSeats) || '—'}</td>
                   <td className="p-3">
-                    {plan.rows && plan.seatsPerRow ? (
+                    {zoneCount > 0 ? (
+                      <Badge variant="secondary">
+                        {zoneCount} bölge · {unitCount} koltuk
+                      </Badge>
+                    ) : plan.rows && plan.seatsPerRow ? (
                       <Badge variant="secondary">
                         {plan.rows} sıra × {plan.seatsPerRow} koltuk
                       </Badge>
                     ) : (
-                      <span className="text-muted-foreground">Genel giriş</span>
+                      <span className="text-muted-foreground">Plan yok</span>
                     )}
+                    {draft?.zones?.length ? (
+                      <p className="mt-1 text-xs text-amber-700">
+                        AI taslak: {draft.zones.length} bölge — onay bekliyor
+                      </p>
+                    ) : null}
                   </td>
                   <td className="p-3">
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onClick={() => openMediaEditor(venue)}>
                         Görseller
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={aiBusyId === venue.id}
+                        onClick={() => void runAiGenerate(venue)}
+                      >
+                        {aiBusyId === venue.id ? 'AI…' : 'AI taslak'}
+                      </Button>
+                      {draft?.zones?.length ? (
+                        <Button
+                          size="sm"
+                          disabled={aiBusyId === venue.id}
+                          onClick={() => void runAiConfirm(venue.id)}
+                        >
+                          Taslağı onayla
+                        </Button>
+                      ) : null}
                       <Button
                         size="sm"
                         variant="outline"
@@ -289,13 +375,14 @@ export function VenuesManager({
                             {
                               layout: 'general',
                               rows: plan.rows || 10,
-                              seatsPerRow: plan.seatsPerRow || 20
+                              seatsPerRow: plan.seatsPerRow || 20,
+                              mapImageUrl: plan.mapImageUrl
                             },
                             totalSeats || venue.capacity || 500
                           )
                         }
                       >
-                        Planı Onayla
+                        Grid plan
                       </Button>
                     </div>
                   </td>
