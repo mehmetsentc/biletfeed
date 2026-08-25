@@ -365,25 +365,27 @@ export function VenuesManager({
                           Taslağı onayla
                         </Button>
                       ) : null}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={editingId === venue.id}
-                        onClick={() =>
-                          saveSeatPlan(
-                            venue.id,
-                            {
-                              layout: 'general',
-                              rows: plan.rows || 10,
-                              seatsPerRow: plan.seatsPerRow || 20,
-                              mapImageUrl: plan.mapImageUrl
-                            },
-                            totalSeats || venue.capacity || 500
-                          )
-                        }
-                      >
-                        Grid plan
-                      </Button>
+                      {!(plan.zones && plan.zones.length > 0) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={editingId === venue.id}
+                          onClick={() =>
+                            saveSeatPlan(
+                              venue.id,
+                              {
+                                layout: 'general',
+                                rows: plan.rows || 10,
+                                seatsPerRow: plan.seatsPerRow || 20,
+                                mapImageUrl: plan.mapImageUrl
+                              },
+                              totalSeats || venue.capacity || 500
+                            )
+                          }
+                        >
+                          Grid plan
+                        </Button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

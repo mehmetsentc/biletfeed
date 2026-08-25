@@ -121,6 +121,27 @@ export async function updateOrganizerVenue(
   });
   if (!venue) throw new Error('Mekan bulunamadı');
 
+  let nextSeatPlan: Prisma.InputJsonValue | undefined;
+  if (input.seatPlan !== undefined) {
+    const existing = venue.seatPlan;
+    const existingObj =
+      existing && typeof existing === 'object' && !Array.isArray(existing)
+        ? (existing as SeatPlan)
+        : null;
+    const hasRichZones =
+      Array.isArray(existingObj?.zones) && (existingObj?.zones?.length ?? 0) > 0;
+    const incomingIsGridOnly =
+      input.seatPlan.layout === 'general' &&
+      !(Array.isArray(input.seatPlan.zones) && input.seatPlan.zones.length > 0);
+
+    if (hasRichZones && incomingIsGridOnly) {
+      throw new Error(
+        'Bu mekanda kayıtlı oturma planı var. Grid plan üzerine yazılmaz — AI taslak/onay kullanın.'
+      );
+    }
+    nextSeatPlan = input.seatPlan as unknown as Prisma.InputJsonValue;
+  }
+
   return prisma.venue.update({
     where: { id: venueId },
     data: {
@@ -132,9 +153,7 @@ export async function updateOrganizerVenue(
       ...(input.gallery !== undefined
         ? { gallery: input.gallery.filter((u) => u.startsWith('http')).slice(0, 4) }
         : {}),
-      ...(input.seatPlan !== undefined
-        ? { seatPlan: input.seatPlan as Prisma.InputJsonValue }
-        : {}),
+      ...(nextSeatPlan !== undefined ? { seatPlan: nextSeatPlan } : {}),
       ...(venue.organizerId ? {} : { organizerId })
     },
     include: { city: { select: { name: true, slug: true } } }

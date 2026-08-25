@@ -148,7 +148,9 @@ export async function generateVenueSeatPlanDraft(params: {
   await ensureDbConnection();
 
   if (!isProviderReady('gemini')) {
-    throw new Error('AI kapalı veya GEMINI_API_KEY yok (AI_ENABLED + GEMINI_API_KEY)');
+    throw new Error(
+      'AI kapalı veya GEMINI_API_KEY yok. Vercel’de AI_ENABLED=true ve GEMINI_API_KEY (Production + Preview) tanımlı olmalı.'
+    );
   }
 
   const venue = await prisma.venue.findFirst({
