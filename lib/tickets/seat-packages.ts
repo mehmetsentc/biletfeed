@@ -30,20 +30,58 @@ export function matchTicketTypeToSeatUnit<T extends { name: string; description?
   const byId = ticketTypes.find((tt) => {
     const fromName = parseSectionSeatUnitId(tt.name);
     const fromDesc = tt.description ? parseSectionSeatUnitId(tt.description) : null;
-    return fromName === needle || fromDesc === needle || tt.name.toUpperCase().includes(needle);
+    return fromName === needle || fromDesc === needle;
   });
   if (byId) return byId;
 
-  if (ticketTypeHint) {
-    const hint = ticketTypeHint.trim().toLowerCase();
-    return ticketTypes.find(
-      (tt) =>
-        tt.name.trim().toLowerCase() === hint ||
-        tt.name.toLowerCase().includes(hint) ||
-        hint.includes(tt.name.trim().toLowerCase())
+  if (!ticketTypeHint) return undefined;
+
+  const hint = ticketTypeHint.trim().toLowerCase();
+  const aliases = expandTicketTypeHintAliases(hint);
+
+  return ticketTypes.find((tt) => {
+    const name = tt.name.trim().toLowerCase();
+    const desc = (tt.description ?? '').trim().toLowerCase();
+    return aliases.some(
+      (a) =>
+        name === a ||
+        desc === a ||
+        name.includes(a) ||
+        a.includes(name) ||
+        desc.includes(a)
     );
+  });
+}
+
+/** K1 / 1. Kategori / Cat 1 gibi eş anlamlı ipuçları */
+function expandTicketTypeHintAliases(hint: string): string[] {
+  const h = hint.trim().toLowerCase();
+  const out = new Set<string>([h]);
+
+  const kn = h.match(/^k\s*[-.]?\s*(\d)$/i);
+  if (kn?.[1]) {
+    const n = kn[1];
+    out.add(`${n}. kategori`);
+    out.add(`${n}.kategori`);
+    out.add(`kategori ${n}`);
+    out.add(`cat ${n}`);
+    out.add(`category ${n}`);
+    out.add(`k${n}`);
   }
-  return undefined;
+
+  const kategori = h.match(/^(\d)\s*[.]?\s*kategori$/i);
+  if (kategori?.[1]) {
+    const n = kategori[1];
+    out.add(`k${n}`);
+    out.add(`${n}. kategori`);
+    out.add(`kategori ${n}`);
+  }
+
+  if (h === 'vip' || h.includes('vip')) {
+    out.add('vip');
+  }
+
+  return [...out];
 }
 
 export function inferSeatsPerUnitFromName(name: string): number | null {
