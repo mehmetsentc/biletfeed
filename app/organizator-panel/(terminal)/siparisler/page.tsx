@@ -18,7 +18,9 @@ import type { SalesCategoryFilter } from '@/lib/services/ticket-type-category';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EventFilterSelect } from '@/components/organizator-panel/orders/event-filter-select';
+import { OrganizerOrderActions } from '@/components/organizator-panel/organizer-order-actions';
 import { redirectToPanel } from '@/lib/auth/panel-paths-server';
+import { formatSeatsLabel } from '@/lib/tickets/seat-label';
 
 interface PageProps {
   searchParams: Promise<{ category?: string; eventId?: string }>;
@@ -153,9 +155,11 @@ export default async function OrganizatorOrdersPage({ searchParams }: PageProps)
                 <th className="p-3 font-medium">Tarih</th>
                 {!selectedEvent && <th className="p-3 font-medium">Etkinlik</th>}
                 <th className="p-3 font-medium">Kategori</th>
+                <th className="p-3 font-medium">Koltuk</th>
                 <th className="p-3 font-medium">Müşteri</th>
                 <th className="p-3 font-medium">Tutar</th>
                 <th className="p-3 font-medium">Durum</th>
+                <th className="p-3 font-medium text-right">İşlem</th>
               </tr>
             </thead>
             <tbody>
@@ -182,19 +186,34 @@ export default async function OrganizatorOrdersPage({ searchParams }: PageProps)
                   <td className="p-3 text-muted-foreground">
                     {categoryNames.length > 0 ? categoryNames.join(', ') : '—'}
                   </td>
+                  <td className="p-3 font-mono text-xs">
+                    {formatSeatsLabel(order.purchasedTickets)}
+                  </td>
                   <td className="p-3 text-muted-foreground">{order.user.displayName}</td>
                   <td className="p-3 font-semibold">₺{order.total.toLocaleString('tr-TR')}</td>
                   <td className="p-3">
                     <Badge variant={order.status === 'paid' ? 'success' : 'secondary'}>
-                      {order.status === 'paid' ? 'Ödendi' : order.status}
+                      {order.status === 'paid'
+                        ? 'Ödendi'
+                        : order.status === 'refunded'
+                          ? 'İade'
+                          : order.status === 'cancelled'
+                            ? 'İptal'
+                            : order.status}
                     </Badge>
+                  </td>
+                  <td className="p-3 text-right">
+                    <OrganizerOrderActions
+                      orderId={order.id}
+                      status={order.status}
+                    />
                   </td>
                 </tr>
                 );
               })}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={selectedEvent ? 5 : 6} className="p-10 text-center text-muted-foreground">
+                  <td colSpan={selectedEvent ? 7 : 8} className="p-10 text-center text-muted-foreground">
                     {selectedEvent
                       ? `"${selectedEvent.title}" için sipariş bulunamadı.`
                       : 'Henüz sipariş yok.'}

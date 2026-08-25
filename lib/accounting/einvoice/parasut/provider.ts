@@ -9,6 +9,7 @@ import {
   extractJobResultId,
   findEInvoiceInboxAddress,
   getEDocumentPdfUrl,
+  cancelParasutDocument,
   shareSalesInvoiceEmail,
   showEDocument,
   waitTrackableJob
@@ -252,6 +253,17 @@ export function createParasutEInvoiceProvider(
           error: 'Paraşüt PDF yok'
         }
       );
+    },
+
+    async cancel(uuid, opts) {
+      const parsed = parseProviderRef(uuid);
+      const result = await cancelParasutDocument(config, {
+        salesInvoiceId: parsed.salesInvoiceId,
+        eDocumentId: parsed.eDocumentId ?? uuid,
+        documentType: parsed.documentType,
+        reason: opts?.reason
+      });
+      return result;
     },
 
     async queryTaxpayer(taxId: string) {

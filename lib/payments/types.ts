@@ -63,6 +63,20 @@ export interface PaymentVerifyResult {
   currency?: string;
 }
 
+export interface PaymentRefundInput {
+  orderId: string;
+  paymentId: string;
+  amount: number;
+  currency?: 'TRY';
+  reason?: string;
+}
+
+export interface PaymentRefundResult {
+  ok: boolean;
+  providerRefundId?: string;
+  error?: string;
+}
+
 export interface PaymentProvider {
   readonly name: PaymentProviderName;
   isConfigured(): boolean;
@@ -71,6 +85,8 @@ export interface PaymentProvider {
     request: Request,
     payload?: unknown
   ): Promise<PaymentVerifyResult>;
+  /** Opsiyonel — PSP iade API'si */
+  refundPayment?(input: PaymentRefundInput): Promise<PaymentRefundResult>;
 }
 
 export class PaymentNotConfiguredError extends Error {

@@ -153,6 +153,22 @@ enum PayoutStatus {
   cancelled
 }
 
+
+enum BankRefundStatus {
+  pending
+  sent
+  completed
+  cancelled
+}
+
+enum OrderRefundRequestStatus {
+  pending
+  approved
+  rejected
+  completed
+  cancelled
+}
+
 enum ReconciliationStatus {
   pending
   reconciled
@@ -345,6 +361,7 @@ model Organizer {
   supportTickets OrganizerSupportTicket[]
   invitations    EventInvitation[]
   payouts            OrganizerPayout[]
+  refundRequests     OrderRefundRequest[]
   accountingExpenses AccountingExpense[]
   coupons            Coupon[]
   billingProfiles    OrganizerBillingProfile[]
@@ -611,6 +628,8 @@ model Order {
   reconciliations  PaymentReconciliation[]
   revenueEntries   RevenueRecognition[]
   payouts          OrganizerPayout[]
+  bankRefundRequests BankRefundRequest[]
+  refundRequests     OrderRefundRequest[]
 
   @@index([userId])
   @@index([eventId])
@@ -647,6 +666,8 @@ model PurchasedTicket {
   attendeeEmail   String?               @map("attendee_email")
   attendeePhone   String?               @map("attendee_phone")
   attendeeTcKimlik String?              @map("attendee_tc_kimlik")
+  /** Amfi/masa koltuk birim id (VIP-E11, B12…) — harita ile eşleşir */
+  seatUnitId      String?               @map("seat_unit_id")
   downloadCount   Int                   @default(0) @map("download_count")
   entryCount      Int                   @default(0) @map("entry_count")
   scannedAt       DateTime?             @map("scanned_at")
@@ -667,6 +688,7 @@ model PurchasedTicket {
   @@index([userId])
   @@index([eventId])
   @@index([status])
+  @@index([seatUnitId])
   @@index([deletedAt])
   @@map("purchased_tickets")
 }
@@ -947,6 +969,57 @@ model OrganizerPayout {
   @@index([orderId])
   @@index([status])
   @@map("organizer_payouts")
+}
+
+/** Manuel EFT / havale iade talebi — kart iadesi mümkün değilse veya fallback */
+model BankRefundRequest {
+  id            String           @id @default(uuid()) @db.Uuid
+  orderId       String           @map("order_id") @db.Uuid
+  amount        Float
+  currency      Currency         @default(TRY)
+  accountHolder String           @map("account_holder")
+  iban          String
+  status        BankRefundStatus @default(pending)
+  reason        String?
+  paymentRef    String?          @map("payment_ref")
+  requestedBy   String?          @map("requested_by")
+  processedBy   String?          @map("processed_by")
+  sentAt        DateTime?        @map("sent_at")
+  completedAt   DateTime?        @map("completed_at")
+  metadata      Json             @default("{}")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("bank_refund_requests")
+}
+
+/** Organizatör → admin iade talebi (onay sonrası tam iade zinciri) */
+model OrderRefundRequest {
+  id              String                   @id @default(uuid()) @db.Uuid
+  orderId         String                   @map("order_id") @db.Uuid
+  organizerId     String                   @map("organizer_id") @db.Uuid
+  status          OrderRefundRequestStatus @default(pending)
+  reason          String?
+  ticketIds       String[]                 @default([]) @map("ticket_ids")
+  requestedBy     String?                  @map("requested_by")
+  reviewedBy      String?                  @map("reviewed_by")
+  reviewNote      String?                  @map("review_note")
+  reviewedAt      DateTime?                @map("reviewed_at")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  order     Order     @relation(fields: [orderId], references: [id])
+  organizer Organizer @relation(fields: [organizerId], references: [id])
+
+  @@index([orderId])
+  @@index([organizerId])
+  @@index([status])
+  @@map("order_refund_requests")
 }
 
 model RevenueRecognition {

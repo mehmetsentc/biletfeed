@@ -2,6 +2,9 @@ import { Suspense } from 'react';
 import { getAdminOrders, getAdminOrderEventList, type OrderKategori } from '@/lib/services/admin-dashboard';
 import { Badge } from '@/components/ui/badge';
 import { OrdersFilter } from '@/components/admin/orders-filter';
+import { AdminOrderActions } from '@/components/admin/admin-order-actions';
+import { formatSeatsLabel } from '@/lib/tickets/seat-label';
+import Link from 'next/link';
 
 interface PageProps {
   searchParams: Promise<{ eventId?: string; kategori?: string }>;
@@ -55,9 +58,17 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Siparişler</h1>
-        <p className="text-muted-foreground">Platform siparişleri</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Siparişler</h1>
+          <p className="text-muted-foreground">Platform siparişleri</p>
+        </div>
+        <Link
+          href="/admin/iade-islemleri"
+          className="text-sm font-medium text-[var(--bf-accent-ink)] underline-offset-2 hover:underline"
+        >
+          İade talepleri / banka kuyruğu
+        </Link>
       </div>
 
       <Suspense>
@@ -76,12 +87,14 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
               <th className="p-3 font-medium">Tarih</th>
               <th className="p-3 font-medium">Etkinlik</th>
               <th className="p-3 font-medium">Bilet Kategorisi</th>
+              <th className="p-3 font-medium">Koltuk</th>
               <th className="p-3 font-medium">Adet</th>
               <th className="p-3 font-medium">Müşteri</th>
               <th className="p-3 font-medium">Organizatör</th>
               <th className="p-3 font-medium">Tutar</th>
               <th className="p-3 font-medium">Tür</th>
               <th className="p-3 font-medium">Durum</th>
+              <th className="p-3 font-medium text-right">İşlem</th>
             </tr>
           </thead>
           <tbody>
@@ -100,6 +113,9 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                   <td className="p-3 text-muted-foreground">
                     {ticketNames || '—'}
                   </td>
+                  <td className="p-3 font-mono text-xs">
+                    {formatSeatsLabel(order.purchasedTickets)}
+                  </td>
                   <td className="p-3 text-center">{totalQty || '—'}</td>
                   <td className="p-3">
                     {order.user?.displayName ?? order.user?.email ?? '—'}
@@ -116,7 +132,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                       variant={
                         order.status === 'paid'
                           ? 'success'
-                          : order.status === 'cancelled'
+                          : order.status === 'cancelled' || order.status === 'refunded'
                           ? 'destructive'
                           : 'secondary'
                       }
@@ -124,12 +140,19 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                       {statusLabel(order.status)}
                     </Badge>
                   </td>
+                  <td className="p-3 text-right">
+                    <AdminOrderActions
+                      orderId={order.id}
+                      status={order.status}
+                      total={order.total}
+                    />
+                  </td>
                 </tr>
               );
             })}
             {orders.length === 0 && (
               <tr>
-                <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                <td colSpan={11} className="p-8 text-center text-muted-foreground">
                   Bu kriterlere uygun sipariş yok.
                 </td>
               </tr>

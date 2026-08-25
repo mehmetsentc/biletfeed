@@ -153,7 +153,13 @@ export async function getAdminOrders(opts?: {
           }
         },
         purchasedTickets: {
-          select: { invitation: { select: { id: true } } }
+          select: {
+            id: true,
+            seatUnitId: true,
+            attendeeName: true,
+            status: true,
+            invitation: { select: { id: true } }
+          }
         }
       },
       orderBy: { createdAt: 'desc' },

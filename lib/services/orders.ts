@@ -618,7 +618,8 @@ async function issueTickets(
             ? seatUnitId
             : null,
         attendeeEmail: params.attendeeEmail ?? null,
-        attendeePhone: params.attendeePhone ?? null
+        attendeePhone: params.attendeePhone ?? null,
+        seatUnitId: seatUnitId ?? null
       }
     });
   }
@@ -943,64 +944,9 @@ export async function requestOrderRefund(params: {
   orderId: string;
   reason?: string;
 }): Promise<{ ok: boolean; message: string }> {
-  await ensureDbConnection();
-
-  const order = await prisma.order.findUnique({
-    where: { id: params.orderId },
-    include: { purchasedTickets: true }
+  const { processOrderRefund } = await import('@/lib/services/order-refund');
+  return processOrderRefund({
+    orderId: params.orderId,
+    reason: params.reason
   });
-  if (!order) throw new Error('Sipariş bulunamadı');
-  if (order.status !== 'paid') {
-    throw new Error('Yalnızca ödenmiş siparişler iade edilebilir');
-  }
-
-  const provider = order.paymentProvider as PaymentProviderName;
-  if (provider !== 'free' && provider !== 'mock') {
-    return {
-      ok: false,
-      message: `${provider} iade API'si henüz bağlanmadı. Ödeme kuruluşu onayı sonrası aktif edilecek.`
-    };
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.order.update({
-      where: { id: order.id },
-      data: { status: 'refunded' }
-    });
-
-    await tx.purchasedTicket.updateMany({
-      where: { orderId: order.id },
-      data: { status: 'REFUNDED' }
-    });
-
-    await tx.transaction.updateMany({
-      where: { orderId: order.id },
-      data: { status: 'refunded' }
-    });
-
-    for (const item of await tx.orderItem.findMany({
-      where: { orderId: order.id }
-    })) {
-      await tx.ticketType.update({
-        where: { id: item.ticketTypeId },
-        data: { sold: { decrement: item.quantity } }
-      });
-    }
-  });
-
-  void import('@/lib/accounting/refund')
-    .then(({ processOrderRefundAccounting }) =>
-      processOrderRefundAccounting(order.id)
-    )
-    .catch((err) => {
-      console.error('[accounting] refund reverse entries', order.id, err);
-    });
-
-  void import('@/lib/email/send-refund-email').then(({ sendRefundNotificationEmail }) =>
-    sendRefundNotificationEmail(order.id, params.reason)
-  ).catch((err) => {
-    console.error('[email] refund notification', order.id, err);
-  });
-
-  return { ok: true, message: 'İade işlendi (mock/free)' };
 }

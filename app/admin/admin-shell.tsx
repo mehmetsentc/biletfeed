@@ -21,7 +21,8 @@ import {
   Clock,
   Shield,
   Menu,
-  X
+  X,
+  RotateCcw
 } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { ProfileDropdown } from '@/components/layout/profile-dropdown';
@@ -110,6 +111,7 @@ export function AdminShell({
     { href: '/admin/sehirler', label: t.admin.cities, icon: MapPin },
     { href: '/admin/mekanlar', label: t.admin.venues, icon: Building2 },
     { href: '/admin/siparisler', label: t.admin.orders, icon: ShoppingCart },
+    { href: '/admin/iade-islemleri', label: 'İade işlemleri', icon: RotateCcw },
     { href: '/admin/biletler', label: t.tickets.title, icon: Ticket },
     { href: '/admin/islemler', label: t.admin.transactions, icon: CreditCard },
     { href: '/admin/analitik', label: t.admin.analytics, icon: BarChart3 },

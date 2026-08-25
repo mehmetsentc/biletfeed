@@ -150,6 +150,15 @@ export async function getOrganizerOrders(
       user: { select: { displayName: true, email: true } },
       items: {
         include: { ticketType: { select: { name: true, type: true } } }
+      },
+      purchasedTickets: {
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          seatUnitId: true,
+          attendeeName: true,
+          status: true
+        }
       }
     },
     orderBy: { createdAt: 'desc' },
@@ -201,8 +210,9 @@ export async function getOrganizerTickets(
       event: { select: { id: true, title: true } },
       ticketType: { select: { name: true, type: true } },
       user: { select: { displayName: true } },
-      order: { select: { paymentProvider: true } }
+      order: { select: { id: true, paymentProvider: true, status: true } }
     },
+    // seatUnitId + attendeeName default scalar fields come through
     orderBy: { createdAt: 'desc' },
     take: 200
   });

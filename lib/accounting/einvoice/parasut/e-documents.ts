@@ -161,6 +161,63 @@ export async function showEDocument(
   return asSingleResource(doc);
 }
 
+/**
+ * Paraşüt e-belge / satış faturası iptali.
+ * e_archives → DELETE; e_invoices → cancel endpoint; sales → DELETE.
+ */
+export async function cancelParasutDocument(
+  config: ParasutConfig,
+  params: {
+    salesInvoiceId?: string;
+    eDocumentId?: string;
+    documentType?: 'e_archives' | 'e_invoices';
+    reason?: string;
+  }
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (params.documentType && params.eDocumentId) {
+      if (params.documentType === 'e_archives') {
+        await parasutRequest(
+          config,
+          `/e_archives/${params.eDocumentId}`,
+          { method: 'DELETE' }
+        );
+      } else {
+        // e-Fatura iptali — Paraşüt cancel aksiyonu
+        await parasutRequest(config, `/e_invoices/${params.eDocumentId}/cancel`, {
+          method: 'PATCH',
+          body: {
+            data: {
+              type: 'e_invoices',
+              id: params.eDocumentId,
+              attributes: {
+                note: params.reason ?? 'BiletFeed sipariş iadesi'
+              }
+            }
+          }
+        });
+      }
+      return { ok: true };
+    }
+
+    if (params.salesInvoiceId) {
+      await parasutRequest(
+        config,
+        `/sales_invoices/${params.salesInvoiceId}`,
+        { method: 'DELETE' }
+      );
+      return { ok: true };
+    }
+
+    return { ok: false, error: 'Paraşüt iptal için belge id yok' };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Paraşüt iptal başarısız'
+    };
+  }
+}
+
 /** E-belgeyi e-posta ile paylaş */
 export async function shareSalesInvoiceEmail(
   config: ParasutConfig,

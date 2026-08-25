@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getGirisUrl } from '@/lib/config/domain';
 import { redirectToPanel } from '@/lib/auth/panel-paths-server';
+import { extractSeatUnitId } from '@/lib/tickets/seat-label';
 
 interface PageProps {
   searchParams: Promise<{ event?: string; type?: string; category?: string }>;
@@ -143,6 +144,7 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
               <th className="p-3 font-medium">Kod</th>
               {!activeEvent && <th className="p-3 font-medium">Etkinlik</th>}
               <th className="p-3 font-medium">Kategori</th>
+              <th className="p-3 font-medium">Koltuk</th>
               <th className="p-3 font-medium">Sahip</th>
               <th className="p-3 font-medium">Durum</th>
               <th className="p-3 font-medium text-right">İşlemler</th>
@@ -172,7 +174,16 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
                     )}
                   </div>
                 </td>
-                <td className="p-3">{ticket.user.displayName}</td>
+                <td className="p-3 font-mono text-xs">
+                  {extractSeatUnitId({
+                    seatUnitId: ticket.seatUnitId,
+                    attendeeName: ticket.attendeeName
+                  }) ?? '—'}
+                </td>
+                <td className="p-3">
+                  {ticket.attendeeName?.split(' · ')[0]?.trim() ||
+                    ticket.user.displayName}
+                </td>
                 <td className="p-3">
                   <Badge variant={ticket.status === 'USED' ? 'success' : 'secondary'}>
                     {ticket.status}
@@ -190,7 +201,7 @@ export default async function OrganizatorTicketsPage({ searchParams }: PageProps
             {tickets.length === 0 && (
               <tr>
                 <td
-                  colSpan={activeEvent ? 5 : 6}
+                  colSpan={activeEvent ? 6 : 7}
                   className="p-8 text-center text-muted-foreground"
                 >
                   {!eventId && events.length > 0

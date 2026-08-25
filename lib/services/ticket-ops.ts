@@ -27,9 +27,15 @@ export async function adminCancelTicket(ticketId: string): Promise<void> {
   });
   if (!ticket) throw new Error('İptal edilebilir bilet bulunamadı');
 
-  await prisma.purchasedTicket.update({
-    where: { id: ticketId },
-    data: { status: 'CANCELLED' }
+  await prisma.$transaction(async (tx) => {
+    await tx.purchasedTicket.update({
+      where: { id: ticketId },
+      data: { status: 'CANCELLED' }
+    });
+    await tx.ticketType.update({
+      where: { id: ticket.ticketTypeId },
+      data: { sold: { decrement: 1 } }
+    });
   });
 }
 

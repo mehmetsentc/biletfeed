@@ -151,6 +151,7 @@ export const ADMIN_NAV_PERMISSIONS: Record<string, AdminPermission> = {
   '/admin/sehirler': 'cities.manage',
   '/admin/mekanlar': 'venues.manage',
   '/admin/siparisler': 'orders.view',
+  '/admin/iade-islemleri': 'orders.refund',
   '/admin/biletler': 'tickets.view',
   '/admin/islemler': 'transactions.view',
   '/admin/analitik': 'analytics.view',
@@ -234,6 +235,7 @@ export function resolveAdminPathPermission(pathname: string): AdminPermission | 
   if (pathname.startsWith('/admin/etkinlikler')) return 'events.view';
   if (pathname.startsWith('/admin/organizatorler')) return 'organizers.view';
   if (pathname.startsWith('/admin/siparisler')) return 'orders.view';
+  if (pathname.startsWith('/admin/iade-islemleri')) return 'orders.refund';
   if (pathname.startsWith('/admin/muhasebe')) return 'accounting.view';
   return null;
 }

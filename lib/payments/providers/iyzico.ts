@@ -88,6 +88,21 @@ function promisifyRetrieve(
   });
 }
 
+function promisifyRefund(
+  client: IyzipayClient,
+  request: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    client.refund.create(
+      request as never,
+      ((err: Error, result: unknown) => {
+        if (err) reject(err);
+        else resolve((result ?? {}) as Record<string, unknown>);
+      }) as never
+    );
+  });
+}
+
 async function parseFormToken(request: Request): Promise<string | null> {
   const contentType = request.headers.get('content-type') ?? '';
   if (
@@ -304,5 +319,83 @@ export const iyzicoPaymentProvider: PaymentProvider = {
       select: { id: true }
     });
     return mapIyzicoRetrieveToVerify(result, order?.id);
+  },
+
+  async refundPayment(input) {
+    if (!this.isConfigured()) {
+      throw new PaymentNotConfiguredError('iyzico');
+    }
+
+    const paymentId = input.paymentId.replace(/^iyzico:/, '').trim();
+    if (!paymentId) {
+      return { ok: false, error: 'İyzico paymentId eksik' };
+    }
+
+    const client = createClient();
+
+    // Önce checkout token ile paymentItems → paymentTransactionId dene
+    let paymentTransactionId: string | null = null;
+    try {
+      const order = await prisma.order.findUnique({
+        where: { id: input.orderId },
+        select: { paymentSessionId: true }
+      });
+      if (order?.paymentSessionId) {
+        const retrieved = await promisifyRetrieve(client, {
+          locale: Iyzipay.LOCALE.TR,
+          token: order.paymentSessionId,
+          conversationId: input.orderId
+        });
+        const items = retrieved.paymentItems;
+        if (Array.isArray(items) && items[0]) {
+          const first = items[0] as Record<string, unknown>;
+          const txId = first.paymentTransactionId ?? first.paymentTransactionID;
+          if (typeof txId === 'string' && txId.trim()) {
+            paymentTransactionId = txId.trim();
+          }
+        }
+      }
+    } catch {
+      // fall through — paymentId ile dene
+    }
+
+    const request: Record<string, unknown> = {
+      locale: Iyzipay.LOCALE.TR,
+      conversationId: input.orderId,
+      price: formatPrice(input.amount),
+      currency: Iyzipay.CURRENCY.TRY,
+      ip: '127.0.0.1'
+    };
+
+    if (paymentTransactionId) {
+      request.paymentTransactionId = paymentTransactionId;
+    } else {
+      // Bazı İyzico sürümlerinde paymentId ile cancel/refund
+      request.paymentId = paymentId;
+    }
+
+    try {
+      const result = await promisifyRefund(client, request);
+      if (String(result.status ?? '').toLowerCase() !== 'success') {
+        // paymentId yolu başarısızsa ve transaction id yoksa net hata
+        const msg =
+          typeof result.errorMessage === 'string'
+            ? result.errorMessage
+            : 'İyzico iade başarısız';
+        return { ok: false, error: msg };
+      }
+      const refundId =
+        typeof result.paymentId === 'string'
+          ? result.paymentId
+          : typeof result.paymentTransactionId === 'string'
+            ? result.paymentTransactionId
+            : `iyzico-refund:${input.orderId}`;
+      return { ok: true, providerRefundId: refundId };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : 'İyzico iade hatası'
+      };
+    }
   }
 };
