@@ -14,8 +14,16 @@ import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { getMainNavLinks } from '@/lib/layout/navigation';
 import { useTranslations } from '@/components/providers';
 
-/** Tablet’te sıkışmayı önlemek için birincil / ikincil ayrımı */
-const PRIMARY_HREFS = new Set(['/', '/feed', '/etkinlikler', '/kategoriler']);
+/**
+ * Breakpoint şeridi (site chrome):
+ * - Telefon: 0–767 (md altı)
+ * - Tablet / kompakt: 768–1279 (md–xl) — iPad dikey + yatay
+ * - Masaüstü: 1280+ (xl)
+ *
+ * iPad Air/Pro landscape ~1024–1180 `lg` bandına düşer; tam 6 link + şehir +
+ * tema + profil orada üst üste biner. Bu yüzden kompakt nav xl’e kadar sürer.
+ */
+const PRIMARY_HREFS = new Set(['/', '/feed', '/etkinlikler']);
 
 export function Header() {
   const pathname = usePathname();
@@ -64,10 +72,10 @@ export function Header() {
         scrolled || !isHome ? 'shadow-[var(--shadow-glass)]' : 'shadow-none'
       )}
     >
-      {/* Tablet (md–lg): oranlara göre sıkı / akıllı nav */}
+      {/* Tablet (md–xl): kompakt nav — şehir / ikincil linkler More menüsünde */}
       <div
         className={cn(
-          'container mx-auto hidden items-center justify-between md:flex lg:hidden',
+          'container mx-auto hidden items-center justify-between md:flex xl:hidden',
           'px-[clamp(0.75rem,2vw,1.25rem)]',
           scrolled ? 'h-14' : 'h-[clamp(3.25rem,5.5vw,3.75rem)]'
         )}
@@ -78,7 +86,7 @@ export function Header() {
         />
 
         <nav
-          className="mx-[clamp(0.25rem,1.5vw,0.75rem)] flex min-w-0 flex-1 items-center justify-center"
+          className="mx-[clamp(0.25rem,1.5vw,0.75rem)] flex min-w-0 flex-1 items-center justify-center overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="Ana menü"
         >
           <div
@@ -108,7 +116,7 @@ export function Header() {
               );
             })}
 
-            <div className="relative" ref={moreRef}>
+            <div className="relative shrink-0" ref={moreRef}>
               <button
                 type="button"
                 onClick={() => setMoreOpen((v) => !v)}
@@ -182,7 +190,7 @@ export function Header() {
                     {t.nav.login}
                   </Button>
                 </Link>
-                <Link href="/kayit">
+                <Link href="/kayit" className="hidden min-[900px]:block">
                   <Button
                     size="sm"
                     className="btn-gradient-primary min-h-10 rounded-[var(--radius-button)] px-3 text-[clamp(0.75rem,1.5vw,0.875rem)] font-bold text-primary-foreground"
@@ -195,10 +203,10 @@ export function Header() {
         </div>
       </div>
 
-      {/* Masaüstü (lg+): tam nav — şehir logo yanında değil */}
+      {/* Masaüstü (xl+): tam nav + satır içi şehir */}
       <div
         className={cn(
-          'container mx-auto hidden items-center justify-between gap-3 px-6 lg:flex',
+          'container mx-auto hidden items-center justify-between gap-3 px-6 xl:flex',
           scrolled ? 'h-14' : 'h-16'
         )}
       >
@@ -208,7 +216,7 @@ export function Header() {
           className="mx-4 flex min-w-0 flex-1 items-center justify-center"
           aria-label="Ana menü"
         >
-          <div className="flex max-w-full items-center gap-2 xl:gap-3">
+          <div className="flex max-w-full flex-wrap items-center justify-center gap-1.5 2xl:gap-3">
             {navLinks.map((link) => {
               const active = linkActive(link.href);
               return (
@@ -217,7 +225,7 @@ export function Header() {
                   href={link.href}
                   data-active={active ? 'true' : 'false'}
                   className={cn(
-                    'inline-flex min-h-11 shrink-0 items-center rounded-xl px-3.5 text-sm font-semibold transition-colors duration-200',
+                    'inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-semibold transition-colors duration-200 2xl:px-3.5',
                     'text-[var(--header-fg)] hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)]',
                     active &&
                       'bg-[var(--header-hover)] text-[var(--bf-accent-ink)]'

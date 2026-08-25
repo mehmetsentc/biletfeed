@@ -59,8 +59,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
     <>
       <header
         className={cn(
-          // Nav kabuğunda üstte sabit; nav gizli sayfalarda body scroll ile sticky
-          'glass-header sticky top-0 z-50 border-b pt-[env(safe-area-inset-top)] lg:hidden',
+          'glass-header sticky top-0 z-50 border-b pt-[env(safe-area-inset-top)]',
           'text-[var(--header-fg)]'
         )}
       >
@@ -132,7 +131,7 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
       </header>
 
       {menuOpen && (
-        <div className="fixed inset-0 z-[100] lg:hidden">
+        <div className="fixed inset-0 z-[100]">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setMenuOpen(false)}

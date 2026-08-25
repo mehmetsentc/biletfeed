@@ -107,7 +107,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           ])
         ]}
       />
-      <div className="bg-muted/20 pb-28 lg:pb-10">
+      <div className="bg-muted/20 pb-28 md:pb-10">
         <div className="container mx-auto space-y-8 px-4 py-6 md:py-8">
           {isPreview && previewKind && (
             <EventPreviewBanner kind={previewKind} />
@@ -121,7 +121,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             purchasable={purchasable}
           />
 
-          {/* Tablet dikey: yan kart yok; başlık altında + altta sticky CTA */}
+          {/* Tablet: yan satın alma kartı yok; başlık altında CTA */}
           <EventTabletTicketBar event={event} purchasable={purchasable} />
 
           {event.mediaAssets?.sponsorBandUrl && (
@@ -132,7 +132,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             <EventSeriesSessions sessions={seriesSessions} />
           )}
 
-          <div className="grid gap-8 lg:grid-cols-[1fr_300px] lg:gap-10">
+          <div className="grid gap-8 xl:grid-cols-[1fr_300px] xl:gap-10">
             <div className="space-y-8">
               {event.gallery.length > 0 && (
                 <EventGallerySection images={event.gallery} />
@@ -186,7 +186,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               <EventRulesSection eventId={event.id} />
             </div>
 
-            <aside className="hidden lg:block">
+            <aside className="hidden xl:block">
               <div className="rounded-2xl border border-border bg-card p-5">
                 {externalListing ? (
                   <EventHostedBy
@@ -205,7 +205,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             </aside>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-5 lg:hidden">
+          <div className="rounded-2xl border border-border bg-card p-5 xl:hidden">
             {externalListing ? (
               <EventHostedBy
                 platformLabel={event.organizer}

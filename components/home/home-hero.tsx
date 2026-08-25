@@ -33,7 +33,7 @@ export function HomeHeroMobile() {
 /** Tablet */
 export function HomeHeroTablet() {
   return (
-    <section className="relative hidden min-h-[420px] overflow-hidden bg-[#000000] md:block lg:hidden">
+    <section className="relative hidden min-h-[420px] overflow-hidden bg-[#000000] md:block xl:hidden">
       <Image
         src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&q=80"
         alt=""
@@ -63,7 +63,7 @@ export function HomeHeroTablet() {
 /** Masaüstü */
 export function HomeHeroDesktop() {
   return (
-    <section className="relative hidden min-h-[560px] items-center overflow-hidden bg-[#000000] lg:flex">
+    <section className="relative hidden min-h-[560px] items-center overflow-hidden bg-[#000000] xl:flex">
       <Image
         src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1920&q=80"
         alt=""

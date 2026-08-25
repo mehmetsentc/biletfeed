@@ -58,8 +58,8 @@ export async function EventDetailHeader({
         />
       </div>
 
-      <div className="grid gap-0 lg:grid-cols-[1fr_300px]">
-        <div className="flex flex-col justify-between gap-5 p-5 md:p-6 lg:pr-4">
+      <div className="grid gap-0 xl:grid-cols-[1fr_300px]">
+        <div className="flex flex-col justify-between gap-5 p-5 md:p-6 xl:pr-4">
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-2">
@@ -132,12 +132,12 @@ export async function EventDetailHeader({
           )}
         </div>
 
-        <div className="hidden border-t border-border p-5 lg:block lg:border-l lg:border-t-0">
+        <div className="hidden border-t border-border p-5 xl:block xl:border-l xl:border-t-0">
           <EventPurchaseCard
             event={event}
             purchasable={purchasable}
             variant="embedded"
-            className="lg:sticky lg:top-24"
+            className="xl:sticky xl:top-24"
           />
         </div>
       </div>

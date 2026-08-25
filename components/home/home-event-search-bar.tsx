@@ -137,8 +137,8 @@ export function HomeEventSearchBar({
         className
       )}
     >
-      {/* —— Mobil: kompakt 2 satır —— */}
-      <div className="space-y-2 p-2.5 lg:hidden">
+      {/* —— Telefon + tablet: kompakt 2 satır (xl altı) —— */}
+      <div className="space-y-2 p-2.5 xl:hidden">
         <div className="flex gap-2">
           <div className="relative min-w-0 flex-1">
             <Search
@@ -258,8 +258,8 @@ export function HomeEventSearchBar({
         </p>
       </div>
 
-      {/* —— Masaüstü: mevcut yatay şerit —— */}
-      <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto_auto] lg:divide-x lg:divide-y-0 lg:divide-border/70">
+      {/* —— Masaüstü (xl+): yatay şerit —— */}
+      <div className="hidden xl:grid xl:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.9fr)_auto_auto] xl:divide-x xl:divide-y-0 xl:divide-border/70">
         <div className="relative px-3 py-3">
           <FieldLabel>{t.common.search}</FieldLabel>
           <Search
@@ -365,7 +365,7 @@ export function HomeEventSearchBar({
         </div>
       </div>
 
-      <p className="hidden border-t border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground lg:block">
+      <p className="hidden border-t border-border/60 bg-muted/30 px-4 py-2 text-xs text-muted-foreground xl:block">
         {displayCityName !== t.filters.allCities ? (
           <>
             {t.filters.selectCity}:{' '}

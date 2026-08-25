@@ -70,24 +70,26 @@ export function ProfileDropdown() {
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          'group flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-[var(--header-fg)] transition-all duration-200 ease-[var(--ease-out)] hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)] sm:gap-2.5 sm:pr-3',
+          'group flex items-center gap-1.5 rounded-full py-1 pl-1 pr-1.5 text-[var(--header-fg)] transition-all duration-200 ease-[var(--ease-out)] hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)] xl:gap-2.5 xl:pr-3',
           isProfileActive && 'text-[var(--bf-accent-ink)]',
           open && 'bg-[var(--header-hover)] text-[var(--bf-accent-ink)]'
         )}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={displayName}
       >
-        <Avatar className="size-8 border border-[var(--header-border)] shadow-[var(--shadow-xs)] transition-transform duration-200 group-hover:scale-[1.02] sm:size-9">
-          <AvatarFallback className="bg-primary/12 text-xs font-bold text-[var(--bf-accent-ink)] sm:text-sm">
+        <Avatar className="size-9 border border-[var(--header-border)] shadow-[var(--shadow-xs)] transition-transform duration-200 group-hover:scale-[1.02]">
+          <AvatarFallback className="bg-primary/12 text-sm font-bold text-[var(--bf-accent-ink)]">
             {initials}
           </AvatarFallback>
         </Avatar>
-        <span className="hidden max-w-[7rem] truncate text-sm font-semibold sm:inline">
+        {/* İsim yalnızca geniş masaüstünde — tablet’te avatar yeter */}
+        <span className="hidden max-w-[7rem] truncate text-sm font-semibold xl:inline">
           {displayName}
         </span>
         <ChevronDown
           className={cn(
-            'size-4 transition-transform',
+            'hidden size-4 transition-transform xl:block',
             open && 'rotate-180'
           )}
         />

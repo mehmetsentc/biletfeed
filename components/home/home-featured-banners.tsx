@@ -35,7 +35,7 @@ function BannerSlide({
           sizes="100vw"
         />
       </div>
-      <div className="relative hidden aspect-[21/9] w-full md:block lg:hidden">
+      <div className="relative hidden aspect-[21/9] w-full md:block xl:hidden">
         <Image
           src={banner.imageTablet}
           alt={alt}
@@ -45,7 +45,7 @@ function BannerSlide({
           sizes="100vw"
         />
       </div>
-      <div className="relative hidden aspect-[21/9] w-full lg:block">
+      <div className="relative hidden aspect-[21/9] w-full xl:block">
         <Image
           src={banner.imageDesktop}
           alt={alt}

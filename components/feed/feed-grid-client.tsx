@@ -194,11 +194,11 @@ export function FeedGridClient({
                     )}
 
                     {/*
-                      md (iPad dikey): sol kategori menüsü sayfada; ana sütun tam genişlik.
-                      lg+ (iPad yatay / masaüstü): sağda sticky Trend.
+                      md–xl (iPad): ana sütun tam genişlik + altta Trend şeridi.
+                      xl+ (masaüstü): sağda sticky Trend.
                       Telefon: yatay Trend şeridi.
                     */}
-                    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-10">
+                    <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_260px] xl:gap-10">
                       <section aria-label="Son haberler">
                         {list.length > 0 && (
                           <>
@@ -219,7 +219,7 @@ export function FeedGridClient({
                         )}
                       </section>
 
-                      <div className="hidden lg:block">
+                      <div className="hidden xl:block">
                         <div className="sticky top-24">
                           <FeedRecentSidebar posts={sidebarPosts} />
                         </div>
@@ -227,7 +227,7 @@ export function FeedGridClient({
                     </div>
 
                     {sidebarPosts.length > 0 && (
-                      <section className="lg:hidden" aria-label="Trend">
+                      <section className="xl:hidden" aria-label="Trend">
                         <h2 className="mb-3 text-sm font-bold uppercase tracking-[0.14em] text-muted-foreground">
                           Trend
                         </h2>

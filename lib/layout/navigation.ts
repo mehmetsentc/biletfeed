@@ -2,6 +2,13 @@
 export const mobileBottomNavClearanceClass =
   'pb-[calc(4.75rem+env(safe-area-inset-bottom))]';
 
+/**
+ * Site responsive şeritleri (Tailwind):
+ * - Telefon: 0–767 (md altı) — MobileHeader + bottom nav
+ * - Tablet: 768–1279 (md–xl) — kompakt Header, tablet hero/CTA
+ * - Masaüstü: 1280+ (xl) — tam nav + yan paneller
+ */
+
 /** Viewport’a fixed barların (bilet CTA vb.) alt nav üstüne oturması için */
 export const mobileBottomNavOffsetClass =
   'bottom-[calc(4.75rem+env(safe-area-inset-bottom))]';
