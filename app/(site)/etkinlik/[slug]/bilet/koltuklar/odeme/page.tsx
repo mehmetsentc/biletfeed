@@ -13,6 +13,8 @@ import { resolveLocaleFromCookie } from '@/lib/event-rules/i18n';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { cookies } from 'next/headers';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ ids?: string; seats?: string }>;
@@ -63,6 +65,13 @@ export default async function MultiSeatCheckoutPage({ params, searchParams }: Pr
         (x) => x.unit.id.toUpperCase() === seatId.toUpperCase()
       );
       if (!found) {
+        redirect(`/etkinlik/${slug}/bilet`);
+      }
+      if (
+        ctx.soldSeatIds.some(
+          (id) => id.toUpperCase() === found.unit.id.toUpperCase()
+        )
+      ) {
         redirect(`/etkinlik/${slug}/bilet`);
       }
       const tt = matchTicketTypeToSeatUnit(

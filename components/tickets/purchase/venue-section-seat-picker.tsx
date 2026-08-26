@@ -22,6 +22,15 @@ import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import { ticketTypeAvailable } from '@/lib/tickets/purchase-types';
 import { formatTry } from '@/lib/tickets/purchase-pricing';
 import { matchTicketTypeToSeatUnit } from '@/lib/tickets/seat-packages';
+
+function seatCategoryPriceLabel(params: {
+  price: number | null;
+  allowsZeroPrice: boolean;
+}): string {
+  if (params.price == null) return '—';
+  if (params.price <= 0 && !params.allowsZeroPrice) return 'Satış dışı';
+  return formatTry(params.price);
+}
 import {
   AMPHITHEATER_VB,
   boothRect,
@@ -160,7 +169,8 @@ export function VenueSectionSeatPicker({
         label: zone.label,
         accent,
         available,
-        price: sample?.price ?? null
+        price: sample?.price ?? null,
+        allowsZeroPrice: sample?.allowsZeroPrice ?? false
       };
     });
   }, [zones, cellsByUnitId]);
@@ -168,7 +178,7 @@ export function VenueSectionSeatPicker({
   const priceRange = useMemo(() => {
     const prices = categoryStats
       .map((c) => c.price)
-      .filter((p): p is number => p != null);
+      .filter((p): p is number => p != null && p > 0);
     if (!prices.length) return null;
     return { min: Math.min(...prices), max: Math.max(...prices) };
   }, [categoryStats]);
@@ -522,7 +532,10 @@ export function VenueSectionSeatPicker({
                     </span>
                   </span>
                   <span className="font-bold tabular-nums text-foreground">
-                    {c.price != null ? formatTry(c.price) : '—'}
+                    {seatCategoryPriceLabel({
+                      price: c.price,
+                      allowsZeroPrice: c.allowsZeroPrice
+                    })}
                   </span>
                 </button>
               </li>
@@ -803,7 +816,10 @@ export function VenueSectionSeatPicker({
                           <span className="truncate font-medium">{c.label}</span>
                         </span>
                         <span className="shrink-0 font-bold tabular-nums text-foreground">
-                          {c.price != null ? formatTry(c.price) : '—'}
+                          {seatCategoryPriceLabel({
+                            price: c.price,
+                            allowsZeroPrice: c.allowsZeroPrice
+                          })}
                         </span>
                       </button>
                     </li>

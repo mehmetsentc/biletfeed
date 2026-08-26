@@ -114,7 +114,9 @@ export async function TicketTierList({
                 )}
                 {!available && (
                   <Badge variant="secondary" className="rounded-full">
-                    {t.events.soldOut}
+                    {type.price <= 0 && !type.allowsZeroPrice
+                      ? 'Satış dışı'
+                      : t.events.soldOut}
                   </Badge>
                 )}
               </div>
@@ -126,13 +128,19 @@ export async function TicketTierList({
             </div>
 
             <div className="flex items-center justify-between gap-4 sm:justify-end">
-              <SalePriceLabel
-                price={type.price}
-                listPrice={type.listPrice}
-                isOnSale={type.isOnSale}
-                discountPercent={type.discountPercent}
-                freeLabel={t.common.free}
-              />
+              {type.price <= 0 && !type.allowsZeroPrice ? (
+                <p className="text-xl font-extrabold tracking-tight text-muted-foreground">
+                  Satış dışı
+                </p>
+              ) : (
+                <SalePriceLabel
+                  price={type.price}
+                  listPrice={type.listPrice}
+                  isOnSale={type.isOnSale}
+                  discountPercent={type.discountPercent}
+                  freeLabel={t.common.free}
+                />
+              )}
               {available ? (
                 <Button asChild className="h-11 rounded-xl px-6 font-bold">
                   <Link href={`/etkinlik/${eventSlug}/bilet/${type.id}`}>
@@ -142,7 +150,9 @@ export async function TicketTierList({
                 </Button>
               ) : (
                 <Button disabled className="h-11 rounded-xl px-6 font-bold">
-                  {t.events.soldOut}
+                  {type.price <= 0 && !type.allowsZeroPrice
+                    ? 'Satış dışı'
+                    : t.events.soldOut}
                 </Button>
               )}
             </div>

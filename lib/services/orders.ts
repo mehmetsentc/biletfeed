@@ -26,6 +26,7 @@ import {
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
+import { extractSeatUnitId } from '@/lib/tickets/seat-label';
 import { effectiveTicketPrice } from '@/lib/services/event-sale-discount';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 
@@ -123,6 +124,36 @@ async function loadCheckoutContext(params: {
         throw new Error('Aynı koltuk birden fazla seçilemez');
       }
 
+      // Satılmış koltukları tekrar satma (seatUnitId + attendeeName)
+      const takenTickets = await prisma.purchasedTicket.findMany({
+        where: {
+          eventId: event.id,
+          status: { in: ['VALID', 'USED'] },
+          deletedAt: null,
+          OR: [
+            { seatUnitId: { in: uniqueSeats } },
+            ...uniqueSeats.map((seat) => ({
+              attendeeName: { contains: seat }
+            }))
+          ]
+        },
+        select: { seatUnitId: true, attendeeName: true },
+        take: 200
+      });
+      const taken = new Set<string>();
+      for (const t of takenTickets) {
+        const id = extractSeatUnitId({
+          seatUnitId: t.seatUnitId,
+          attendeeName: t.attendeeName
+        });
+        if (id && uniqueSeats.includes(id)) taken.add(id);
+      }
+      if (taken.size > 0) {
+        throw new Error(
+          `Bu koltuk(lar) satılmış: ${[...taken].join(', ')}. Lütfen başka koltuk seçin.`
+        );
+      }
+
       const grouped = new Map<
         string,
         { tt: (typeof event.ticketTypes)[number]; seats: string[]; qty: number }
@@ -132,6 +163,9 @@ async function loadCheckoutContext(params: {
         const seat = seatUnitIds[i]!;
         const tt = event.ticketTypes.find((t) => t.id === id);
         if (!tt) throw new Error('Seçilen koltuklardan biri bulunamadı');
+        if (!event.isFree && tt.price <= 0) {
+          throw new Error(`"${tt.name}" şu an satışta değil`);
+        }
         const g = grouped.get(id);
         if (g) {
           g.qty += 1;
@@ -287,7 +321,8 @@ export async function getCheckoutTicketTypes(
       capacity: tt.capacity,
       sold: tt.sold,
       seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
-      showLowStockBadge: tt.showLowStockBadge
+      showLowStockBadge: tt.showLowStockBadge,
+      allowsZeroPrice: Boolean(event.isFree)
     };
   });
 }

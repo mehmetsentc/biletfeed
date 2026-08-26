@@ -4,6 +4,8 @@ import { TicketTierList } from '@/components/tickets/purchase/ticket-tier-list';
 import { getTicketPurchaseContext } from '@/lib/tickets/purchase-context';
 import { createPageMetadata } from '@/lib/seo/metadata';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   params: Promise<{ slug: string }>;
 }

@@ -4,11 +4,12 @@ import { isExternalListing } from '@/lib/events/ticket-url';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import type { SeatPlan } from '@/lib/services/organizer-panel';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
+import { extractSeatUnitId } from '@/lib/tickets/seat-label';
 
 export type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 
-async function getSoldSeatUnitIds(eventId: string): Promise<string[]> {
+/** VALID/USED biletlerden satılmış koltuk id listesi */
+export async function getSoldSeatUnitIds(eventId: string): Promise<string[]> {
   await ensureDbConnection();
   const tickets = await prisma.purchasedTicket.findMany({
     where: {
@@ -16,21 +17,18 @@ async function getSoldSeatUnitIds(eventId: string): Promise<string[]> {
       status: { in: ['VALID', 'USED'] },
       deletedAt: null
     },
-    select: { attendeeName: true },
+    select: { attendeeName: true, seatUnitId: true },
     take: 20000
   });
-  const ids: string[] = [];
+  const ids = new Set<string>();
   for (const t of tickets) {
-    const name = t.attendeeName ?? '';
-    const fromParse = parseSectionSeatUnitId(name);
-    if (fromParse) {
-      ids.push(fromParse);
-      continue;
-    }
-    const m = name.match(/·\s*([A-Z0-9-]{2,16})\s*$/i);
-    if (m?.[1]) ids.push(m[1].toUpperCase());
+    const id = extractSeatUnitId({
+      seatUnitId: t.seatUnitId,
+      attendeeName: t.attendeeName
+    });
+    if (id) ids.add(id);
   }
-  return ids;
+  return [...ids];
 }
 
 export async function getTicketPurchaseContext(eventSlug: string) {
@@ -53,7 +51,8 @@ export async function getTicketPurchaseContext(eventSlug: string) {
     seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
     listPrice: tt.listPrice ?? tt.price,
     isOnSale: tt.isOnSale ?? false,
-    discountPercent: tt.discountPercent ?? null
+    discountPercent: tt.discountPercent ?? null,
+    allowsZeroPrice: tt.allowsZeroPrice ?? false
   }));
 
   await ensureDbConnection();
