@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import { MapPin, MoreHorizontal } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useCityOptional } from '@/components/providers/city-provider';
@@ -17,14 +17,9 @@ import { useTranslations } from '@/components/providers';
 /**
  * Breakpoint şeridi (site chrome):
  * - Telefon: 0–767 (md altı)
- * - Tablet / kompakt: 768–1279 (md–xl) — iPad dikey + yatay
+ * - Tablet: 768–1279 (md–xl) — tüm linkler satırda, kompakt tipografi
  * - Masaüstü: 1280+ (xl)
- *
- * iPad Air/Pro landscape ~1024–1180 `lg` bandına düşer; tam 6 link + şehir +
- * tema + profil orada üst üste biner. Bu yüzden kompakt nav xl’e kadar sürer.
  */
-const PRIMARY_HREFS = new Set(['/', '/feed', '/etkinlikler']);
-
 export function Header() {
   const pathname = usePathname();
   const { user, loading } = useAuth();
@@ -32,11 +27,7 @@ export function Header() {
   const t = useTranslations();
   const isHome = pathname === '/';
   const [scrolled, setScrolled] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
   const navLinks = getMainNavLinks(t);
-  const primaryLinks = navLinks.filter((l) => PRIMARY_HREFS.has(l.href));
-  const secondaryLinks = navLinks.filter((l) => !PRIMARY_HREFS.has(l.href));
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -44,22 +35,6 @@ export function Header() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  useEffect(() => {
-    if (!moreOpen) return;
-    const onPointer = (e: MouseEvent) => {
-      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMoreOpen(false);
-    };
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [moreOpen]);
 
   function linkActive(href: string) {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
@@ -72,30 +47,25 @@ export function Header() {
         scrolled || !isHome ? 'shadow-[var(--shadow-glass)]' : 'shadow-none'
       )}
     >
-      {/* Tablet (md–xl): kompakt nav — şehir / ikincil linkler More menüsünde */}
+      {/* Tablet (md–xl): tüm linkler satırda — ⋯ menü yok */}
       <div
         className={cn(
-          'container mx-auto hidden items-center justify-between md:flex xl:hidden',
-          'px-[clamp(0.75rem,2vw,1.25rem)]',
+          'container mx-auto hidden items-center justify-between gap-2 md:flex xl:hidden',
+          'px-[clamp(0.5rem,1.5vw,1rem)]',
           scrolled ? 'h-14' : 'h-[clamp(3.25rem,5.5vw,3.75rem)]'
         )}
       >
         <Logo
           variant="auto"
-          className="shrink-0 scale-[clamp(0.92,0.05vw+0.9,1)]"
+          className="shrink-0 scale-[clamp(0.88,0.04vw+0.86,1)]"
         />
 
         <nav
-          className="mx-[clamp(0.25rem,1.5vw,0.75rem)] flex min-w-0 flex-1 items-center justify-center overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex min-w-0 flex-1 items-center justify-center overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="Ana menü"
         >
-          <div
-            className={cn(
-              'flex max-w-full items-center',
-              'gap-[clamp(0.125rem,0.8vw,0.5rem)]'
-            )}
-          >
-            {primaryLinks.map((link) => {
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            {navLinks.map((link) => {
               const active = linkActive(link.href);
               return (
                 <Link
@@ -103,10 +73,10 @@ export function Header() {
                   href={link.href}
                   data-active={active ? 'true' : 'false'}
                   className={cn(
-                    'inline-flex shrink-0 items-center rounded-xl font-semibold transition-colors duration-200',
-                    'min-h-10 px-[clamp(0.4rem,1.1vw,0.75rem)]',
-                    'text-[clamp(0.7rem,1.55vw,0.8125rem)]',
-                    'text-[var(--header-fg)] hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)]',
+                    'inline-flex shrink-0 items-center rounded-lg font-semibold transition-colors duration-200',
+                    'min-h-9 px-1.5 sm:px-2 md:px-2.5',
+                    'text-[clamp(0.65rem,1.35vw,0.8125rem)]',
+                    'whitespace-nowrap text-[var(--header-fg)] hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)]',
                     active &&
                       'bg-[var(--header-hover)] text-[var(--bf-accent-ink)]'
                   )}
@@ -115,66 +85,27 @@ export function Header() {
                 </Link>
               );
             })}
-
-            <div className="relative shrink-0" ref={moreRef}>
-              <button
-                type="button"
-                onClick={() => setMoreOpen((v) => !v)}
-                className={cn(
-                  'inline-flex size-10 items-center justify-center rounded-xl transition-colors',
-                  'text-[var(--header-fg)] hover:bg-[var(--header-hover)]',
-                  moreOpen &&
-                    'bg-[var(--header-hover)] text-[var(--bf-accent-ink)]'
-                )}
-                aria-expanded={moreOpen}
-                aria-haspopup="menu"
-                aria-label="Daha fazla"
-              >
-                <MoreHorizontal className="size-5" aria-hidden />
-              </button>
-              {moreOpen ? (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-[calc(100%+6px)] z-50 min-w-[200px] overflow-hidden rounded-2xl border border-border bg-card py-1 shadow-lg"
-                >
-                  {city ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setMoreOpen(false);
-                        city.openCityPicker();
-                      }}
-                      className="flex min-h-11 w-full items-center gap-2 border-b border-border px-4 text-sm font-semibold text-foreground hover:bg-muted"
-                    >
-                      <MapPin className="size-4 text-[var(--bf-accent-ink)]" />
-                      <span className="truncate">{city.cityName}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {t.filters.changeCity}
-                      </span>
-                    </button>
-                  ) : null}
-                  {secondaryLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      role="menuitem"
-                      onClick={() => setMoreOpen(false)}
-                      className={cn(
-                        'flex min-h-11 items-center px-4 text-sm font-semibold text-foreground hover:bg-muted',
-                        linkActive(link.href) && 'text-[var(--bf-accent-ink)]'
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-              ) : null}
-            </div>
           </div>
         </nav>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          {city ? (
+            <button
+              type="button"
+              onClick={() => city.openCityPicker()}
+              className={cn(
+                'inline-flex max-w-[6.5rem] items-center gap-1 rounded-lg px-1.5 py-1.5 text-[clamp(0.65rem,1.3vw,0.75rem)] font-semibold transition-colors',
+                'text-[var(--header-fg)] hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)]'
+              )}
+              aria-label={t.filters.changeCity}
+            >
+              <MapPin
+                className="size-3.5 shrink-0 text-[var(--bf-accent-ink)]"
+                aria-hidden
+              />
+              <span className="truncate">{city.cityName}</span>
+            </button>
+          ) : null}
           <ThemeToggle />
           {!loading &&
             (user ? (
@@ -185,7 +116,7 @@ export function Header() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="min-h-10 px-2.5 text-[clamp(0.75rem,1.5vw,0.875rem)] font-semibold text-[var(--header-fg)] hover:bg-[var(--header-hover)]"
+                    className="min-h-9 px-2 text-[clamp(0.7rem,1.4vw,0.8125rem)] font-semibold text-[var(--header-fg)] hover:bg-[var(--header-hover)]"
                   >
                     {t.nav.login}
                   </Button>
@@ -193,7 +124,7 @@ export function Header() {
                 <Link href="/kayit" className="hidden min-[900px]:block">
                   <Button
                     size="sm"
-                    className="btn-gradient-primary min-h-10 rounded-[var(--radius-button)] px-3 text-[clamp(0.75rem,1.5vw,0.875rem)] font-bold text-primary-foreground"
+                    className="btn-gradient-primary min-h-9 rounded-[var(--radius-button)] px-2.5 text-[clamp(0.7rem,1.4vw,0.8125rem)] font-bold text-primary-foreground"
                   >
                     {t.nav.register}
                   </Button>
@@ -249,7 +180,10 @@ export function Header() {
               )}
               aria-label={t.filters.changeCity}
             >
-              <MapPin className="size-4 shrink-0 text-[var(--bf-accent-ink)]" aria-hidden />
+              <MapPin
+                className="size-4 shrink-0 text-[var(--bf-accent-ink)]"
+                aria-hidden
+              />
               <span className="truncate">{city.cityName}</span>
             </button>
           ) : null}
