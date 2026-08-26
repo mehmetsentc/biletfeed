@@ -42,6 +42,13 @@ type TicketTypeOption = {
   sold: number;
 };
 
+type SeatOption = {
+  id: string;
+  label: string;
+  zoneCode: string;
+  zoneLabel: string;
+};
+
 export type { InvitationRow };
 
 export function InvitationsPanel({
@@ -68,6 +75,11 @@ export function InvitationsPanel({
   const [personalMessage, setPersonalMessage] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
+  const [requiresSeatSelection, setRequiresSeatSelection] = useState(false);
+  const [availableSeatsByTicketType, setAvailableSeatsByTicketType] = useState<
+    Record<string, SeatOption[]>
+  >({});
+  const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.id === eventId),
@@ -79,11 +91,21 @@ export function InvitationsPanel({
     [ticketTypes, ticketTypeId]
   );
 
+  const availableSeats = useMemo(
+    () => availableSeatsByTicketType[ticketTypeId] ?? [],
+    [availableSeatsByTicketType, ticketTypeId]
+  );
+
   const remainingCapacity = selectedTicketType
     ? Math.max(0, selectedTicketType.capacity - selectedTicketType.sold)
     : 0;
 
   const overCapacity = quantity > remainingCapacity && remainingCapacity > 0;
+
+  const seatSelectionInvalid =
+    requiresSeatSelection &&
+    (selectedSeatIds.length !== quantity ||
+      selectedSeatIds.some((id) => !availableSeats.some((s) => s.id === id)));
 
   const loadEvents = useCallback(async () => {
     const res = await fetch('/api/organizer/events', { credentials: 'include' });
@@ -106,9 +128,16 @@ export function InvitationsPanel({
     ]);
 
     if (boothRes.ok) {
-      const booth = (await boothRes.json()) as { ticketTypes: TicketTypeOption[] };
+      const booth = (await boothRes.json()) as {
+        ticketTypes: TicketTypeOption[];
+        requiresSeatSelection?: boolean;
+        availableSeatsByTicketType?: Record<string, SeatOption[]>;
+      };
       setTicketTypes(booth.ticketTypes);
+      setRequiresSeatSelection(Boolean(booth.requiresSeatSelection));
+      setAvailableSeatsByTicketType(booth.availableSeatsByTicketType ?? {});
       setTicketTypeId((prev) => prev || booth.ticketTypes[0]?.id || '');
+      setSelectedSeatIds([]);
     }
 
     if (inviteRes.ok) {
@@ -128,6 +157,17 @@ export function InvitationsPanel({
     void loadEventData(eventId).catch(() => setError('Davetiye verileri yüklenemedi'));
   }, [eventId, loadEventData]);
 
+  useEffect(() => {
+    setSelectedSeatIds([]);
+  }, [ticketTypeId, quantity]);
+
+  function toggleSeat(seatId: string) {
+    setSelectedSeatIds((prev) => {
+      if (prev.includes(seatId)) return prev.filter((id) => id !== seatId);
+      if (prev.length >= quantity) return prev;
+      return [...prev, seatId];
+    });
+  }
   async function downloadZipForIds(ids: string[]) {
     const res = await fetch('/api/organizer/invitations/bulk/zip', {
       method: 'POST',
@@ -147,7 +187,7 @@ export function InvitationsPanel({
 
   async function handleSendInvitation(e: React.FormEvent) {
     e.preventDefault();
-    if (!eventId || !ticketTypeId || overCapacity) return;
+    if (!eventId || !ticketTypeId || overCapacity || seatSelectionInvalid) return;
 
     setSending(true);
     setError(null);
@@ -171,7 +211,8 @@ export function InvitationsPanel({
             guestName: trimmedName,
             guestEmail: trimmedEmail || undefined,
             guestPhone: trimmedPhone || undefined,
-            personalMessage: trimmedMessage || undefined
+            personalMessage: trimmedMessage || undefined,
+            seatUnitId: selectedSeatIds[0]
           })
         });
 
@@ -218,6 +259,7 @@ export function InvitationsPanel({
             eventId,
             ticketTypeId,
             guests,
+            seatUnitIds: requiresSeatSelection ? selectedSeatIds : undefined,
             sendEmails: hadEmail
           })
         });
@@ -271,7 +313,6 @@ export function InvitationsPanel({
             setError(invitationFetchErrorMessage(zipErr, 'ZIP indirilemedi'));
           }
         }
-        // Büyük adetlerde otomatik ZIP yok — listedeki ZIP/PDF aksiyonları kullanılır
       }
 
       setGuestName('');
@@ -279,6 +320,7 @@ export function InvitationsPanel({
       setGuestPhone('');
       setPersonalMessage('');
       setQuantity(1);
+      setSelectedSeatIds([]);
       void loadEventData(eventId);
     } catch (err) {
       setError(invitationFetchErrorMessage(err, 'Davetiye gönderilemedi'));
@@ -454,7 +496,12 @@ export function InvitationsPanel({
           ticketTypeId={ticketTypeId}
           onTicketTypeChange={setTicketTypeId}
           disabled={!eventId || !ticketTypeId || ticketTypes.length === 0}
-          onCreated={(rows) => setInvitations((prev) => [...rows, ...prev])}
+          onCreated={(rows) => {
+            setInvitations((prev) => [...rows, ...prev]);
+            void loadEventData(eventId);
+          }}
+          requiresSeatSelection={requiresSeatSelection}
+          availableSeats={availableSeats}
         />
       ) : (
       <div className="grid gap-6 lg:grid-cols-2">
@@ -491,6 +538,60 @@ export function InvitationsPanel({
                 )}
               </select>
             </div>
+
+            {requiresSeatSelection ? (
+              <div>
+                <Label>Koltuk numarası</Label>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Satışa açık müsait koltuklardan {quantity} adet seçin
+                  {selectedSeatIds.length > 0
+                    ? ` (${selectedSeatIds.length}/${quantity})`
+                    : ''}
+                  .
+                </p>
+                {availableSeats.length === 0 ? (
+                  <p className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                    Bu bilet türü için müsait koltuk kalmadı.
+                  </p>
+                ) : (
+                  <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-border p-2">
+                    {availableSeats.map((seat) => {
+                      const checked = selectedSeatIds.includes(seat.id);
+                      const disabled =
+                        !checked && selectedSeatIds.length >= quantity;
+                      return (
+                        <label
+                          key={seat.id}
+                          className={cn(
+                            'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+                            disabled && 'cursor-not-allowed opacity-40'
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={disabled}
+                            onChange={() => toggleSeat(seat.id)}
+                            className="size-4 rounded border-border"
+                          />
+                          <span className="font-medium text-foreground">
+                            {seat.zoneLabel} · {seat.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            ({seat.id})
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                {seatSelectionInvalid && availableSeats.length > 0 ? (
+                  <p className="mt-1.5 text-xs text-destructive">
+                    Tam olarak {quantity} koltuk seçmelisiniz.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div>
               <Label htmlFor="guest-name">Misafir Adı</Label>
@@ -574,7 +675,13 @@ export function InvitationsPanel({
           <Button
             type="submit"
             className="mt-6 w-full"
-            disabled={sending || !eventId || ticketTypes.length === 0 || overCapacity}
+            disabled={
+              sending ||
+              !eventId ||
+              ticketTypes.length === 0 ||
+              overCapacity ||
+              seatSelectionInvalid
+            }
           >
             {sending ? (
               <>
@@ -701,7 +808,9 @@ export function InvitationsPanel({
                         </Badge>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">
-                        {invite.ticketTypeName} · {invite.ticketCode}
+                        {invite.ticketTypeName}
+                        {invite.seatUnitId ? ` · ${invite.seatUnitId}` : ''} ·{' '}
+                        {invite.ticketCode}
                       </p>
                       {invite.guestEmail && (
                         <p className="truncate text-xs text-muted-foreground">

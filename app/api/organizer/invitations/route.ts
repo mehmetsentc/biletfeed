@@ -17,7 +17,8 @@ const createSchema = z.object({
   guestName: z.string().min(2).max(120),
   guestEmail: z.string().email().optional().or(z.literal('')),
   guestPhone: z.string().max(30).optional(),
-  personalMessage: z.string().max(500).optional()
+  personalMessage: z.string().max(500).optional(),
+  seatUnitId: z.string().min(1).max(24).optional()
 });
 
 export async function GET(request: NextRequest) {
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       guestEmail,
       guestPhone: parsed.data.guestPhone,
       personalMessage: parsed.data.personalMessage,
+      seatUnitId: parsed.data.seatUnitId,
       skipEmail: true
     });
 

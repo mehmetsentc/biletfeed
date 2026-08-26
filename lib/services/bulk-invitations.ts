@@ -21,6 +21,7 @@ export type BulkGuestInput = {
   guestEmail?: string;
   guestPhone?: string;
   personalMessage?: string;
+  seatUnitId?: string;
 };
 
 export type BulkInvitationResult = {
@@ -39,6 +40,8 @@ export async function createBulkEventInvitations(params: {
   eventId: string;
   ticketTypeId: string;
   guests: BulkGuestInput[];
+  /** Misafir sırasına göre atanacak koltuklar */
+  seatUnitIds?: string[];
   sendEmails?: boolean;
 }): Promise<BulkInvitationResult> {
   await ensureDbConnection();
@@ -104,7 +107,11 @@ export async function createBulkEventInvitations(params: {
     });
   }
 
-  for (const guest of guestsToCreate) {
+  const seatPool = [...(params.seatUnitIds ?? [])];
+
+  for (let i = 0; i < guestsToCreate.length; i++) {
+    const guest = guestsToCreate[i]!;
+    const seatUnitId = guest.seatUnitId ?? seatPool.shift();
     try {
       const invitation = await createEventInvitation({
         organizerId: params.organizerId,
@@ -114,6 +121,7 @@ export async function createBulkEventInvitations(params: {
         guestEmail: guest.guestEmail,
         guestPhone: guest.guestPhone,
         personalMessage: guest.personalMessage,
+        seatUnitId,
         skipEmail: true
       });
       created.push(invitation);

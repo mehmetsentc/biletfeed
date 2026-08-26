@@ -25,6 +25,13 @@ type TicketTypeOption = {
   sold: number;
 };
 
+type SeatOption = {
+  id: string;
+  label: string;
+  zoneCode: string;
+  zoneLabel: string;
+};
+
 type GuestDraft = {
   guestName: string;
   guestEmail: string;
@@ -73,7 +80,9 @@ export function BulkInvitationsPanel({
   ticketTypeId,
   onTicketTypeChange,
   disabled,
-  onCreated
+  onCreated,
+  requiresSeatSelection = false,
+  availableSeats = []
 }: {
   eventId: string;
   ticketTypes: TicketTypeOption[];
@@ -81,6 +90,8 @@ export function BulkInvitationsPanel({
   onTicketTypeChange: (id: string) => void;
   disabled?: boolean;
   onCreated: (rows: InvitationRow[]) => void;
+  requiresSeatSelection?: boolean;
+  availableSeats?: SeatOption[];
 }) {
   const [recipientName, setRecipientName] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -94,6 +105,7 @@ export function BulkInvitationsPanel({
   const [zipLoading, setZipLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [csvText, setCsvText] = useState('');
+  const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
 
   const csvGuests = parseCsvGuests(csvText);
   const quantityGuests =
@@ -112,9 +124,24 @@ export function BulkInvitationsPanel({
     ? Math.max(0, selectedType.capacity - selectedType.sold)
     : 0;
   const overCapacity = guests.length > remainingCapacity && remainingCapacity > 0;
+  const seatSelectionInvalid =
+    requiresSeatSelection &&
+    (guests.length === 0 ||
+      selectedSeatIds.length !== guests.length ||
+      selectedSeatIds.some((id) => !availableSeats.some((s) => s.id === id)));
+
+  function toggleSeat(seatId: string) {
+    setSelectedSeatIds((prev) => {
+      if (prev.includes(seatId)) return prev.filter((id) => id !== seatId);
+      if (prev.length >= guests.length) return prev;
+      return [...prev, seatId];
+    });
+  }
 
   async function handleBulkSend() {
-    if (!eventId || !ticketTypeId || guests.length === 0) return;
+    if (!eventId || !ticketTypeId || guests.length === 0 || seatSelectionInvalid) {
+      return;
+    }
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -128,7 +155,8 @@ export function BulkInvitationsPanel({
           eventId,
           ticketTypeId,
           sendEmails,
-          guests
+          guests,
+          seatUnitIds: requiresSeatSelection ? selectedSeatIds : undefined
         })
       });
       const data = (await res.json()) as {
@@ -143,6 +171,7 @@ export function BulkInvitationsPanel({
       const created = data.created ?? [];
       setLastCreated(created);
       onCreated(created);
+      setSelectedSeatIds([]);
 
       if (!showAdvanced) {
         setRecipientName('');
@@ -153,8 +182,6 @@ export function BulkInvitationsPanel({
         setCsvText('');
       }
 
-      // Büyük ZIP'i otomatik indirme — 60 PDF üretim timeout'u Failed to fetch üretiyordu.
-      // Küçük partilerde otomatik indir; büyüğünde kullanıcı "ZIP İndir" kullanır.
       if (created.length > 0 && created.length <= MAX_DIRECT_INVITATION_PDFS) {
         await downloadZipForIds(created.map((r) => r.id));
       }
@@ -277,7 +304,10 @@ export function BulkInvitationsPanel({
           <select
             id="bulk-ticket-type"
             value={ticketTypeId}
-            onChange={(e) => onTicketTypeChange(e.target.value)}
+            onChange={(e) => {
+              onTicketTypeChange(e.target.value);
+              setSelectedSeatIds([]);
+            }}
             className="mt-1.5 flex h-10 w-full rounded-md border border-border bg-white px-3 text-sm"
             required
           >
@@ -292,6 +322,57 @@ export function BulkInvitationsPanel({
             )}
           </select>
         </div>
+
+        {requiresSeatSelection ? (
+          <div>
+            <Label>Koltuk numaraları</Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Her davetiye için bir koltuk — {guests.length || quantity} adet seçin
+              {selectedSeatIds.length > 0
+                ? ` (${selectedSeatIds.length}/${guests.length || quantity})`
+                : ''}
+              .
+            </p>
+            {availableSeats.length === 0 ? (
+              <p className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                Bu bilet türü için müsait koltuk kalmadı.
+              </p>
+            ) : (
+              <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-border p-2">
+                {availableSeats.map((seat) => {
+                  const checked = selectedSeatIds.includes(seat.id);
+                  const need = Math.max(guests.length, 1);
+                  const seatDisabled = !checked && selectedSeatIds.length >= need;
+                  return (
+                    <label
+                      key={seat.id}
+                      className={cn(
+                        'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted',
+                        seatDisabled && 'cursor-not-allowed opacity-40'
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={seatDisabled}
+                        onChange={() => toggleSeat(seat.id)}
+                        className="size-4 rounded border-border"
+                      />
+                      <span className="font-medium">
+                        {seat.zoneLabel} · {seat.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            {seatSelectionInvalid && guests.length > 0 && availableSeats.length > 0 ? (
+              <p className="mt-1.5 text-xs text-destructive">
+                Tam olarak {guests.length} koltuk seçmelisiniz.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {!showAdvanced && (
           <>
@@ -402,7 +483,8 @@ export function BulkInvitationsPanel({
             loading ||
             guests.length === 0 ||
             overCapacity ||
-            !ticketTypeId
+            !ticketTypeId ||
+            seatSelectionInvalid
           }
           onClick={() => void handleBulkSend()}
         >

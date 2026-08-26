@@ -14,13 +14,16 @@ const guestSchema = z.object({
   guestName: z.string().min(2).max(120),
   guestEmail: z.string().email().optional().or(z.literal('')),
   guestPhone: z.string().max(30).optional(),
-  personalMessage: z.string().max(500).optional()
+  personalMessage: z.string().max(500).optional(),
+  seatUnitId: z.string().min(1).max(24).optional()
 });
 
 const bulkSchema = z.object({
   eventId: z.string().uuid(),
   ticketTypeId: z.string().uuid(),
   guests: z.array(guestSchema).min(1).max(200),
+  /** Sırayla misafirlere atanacak koltuk havuzu (sections/tables) */
+  seatUnitIds: z.array(z.string().min(1).max(24)).max(200).optional(),
   sendEmails: z.boolean().optional()
 });
 
@@ -43,7 +46,8 @@ export async function POST(request: NextRequest) {
     guestName: g.guestName,
     guestEmail: g.guestEmail || undefined,
     guestPhone: g.guestPhone,
-    personalMessage: g.personalMessage
+    personalMessage: g.personalMessage,
+    seatUnitId: g.seatUnitId
   }));
 
   const wantEmail = parsed.data.sendEmails ?? true;
@@ -54,6 +58,7 @@ export async function POST(request: NextRequest) {
     eventId: parsed.data.eventId,
     ticketTypeId: parsed.data.ticketTypeId,
     guests,
+    seatUnitIds: parsed.data.seatUnitIds,
     sendEmails: false
   });
 

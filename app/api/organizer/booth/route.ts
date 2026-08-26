@@ -4,6 +4,12 @@ import {
   getEventTicketTypes,
   listPendingOrdersForEvent
 } from '@/lib/services/event-invitations';
+import { getSoldSeatUnitIds } from '@/lib/tickets/purchase-context';
+import {
+  getEventSeatPlanForOrganizer,
+  listAvailableSeatsForTicketType,
+  requiresSeatAssignment
+} from '@/lib/tickets/seat-inventory';
 
 export async function GET(request: NextRequest) {
   const ctx = await requireOrganizerSession();
@@ -16,13 +22,41 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'eventId gerekli' }, { status: 400 });
   }
 
-  const [ticketTypes, pendingOrders] = await Promise.all([
+  const [ticketTypes, pendingOrders, seatPlan, soldSeatIds] = await Promise.all([
     getEventTicketTypes(eventId, ctx.organizer.id),
-    listPendingOrdersForEvent(ctx.organizer.id, eventId)
+    listPendingOrdersForEvent(ctx.organizer.id, eventId),
+    getEventSeatPlanForOrganizer(eventId, ctx.organizer.id),
+    getSoldSeatUnitIds(eventId).catch(() => [] as string[])
   ]);
+
+  const needsSeats = requiresSeatAssignment(seatPlan);
+  const availableSeatsByTicketType: Record<
+    string,
+    Array<{ id: string; label: string; zoneCode: string; zoneLabel: string }>
+  > = {};
+
+  if (needsSeats && seatPlan) {
+    await Promise.all(
+      ticketTypes.map(async (tt) => {
+        availableSeatsByTicketType[tt.id] = await listAvailableSeatsForTicketType({
+          eventId,
+          ticketType: {
+            id: tt.id,
+            name: tt.name,
+            description: null
+          },
+          seatPlan,
+          soldSeatIds
+        });
+      })
+    );
+  }
 
   return NextResponse.json({
     ticketTypes,
+    requiresSeatSelection: needsSeats,
+    soldSeatIds: needsSeats ? soldSeatIds : [],
+    availableSeatsByTicketType,
     pendingOrders: pendingOrders.map((order) => ({
       id: order.id,
       total: order.total,

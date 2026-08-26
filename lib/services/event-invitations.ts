@@ -20,6 +20,12 @@ import {
   formatTurkeyDateLong,
   formatTurkeyTime
 } from '@/lib/datetime/istanbul';
+import { extractSeatUnitId } from '@/lib/tickets/seat-label';
+import {
+  asSeatPlan,
+  assertSeatAvailableForEvent,
+  requiresSeatAssignment
+} from '@/lib/tickets/seat-inventory';
 
 function createInviteToken(): string {
   return randomBytes(16).toString('hex');
@@ -40,6 +46,7 @@ export type InvitationRow = {
   ticketTypeName: string;
   eventTitle: string;
   pdfUrl: string;
+  seatUnitId: string | null;
 };
 
 function mapInvitation(row: {
@@ -55,10 +62,16 @@ function mapInvitation(row: {
     ticketCode: string;
     validationToken: string;
     id: string;
+    seatUnitId?: string | null;
+    attendeeName?: string | null;
   };
   ticketType: { name: string };
   event: { title: string };
 }): InvitationRow {
+  const seatUnitId = extractSeatUnitId({
+    seatUnitId: row.purchasedTicket.seatUnitId,
+    attendeeName: row.purchasedTicket.attendeeName
+  });
   return {
     id: row.id,
     guestName: row.guestName,
@@ -77,13 +90,20 @@ function mapInvitation(row: {
     ticketCode: row.purchasedTicket.ticketCode,
     ticketTypeName: row.ticketType.name,
     eventTitle: row.event.title,
-    pdfUrl: `/api/organizer/invitations/${row.id}/pdf`
+    pdfUrl: `/api/organizer/invitations/${row.id}/pdf`,
+    seatUnitId
   };
 }
 
 const invitationInclude = {
   purchasedTicket: {
-    select: { id: true, ticketCode: true, validationToken: true }
+    select: {
+      id: true,
+      ticketCode: true,
+      validationToken: true,
+      seatUnitId: true,
+      attendeeName: true
+    }
   },
   ticketType: { select: { name: true } },
   event: { select: { title: true } }
@@ -215,6 +235,8 @@ export async function createEventInvitation(params: {
   guestEmail?: string;
   guestPhone?: string;
   personalMessage?: string;
+  /** Sections/tables planında zorunlu koltuk */
+  seatUnitId?: string;
   /** Toplu gönderimde e-posta toplu işlem sonunda gönderilir */
   skipEmail?: boolean;
 }): Promise<InvitationRow & { emailStatus?: 'sent' | 'skipped' | 'failed'; emailError?: string }> {
@@ -231,7 +253,7 @@ export async function createEventInvitation(params: {
         where: { id: params.ticketTypeId, deletedAt: null, status: 'active' }
       },
       organizer: { select: { name: true } },
-      venue: { select: { name: true, address: true } },
+      venue: { select: { name: true, address: true, seatPlan: true } },
       city: { select: { name: true } }
     }
   });
@@ -239,6 +261,25 @@ export async function createEventInvitation(params: {
   if (!event) throw new Error('Etkinlik bulunamadı');
   const ticketType = event.ticketTypes[0];
   if (!ticketType) throw new Error('Bilet türü bulunamadı');
+
+  const seatPlan = asSeatPlan(event.venue?.seatPlan);
+  const needsSeat = requiresSeatAssignment(seatPlan);
+  let resolvedSeatId: string | null = null;
+  if (needsSeat) {
+    if (!params.seatUnitId?.trim()) {
+      throw new Error('Bu etkinlik için koltuk numarası seçmelisiniz');
+    }
+    resolvedSeatId = await assertSeatAvailableForEvent({
+      eventId: params.eventId,
+      seatUnitId: params.seatUnitId,
+      ticketType: {
+        id: ticketType.id,
+        name: ticketType.name,
+        description: ticketType.description
+      },
+      seatPlan: seatPlan!
+    });
+  }
 
   const guest = await findOrCreateGuestUser(params.guestName, params.guestEmail);
   const inviteToken = createInviteToken();
@@ -257,6 +298,21 @@ export async function createEventInvitation(params: {
     });
     if (reserved.count === 0) {
       throw new Error('Bu bilet türü için kontenjan kalmadı');
+    }
+
+    if (resolvedSeatId) {
+      const clash = await tx.purchasedTicket.findFirst({
+        where: {
+          eventId: params.eventId,
+          status: { in: ['VALID', 'USED'] },
+          deletedAt: null,
+          seatUnitId: resolvedSeatId
+        },
+        select: { id: true }
+      });
+      if (clash) {
+        throw new Error(`Koltuk ${resolvedSeatId} az önce rezerve edildi`);
+      }
     }
 
     const order = await tx.order.create({
@@ -295,7 +351,11 @@ export async function createEventInvitation(params: {
     for (let i = 0; i < seatsPerUnit; i++) {
       const ticketId = newTicketId();
       if (i === 0) primaryTicketId = ticketId;
-      const seatLabel = seatsPerUnit > 1 ? ` (${i + 1}/${seatsPerUnit})` : '';
+      const seatLabel = resolvedSeatId
+        ? ` · ${resolvedSeatId}`
+        : seatsPerUnit > 1
+          ? ` (${i + 1}/${seatsPerUnit})`
+          : '';
       await tx.purchasedTicket.create({
         data: {
           id: ticketId,
@@ -307,7 +367,8 @@ export async function createEventInvitation(params: {
           validationToken: generateValidationToken(ticketId, params.eventId),
           status: 'VALID',
           attendeeName: `${params.guestName.trim()}${seatLabel}`,
-          attendeeEmail: params.guestEmail?.trim() || null
+          attendeeEmail: params.guestEmail?.trim() || null,
+          seatUnitId: resolvedSeatId
         }
       });
     }
