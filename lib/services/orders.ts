@@ -306,7 +306,9 @@ export async function getCheckoutTicketTypes(
   });
   if (!event) return [];
 
-  return event.ticketTypes.map((tt) => {
+  return event.ticketTypes
+    .filter((tt) => event.isFree || tt.price > 0)
+    .map((tt) => {
     const eff = effectiveTicketPrice(event, tt);
     return {
       id: tt.id,

@@ -28,18 +28,29 @@ const data = seatsJson as SeatsFile;
 
 export const ANTALYA_CATEGORIES = data.categories;
 
-/**
- * Gipsy Kings — organizatör tahsisi (60 koltuk).
- * Tam amfi haritası context için çizilir; yalnızca bunlar satılabilir.
- */
+/** Public satışa açık tahsis (ücretli kategoriler) */
 export const GIPSY_KINGS_ALLOCATION = [
   { row: 'E', from: 1, to: 10, cat: 'K4' as const }, // Parter 1 · Cat 4
   { row: 'E', from: 11, to: 20, cat: 'K1' as const }, // Parter 1 · Cat 1
   { row: 'N', from: 16, to: 25, cat: 'K2' as const }, // Parter 4 · Cat 2
   { row: 'V', from: 1, to: 10, cat: 'K3' as const }, // Parter 4 · Cat 3
   { row: 'Z', from: 1, to: 10, cat: 'K5' as const }, // Parter 4 · Cat 5
-  { row: 'VIP E', from: 1, to: 10, cat: 'VIP' as const } // VIP · VIP
+  { row: 'VIP E', from: 1, to: 10, cat: 'VIP' as const } // VIP · VIP (şu an paused)
 ] as const;
+
+/**
+ * Organizatör davetiye — yalnızca davetiye paneli.
+ * Yeşil VIP (B9–17, C1–14, C22–27, D1–32) + Parter 2 · A 25–48.
+ */
+export const GIPSY_KINGS_INVITE_ALLOCATION = [
+  { row: 'VIP B', from: 9, to: 17 },
+  { row: 'VIP C', from: 1, to: 14 },
+  { row: 'VIP C', from: 22, to: 27 },
+  { row: 'VIP D', from: 1, to: 32 },
+  { row: 'A', from: 25, to: 48 }
+] as const;
+
+export const ORGANIZER_INVITE_TICKET_NAME = 'Organizator Davetiye';
 
 export function getAntyaInventorySeats(): InventorySeat[] {
   const out: InventorySeat[] = [];
@@ -68,12 +79,12 @@ export function getAntyaRows(): Array<{ row: string; seats: InventorySeat[] }> {
   }));
 }
 
-/** Organizer-allocated sellable seats only (60). Category from allocation, not Excel. */
-export function getAllocatedInventorySeats(): InventorySeat[] {
+function seatsFromBlocks(
+  blocks: ReadonlyArray<{ row: string; from: number; to: number; cat?: SeatCategoryCode }>
+): InventorySeat[] {
   const byRow = new Map(getAntyaRows().map((r) => [r.row, r.seats]));
   const out: InventorySeat[] = [];
-
-  for (const block of GIPSY_KINGS_ALLOCATION) {
+  for (const block of blocks) {
     const seats = byRow.get(block.row) ?? [];
     for (const s of seats) {
       if (s.n < block.from || s.n > block.to) continue;
@@ -81,12 +92,35 @@ export function getAllocatedInventorySeats(): InventorySeat[] {
         id: s.id,
         row: block.row,
         n: s.n,
-        cat: block.cat
+        cat: block.cat ?? 'DAVETIYE'
       });
     }
   }
-
   return out;
+}
+
+/** Organizer-allocated public sellable seats only. */
+export function getAllocatedInventorySeats(): InventorySeat[] {
+  return seatsFromBlocks(
+    GIPSY_KINGS_ALLOCATION.map((b) => ({
+      row: b.row,
+      from: b.from,
+      to: b.to,
+      cat: b.cat
+    }))
+  );
+}
+
+/** Davetiye-only seats (yeşil VIP + Parter 2 A 25–48). */
+export function getInviteInventorySeats(): InventorySeat[] {
+  return seatsFromBlocks(
+    GIPSY_KINGS_INVITE_ALLOCATION.map((b) => ({
+      row: b.row,
+      from: b.from,
+      to: b.to,
+      cat: 'DAVETIYE' as const
+    }))
+  );
 }
 
 const allocatedIdSet = (() => {
@@ -97,11 +131,23 @@ const allocatedIdSet = (() => {
   return set;
 })();
 
+const inviteIdSet = (() => {
+  const set = new Set<string>();
+  for (const s of getInviteInventorySeats()) {
+    set.add(s.id.toUpperCase());
+  }
+  return set;
+})();
+
 export function isAllocatedSeatId(unitId: string): boolean {
   return allocatedIdSet.has(unitId.toUpperCase());
 }
 
-/** Organizer allocation stocks — 10 per category (60 total). */
+export function isInviteSeatId(unitId: string): boolean {
+  return inviteIdSet.has(unitId.toUpperCase());
+}
+
+/** Organizer allocation stocks — 10 per public category. */
 export const ANTALYA_STOCK: Record<Exclude<SeatCategoryCode, 'DAVETIYE'>, number> = {
   VIP: 10,
   K1: 10,
@@ -111,6 +157,8 @@ export const ANTALYA_STOCK: Record<Exclude<SeatCategoryCode, 'DAVETIYE'>, number
   K5: 10
 };
 
+export const INVITE_STOCK = getInviteInventorySeats().length;
+
 function seatLabel(row: string, n: number): string {
   if (row.startsWith('VIP ')) return `${row.slice(4)}${n}`;
   return `${row}${n}`;
@@ -118,7 +166,9 @@ function seatLabel(row: string, n: number): string {
 
 export function buildAntyaSeatPlan(mapImageUrl?: string): SeatPlan {
   const allocated = getAllocatedInventorySeats();
-  const zones: SeatPlanZone[] = (
+  const inviteSeats = getInviteInventorySeats();
+
+  const publicZones: SeatPlanZone[] = (
     ['VIP', 'K1', 'K2', 'K3', 'K4', 'K5'] as const
   ).map((code) => {
     const meta = ANTALYA_CATEGORIES[code]!;
@@ -139,7 +189,21 @@ export function buildAntyaSeatPlan(mapImageUrl?: string): SeatPlan {
     };
   });
 
-  const total = zones.reduce((n, z) => n + z.units.length, 0);
+  const inviteZone: SeatPlanZone = {
+    code: 'DAVETIYE',
+    label: ORGANIZER_INVITE_TICKET_NAME,
+    seatsPerUnit: 1,
+    color: '#2e7d32',
+    units: inviteSeats.map((s) => ({
+      id: s.id,
+      label: seatLabel(s.row, s.n),
+      ticketTypeHint: ORGANIZER_INVITE_TICKET_NAME
+    }))
+  };
+
+  const zones = [...publicZones, inviteZone];
+  const totalPublic = publicZones.reduce((n, z) => n + z.units.length, 0);
+  const totalInvite = inviteZone.units.length;
 
   return {
     layout: 'sections',
@@ -149,11 +213,15 @@ export function buildAntyaSeatPlan(mapImageUrl?: string): SeatPlan {
       {
         name: 'Parter 4 · N/V/Z',
         capacity: ANTALYA_STOCK.K2 + ANTALYA_STOCK.K3 + ANTALYA_STOCK.K5
+      },
+      {
+        name: 'Organizator Davetiye (yeşil VIP + A 25–48)',
+        capacity: totalInvite
       }
     ],
     zones,
     mapImageUrl,
-    notes: `Gipsy Kings — organizatör tahsisi (${total} koltuk). VIP 4500 · K1 3500 · K2 3000 · K3 2500 · K4 2000 · K5 1500. Haritada diğer koltuklar satılamaz.`
+    notes: `Gipsy Kings — satış ${totalPublic} koltuk; davetiye ${totalInvite} koltuk (yeşil VIP + Parter 2 A 25–48). Davetiye koltukları public satışta değil.`
   };
 }
 
@@ -174,5 +242,8 @@ export function categoryTicketDefs() {
 
 export function findInventorySeat(unitId: string): InventorySeat | undefined {
   const needle = unitId.toUpperCase();
-  return getAllocatedInventorySeats().find((s) => s.id.toUpperCase() === needle);
+  return (
+    getAllocatedInventorySeats().find((s) => s.id.toUpperCase() === needle) ??
+    getInviteInventorySeats().find((s) => s.id.toUpperCase() === needle)
+  );
 }

@@ -87,7 +87,11 @@ export function VenueSectionSeatPicker({
   soldSeatIds = []
 }: Props) {
   const router = useRouter();
-  const zones = seatPlan.zones ?? [];
+  // Davetiye-only zone (DAVETIYE) public satış haritasında yok — organizer panelde seçilir
+  const zones = useMemo(
+    () => (seatPlan.zones ?? []).filter((z) => z.code !== 'DAVETIYE'),
+    [seatPlan.zones]
+  );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeZone, setActiveZone] = useState<string | null>(null);
   const [mode, setMode] = useState<'map' | 'auto'>('map');

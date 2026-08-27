@@ -16,7 +16,7 @@ export async function getOrganizerInvitationPdfInput(
     where: { id: invitationId, organizerId, deletedAt: null },
     include: {
       purchasedTicket: {
-        select: { id: true, ticketCode: true, validationToken: true, status: true }
+        select: { id: true, ticketCode: true, validationToken: true, status: true, seatUnitId: true }
       },
       ticketType: { select: { name: true } },
       event: {
@@ -47,6 +47,7 @@ export async function getOrganizerInvitationPdfInput(
       ticketCode: row.purchasedTicket.ticketCode,
       ticketStatus: row.purchasedTicket.status,
       ticketTypeName: row.ticketType.name,
+      seatUnitId: row.purchasedTicket.seatUnitId,
       event: {
         title: row.event.title,
         coverImage: row.event.coverImage ?? '',

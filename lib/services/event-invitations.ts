@@ -484,6 +484,38 @@ export async function cancelEventInvitation(
   return mapInvitation(updated);
 }
 
+export type BulkCancelResult = {
+  cancelled: InvitationRow[];
+  errors: Array<{ invitationId: string; error: string }>;
+};
+
+/**
+ * Aynı anda birden fazla davetiyeyi iptal eder (örn. bir koltuk aralığındaki
+ * tüm davetiyeler). Her davetiye ayrı bir kayıt olduğundan tek tek iptal
+ * edilir; bir tanesi başarısız olursa diğerleri etkilenmez.
+ */
+export async function cancelEventInvitationsBulk(
+  invitationIds: string[],
+  organizerId: string
+): Promise<BulkCancelResult> {
+  const cancelled: InvitationRow[] = [];
+  const errors: Array<{ invitationId: string; error: string }> = [];
+
+  for (const invitationId of invitationIds) {
+    try {
+      const invitation = await cancelEventInvitation(invitationId, organizerId);
+      cancelled.push(invitation);
+    } catch (err) {
+      errors.push({
+        invitationId,
+        error: err instanceof Error ? err.message : 'Davetiye iptal edilemedi'
+      });
+    }
+  }
+
+  return { cancelled, errors };
+}
+
 export async function getPublicInvitation(token: string) {
   await ensureDbConnection();
   const row = await prisma.eventInvitation.findFirst({

@@ -12,6 +12,7 @@ export interface MockPurchasedTicket {
   price: number;
   status: 'VALID' | 'USED' | 'CANCELLED' | 'REFUNDED';
   attendeeName?: string;
+  seatUnitId?: string;
   eventEndDate?: string;
   qrData: string;
   isInvitation?: boolean;

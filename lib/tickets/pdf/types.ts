@@ -14,4 +14,5 @@ export type TicketPdfInput = {
   qrData: string;
   status: string;
   personalMessage?: string | null;
+  seatLabel?: string | null;
 };

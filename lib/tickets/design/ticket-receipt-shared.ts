@@ -43,5 +43,6 @@ export const bilingualFieldLabels = {
   holder: 'KATILIMCI / ATTENDEE',
   code: 'KOD / CODE',
   category: 'KATEGORİ / CATEGORY',
-  sector: 'SEKTÖR / KAPI / SECTOR'
+  sector: 'SEKTÖR / KAPI / SECTOR',
+  seat: 'KOLTUK / SEAT'
 } as const;

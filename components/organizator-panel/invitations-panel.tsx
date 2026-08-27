@@ -63,6 +63,8 @@ export function InvitationsPanel({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [selectedInviteIds, setSelectedInviteIds] = useState<string[]>([]);
+  const [bulkCancelling, setBulkCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [lastInvite, setLastInvite] = useState<InvitationRow | null>(null);
@@ -154,6 +156,7 @@ export function InvitationsPanel({
 
   useEffect(() => {
     if (!eventId) return;
+    setSelectedInviteIds([]);
     void loadEventData(eventId).catch(() => setError('Davetiye verileri yüklenemedi'));
   }, [eventId, loadEventData]);
 
@@ -382,11 +385,70 @@ export function InvitationsPanel({
         );
       }
       setSuccess(`"${invite.guestName}" davetiyesi iptal edildi.`);
+      setSelectedInviteIds((prev) => prev.filter((id) => id !== invite.id));
       if (eventId) void loadEventData(eventId);
     } catch (err) {
       setError(invitationFetchErrorMessage(err, 'Davetiye iptal edilemedi'));
     } finally {
       setCancellingId(null);
+    }
+  }
+
+  function toggleInviteSelection(id: string) {
+    setSelectedInviteIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  async function bulkCancelInvitations() {
+    if (selectedInviteIds.length === 0) return;
+    const confirmed = window.confirm(
+      `${selectedInviteIds.length} davetiyeyi iptal etmek istiyor musunuz?\n\nQR kodları geçersiz olur, koltuklar/kontenjan geri açılır. Bu işlem geri alınamaz.`
+    );
+    if (!confirmed) return;
+
+    setBulkCancelling(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch('/api/organizer/invitations/bulk/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ invitationIds: selectedInviteIds })
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        cancelled?: InvitationRow[];
+        errors?: Array<{ invitationId: string; error: string }>;
+      };
+      if (!res.ok) throw new Error(data.error || 'Davetiyeler iptal edilemedi');
+
+      const cancelled = data.cancelled ?? [];
+      const failed = data.errors ?? [];
+      if (cancelled.length > 0) {
+        const cancelledIds = new Set(cancelled.map((row) => row.id));
+        setInvitations((prev) =>
+          prev.map((row) => {
+            const updated = cancelled.find((c) => c.id === row.id);
+            return updated ?? row;
+          })
+        );
+        setLastInvite((prev) => (prev && cancelledIds.has(prev.id) ? null : prev));
+      }
+      setSelectedInviteIds([]);
+
+      if (failed.length === 0) {
+        setSuccess(`${cancelled.length} davetiye iptal edildi.`);
+      } else {
+        setSuccess(cancelled.length > 0 ? `${cancelled.length} davetiye iptal edildi.` : null);
+        setError(`${failed.length} davetiye iptal edilemedi: ${failed[0]?.error ?? 'bilinmeyen hata'}`);
+      }
+      if (eventId) void loadEventData(eventId);
+    } catch (err) {
+      setError(invitationFetchErrorMessage(err, 'Davetiyeler iptal edilemedi'));
+    } finally {
+      setBulkCancelling(false);
     }
   }
 
@@ -765,9 +827,28 @@ export function InvitationsPanel({
           )}
 
           <div className="rounded-xl border border-border bg-card p-5">
-            <h3 className="font-semibold text-foreground">
-              Gönderilen Davetiyeler ({invitations.length})
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-semibold text-foreground">
+                Gönderilen Davetiyeler ({invitations.length})
+              </h3>
+              {selectedInviteIds.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void bulkCancelInvitations()}
+                  disabled={bulkCancelling}
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  {bulkCancelling ? (
+                    <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  ) : (
+                    <Ban className="mr-1.5 size-4" />
+                  )}
+                  Seçilenleri iptal et ({selectedInviteIds.length})
+                </Button>
+              )}
+            </div>
             {invitations.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">
                 Henüz davetiye gönderilmedi.
@@ -785,6 +866,15 @@ export function InvitationsPanel({
                       isCancelled && 'opacity-60'
                     )}
                   >
+                    {!isCancelled && (
+                      <input
+                        type="checkbox"
+                        checked={selectedInviteIds.includes(invite.id)}
+                        onChange={() => toggleInviteSelection(invite.id)}
+                        aria-label={`${invite.guestName} davetiyesini seç`}
+                        className="size-4 shrink-0 rounded border-border"
+                      />
+                    )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate font-medium text-foreground">

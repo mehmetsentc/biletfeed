@@ -4,6 +4,7 @@ import {
   formatTurkeyDateLong,
   formatTurkeyTime
 } from '@/lib/datetime/istanbul';
+import { extractSeatUnitId } from '@/lib/tickets/seat-label';
 
 function formatDate(iso: string): string {
   return formatTurkeyDateLong(iso);
@@ -26,7 +27,8 @@ export function mapPublicTicketToPdf(ticket: PublicTicketInfo): TicketPdfInput {
     holderName: ticket.holderName,
     ticketCode: ticket.ticketCode,
     qrData: ticket.qrData,
-    status: ticket.status
+    status: ticket.status,
+    seatLabel: extractSeatUnitId({ seatUnitId: ticket.seatUnitId })
   };
 }
 
@@ -36,6 +38,7 @@ export function mapInvitationToPdf(invitation: {
   ticketCode: string;
   ticketStatus: string;
   ticketTypeName: string;
+  seatUnitId?: string | null;
   event: {
     title: string;
     coverImage: string;
@@ -58,7 +61,8 @@ export function mapInvitationToPdf(invitation: {
     ticketCode: invitation.ticketCode,
     qrData: invitation.qrData,
     status: invitation.ticketStatus,
-    personalMessage: invitation.personalMessage
+    personalMessage: invitation.personalMessage,
+    seatLabel: extractSeatUnitId({ seatUnitId: invitation.seatUnitId })
   };
 }
 
@@ -73,6 +77,7 @@ export function mapPurchasedTicketToPdf(ticket: {
   code: string;
   qrData: string;
   status: string;
+  seatUnitId?: string | null;
 }): TicketPdfInput {
   return {
     kind: 'ticket',
@@ -86,6 +91,7 @@ export function mapPurchasedTicketToPdf(ticket: {
     holderName: ticket.attendeeName?.trim() || 'Misafir',
     ticketCode: ticket.code,
     qrData: ticket.qrData,
-    status: ticket.status
+    status: ticket.status,
+    seatLabel: extractSeatUnitId({ seatUnitId: ticket.seatUnitId, attendeeName: ticket.attendeeName })
   };
 }

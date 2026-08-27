@@ -81,6 +81,21 @@ function expandTicketTypeHintAliases(hint: string): string[] {
     out.add('vip');
   }
 
+  if (
+    h.includes('davetiye') ||
+    h.includes('özel bölüm') ||
+    h.includes('ozel bolum') ||
+    h.includes('organizator') ||
+    h.includes('organizatör')
+  ) {
+    out.add('organizator davetiye');
+    out.add('organizatör davetiye');
+    out.add('özel bölüm');
+    out.add('ozel bolum');
+    out.add('davetiye');
+    out.add('salon davetiyesi');
+  }
+
   return [...out];
 }
 

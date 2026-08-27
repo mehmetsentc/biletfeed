@@ -291,15 +291,23 @@ export async function generateTicketPdf(input: TicketPdfInput): Promise<Buffer> 
         { label: bilingualFieldLabels.holder, value: input.holderName }
       ) + rowGap;
 
-    cursorY +=
-      drawDetailRow(
-        doc,
-        bodyX,
-        cursorY,
-        bodyW,
-        isInvitation ? 'DAVETİYE TÜRÜ / TYPE' : bilingualFieldLabels.type,
-        input.ticketTypeName
-      ) + rowGap;
+    const typeLabel = isInvitation ? 'DAVETİYE TÜRÜ / TYPE' : bilingualFieldLabels.type;
+    const seatLabel = input.seatLabel?.trim();
+
+    if (seatLabel) {
+      cursorY +=
+        drawDetailRowPair(
+          doc,
+          bodyX,
+          cursorY,
+          colW,
+          colGap,
+          { label: typeLabel, value: input.ticketTypeName },
+          { label: bilingualFieldLabels.seat, value: seatLabel }
+        ) + rowGap;
+    } else {
+      cursorY += drawDetailRow(doc, bodyX, cursorY, bodyW, typeLabel, input.ticketTypeName) + rowGap;
+    }
 
     cursorY += drawDetailRow(doc, bodyX, cursorY, bodyW, labels.codeLabelEn, input.ticketCode) + rowGap;
 

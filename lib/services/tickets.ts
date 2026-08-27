@@ -13,6 +13,7 @@ function mapTicket(t: {
   validationToken: string;
   status: string;
   attendeeName: string | null;
+  seatUnitId?: string | null;
   event: {
     slug: string;
     title: string;
@@ -41,6 +42,7 @@ function mapTicket(t: {
     price: t.ticketType.price,
     status: t.status as MockPurchasedTicket['status'],
     attendeeName: t.attendeeName ?? undefined,
+    seatUnitId: t.seatUnitId ?? undefined,
     isInvitation: !!t.invitation,
     qrData: buildTicketQrPayload({
       ticketId: t.id,
@@ -147,6 +149,7 @@ export type PublicTicketInfo = {
     slug: string;
   };
   qrData: string;
+  seatUnitId: string | null;
 };
 
 export async function getPublicTicketByCode(
@@ -196,7 +199,8 @@ export async function getPublicTicketByCode(
       ticketId: ticket.id,
       ticketCode: ticket.ticketCode,
       validationToken: ticket.validationToken
-    })
+    }),
+    seatUnitId: ticket.seatUnitId ?? null
   };
 }
 
