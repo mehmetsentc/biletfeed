@@ -615,7 +615,9 @@ export async function getEventTicketTypes(eventId: string, organizerId: string) 
       sold: true,
       _count: {
         select: {
-          purchasedTickets: { where: { deletedAt: null } }
+          purchasedTickets: {
+            where: { deletedAt: null, status: { in: ['VALID', 'USED'] } }
+          }
         }
       }
     },

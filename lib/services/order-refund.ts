@@ -132,7 +132,7 @@ export async function processOrderRefund(
     await prisma.$transaction(async (tx) => {
       await tx.purchasedTicket.updateMany({
         where: { id: { in: cancelTargets.map((t) => t.id) } },
-        data: { status: 'CANCELLED' }
+        data: { status: 'CANCELLED', deletedAt: new Date() }
       });
       await restoreTicketStockForTickets(
         cancelTargets.map((t) => t.ticketTypeId),

@@ -299,12 +299,33 @@ export async function getCheckoutTicketTypes(
           capacity: true,
           sold: true,
           seatsPerUnit: true,
-          showLowStockBadge: true
+          showLowStockBadge: true,
+          _count: {
+            select: {
+              purchasedTickets: {
+                where: { deletedAt: null, status: { in: ['VALID', 'USED'] } }
+              }
+            }
+          }
         }
       }
     }
   });
   if (!event) return [];
+
+  // İptal edilen biletler her zaman deletedAt işaretlenmediğinden (admin iptal
+  // yolu status'u CANCELLED yapar ama deletedAt'ı boş bırakabilir), sayaç kayabilir.
+  // Gerçek satılan sayıyı canlı sayımla düzelt — kaymışsa DB'yi de senkronla.
+  await Promise.all(
+    event.ticketTypes
+      .filter((tt) => tt.sold !== tt._count.purchasedTickets)
+      .map((tt) =>
+        prisma.ticketType.update({
+          where: { id: tt.id },
+          data: { sold: tt._count.purchasedTickets }
+        })
+      )
+  );
 
   return event.ticketTypes
     .filter((tt) => event.isFree || tt.price > 0)
@@ -321,7 +342,7 @@ export async function getCheckoutTicketTypes(
       discountPercent: eff.discountPercent,
       currency: tt.currency,
       capacity: tt.capacity,
-      sold: tt.sold,
+      sold: tt._count.purchasedTickets,
       seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
       showLowStockBadge: tt.showLowStockBadge,
       allowsZeroPrice: Boolean(event.isFree)
