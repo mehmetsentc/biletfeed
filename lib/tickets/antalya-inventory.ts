@@ -40,14 +40,27 @@ export const GIPSY_KINGS_ALLOCATION = [
 
 /**
  * Organizatör davetiye — yalnızca davetiye paneli.
- * Yeşil VIP (B9–17, C1–14, C22–27, D1–32) + Parter 2 · A 25–48.
+ * Yeşil VIP (B9–17, C1–14, C22–27, D1–32) + Parter 2 · A 25–48
+ * + Parter 1/3/4/6 (M, O, R, U blokları).
  */
 export const GIPSY_KINGS_INVITE_ALLOCATION = [
   { row: 'VIP B', from: 9, to: 17 },
   { row: 'VIP C', from: 1, to: 14 },
   { row: 'VIP C', from: 22, to: 27 },
   { row: 'VIP D', from: 1, to: 32 },
-  { row: 'A', from: 25, to: 48 }
+  { row: 'A', from: 25, to: 48 },
+  // Parter 1
+  { row: 'M', from: 1, to: 10 },
+  // Parter 3
+  { row: 'M', from: 106, to: 115 },
+  // Parter 4
+  { row: 'O', from: 3, to: 13 },
+  { row: 'R', from: 1, to: 13 },
+  { row: 'U', from: 1, to: 15 },
+  // Parter 6
+  { row: 'O', from: 108, to: 117 },
+  { row: 'R', from: 120, to: 134 },
+  { row: 'U', from: 130, to: 144 }
 ] as const;
 
 export const ORGANIZER_INVITE_TICKET_NAME = 'Organizator Davetiye';
@@ -215,13 +228,13 @@ export function buildAntyaSeatPlan(mapImageUrl?: string): SeatPlan {
         capacity: ANTALYA_STOCK.K2 + ANTALYA_STOCK.K3 + ANTALYA_STOCK.K5
       },
       {
-        name: 'Organizator Davetiye (yeşil VIP + A 25–48)',
+        name: 'Organizator Davetiye (yeşil VIP + A 25–48 + Parter 1/3/4/6)',
         capacity: totalInvite
       }
     ],
     zones,
     mapImageUrl,
-    notes: `Gipsy Kings — satış ${totalPublic} koltuk; davetiye ${totalInvite} koltuk (yeşil VIP + Parter 2 A 25–48). Davetiye koltukları public satışta değil.`
+    notes: `Gipsy Kings — satış ${totalPublic} koltuk; davetiye ${totalInvite} koltuk (yeşil VIP + Parter 2 A 25–48 + Parter 1/3/4/6). Davetiye koltukları public satışta değil.`
   };
 }
 
