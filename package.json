@@ -42,7 +42,8 @@
     "seed:event-rules": "dotenv -e .env.local -- tsx scripts/seed-event-rules.ts",
     "feed:quality-report": "dotenv -e .env.local -- tsx scripts/feed-quality-report.ts",
     "feed:flag-coverless": "dotenv -e .env.local -- tsx scripts/feed-flag-coverless.ts",
-    "invitations:cancel-seats": "dotenv -e .env.local -- tsx scripts/cancel-invitations-by-seats.ts"
+    "invitations:cancel-seats": "dotenv -e .env.local -- tsx scripts/cancel-invitations-by-seats.ts",
+    "seatplan:sync-antalya": "dotenv -e .env.local -- tsx scripts/sync-antalya-seat-plan.ts"
   },
   "dependencies": {
     "@capacitor-firebase/authentication": "^6.3.1",
