@@ -39,9 +39,9 @@ export const GIPSY_KINGS_ALLOCATION = [
 ] as const;
 
 /**
- * Organizatör davetiye — yalnızca davetiye paneli.
- * Yeşil VIP (B9–17, C1–14, C22–27, D1–32) + Parter 2 · A 25–48
- * + Parter 1/3/4/6 (M, O, R, U blokları).
+ * Organizatör davetiye — yalnızca davetiye paneli (public haritada yok).
+ * Yeşil VIP + Parter 2 · A 25–48 + Parter 1/3/4/6 (M/O/R/U)
+ * + Parter 4/6 · 5. Kategori (P/S/T/Z2/Z5/Z1 — Ercan listesi).
  */
 export const GIPSY_KINGS_INVITE_ALLOCATION = [
   { row: 'VIP B', from: 9, to: 17 },
@@ -53,14 +53,26 @@ export const GIPSY_KINGS_INVITE_ALLOCATION = [
   { row: 'M', from: 1, to: 10 },
   // Parter 3
   { row: 'M', from: 106, to: 115 },
-  // Parter 4
+  // Parter 4 (önceki davetiye)
   { row: 'O', from: 3, to: 13 },
   { row: 'R', from: 1, to: 13 },
   { row: 'U', from: 1, to: 15 },
-  // Parter 6
+  // Parter 6 (önceki davetiye)
   { row: 'O', from: 108, to: 117 },
   { row: 'R', from: 120, to: 134 },
-  { row: 'U', from: 130, to: 144 }
+  { row: 'U', from: 130, to: 144 },
+  // Parter 4 · 5. Kategori (davetiye)
+  { row: 'P', from: 3, to: 8 },
+  { row: 'S', from: 1, to: 12 },
+  { row: 'T', from: 1, to: 13 },
+  { row: 'Z2', from: 1, to: 4 },
+  { row: 'Z2', from: 6, to: 6 },
+  { row: 'Z5', from: 1, to: 9 },
+  // Parter 6 · 5. Kategori (davetiye)
+  { row: 'P', from: 113, to: 117 },
+  { row: 'S', from: 124, to: 138 },
+  { row: 'T', from: 127, to: 141 },
+  { row: 'Z1', from: 91, to: 109 }
 ] as const;
 
 export const ORGANIZER_INVITE_TICKET_NAME = 'Organizator Davetiye';
@@ -124,9 +136,9 @@ export function getAllocatedInventorySeats(): InventorySeat[] {
   );
 }
 
-/** Davetiye-only seats (yeşil VIP + Parter 2 A 25–48). */
+/** Davetiye-only seats — public satış/harita dışı. */
 export function getInviteInventorySeats(): InventorySeat[] {
-  return seatsFromBlocks(
+  const raw = seatsFromBlocks(
     GIPSY_KINGS_INVITE_ALLOCATION.map((b) => ({
       row: b.row,
       from: b.from,
@@ -134,6 +146,15 @@ export function getInviteInventorySeats(): InventorySeat[] {
       cat: 'DAVETIYE' as const
     }))
   );
+  const seen = new Set<string>();
+  const out: InventorySeat[] = [];
+  for (const s of raw) {
+    const key = s.id.toUpperCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+  }
+  return out;
 }
 
 const allocatedIdSet = (() => {
@@ -228,13 +249,13 @@ export function buildAntyaSeatPlan(mapImageUrl?: string): SeatPlan {
         capacity: ANTALYA_STOCK.K2 + ANTALYA_STOCK.K3 + ANTALYA_STOCK.K5
       },
       {
-        name: 'Organizator Davetiye (yeşil VIP + A 25–48 + Parter 1/3/4/6)',
+        name: 'Organizator Davetiye (yeşil VIP + A 25–48 + Parter 1/3/4/6 + P/S/T/Z)',
         capacity: totalInvite
       }
     ],
     zones,
     mapImageUrl,
-    notes: `Gipsy Kings — satış ${totalPublic} koltuk; davetiye ${totalInvite} koltuk (yeşil VIP + Parter 2 A 25–48 + Parter 1/3/4/6). Davetiye koltukları public satışta değil.`
+    notes: `Gipsy Kings — satış ${totalPublic} koltuk; davetiye ${totalInvite} koltuk. Davetiye koltukları public harita/satışta değil; yalnızca organizatör davetiyesinde yer numarası.`
   };
 }
 
