@@ -29,6 +29,30 @@ const eventInclude = {
   }
 } as const;
 
+/**
+ * Public “başlangıç fiyatı”: ücretli etkinlikte price=0 (davetiye) ve
+ * paused/inactive türler hariç; satıştaki en düşük ücretli bilet.
+ */
+export function resolvePublicStartingPrice(event: {
+  isFree: boolean;
+  basePrice: number;
+  ticketTypes: Array<{ price: number; status?: string | null }>;
+}): number {
+  if (event.isFree) return 0;
+
+  const activePaid = event.ticketTypes
+    .filter((t) => t.price > 0 && (t.status == null || t.status === 'active'))
+    .map((t) => t.price);
+  if (activePaid.length > 0) return Math.min(...activePaid);
+
+  const anyPaid = event.ticketTypes
+    .filter((t) => t.price > 0)
+    .map((t) => t.price);
+  if (anyPaid.length > 0) return Math.min(...anyPaid);
+
+  return event.basePrice > 0 ? event.basePrice : 0;
+}
+
 export type EventWithRelations = {
   id: string;
   slug: string;
@@ -54,7 +78,7 @@ export type EventWithRelations = {
   venue: { name: string; address: string } | null;
   city: { name: string; slug: string };
   category: { name: string; slug: string };
-  ticketTypes: { price: number }[];
+  ticketTypes: Array<{ price: number; status?: string | null }>;
   listingType?: string;
   externalPlatform?: string | null;
   externalUrl?: string | null;
@@ -66,10 +90,7 @@ export type EventWithRelations = {
 };
 
 export function toMockEvent(event: EventWithRelations): MockEvent {
-  const minPrice =
-    event.ticketTypes.length > 0
-      ? Math.min(...event.ticketTypes.map((t) => t.price))
-      : event.basePrice;
+  const minPrice = resolvePublicStartingPrice(event);
 
   return {
     id: event.id,
