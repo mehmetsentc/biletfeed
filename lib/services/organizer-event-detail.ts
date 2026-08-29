@@ -65,7 +65,7 @@ export async function getOrganizerEventDetail(
       }
     }),
     prisma.eventInvitation.count({
-      where: { eventId, deletedAt: null }
+      where: { eventId, deletedAt: null, status: { not: 'cancelled' } }
     })
   ]);
 
@@ -100,6 +100,18 @@ export async function getOrganizerEventDetail(
   const commission = revenueAgg._sum.commission ?? 0;
   const netOrganizer = Math.max(0, revenue - commission);
 
+  let saleCampaignType = 'percent';
+  try {
+    const campaignRows = await prisma.$queryRaw<
+      Array<{ sale_campaign_type: string | null }>
+    >`
+      SELECT sale_campaign_type FROM events WHERE id = ${event.id}::uuid LIMIT 1
+    `;
+    saleCampaignType = campaignRows[0]?.sale_campaign_type ?? 'percent';
+  } catch {
+    /* kolon henüz yoksa percent */
+  }
+
   return {
     event: {
       id: event.id,
@@ -112,6 +124,7 @@ export async function getOrganizerEventDetail(
       endDate: event.endDate,
       status: event.status,
       isFree: event.isFree,
+      saleCampaignType,
       saleDiscountPercent: event.saleDiscountPercent,
       saleDiscountTicketTypeIds: event.saleDiscountTicketTypeIds,
       saleDiscountActive: event.saleDiscountActive,

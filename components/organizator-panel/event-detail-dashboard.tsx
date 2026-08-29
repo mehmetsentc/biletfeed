@@ -67,6 +67,7 @@ type EventDetailData = {
     endDate: string;
     status: EventStatus;
     isFree: boolean;
+    saleCampaignType: string;
     saleDiscountPercent: number | null;
     saleDiscountTicketTypeIds: string[];
     saleDiscountActive: boolean;
@@ -800,7 +801,7 @@ export function EventDetailDashboard({
           </div>
         </Widget>
 
-        <Widget title="Yüzde indirim">
+        <Widget title="Kampanya">
           <EventSaleDiscountPanel
             eventId={event.id}
             isFree={event.isFree}
@@ -810,6 +811,8 @@ export function EventDetailDashboard({
               price: c.price
             }))}
             initial={{
+              campaignType:
+                event.saleCampaignType === 'bogo' ? 'bogo' : 'percent',
               percent: event.saleDiscountPercent,
               ticketTypeIds: event.saleDiscountTicketTypeIds ?? [],
               active: event.saleDiscountActive,

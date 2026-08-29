@@ -193,7 +193,29 @@ export function VenueSectionSeatPicker({
       .filter((c): c is SeatCell => Boolean(c?.ticket));
   }, [selectedIds, cellsByUnitId]);
 
-  const total = selectedSeats.reduce((sum, s) => sum + (s.ticket?.price ?? 0), 0);
+  const total = useMemo(() => {
+    const byType = new Map<
+      string,
+      { price: number; isBogo: boolean; n: number }
+    >();
+    for (const s of selectedSeats) {
+      const tt = s.ticket;
+      if (!tt) continue;
+      const cur = byType.get(tt.id) ?? {
+        price: tt.price,
+        isBogo: Boolean(tt.isBogo),
+        n: 0
+      };
+      cur.n += 1;
+      byType.set(tt.id, cur);
+    }
+    let sum = 0;
+    for (const g of byType.values()) {
+      const paid = g.isBogo ? Math.ceil(g.n / 2) : g.n;
+      sum += g.price * paid;
+    }
+    return sum;
+  }, [selectedSeats]);
 
   function toggleSeat(cell: SeatCell) {
     if (!cell.ticket || !cell.available) return;

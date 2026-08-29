@@ -496,6 +496,8 @@ model Event {
   saleDiscountTicketTypeIds String[]  @default([]) @map("sale_discount_ticket_type_ids")
   saleDiscountActive        Boolean   @default(false) @map("sale_discount_active")
   saleDiscountEndsAt        DateTime? @map("sale_discount_ends_at")
+  /** percent | bogo — 1 alana 1 bedava */
+  saleCampaignType          String    @default("percent") @map("sale_campaign_type")
   basePrice    Float       @default(0) @map("base_price")
   currency     Currency    @default(TRY)
   attendees    Int         @default(0)

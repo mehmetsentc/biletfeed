@@ -60,6 +60,8 @@ export function InvitationsPanel({
   const [eventId, setEventId] = useState(initialEventId ?? '');
   const [ticketTypes, setTicketTypes] = useState<TicketTypeOption[]>([]);
   const [invitations, setInvitations] = useState<InvitationRow[]>([]);
+  const [sentCount, setSentCount] = useState(0);
+  const [cancelledCount, setCancelledCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -143,8 +145,20 @@ export function InvitationsPanel({
     }
 
     if (inviteRes.ok) {
-      const inviteData = (await inviteRes.json()) as { invitations: InvitationRow[] };
+      const inviteData = (await inviteRes.json()) as {
+        invitations: InvitationRow[];
+        sentCount?: number;
+        cancelledCount?: number;
+      };
       setInvitations(inviteData.invitations);
+      const cancelled =
+        inviteData.cancelledCount ??
+        inviteData.invitations.filter((i) => i.status === 'cancelled').length;
+      const sent =
+        inviteData.sentCount ??
+        inviteData.invitations.filter((i) => i.status !== 'cancelled').length;
+      setSentCount(sent);
+      setCancelledCount(cancelled);
     }
   }, []);
 
@@ -230,6 +244,7 @@ export function InvitationsPanel({
         const invitation = data.invitation!;
         setLastInvite(invitation);
         setInvitations((prev) => [invitation, ...prev]);
+        setSentCount((c) => c + 1);
 
         if (hadEmail && data.emailStatus === 'failed') {
           setSuccess(`${invitation.guestName} için davetiye oluşturuldu.`);
@@ -283,6 +298,7 @@ export function InvitationsPanel({
 
         setLastInvite(created[0] ?? null);
         setInvitations((prev) => [...created, ...prev]);
+        setSentCount((c) => c + created.length);
 
         const createErrorNote = data.errors?.length
           ? ` ${data.errors.length} davetiye kontenjan/hata nedeniyle oluşturulamadı.`
@@ -829,7 +845,8 @@ export function InvitationsPanel({
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold text-foreground">
-                Gönderilen Davetiyeler ({invitations.length})
+                Gönderilen Davetiyeler ({sentCount}
+                {cancelledCount > 0 ? ` · ${cancelledCount} iptal` : ''})
               </h3>
               {selectedInviteIds.length > 0 && (
                 <Button

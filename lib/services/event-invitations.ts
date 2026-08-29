@@ -109,22 +109,44 @@ const invitationInclude = {
   event: { select: { title: true } }
 } as const;
 
+export type InvitationListResult = {
+  invitations: InvitationRow[];
+  /** İptal edilmemiş (gönderilmiş / görüntülenmiş) */
+  sentCount: number;
+  cancelledCount: number;
+  totalCount: number;
+};
+
 export async function listEventInvitations(
   organizerId: string,
   eventId?: string
-): Promise<InvitationRow[]> {
+): Promise<InvitationListResult> {
   await ensureDbConnection();
-  const rows = await prisma.eventInvitation.findMany({
-    where: {
-      organizerId,
-      deletedAt: null,
-      ...(eventId ? { eventId } : {})
-    },
-    include: invitationInclude,
-    orderBy: { createdAt: 'desc' },
-    take: 100
-  });
-  return rows.map(mapInvitation);
+  const where = {
+    organizerId,
+    deletedAt: null,
+    ...(eventId ? { eventId } : {})
+  };
+  const [rows, sentCount, cancelledCount] = await Promise.all([
+    prisma.eventInvitation.findMany({
+      where,
+      include: invitationInclude,
+      orderBy: { createdAt: 'desc' },
+      take: 2000
+    }),
+    prisma.eventInvitation.count({
+      where: { ...where, status: { not: 'cancelled' } }
+    }),
+    prisma.eventInvitation.count({
+      where: { ...where, status: 'cancelled' }
+    })
+  ]);
+  return {
+    invitations: rows.map(mapInvitation),
+    sentCount,
+    cancelledCount,
+    totalCount: sentCount + cancelledCount
+  };
 }
 
 const invitationEmailInclude = {

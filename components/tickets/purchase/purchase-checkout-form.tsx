@@ -82,7 +82,28 @@ export function PurchaseCheckoutForm({
 
   const isMultiSeat = Boolean(seatTicketTypes && seatTicketTypes.length > 0);
   const seatLines = seatTicketTypes ?? [];
-  const seatSubtotal = seatLines.reduce((s, tt) => s + tt.price, 0);
+  const seatSubtotal = (() => {
+    if (!isMultiSeat) return 0;
+    const byType = new Map<
+      string,
+      { price: number; isBogo: boolean; n: number }
+    >();
+    for (const tt of seatLines) {
+      const cur = byType.get(tt.id) ?? {
+        price: tt.price,
+        isBogo: Boolean(tt.isBogo),
+        n: 0
+      };
+      cur.n += 1;
+      byType.set(tt.id, cur);
+    }
+    let sum = 0;
+    for (const g of byType.values()) {
+      const paid = g.isBogo ? Math.ceil(g.n / 2) : g.n;
+      sum += g.price * paid;
+    }
+    return sum;
+  })();
   const effectiveQuantity = isMultiSeat ? seatLines.length : quantity;
   const effectiveUnitPrice = isMultiSeat
     ? seatSubtotal / Math.max(1, seatLines.length)
@@ -103,7 +124,8 @@ export function PurchaseCheckoutForm({
     : calculatePurchasePricing({
         unitPrice: ticketType.price,
         quantity,
-        discount: couponDiscount
+        discount: couponDiscount,
+        isBogo: ticketType.isBogo
       });
   const isPaid = pricing.total > 0;
   const { title: ticketTitle } = splitTicketDisplay(
@@ -454,6 +476,7 @@ export function PurchaseCheckoutForm({
               unitPrice={ticketType.price}
               quantity={quantity}
               discount={couponDiscount}
+              isBogo={ticketType.isBogo}
               compact
             />
           )}

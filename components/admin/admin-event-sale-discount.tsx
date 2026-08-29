@@ -12,6 +12,7 @@ export function AdminEventSaleDiscount({
   isFree: boolean;
   categories: Array<{ id: string; name: string; price: number }>;
   initial: {
+    campaignType?: 'percent' | 'bogo' | null;
     percent: number | null;
     ticketTypeIds: string[];
     active: boolean;
@@ -21,7 +22,7 @@ export function AdminEventSaleDiscount({
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Yüzde indirim
+        Kampanya
       </h2>
       <EventSaleDiscountPanel
         eventId={eventId}

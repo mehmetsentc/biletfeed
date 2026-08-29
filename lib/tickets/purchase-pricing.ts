@@ -12,10 +12,13 @@ export function calculatePurchasePricing(params: {
   unitPrice: number;
   quantity: number;
   discount?: number;
+  /** 1 alana 1 bedava — ücretli adet = ceil(qty/2) */
+  isBogo?: boolean;
 }): PurchasePricing {
   const quantity = Math.min(Math.max(params.quantity, 1), 10);
   const unitPrice = params.unitPrice;
-  const ticketSubtotal = Math.round(unitPrice * quantity * 100) / 100;
+  const chargeQty = params.isBogo ? Math.ceil(quantity / 2) : quantity;
+  const ticketSubtotal = Math.round(unitPrice * chargeQty * 100) / 100;
   const discount = Math.max(0, params.discount ?? 0);
   const total = Math.max(0, Math.round((ticketSubtotal - discount) * 100) / 100);
 

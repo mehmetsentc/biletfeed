@@ -10,6 +10,7 @@ interface PurchasePriceBreakdownProps {
   unitPrice: number;
   quantity: number;
   discount?: number;
+  isBogo?: boolean;
   className?: string;
   compact?: boolean;
 }
@@ -18,34 +19,57 @@ export function PurchasePriceBreakdown({
   unitPrice,
   quantity,
   discount = 0,
+  isBogo = false,
   className,
   compact = false
 }: PurchasePriceBreakdownProps) {
-  const pricing = calculatePurchasePricing({ unitPrice, quantity, discount });
+  const pricing = calculatePurchasePricing({
+    unitPrice,
+    quantity,
+    discount,
+    isBogo
+  });
 
   return (
-    <PriceBreakdownRows pricing={pricing} className={className} compact={compact} />
+    <PriceBreakdownRows
+      pricing={pricing}
+      isBogo={isBogo}
+      className={className}
+      compact={compact}
+    />
   );
 }
 
 export function PriceBreakdownRows({
   pricing,
+  isBogo = false,
   className,
   compact = false
 }: {
   pricing: PurchasePricing;
+  isBogo?: boolean;
   className?: string;
   compact?: boolean;
 }) {
   const isFree = pricing.total <= 0;
+  const paidQty = isBogo ? Math.ceil(pricing.quantity / 2) : pricing.quantity;
+  const freeQty = pricing.quantity - paidQty;
 
   return (
     <div className={cn('space-y-2 text-sm', className)}>
       <Row
         label={`Bilet fiyatı (${pricing.quantity} adet)`}
-        value={formatTry(pricing.ticketSubtotal)}
+        value={formatTry(pricing.unitPrice * pricing.quantity)}
         compact={compact}
       />
+      {isBogo && freeQty > 0 ? (
+        <Row
+          label={`1 alana 1 bedava (−${freeQty} bilet)`}
+          value={`-${formatTry(pricing.unitPrice * freeQty)}`}
+          compact={compact}
+          valueClassName="text-[var(--bf-success)]"
+        />
+      ) : null}
       {pricing.discount > 0 && (
         <Row
           label="Kupon indirimi"

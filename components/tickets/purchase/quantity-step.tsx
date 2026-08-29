@@ -48,11 +48,17 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
             listPrice={ticketType.listPrice}
             isOnSale={ticketType.isOnSale}
             discountPercent={ticketType.discountPercent}
+            isBogo={ticketType.isBogo}
             freeLabel={t.common.free}
             className="items-start"
             priceClassName="text-2xl"
           />
         </div>
+        {ticketType.isBogo ? (
+          <p className="mt-2 text-sm text-primary">
+            1 alana 1 bedava — her 2 bilette 1 ücretsiz
+          </p>
+        ) : null}
 
         <div className="mt-6 flex items-center justify-center gap-4">
           <Button
@@ -97,6 +103,7 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
           <PurchasePriceBreakdown
             unitPrice={ticketType.price}
             quantity={quantity}
+            isBogo={ticketType.isBogo}
           />
         </div>
       </section>

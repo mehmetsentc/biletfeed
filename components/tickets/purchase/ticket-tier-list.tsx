@@ -138,6 +138,7 @@ export async function TicketTierList({
                   listPrice={type.listPrice}
                   isOnSale={type.isOnSale}
                   discountPercent={type.discountPercent}
+                  isBogo={type.isBogo}
                   freeLabel={t.common.free}
                 />
               )}

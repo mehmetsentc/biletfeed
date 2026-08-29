@@ -5,7 +5,8 @@ import { setEventSaleDiscount } from '@/lib/services/event-sale-discount';
 
 const bodySchema = z.object({
   eventId: z.string().uuid(),
-  percent: z.number().int().min(1).max(100).nullable(),
+  campaignType: z.enum(['percent', 'bogo']).optional(),
+  percent: z.number().int().min(1).max(100).nullable().optional(),
   active: z.boolean(),
   ticketTypeIds: z.array(z.string().uuid()).optional(),
   endsAt: z.string().datetime().nullable().optional()
@@ -24,7 +25,8 @@ export async function PATCH(request: NextRequest) {
   try {
     const event = await setEventSaleDiscount({
       eventId: parsed.data.eventId,
-      percent: parsed.data.percent,
+      campaignType: parsed.data.campaignType,
+      percent: parsed.data.percent ?? null,
       active: parsed.data.active,
       ticketTypeIds: parsed.data.ticketTypeIds,
       endsAt:
@@ -37,6 +39,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({
       success: true,
       saleDiscount: {
+        campaignType: event.saleCampaignType,
         percent: event.saleDiscountPercent,
         ticketTypeIds: event.saleDiscountTicketTypeIds,
         active: event.saleDiscountActive,

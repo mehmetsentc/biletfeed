@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
   }
 
   const eventId = request.nextUrl.searchParams.get('eventId') || undefined;
-  const invitations = await listEventInvitations(ctx.organizer.id, eventId);
-  return NextResponse.json({ invitations });
+  const result = await listEventInvitations(ctx.organizer.id, eventId);
+  return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {

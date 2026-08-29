@@ -11,6 +11,8 @@ export type CheckoutTicketType = {
   listPrice: number;
   isOnSale: boolean;
   discountPercent: number | null;
+  /** 1 alana 1 bedava kampanyası */
+  isBogo: boolean;
   currency: string;
   capacity: number;
   sold: number;

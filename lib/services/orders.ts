@@ -27,7 +27,7 @@ import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
 import { extractSeatUnitId } from '@/lib/tickets/seat-label';
-import { effectiveTicketPrice } from '@/lib/services/event-sale-discount';
+import { effectiveTicketPrice, lineSubtotalForQuantity } from '@/lib/services/event-sale-discount';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 
 export interface CheckoutResult {
@@ -87,7 +87,23 @@ async function loadEventForCheckout(eventSlug: string) {
       'Bu etkinlik harici bir platformdadır. Bilet için kaynak siteye yönlendirilmelisiniz.'
     );
   }
-  return event;
+
+  let saleCampaignType = 'percent';
+  try {
+    const campaignRows = await prisma.$queryRaw<
+      Array<{ sale_campaign_type: string | null }>
+    >`
+      SELECT sale_campaign_type FROM events WHERE id = ${event.id}::uuid LIMIT 1
+    `;
+    saleCampaignType = campaignRows[0]?.sale_campaign_type ?? 'percent';
+  } catch {
+    /* kolon henüz yoksa percent */
+  }
+
+  return {
+    ...event,
+    saleCampaignType
+  };
 }
 
 async function loadCheckoutContext(params: {
@@ -180,16 +196,22 @@ async function loadCheckoutContext(params: {
         if (g.tt.sold + g.qty > g.tt.capacity) {
           throw new Error(`"${g.tt.name}" için yeterli bilet kalmadı`);
         }
+        const charge = lineSubtotalForQuantity(event, g.tt, g.qty);
+        const avgUnit =
+          g.qty > 0 ? Math.round((charge / g.qty) * 100) / 100 : 0;
         lines.push({
           ticketTypeId: g.tt.id,
           name: g.tt.name,
-          unitPrice: effectiveTicketPrice(event, g.tt).unitPrice,
+          unitPrice: avgUnit,
           quantity: g.qty,
           seatUnitIds: g.seats
         });
       }
 
-      const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+      const subtotal = [...grouped.values()].reduce(
+        (s, g) => s + lineSubtotalForQuantity(event, g.tt, g.qty),
+        0
+      );
       const commissionRate = await resolveOrganizerCommissionRate(
         event.organizer.commissionRate
       );
@@ -213,22 +235,44 @@ async function loadCheckoutContext(params: {
       throw new Error('Aynı koltuk birden fazla seçilemez');
     }
 
-    const lines: CheckoutLineItem[] = [];
+    // Aynı kategoriden birden fazla → BOGO gruplu
+    const byType = new Map<string, (typeof event.ticketTypes)[number]>();
     for (const id of unique) {
       const tt = event.ticketTypes.find((t) => t.id === id);
       if (!tt) throw new Error('Seçilen koltuklardan biri bulunamadı');
       if (tt.sold + 1 > tt.capacity) {
         throw new Error(`"${tt.name}" koltuğu artık müsait değil`);
       }
+      byType.set(id, tt);
+    }
+    const groupedUnique = new Map<
+      string,
+      { tt: (typeof event.ticketTypes)[number]; qty: number }
+    >();
+    for (const id of unique) {
+      const tt = byType.get(id)!;
+      const g = groupedUnique.get(tt.id);
+      if (g) g.qty += 1;
+      else groupedUnique.set(tt.id, { tt, qty: 1 });
+    }
+
+    const lines: CheckoutLineItem[] = [];
+    for (const g of groupedUnique.values()) {
+      const charge = lineSubtotalForQuantity(event, g.tt, g.qty);
+      const avgUnit =
+        g.qty > 0 ? Math.round((charge / g.qty) * 100) / 100 : 0;
       lines.push({
-        ticketTypeId: tt.id,
-        name: tt.name,
-        unitPrice: effectiveTicketPrice(event, tt).unitPrice,
-        quantity: 1
+        ticketTypeId: g.tt.id,
+        name: g.tt.name,
+        unitPrice: avgUnit,
+        quantity: g.qty
       });
     }
 
-    const subtotal = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+    const subtotal = [...groupedUnique.values()].reduce(
+      (s, g) => s + lineSubtotalForQuantity(event, g.tt, g.qty),
+      0
+    );
     const commissionRate = await resolveOrganizerCommissionRate(
       event.organizer.commissionRate
     );
@@ -240,7 +284,7 @@ async function loadCheckoutContext(params: {
       event,
       ticketType: primary,
       lines,
-      qty: lines.length,
+      qty: lines.reduce((n, l) => n + l.quantity, 0),
       subtotal,
       commission
     };
@@ -258,15 +302,15 @@ async function loadCheckoutContext(params: {
     throw new Error('Yeterli bilet kalmadı');
   }
 
-  const unitPrice = effectiveTicketPrice(event, ticketType).unitPrice;
-  const subtotal = unitPrice * qty;
+  const subtotal = lineSubtotalForQuantity(event, ticketType, qty);
+  const avgUnit = qty > 0 ? Math.round((subtotal / qty) * 100) / 100 : 0;
   const commissionRate = await resolveOrganizerCommissionRate(event.organizer.commissionRate);
   const commission = calculateOrderCommission(subtotal, commissionRate);
   const lines: CheckoutLineItem[] = [
     {
       ticketTypeId: ticketType.id,
       name: ticketType.name,
-      unitPrice,
+      unitPrice: avgUnit,
       quantity: qty
     }
   ];
@@ -281,6 +325,7 @@ export async function getCheckoutTicketTypes(
   const event = await prisma.event.findFirst({
     where: { slug: eventSlug, status: 'published', deletedAt: null },
     select: {
+      id: true,
       isFree: true,
       saleDiscountPercent: true,
       saleDiscountTicketTypeIds: true,
@@ -313,6 +358,21 @@ export async function getCheckoutTicketTypes(
   });
   if (!event) return [];
 
+  let saleCampaignType = 'percent';
+  try {
+    const campaignRows = await prisma.$queryRaw<
+      Array<{ sale_campaign_type: string | null }>
+    >`
+      SELECT sale_campaign_type FROM events WHERE id = ${event.id}::uuid LIMIT 1
+    `;
+    saleCampaignType = campaignRows[0]?.sale_campaign_type ?? 'percent';
+  } catch {
+    /* kolon henüz yoksa percent */
+  }
+  const saleFields = {
+    ...event,
+    saleCampaignType
+  };
   // İptal edilen biletler her zaman deletedAt işaretlenmediğinden (admin iptal
   // yolu status'u CANCELLED yapar ama deletedAt'ı boş bırakabilir), sayaç kayabilir.
   // Gerçek satılan sayıyı canlı sayımla düzelt — kaymışsa DB'yi de senkronla.
@@ -330,7 +390,7 @@ export async function getCheckoutTicketTypes(
   return event.ticketTypes
     .filter((tt) => event.isFree || tt.price > 0)
     .map((tt) => {
-    const eff = effectiveTicketPrice(event, tt);
+    const eff = effectiveTicketPrice(saleFields, tt);
     return {
       id: tt.id,
       name: tt.name,
@@ -340,6 +400,7 @@ export async function getCheckoutTicketTypes(
       listPrice: eff.listPrice,
       isOnSale: eff.isOnSale,
       discountPercent: eff.discountPercent,
+      isBogo: eff.isBogo,
       currency: tt.currency,
       capacity: tt.capacity,
       sold: tt._count.purchasedTickets,

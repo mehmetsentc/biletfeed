@@ -218,6 +218,10 @@ export default async function AdminEventEditPage({ params }: PageProps) {
           price: tt.price
         }))}
         initial={{
+          campaignType:
+            (event as { saleCampaignType?: string }).saleCampaignType === 'bogo'
+              ? 'bogo'
+              : 'percent',
           percent: event.saleDiscountPercent,
           ticketTypeIds: event.saleDiscountTicketTypeIds ?? [],
           active: event.saleDiscountActive,

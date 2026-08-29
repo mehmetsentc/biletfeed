@@ -59,8 +59,8 @@ async function main() {
   const ticketType = event.ticketTypes[0];
   console.log('Etkinlik:', event.title, event.id);
 
-  let invitations = await listEventInvitations(organizer.id, event.id);
-  if (invitations.length === 0) {
+  let listed = await listEventInvitations(organizer.id, event.id);
+  if (listed.invitations.length === 0) {
     console.log('Davetiye oluşturuluyor...');
     await createEventInvitation({
       organizerId: organizer.id,
@@ -69,10 +69,14 @@ async function main() {
       guestName: 'Gate Scan Test',
       guestEmail: `gate-test+${Date.now()}@biletfeed.local`
     });
-    invitations = await listEventInvitations(organizer.id, event.id);
+    listed = await listEventInvitations(organizer.id, event.id);
   }
 
-  const invite = invitations[0];
+  const invite = listed.invitations[0];
+  if (!invite) {
+    console.error('Davetiye bulunamadı');
+    process.exit(1);
+  }
   console.log('Davetiye bilet kodu:', invite.ticketCode);
 
   const ticket = await prisma.purchasedTicket.findFirst({

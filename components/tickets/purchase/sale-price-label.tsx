@@ -1,12 +1,13 @@
 import { cn } from '@/lib/utils';
 import { formatTry } from '@/lib/tickets/purchase-pricing';
 
-/** Liste fiyatı üstü çizili + indirimli fiyat */
+/** Liste fiyatı üstü çizili + indirimli fiyat / 1+1 etiketi */
 export function SalePriceLabel({
   price,
   listPrice,
   isOnSale,
   discountPercent,
+  isBogo,
   freeLabel = 'Ücretsiz',
   className,
   priceClassName
@@ -15,12 +16,24 @@ export function SalePriceLabel({
   listPrice?: number;
   isOnSale?: boolean;
   discountPercent?: number | null;
+  isBogo?: boolean;
   freeLabel?: string;
   className?: string;
   priceClassName?: string;
 }) {
   if (price <= 0) {
     return <p className={cn('text-xl font-extrabold tracking-tight', className)}>{freeLabel}</p>;
+  }
+
+  if (isBogo) {
+    return (
+      <div className={cn('flex flex-col items-end gap-0.5', className)}>
+        <span className={cn('text-xl font-extrabold tracking-tight text-primary', priceClassName)}>
+          {formatTry(price)}
+        </span>
+        <span className="text-[11px] font-semibold text-primary">1 alana 1 bedava</span>
+      </div>
+    );
   }
 
   const showSale =

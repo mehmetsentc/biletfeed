@@ -40,6 +40,7 @@ export async function getOrganizerSalesStats(
       where: {
         organizerId,
         deletedAt: null,
+        status: { not: 'cancelled' },
         ...eventFilter
       }
     })

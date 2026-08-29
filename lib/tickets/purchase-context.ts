@@ -52,6 +52,7 @@ export async function getTicketPurchaseContext(eventSlug: string) {
     listPrice: tt.listPrice ?? tt.price,
     isOnSale: tt.isOnSale ?? false,
     discountPercent: tt.discountPercent ?? null,
+    isBogo: tt.isBogo ?? false,
     allowsZeroPrice: tt.allowsZeroPrice ?? false
   }));
 

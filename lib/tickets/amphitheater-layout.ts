@@ -3,7 +3,7 @@
  * Sahne üstte; VIP → A–M → N–Z7 sırasıyla açılır.
  */
 
-import { getAntyaRows, type InventorySeat } from '@/lib/tickets/antalya-inventory';
+import { getAntyaRows, isAllocatedSeatId } from '@/lib/tickets/antalya-inventory';
 
 export type AmphitheaterDot = {
   key: string;
@@ -93,10 +93,20 @@ export function buildAmphitheaterDots(): AmphitheaterDot[] {
     const sorted = [...seats].sort((a, b) => a.n - b.n);
     const maxN = sorted[sorted.length - 1]!.n;
     const minN = sorted[0]!.n;
+    // Satışa açık koltuklar yayın ortasına çekilir (Z 1–10 gibi uçta kaybolmasın)
+    const allocated = sorted.filter((s) => isAllocatedSeatId(s.id));
 
     for (const s of sorted) {
-      const u =
-        maxN === minN ? 0.5 : (s.n - minN) / (maxN - minN);
+      let u: number;
+      if (allocated.length > 0 && isAllocatedSeatId(s.id)) {
+        const idx = allocated.findIndex((a) => a.id === s.id);
+        const at =
+          allocated.length === 1 ? 0.5 : idx / (allocated.length - 1);
+        // Ortadaki %50 bant — default kamerada görünür
+        u = 0.25 + at * 0.5;
+      } else {
+        u = maxN === minN ? 0.5 : (s.n - minN) / (maxN - minN);
+      }
       // Excel’de yüksek numara solda görünüyor — yayda tersle
       const angle = lerp(a1, a0, u);
       dots.push({
