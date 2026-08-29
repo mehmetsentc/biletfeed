@@ -133,5 +133,3 @@ export function stagePath(): string {
 export function boothRect() {
   return { x: 555, y: 455, w: 90, h: 34 };
 }
-
-export type { InventorySeat };
