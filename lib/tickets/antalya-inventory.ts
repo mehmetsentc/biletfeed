@@ -41,7 +41,8 @@ export const GIPSY_KINGS_ALLOCATION = [
 /**
  * Organizatör davetiye — yalnızca davetiye paneli (public haritada yok).
  * Yeşil VIP + Parter 2 · A 25–48 + Parter 1/3/4/6 (M/O/R/U)
- * + Parter 4/6 · 5. Kategori (P/S/T/Z2/Z5/Z1 — Ercan listesi).
+ * + Parter 4/6 · 5. Kategori (P/S/T/Z2/Z5/Z1)
+ * + Kalan koltuk kapatma (PRT5 / PRT2 / VP01 — 111 koltuk).
  */
 export const GIPSY_KINGS_INVITE_ALLOCATION = [
   { row: 'VIP B', from: 9, to: 17 },
@@ -72,7 +73,20 @@ export const GIPSY_KINGS_INVITE_ALLOCATION = [
   { row: 'P', from: 113, to: 117 },
   { row: 'S', from: 124, to: 138 },
   { row: 'T', from: 127, to: 141 },
-  { row: 'Z1', from: 91, to: 109 }
+  { row: 'Z1', from: 91, to: 109 },
+  // Kalan koltuk kapatma → davetiye (PRT5)
+  { row: 'O', from: 37, to: 61 },
+  { row: 'R', from: 61, to: 63 },
+  { row: 'R', from: 65, to: 86 },
+  { row: 'U', from: 43, to: 50 },
+  { row: 'U', from: 54, to: 66 },
+  // PRT2
+  { row: 'I', from: 31, to: 36 },
+  { row: 'I', from: 40, to: 40 },
+  { row: 'M', from: 50, to: 51 },
+  { row: 'M', from: 61, to: 73 },
+  // VP01
+  { row: 'VIP F', from: 32, to: 49 }
 ] as const;
 
 export const ORGANIZER_INVITE_TICKET_NAME = 'Organizator Davetiye';
