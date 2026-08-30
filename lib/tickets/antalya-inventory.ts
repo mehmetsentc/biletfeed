@@ -86,7 +86,14 @@ export const GIPSY_KINGS_INVITE_ALLOCATION = [
   { row: 'M', from: 50, to: 51 },
   { row: 'M', from: 61, to: 73 },
   // VP01
-  { row: 'VIP F', from: 32, to: 49 }
+  { row: 'VIP F', from: 32, to: 49 },
+  // WhatsApp ek liste → davetiye
+  { row: 'VIP G', from: 33, to: 53 },
+  { row: 'VIP H', from: 47, to: 58 },
+  { row: 'A', from: 57, to: 66 },
+  { row: 'A', from: 11, to: 18 },
+  { row: 'B', from: 56, to: 70 },
+  { row: 'B', from: 11, to: 17 }
 ] as const;
 
 export const ORGANIZER_INVITE_TICKET_NAME = 'Organizator Davetiye';
