@@ -36,6 +36,12 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
   async function createCoupon() {
     setLoading(true);
     setError(null);
+    const maxUses = Number(form.maxUses);
+    if (!Number.isFinite(maxUses) || maxUses < 1) {
+      setError('Kupon sayısı en az 1 olmalı');
+      setLoading(false);
+      return;
+    }
     const validFrom = new Date();
     const validUntil = new Date();
     validUntil.setDate(validUntil.getDate() + Number(form.validDays || 30));
@@ -50,7 +56,7 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
           assignedLabel: form.assignedLabel.trim() || undefined,
           type: form.type,
           value: Number(form.value),
-          maxUses: form.maxUses ? Number(form.maxUses) : undefined,
+          maxUses,
           minOrder: form.minOrder ? Number(form.minOrder) : undefined,
           validFrom: validFrom.toISOString(),
           validUntil: validUntil.toISOString()
@@ -126,21 +132,48 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
             <Label>Değer</Label>
             <Input
               type="number"
+              min={1}
               value={form.value}
               onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="coupon-max-uses">Kupon sayısı</Label>
+            <Input
+              id="coupon-max-uses"
+              type="number"
+              min={1}
+              max={100000}
+              value={form.maxUses}
+              onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value }))}
+              placeholder="Örn. 50"
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Bu kod kaç kez kullanılabilir (toplam kullanım limiti)
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label>Geçerlilik (gün)</Label>
             <Input
               type="number"
+              min={1}
               value={form.validDays}
               onChange={(e) => setForm((f) => ({ ...f, validDays: e.target.value }))}
             />
           </div>
         </div>
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-        <Button className="mt-4" disabled={loading || !form.code} onClick={() => void createCoupon()}>
+        <Button
+          className="mt-4"
+          disabled={
+            loading ||
+            !form.code.trim() ||
+            !form.maxUses ||
+            Number(form.maxUses) < 1
+          }
+          onClick={() => void createCoupon()}
+        >
           {loading ? 'Oluşturuluyor…' : 'Kupon Oluştur'}
         </Button>
       </div>
@@ -152,7 +185,7 @@ export function OrganizerCouponsPanel({ initialCoupons }: { initialCoupons: Coup
               <th className="p-3 font-medium">Kod</th>
               <th className="p-3 font-medium">Kupon Adı</th>
               <th className="p-3 font-medium">İndirim</th>
-              <th className="p-3 font-medium">Kullanım</th>
+              <th className="p-3 font-medium">Kullanım / Adet</th>
               <th className="p-3 font-medium">Durum</th>
               <th className="p-3 font-medium" />
             </tr>

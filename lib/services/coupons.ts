@@ -104,7 +104,7 @@ export async function createOrganizerCoupon(params: {
   eventId?: string;
   type: 'percent' | 'fixed';
   value: number;
-  maxUses?: number;
+  maxUses: number;
   minOrder?: number;
   validFrom: Date;
   validUntil: Date;
@@ -135,7 +135,7 @@ export async function createOrganizerCoupon(params: {
       eventId: params.eventId ?? null,
       type: params.type,
       value: params.value,
-      maxUses: params.maxUses ?? null,
+      maxUses: params.maxUses,
       minOrder: params.minOrder ?? null,
       validFrom: params.validFrom,
       validUntil: params.validUntil

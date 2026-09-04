@@ -14,7 +14,7 @@ const createSchema = z.object({
   eventId: z.string().uuid().optional(),
   type: z.enum(['percent', 'fixed']),
   value: z.number().positive(),
-  maxUses: z.number().int().positive().optional(),
+  maxUses: z.number().int().positive(),
   minOrder: z.number().min(0).optional(),
   validFrom: z.string().datetime(),
   validUntil: z.string().datetime()
