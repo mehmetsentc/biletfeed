@@ -21,6 +21,8 @@ function openOrganizerAgreement(e: { preventDefault(): void; stopPropagation(): 
 interface WizardStepPublishProps {
   isEdit: boolean;
   showTerms: boolean;
+  /** Onaylı etkinlikte kaydet = canlıya yansır */
+  livePublishHint?: boolean;
   previewImage: string | null;
   title: string;
   categoryName: string;
@@ -39,6 +41,7 @@ interface WizardStepPublishProps {
 export function WizardStepPublish({
   isEdit,
   showTerms,
+  livePublishHint = false,
   previewImage,
   title,
   categoryName,
@@ -175,6 +178,18 @@ export function WizardStepPublish({
           <p className="text-xs text-muted-foreground">
             Taslak olarak kaydederseniz etkinlik henüz yayınlanmaz. Onaya gönderdiğinizde
             BiletFeed ekibi inceleyecektir.
+          </p>
+        </WizardFormSection>
+      )}
+
+      {livePublishHint && !showTerms && (
+        <WizardFormSection
+          title="Canlı güncelleme"
+          description="Bu etkinlik daha önce onaylandı."
+          icon={Sparkles}
+        >
+          <p className="text-sm text-muted-foreground">
+            Kaydettiğiniz değişiklikler hemen yayına yansır; yeniden admin onayı gerekmez.
           </p>
         </WizardFormSection>
       )}

@@ -66,6 +66,7 @@ type EventDetailData = {
     startDate: string;
     endDate: string;
     status: EventStatus;
+    wasPreviouslyApproved?: boolean;
     isFree: boolean;
     saleCampaignType: string;
     saleDiscountPercent: number | null;
@@ -298,14 +299,17 @@ export function EventDetailDashboard({
     }
   }
 
-  async function updateStatus(next: EventStatus) {
+  async function updateStatus(
+    next: EventStatus,
+    extras?: { organizerTermsAccepted?: boolean }
+  ) {
     setActionLoading(true);
     setActionError(null);
     const res = await fetch(`/api/organizer/events/${event.id}`, {
       method: 'PATCH',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: next })
+      body: JSON.stringify({ status: next, ...extras })
     });
     const body = (await res.json()) as { error?: string };
     setActionLoading(false);
@@ -382,14 +386,18 @@ export function EventDetailDashboard({
     if (status === 'cancelled') {
       return {
         title: 'Etkinlik iptal edildi',
-        body: 'Satışlar durduruldu. Tekrar yayına almak için onaya gönderebilir veya önce taslağa alıp düzenleyebilirsiniz. Mevcut bilet sahipleri bilgilendirilmelidir.',
+        body: event.wasPreviouslyApproved
+          ? 'Satışlar durduruldu. Daha önce onaylandığı için tekrar yayına alabilirsiniz. Mevcut bilet sahipleri bilgilendirilmelidir.'
+          : 'Satışlar durduruldu. Tekrar yayına almak için onaya gönderebilir veya önce taslağa alıp düzenleyebilirsiniz. Mevcut bilet sahipleri bilgilendirilmelidir.',
         tone: 'cancelled' as const
       };
     }
     if (status === 'draft') {
       return {
         title: 'Taslak — yayında değil',
-        body: 'Etkinliği onaya göndererek yayın sürecini başlatabilirsiniz.',
+        body: event.wasPreviouslyApproved
+          ? 'Satışlar duraklatıldı. Yeniden yayınladığınızda değişiklikler hemen canlıya yansır.'
+          : 'Etkinliği onaya göndererek yayın sürecini başlatabilirsiniz.',
         tone: 'draft' as const
       };
     }
@@ -408,7 +416,7 @@ export function EventDetailDashboard({
       };
     }
     return null;
-  }, [isPast, isUpcoming, status]);
+  }, [isPast, isUpcoming, status, event.wasPreviouslyApproved]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -606,10 +614,22 @@ export function EventDetailDashboard({
                 size="sm"
                 className="justify-start gap-2"
                 disabled={actionLoading}
-                onClick={() => updateStatus('pending')}
+                onClick={() => {
+                  if (event.wasPreviouslyApproved) {
+                    void updateStatus('published');
+                    return;
+                  }
+                  if (
+                    confirm(
+                      'Onaya göndererek Organizatör Kullanıcı Sözleşmesi\'ni kabul etmiş olursunuz. Devam edilsin mi?'
+                    )
+                  ) {
+                    void updateStatus('pending', { organizerTermsAccepted: true });
+                  }
+                }}
               >
                 <PlayCircle className="size-3.5" />
-                Onaya Gönder
+                {event.wasPreviouslyApproved ? 'Yeniden Yayınla' : 'Onaya Gönder'}
               </Button>
             )}
             {status === 'cancelled' && !isPast && (
@@ -619,17 +639,27 @@ export function EventDetailDashboard({
                   className="justify-start gap-2"
                   disabled={actionLoading}
                   onClick={() => {
+                    if (event.wasPreviouslyApproved) {
+                      if (
+                        confirm(
+                          'İptal edilen etkinliği tekrar yayına almak istiyor musunuz? Değişiklikler hemen canlıya yansır.'
+                        )
+                      ) {
+                        void updateStatus('published');
+                      }
+                      return;
+                    }
                     if (
                       confirm(
                         'İptal edilen etkinliği tekrar onaya göndermek istiyor musunuz? Admin onayından sonra yeniden yayınlanır.'
                       )
                     ) {
-                      void updateStatus('pending');
+                      void updateStatus('pending', { organizerTermsAccepted: true });
                     }
                   }}
                 >
                   <PlayCircle className="size-3.5" />
-                  Tekrar onaya gönder
+                  {event.wasPreviouslyApproved ? 'Yeniden Yayınla' : 'Tekrar onaya gönder'}
                 </Button>
                 <Button
                   variant="outline"

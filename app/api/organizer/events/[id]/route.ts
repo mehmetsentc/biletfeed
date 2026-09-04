@@ -169,10 +169,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   if (data.status === 'published') {
-    return NextResponse.json(
-      { error: 'Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.' },
-      { status: 403 }
-    );
+    const rows = await prisma.$queryRaw<Array<{ approved_at: Date | null }>>`
+      SELECT approved_at
+      FROM events
+      WHERE id = ${id}::uuid
+        AND organizer_id = ${organizer.id}::uuid
+        AND deleted_at IS NULL
+      LIMIT 1
+    `;
+    if (!rows[0]?.approved_at) {
+      return NextResponse.json(
+        { error: 'Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.' },
+        { status: 403 }
+      );
+    }
   }
 
   if (

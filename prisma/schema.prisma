@@ -484,6 +484,8 @@ model Event {
   endDate      DateTime    @map("end_date")
   gateOpenTime DateTime?   @map("gate_open_time")
   status       EventStatus @default(draft)
+  /** İlk admin onayından sonra dolar; sonraki yayınlar onaysız olabilir */
+  approvedAt   DateTime?   @map("approved_at")
   eventType    EventType   @default(other) @map("event_type")
   isOnline     Boolean     @default(false) @map("is_online")
   onlineUrl    String?     @map("online_url")

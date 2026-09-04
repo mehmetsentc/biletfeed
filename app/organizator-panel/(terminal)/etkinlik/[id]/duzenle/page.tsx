@@ -41,6 +41,20 @@ export default async function OrganizatorEditEventPage({ params }: PageProps) {
 
   if (!event || !event.category || !event.city) notFound();
 
+  let wasPreviouslyApproved = Boolean(
+    (event as { approvedAt?: Date | null }).approvedAt
+  );
+  if (!wasPreviouslyApproved) {
+    try {
+      const rows = await prisma.$queryRaw<Array<{ approved_at: Date | null }>>`
+        SELECT approved_at FROM events WHERE id = ${event.id}::uuid LIMIT 1
+      `;
+      wasPreviouslyApproved = Boolean(rows[0]?.approved_at);
+    } catch {
+      /* kolon henüz yoksa false */
+    }
+  }
+
   let ruleSetData: Awaited<ReturnType<typeof getEventRuleSet>> = {
     ruleSet: null,
     announcements: []
@@ -65,6 +79,7 @@ export default async function OrganizatorEditEventPage({ params }: PageProps) {
       eventId={event.id}
       initialData={mapEventToWizardInitialData(event, ruleSetData, seriesSessions)}
       initialStatus={event.status}
+      wasPreviouslyApproved={wasPreviouslyApproved}
     />
   );
 }

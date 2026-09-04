@@ -84,7 +84,10 @@ export async function approveInternalEvent(eventId: string) {
 
   await prisma.event.updateMany({
     where: { id: { in: ids }, status: 'pending', deletedAt: null },
-    data: { status: 'published' satisfies EventStatus }
+    data: {
+      status: 'published' satisfies EventStatus,
+      approvedAt: new Date()
+    }
   });
 
   // E-posta ve dönüş için tıklanan (veya serinin ilk) kaydı kullan

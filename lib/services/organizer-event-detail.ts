@@ -101,13 +101,18 @@ export async function getOrganizerEventDetail(
   const netOrganizer = Math.max(0, revenue - commission);
 
   let saleCampaignType = 'percent';
+  let wasPreviouslyApproved = false;
   try {
     const campaignRows = await prisma.$queryRaw<
-      Array<{ sale_campaign_type: string | null }>
+      Array<{ sale_campaign_type: string | null; approved_at: Date | null }>
     >`
-      SELECT sale_campaign_type FROM events WHERE id = ${event.id}::uuid LIMIT 1
+      SELECT sale_campaign_type, approved_at
+      FROM events
+      WHERE id = ${event.id}::uuid
+      LIMIT 1
     `;
     saleCampaignType = campaignRows[0]?.sale_campaign_type ?? 'percent';
+    wasPreviouslyApproved = Boolean(campaignRows[0]?.approved_at);
   } catch {
     /* kolon henüz yoksa percent */
   }
@@ -123,6 +128,7 @@ export async function getOrganizerEventDetail(
       startDate: event.startDate,
       endDate: event.endDate,
       status: event.status,
+      wasPreviouslyApproved,
       isFree: event.isFree,
       saleCampaignType,
       saleDiscountPercent: event.saleDiscountPercent,

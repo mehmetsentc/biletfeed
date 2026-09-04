@@ -9,6 +9,17 @@ import {
 import { parseEventSeriesMeta, sessionSlugDateSuffix } from '@/lib/organizator/event-series-meta';
 import { inferTicketTypeEnum } from '@/lib/services/ticket-type-category';
 
+async function eventHasPriorApproval(eventId: string): Promise<boolean> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ approved_at: Date | null }>>`
+      SELECT approved_at FROM events WHERE id = ${eventId}::uuid LIMIT 1
+    `;
+    return Boolean(rows[0]?.approved_at);
+  } catch {
+    return false;
+  }
+}
+
 export interface TicketCategoryInput {
   id?: string;
   name: string;
@@ -461,7 +472,9 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
   if (!event) throw new Error('Etkinlik bulunamadı');
 
   if (input.status === 'published') {
-    throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+    if (!(await eventHasPriorApproval(input.eventId))) {
+      throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+    }
   }
 
   const cityId = input.citySlug
@@ -632,13 +645,18 @@ export async function updateOrganizerEventStatus(
   if (!event) throw new Error('Etkinlik bulunamadı');
 
   if (status === 'published') {
-    throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+    if (!(await eventHasPriorApproval(eventId))) {
+      throw new Error('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
+    }
   }
 
   const series = parseEventSeriesMeta(event.seo);
   if (
     series?.seriesId &&
-    (status === 'pending' || status === 'draft' || status === 'cancelled')
+    (status === 'pending' ||
+      status === 'draft' ||
+      status === 'cancelled' ||
+      status === 'published')
   ) {
     await prisma.event.updateMany({
       where: {

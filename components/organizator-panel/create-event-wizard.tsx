@@ -390,13 +390,16 @@ interface CreateOrganizerEventWizardProps {
   eventId?: string;
   initialData?: EventWizardInitialData;
   initialStatus?: EventStatus;
+  /** İlk admin onayından geçmiş etkinlik — sonraki yayınlar onaysız */
+  wasPreviouslyApproved?: boolean;
 }
 
 export function CreateOrganizerEventWizard({
   mode = 'create',
   eventId,
   initialData,
-  initialStatus
+  initialStatus,
+  wasPreviouslyApproved = false
 }: CreateOrganizerEventWizardProps) {
   const isEdit = mode === 'edit';
   const router = useRouter();
@@ -707,7 +710,7 @@ export function CreateOrganizerEventWizard({
     setStep(step + 1);
   }
 
-  async function saveEvent(targetStatus?: 'draft' | 'pending') {
+  async function saveEvent(targetStatus?: 'draft' | 'pending' | 'published') {
     setError(null);
     persistDraftSnapshot();
     const isFestivalCategory = category === 'festival';
@@ -753,6 +756,10 @@ export function CreateOrganizerEventWizard({
     }
     if (targetStatus === 'pending' && !termsAccepted) {
       setError('Onaya göndermek için organizatör kullanıcı sözleşmesini kabul etmelisiniz.');
+      return;
+    }
+    if (targetStatus === 'published' && !wasPreviouslyApproved) {
+      setError('Etkinlikleri doğrudan yayınlayamazsınız. Onaya gönderin.');
       return;
     }
     const categories = ticketCategoriesRef.current;
@@ -1432,10 +1439,15 @@ export function CreateOrganizerEventWizard({
               isEdit={isEdit}
               showTerms={
                 !isEdit ||
-                initialStatus === 'draft' ||
-                initialStatus === 'pending' ||
-                initialStatus === 'published' ||
-                initialStatus === 'completed'
+                (!wasPreviouslyApproved &&
+                  (initialStatus === 'draft' || initialStatus === 'pending'))
+              }
+              livePublishHint={
+                isEdit &&
+                (initialStatus === 'published' ||
+                  initialStatus === 'completed' ||
+                  (wasPreviouslyApproved &&
+                    (initialStatus === 'draft' || initialStatus === 'cancelled')))
               }
               previewImage={previewImage}
               title={title}
@@ -1502,22 +1514,26 @@ export function CreateOrganizerEventWizard({
               >
                 {publishing ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
               </Button>
-              {(initialStatus === 'draft' ||
-                initialStatus === 'pending' ||
-                initialStatus === 'published' ||
-                initialStatus === 'completed') && (
-                <Button
-                  onClick={() => saveEvent('pending')}
-                  disabled={publishing || !termsAccepted}
-                  className="min-w-[160px] bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
-                >
-                  {publishing
-                    ? 'Gönderiliyor…'
-                    : initialStatus === 'published' || initialStatus === 'completed'
-                      ? 'Yeniden Onaya Gönder'
-                      : 'Onaya Gönder'}
-                </Button>
-              )}
+              {!wasPreviouslyApproved &&
+                (initialStatus === 'draft' || initialStatus === 'pending') && (
+                  <Button
+                    onClick={() => saveEvent('pending')}
+                    disabled={publishing || !termsAccepted}
+                    className="min-w-[160px] bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
+                  >
+                    {publishing ? 'Gönderiliyor…' : 'Onaya Gönder'}
+                  </Button>
+                )}
+              {wasPreviouslyApproved &&
+                (initialStatus === 'draft' || initialStatus === 'cancelled') && (
+                  <Button
+                    onClick={() => saveEvent('published')}
+                    disabled={publishing}
+                    className="min-w-[160px] bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
+                  >
+                    {publishing ? 'Yayınlanıyor…' : 'Yeniden Yayınla'}
+                  </Button>
+                )}
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-end gap-2">
