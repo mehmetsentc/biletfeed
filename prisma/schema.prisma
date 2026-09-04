@@ -1499,6 +1499,10 @@ model HomeBanner {
   imageDesktop String    @map("image_desktop")
   linkUrl      String?   @map("link_url")
   eventId      String?   @map("event_id") @db.Uuid
+  /** null = tüm şehirler; doluysa yalnızca o şehir seçiliyken */
+  citySlug     String?   @map("city_slug")
+  /** true ise seçilen şehirde carousel dönmez — yalnızca bu banner */
+  isPinned     Boolean   @default(false) @map("is_pinned")
   sortOrder    Int       @default(0) @map("sort_order")
   isActive     Boolean   @default(true) @map("is_active")
   deletedAt    DateTime? @map("deleted_at")
@@ -1508,6 +1512,7 @@ model HomeBanner {
   event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([isActive, sortOrder])
+  @@index([citySlug, isActive])
   @@index([deletedAt])
   @@map("home_banners")
 }

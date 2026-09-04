@@ -572,7 +572,7 @@ export const en: TranslationKeys = {
     transactions: 'Transactions',
     settings: 'Settings',
     analytics: 'Analytics',
-    banners: 'Banners',
+    banners: 'Banner management',
     reports: 'Reports',
     eventApproval: 'Event Approval',
     feed: 'Feed',

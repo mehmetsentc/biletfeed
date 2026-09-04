@@ -575,7 +575,7 @@ export const tr = {
     transactions: 'İşlemler',
     settings: 'Ayarlar',
     analytics: 'Analitik',
-    banners: 'Bannerlar',
+    banners: 'Banner yönetimi',
     reports: 'Raporlar',
     eventApproval: 'Etkinlik Onay',
     feed: 'Feed',

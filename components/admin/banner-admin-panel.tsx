@@ -6,6 +6,7 @@ import {
   ArrowUp,
   ExternalLink,
   Loader2,
+  Pin,
   Plus,
   Trash2
 } from 'lucide-react';
@@ -16,6 +17,7 @@ import { AdminImageSourceField } from '@/components/admin/admin-image-source-fie
 import type { HomeBannerRecord } from '@/lib/services/home-banners';
 import { formatImageSpecHint, IMAGE_SPECS } from '@/lib/config/image-dimensions';
 import { getSiteUrl } from '@/lib/config/domain';
+import { SUPPORTED_CITIES } from '@/lib/location/cities';
 
 /** Admin subdomaininde relative path → public site (biletfeed.com). */
 function resolvePublicBannerHref(linkUrl: string): string {
@@ -26,6 +28,11 @@ function resolvePublicBannerHref(linkUrl: string): string {
   return getSiteUrl(path);
 }
 
+function cityLabel(slug: string | null): string {
+  if (!slug) return 'Tüm şehirler';
+  return SUPPORTED_CITIES.find((c) => c.slug === slug)?.name ?? slug;
+}
+
 type BannerForm = {
   title: string;
   subtitle: string;
@@ -34,6 +41,8 @@ type BannerForm = {
   imageDesktop: string;
   linkUrl: string;
   eventId: string;
+  citySlug: string;
+  isPinned: boolean;
 };
 
 const EMPTY_FORM: BannerForm = {
@@ -43,7 +52,9 @@ const EMPTY_FORM: BannerForm = {
   imageTablet: '',
   imageDesktop: '',
   linkUrl: '',
-  eventId: ''
+  eventId: '',
+  citySlug: '',
+  isPinned: false
 };
 
 type EventOption = {
@@ -151,7 +162,9 @@ export function BannerAdminPanel() {
           imageTablet: form.imageTablet.trim(),
           imageDesktop: form.imageDesktop.trim(),
           linkUrl: form.linkUrl.trim() || null,
-          eventId: form.eventId.trim() || null
+          eventId: form.eventId.trim() || null,
+          citySlug: form.citySlug.trim() || null,
+          isPinned: form.isPinned
         })
       });
       if (!res.ok) {
@@ -169,14 +182,26 @@ export function BannerAdminPanel() {
     }
   }
 
-  async function toggleActive(banner: HomeBannerRecord) {
-    const res = await fetch(`/api/admin/banners/${banner.id}`, {
+  async function patchBanner(id: string, body: Record<string, unknown>) {
+    const res = await fetch(`/api/admin/banners/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ isActive: !banner.isActive })
+      body: JSON.stringify(body)
     });
     if (res.ok) await loadBanners();
+  }
+
+  async function toggleActive(banner: HomeBannerRecord) {
+    await patchBanner(banner.id, { isActive: !banner.isActive });
+  }
+
+  async function togglePinned(banner: HomeBannerRecord) {
+    await patchBanner(banner.id, { isPinned: !banner.isPinned });
+  }
+
+  async function setBannerCity(banner: HomeBannerRecord, citySlug: string) {
+    await patchBanner(banner.id, { citySlug: citySlug || null });
   }
 
   async function deleteBanner(id: string) {
@@ -215,9 +240,16 @@ export function BannerAdminPanel() {
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-        Her banner için <strong>mobil</strong>, <strong>tablet</strong> ve{' '}
-        <strong>web</strong> görseli ayrı ekleyin — cihazdan yükleyebilir veya
-        herhangi bir görsel linkini yapıştırabilirsiniz.
+        <p>
+          Her banner için <strong>mobil</strong>, <strong>tablet</strong> ve{' '}
+          <strong>web</strong> görseli ayrı ekleyin. Etkinlik arayıp bağlayarak
+          görselleri otomatik doldurabilirsiniz.
+        </p>
+        <p className="mt-2">
+          <strong>Şehir:</strong> yalnızca o şehir seçildiğinde görünür (ör.
+          Antalya → BLOK3). <strong>Sabit:</strong> o şehirde carousel dönmez,
+          yalnızca bu banner kalır.
+        </p>
       </div>
 
       {error && (
@@ -285,6 +317,37 @@ export function BannerAdminPanel() {
                 onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
               />
             </div>
+            <div>
+              <Label className="text-xs">Şehir</Label>
+              <select
+                className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={form.citySlug}
+                onChange={(e) => setForm({ ...form, citySlug: e.target.value })}
+              >
+                <option value="">Tüm şehirler</option>
+                {SUPPORTED_CITIES.map((city) => (
+                  <option key={city.slug} value={city.slug}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end pb-1">
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.isPinned}
+                  onChange={(e) =>
+                    setForm({ ...form, isPinned: e.target.checked })
+                  }
+                  className="size-4 rounded border-border"
+                />
+                <span className="flex items-center gap-1.5">
+                  <Pin className="size-3.5 text-[var(--bf-accent-ink)]" />
+                  Sabit banner (carousel dönmesin)
+                </span>
+              </label>
+            </div>
             <div className="md:col-span-2">
               <AdminImageSourceField
                 label="Mobil görsel *"
@@ -348,8 +411,8 @@ export function BannerAdminPanel() {
       <div className="space-y-3">
         {banners.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Henüz banner yok. Ana sayfada carousel görünmesi için en az bir banner
-            ekleyin.
+            Henüz banner yok. Öne çıkarmak istediğiniz etkinlik için banner
+            ekleyin — örneğin Antalya + sabit = BLOK3.
           </p>
         ) : null}
 
@@ -373,8 +436,19 @@ export function BannerAdminPanel() {
               />
             </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">{banner.title}</p>
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-semibold">{banner.title}</p>
+                {banner.isPinned ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                    <Pin className="size-3" />
+                    Sabit
+                  </span>
+                ) : null}
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {cityLabel(banner.citySlug)}
+                </span>
+              </div>
               {banner.subtitle ? (
                 <p className="text-sm text-muted-foreground">{banner.subtitle}</p>
               ) : null}
@@ -389,6 +463,30 @@ export function BannerAdminPanel() {
                   {banner.linkUrl}
                 </a>
               ) : null}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <select
+                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                  value={banner.citySlug ?? ''}
+                  onChange={(e) => void setBannerCity(banner, e.target.value)}
+                  aria-label="Şehir"
+                >
+                  <option value="">Tüm şehirler</option>
+                  {SUPPORTED_CITIES.map((city) => (
+                    <option key={city.slug} value={city.slug}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  variant={banner.isPinned ? 'default' : 'outline'}
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => void togglePinned(banner)}
+                >
+                  <Pin className="size-3.5" />
+                  {banner.isPinned ? 'Sabit' : 'Sabitle'}
+                </Button>
+              </div>
             </div>
 
             <div className="flex shrink-0 items-center gap-2">

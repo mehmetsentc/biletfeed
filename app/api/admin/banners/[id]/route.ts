@@ -19,6 +19,8 @@ const patchSchema = z.object({
   imageDesktop: z.string().url().optional(),
   linkUrl: z.string().max(500).optional().nullable(),
   eventId: z.string().uuid().optional().nullable(),
+  citySlug: z.string().max(64).optional().nullable(),
+  isPinned: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional()
 });

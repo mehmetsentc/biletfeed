@@ -1,4 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { isSupportedCitySlug } from '@/lib/location/cities';
 
 export type HomeBannerRecord = {
   id: string;
@@ -10,6 +11,8 @@ export type HomeBannerRecord = {
   linkUrl: string | null;
   eventId: string | null;
   eventSlug: string | null;
+  citySlug: string | null;
+  isPinned: boolean;
   sortOrder: number;
   isActive: boolean;
 };
@@ -23,6 +26,8 @@ function mapBanner(row: {
   imageDesktop: string;
   linkUrl: string | null;
   eventId: string | null;
+  citySlug: string | null;
+  isPinned: boolean;
   sortOrder: number;
   isActive: boolean;
   event?: { slug: string } | null;
@@ -38,6 +43,8 @@ function mapBanner(row: {
     linkUrl: row.linkUrl ?? (eventSlug ? `/etkinlik/${eventSlug}` : null),
     eventId: row.eventId,
     eventSlug,
+    citySlug: row.citySlug,
+    isPinned: row.isPinned,
     sortOrder: row.sortOrder,
     isActive: row.isActive
   };
@@ -52,12 +59,55 @@ const bannerSelect = {
   imageDesktop: true,
   linkUrl: true,
   eventId: true,
+  citySlug: true,
+  isPinned: true,
   sortOrder: true,
   isActive: true,
   event: { select: { slug: true } }
 } as const;
 
-/** Ana sayfa — yalnızca aktif bannerlar */
+function normalizeCitySlug(citySlug: string | null | undefined): string | null {
+  if (!citySlug?.trim()) return null;
+  const slug = citySlug.trim().toLowerCase();
+  return isSupportedCitySlug(slug) ? slug : null;
+}
+
+/**
+ * Seçili şehir için hero banner listesi.
+ * Şehre özel sabit (pinned) varsa yalnızca o; yoksa şehir + genel carousel.
+ */
+export function resolveBannersForCity(
+  banners: HomeBannerRecord[],
+  citySlug: string
+): { banners: HomeBannerRecord[]; pinned: boolean } {
+  const relevant = banners.filter(
+    (b) => !b.citySlug || b.citySlug === citySlug
+  );
+
+  const cityPinned = relevant.filter(
+    (b) => b.isPinned && b.citySlug === citySlug
+  );
+  if (cityPinned.length > 0) {
+    return { banners: [cityPinned[0]], pinned: true };
+  }
+
+  const globalPinned = relevant.filter((b) => b.isPinned && !b.citySlug);
+  if (globalPinned.length > 0) {
+    return { banners: [globalPinned[0]], pinned: true };
+  }
+
+  // Şehre özel olanlar önce (sortOrder korunur)
+  const sorted = [...relevant].sort((a, b) => {
+    const aCity = a.citySlug === citySlug ? 0 : 1;
+    const bCity = b.citySlug === citySlug ? 0 : 1;
+    if (aCity !== bCity) return aCity - bCity;
+    return a.sortOrder - b.sortOrder;
+  });
+
+  return { banners: sorted, pinned: false };
+}
+
+/** Ana sayfa — aktif bannerlar (şehir filtresi hero tarafında) */
 export async function getActiveHomeBanners(): Promise<HomeBannerRecord[]> {
   try {
     await ensureDbConnection();
@@ -91,6 +141,8 @@ export type CreateHomeBannerInput = {
   imageDesktop: string;
   linkUrl?: string | null;
   eventId?: string | null;
+  citySlug?: string | null;
+  isPinned?: boolean;
   sortOrder?: number;
   isActive?: boolean;
 };
@@ -110,6 +162,8 @@ export async function createHomeBanner(input: CreateHomeBannerInput) {
       imageDesktop: input.imageDesktop,
       linkUrl: input.linkUrl?.trim() || null,
       eventId: input.eventId ?? null,
+      citySlug: normalizeCitySlug(input.citySlug),
+      isPinned: input.isPinned ?? false,
       sortOrder: input.sortOrder ?? (maxOrder._max.sortOrder ?? 0) + 1,
       isActive: input.isActive ?? true
     },
@@ -134,6 +188,10 @@ export async function updateHomeBanner(id: string, input: UpdateHomeBannerInput)
         ? { linkUrl: input.linkUrl?.trim() || null }
         : {}),
       ...(input.eventId !== undefined ? { eventId: input.eventId } : {}),
+      ...(input.citySlug !== undefined
+        ? { citySlug: normalizeCitySlug(input.citySlug) }
+        : {}),
+      ...(input.isPinned !== undefined ? { isPinned: input.isPinned } : {}),
       ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
       ...(input.isActive !== undefined ? { isActive: input.isActive } : {})
     },

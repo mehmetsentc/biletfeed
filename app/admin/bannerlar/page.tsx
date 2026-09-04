@@ -7,9 +7,10 @@ export default async function AdminBannersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Öne Çıkan Bannerlar</h1>
+        <h1 className="text-2xl font-bold">Banner yönetimi</h1>
         <p className="text-muted-foreground">
-          Ana sayfa carousel — mobil, tablet ve web için ayrı görseller
+          Ana sayfa öne çıkan bannerlar — şehir seçimi, sabit (carousel’siz) öne
+          çıkarma; mobil / tablet / web görselleri
         </p>
       </div>
       <BannerAdminPanel />
