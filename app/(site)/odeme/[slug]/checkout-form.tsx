@@ -45,6 +45,7 @@ type TicketTypeRow = {
   capacity: number;
   sold: number;
   showLowStockBadge: boolean;
+  status?: 'active' | 'paused' | 'sold_out';
 };
 
 export function CheckoutForm({
@@ -284,22 +285,27 @@ export function CheckoutForm({
                 <ul className="divide-y divide-border">
                   {ticketTypes.map((type) => {
                     const left = type.capacity - type.sold;
+                    const soldOut =
+                      type.status === 'sold_out' ||
+                      type.status === 'paused' ||
+                      left <= 0;
                     return (
                       <li key={type.id}>
                         <button
                           type="button"
+                          disabled={soldOut}
                           onClick={() => selectTier(type.id)}
-                          className="group flex w-full items-center gap-4 px-6 py-5 text-left transition-colors hover:bg-accent/50"
+                          className="group flex w-full items-center gap-4 px-6 py-5 text-left transition-colors hover:bg-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <div className="h-12 w-1 shrink-0 rounded-full bg-primary opacity-80 group-hover:opacity-100" />
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-foreground">{type.name}</p>
-                            {type.showLowStockBadge && left > 0 && (
+                            {type.showLowStockBadge && !soldOut && left > 0 && (
                               <p className="mt-0.5 text-xs font-medium text-primary">
                                 {t.events.lastTickets(left)}
                               </p>
                             )}
-                            {left === 0 && (
+                            {soldOut && (
                               <p className="mt-0.5 text-xs font-medium text-destructive">
                                 {t.events.soldOut}
                               </p>

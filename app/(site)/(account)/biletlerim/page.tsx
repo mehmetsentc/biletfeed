@@ -17,7 +17,7 @@ export default async function MyTicketsPage() {
   if (!session) redirect('/giris?redirect=/biletlerim');
 
   const [tickets, transfers] = await Promise.all([
-    getPurchasedTicketsByUser(session.uid),
+    getPurchasedTicketsByUser(session.uid, session.email),
     getTransferredTicketsForUser(session.uid)
   ]);
 

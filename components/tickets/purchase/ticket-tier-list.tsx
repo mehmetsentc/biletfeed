@@ -114,7 +114,7 @@ export async function TicketTierList({
                 )}
                 {!available && (
                   <Badge variant="secondary" className="rounded-full">
-                    {type.price <= 0 && !type.allowsZeroPrice
+                    {type.price <= 0 && !type.allowsZeroPrice && type.status === 'active'
                       ? 'Satış dışı'
                       : t.events.soldOut}
                   </Badge>

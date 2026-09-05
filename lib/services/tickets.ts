@@ -53,17 +53,47 @@ function mapTicket(t: {
 }
 
 export async function getPurchasedTicketsByUser(
-  firebaseUid: string
+  firebaseUid: string,
+  email?: string | null
 ): Promise<MockPurchasedTicket[]> {
   if (!isDatabaseConfigured()) return mockPurchasedTickets;
 
   try {
     await ensureDbConnection();
+    const normalizedEmail = email?.trim().toLowerCase() || undefined;
     const user = await prisma.user.findFirst({
-      where: { firebaseUid, deletedAt: null },
-      select: { id: true, displayName: true }
+      where: {
+        deletedAt: null,
+        OR: [
+          { firebaseUid },
+          ...(normalizedEmail ? [{ email: normalizedEmail }] : [])
+        ]
+      },
+      select: { id: true, displayName: true, firebaseUid: true }
     });
     if (!user) return [];
+
+    // Misafir sipariş hesabı + gerçek giriş: uid'yi bağla (bir sonraki isteklerde de bulunsun)
+    if (
+      user.firebaseUid.startsWith('guest-') &&
+      firebaseUid &&
+      !firebaseUid.startsWith('guest-')
+    ) {
+      const conflict = await prisma.user.findFirst({
+        where: {
+          firebaseUid,
+          deletedAt: null,
+          NOT: { id: user.id }
+        },
+        select: { id: true }
+      });
+      if (!conflict) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { firebaseUid }
+        });
+      }
+    }
 
     const tickets = await prisma.purchasedTicket.findMany({
       where: { userId: user.id, deletedAt: null },

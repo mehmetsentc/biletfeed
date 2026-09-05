@@ -332,7 +332,7 @@ export async function getCheckoutTicketTypes(
       saleDiscountActive: true,
       saleDiscountEndsAt: true,
       ticketTypes: {
-        where: { status: 'active', deletedAt: null },
+        where: { status: { in: ['active', 'sold_out'] }, deletedAt: null },
         orderBy: { price: 'asc' },
         select: {
           id: true,
@@ -345,6 +345,7 @@ export async function getCheckoutTicketTypes(
           sold: true,
           seatsPerUnit: true,
           showLowStockBadge: true,
+          status: true,
           _count: {
             select: {
               purchasedTickets: {
@@ -406,6 +407,7 @@ export async function getCheckoutTicketTypes(
       sold: tt._count.purchasedTickets,
       seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
       showLowStockBadge: tt.showLowStockBadge,
+      status: tt.status === 'sold_out' ? 'sold_out' : 'active',
       allowsZeroPrice: Boolean(event.isFree)
     };
   });

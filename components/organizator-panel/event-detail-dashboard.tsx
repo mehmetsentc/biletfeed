@@ -275,6 +275,10 @@ export function EventDetailDashboard({
     Object.fromEntries(categories.map((c) => [c.id, c.showLowStockBadge]))
   );
   const [lowStockToggleLoading, setLowStockToggleLoading] = useState<string | null>(null);
+  const [soldOutFlags, setSoldOutFlags] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(categories.map((c) => [c.id, c.status === 'sold_out']))
+  );
+  const [soldOutToggleLoading, setSoldOutToggleLoading] = useState<string | null>(null);
 
   const categoryInactive = isPast || status !== 'published';
 
@@ -296,6 +300,27 @@ export function EventDetailDashboard({
       setLowStockFlags((prev) => ({ ...prev, [ticketTypeId]: previous }));
     } finally {
       setLowStockToggleLoading(null);
+    }
+  }
+
+  async function toggleSoldOut(ticketTypeId: string, next: boolean) {
+    const previous = soldOutFlags[ticketTypeId] ?? false;
+    setSoldOutFlags((prev) => ({ ...prev, [ticketTypeId]: next }));
+    setSoldOutToggleLoading(ticketTypeId);
+    try {
+      const res = await fetch(`/api/organizer/ticket-types/${ticketTypeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next ? 'sold_out' : 'active' })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Güncellenemedi');
+      }
+    } catch {
+      setSoldOutFlags((prev) => ({ ...prev, [ticketTypeId]: previous }));
+    } finally {
+      setSoldOutToggleLoading(null);
     }
   }
 
@@ -974,12 +999,15 @@ export function EventDetailDashboard({
                 <th className="px-5 py-3">Kapasite</th>
                 <th className="px-5 py-3">Doluluk</th>
                 <th className="px-5 py-3">Durum</th>
+                <th className="px-5 py-3">Tükendi / satışa kapat</th>
                 <th className="px-5 py-3">Tükenmek üzere</th>
                 <th className="px-5 py-3">Standart ücret</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {categories.map((cat) => (
+              {categories.map((cat) => {
+                const isSoldOut = soldOutFlags[cat.id] ?? cat.status === 'sold_out';
+                return (
                 <tr key={cat.id} className="hover:bg-muted/20">
                   <td className="px-5 py-3.5 font-medium text-foreground">{cat.name}</td>
                   <td className="px-5 py-3.5 whitespace-nowrap text-muted-foreground">
@@ -1000,14 +1028,36 @@ export function EventDetailDashboard({
                     </div>
                   </td>
                   <td className="px-5 py-3.5">
-                    <Badge variant={categoryInactive || cat.status !== 'active' ? 'secondary' : 'success'}>
-                      {categoryInactive || cat.status !== 'active' ? 'İnaktif' : 'Aktif'}
+                    <Badge
+                      variant={
+                        categoryInactive || isSoldOut || cat.status !== 'active'
+                          ? 'secondary'
+                          : 'success'
+                      }
+                    >
+                      {categoryInactive
+                        ? 'İnaktif'
+                        : isSoldOut
+                          ? 'Tükendi'
+                          : cat.status !== 'active'
+                            ? 'İnaktif'
+                            : 'Aktif'}
                     </Badge>
                   </td>
                   <td className="px-5 py-3.5">
                     <Switch
+                      checked={isSoldOut}
+                      disabled={
+                        categoryInactive || soldOutToggleLoading === cat.id
+                      }
+                      onCheckedChange={(checked) => void toggleSoldOut(cat.id, checked)}
+                      aria-label={`${cat.name} için tükendi / satışa kapat`}
+                    />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <Switch
                       checked={lowStockFlags[cat.id] ?? false}
-                      disabled={lowStockToggleLoading === cat.id}
+                      disabled={lowStockToggleLoading === cat.id || isSoldOut}
                       onCheckedChange={(checked) => void toggleLowStockBadge(cat.id, checked)}
                       aria-label={`${cat.name} için tükenmek üzere rozeti`}
                     />
@@ -1016,10 +1066,11 @@ export function EventDetailDashboard({
                     {event.isFree || cat.price === 0 ? '—' : formatTry(cat.price)}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {categories.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-5 py-12 text-center text-muted-foreground">
                     Bilet kategorisi tanımlı değil.
                   </td>
                 </tr>

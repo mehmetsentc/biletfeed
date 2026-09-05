@@ -4,9 +4,15 @@ import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { requireOrganizerSession } from '@/lib/auth/organizer-api';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
-const patchSchema = z.object({
-  showLowStockBadge: z.boolean()
-});
+const patchSchema = z
+  .object({
+    showLowStockBadge: z.boolean().optional(),
+    status: z.enum(['active', 'paused', 'sold_out']).optional()
+  })
+  .refine(
+    (data) => data.showLowStockBadge !== undefined || data.status !== undefined,
+    { message: 'Güncellenecek alan yok' }
+  );
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -49,8 +55,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const updated = await prisma.ticketType.update({
     where: { id },
-    data: { showLowStockBadge: parsed.data.showLowStockBadge },
-    select: { id: true, showLowStockBadge: true }
+    data: {
+      ...(parsed.data.showLowStockBadge !== undefined
+        ? { showLowStockBadge: parsed.data.showLowStockBadge }
+        : {}),
+      ...(parsed.data.status !== undefined ? { status: parsed.data.status } : {})
+    },
+    select: { id: true, showLowStockBadge: true, status: true }
   });
 
   return NextResponse.json({ ticketType: updated });

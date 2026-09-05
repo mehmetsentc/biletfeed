@@ -5,6 +5,33 @@ import {
 import { ROLES } from '@/lib/auth/roles';
 import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
 
+function isGuestFirebaseUid(uid: string | null | undefined): boolean {
+  return Boolean(uid?.startsWith('guest-'));
+}
+
+/**
+ * Misafir checkout sonrası gerçek Firebase girişi — guest-* uid'yi gerçek uid ile değiştir.
+ * Aksi halde Biletlerim boş kalır (biletler guest kullanıcıda kalır).
+ */
+async function claimGuestAccountIfNeeded(
+  existing: { id: string; firebaseUid: string },
+  uid: string
+): Promise<void> {
+  if (!uid || existing.firebaseUid === uid) return;
+  if (!isGuestFirebaseUid(existing.firebaseUid)) return;
+
+  const conflict = await prisma.user.findFirst({
+    where: { firebaseUid: uid, deletedAt: null, NOT: { id: existing.id } },
+    select: { id: true }
+  });
+  if (conflict) return;
+
+  await prisma.user.update({
+    where: { id: existing.id },
+    data: { firebaseUid: uid }
+  });
+}
+
 /** Firebase uid + e-posta ile DB kullanıcısını eşleştir / oluştur */
 export async function syncUserToDB(uid: string, email: string): Promise<string> {
   if (!isDatabaseConfigured()) {
@@ -12,15 +39,23 @@ export async function syncUserToDB(uid: string, email: string): Promise<string> 
   }
   try {
     const normalizedEmail = email.trim().toLowerCase();
-    const existing = await prisma.user.findFirst({
-      where: {
-        deletedAt: null,
-        OR: [{ firebaseUid: uid }, { email: normalizedEmail }]
-      },
+
+    // Önce gerçek oturum uid, yoksa e-posta (misafir sipariş hesabı)
+    const byUid = await prisma.user.findFirst({
+      where: { firebaseUid: uid, deletedAt: null },
       select: { id: true, role: true, firebaseUid: true }
     });
+    const byEmail = byUid
+      ? null
+      : await prisma.user.findFirst({
+          where: { email: normalizedEmail, deletedAt: null },
+          select: { id: true, role: true, firebaseUid: true }
+        });
+    const existing = byUid ?? byEmail;
 
     if (existing) {
+      await claimGuestAccountIfNeeded(existing, uid);
+
       const role = isBootstrapSuperAdminEmail(normalizedEmail)
         ? ROLES.SUPER_ADMIN
         : existing.role;
@@ -47,12 +82,6 @@ export async function syncUserToDB(uid: string, email: string): Promise<string> 
             where: { id: existing.id },
             data: { role: ROLES.ORGANIZER }
           });
-          if (!existing.firebaseUid && uid) {
-            await prisma.user.update({
-              where: { id: existing.id },
-              data: { firebaseUid: uid }
-            });
-          }
           return ROLES.ORGANIZER;
         }
       }

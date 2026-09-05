@@ -53,7 +53,8 @@ export async function getTicketPurchaseContext(eventSlug: string) {
     isOnSale: tt.isOnSale ?? false,
     discountPercent: tt.discountPercent ?? null,
     isBogo: tt.isBogo ?? false,
-    allowsZeroPrice: tt.allowsZeroPrice ?? false
+    allowsZeroPrice: tt.allowsZeroPrice ?? false,
+    status: tt.status ?? 'active'
   }));
 
   await ensureDbConnection();

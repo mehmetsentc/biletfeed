@@ -26,7 +26,9 @@ import { matchTicketTypeToSeatUnit } from '@/lib/tickets/seat-packages';
 function seatCategoryPriceLabel(params: {
   price: number | null;
   allowsZeroPrice: boolean;
+  soldOut?: boolean;
 }): string {
+  if (params.soldOut) return 'Tükendi';
   if (params.price == null) return '—';
   if (params.price <= 0 && !params.allowsZeroPrice) return 'Satış dışı';
   return formatTry(params.price);
@@ -174,7 +176,8 @@ export function VenueSectionSeatPicker({
         accent,
         available,
         price: sample?.price ?? null,
-        allowsZeroPrice: sample?.allowsZeroPrice ?? false
+        allowsZeroPrice: sample?.allowsZeroPrice ?? false,
+        soldOut: sample ? sample.status !== 'active' : false
       };
     });
   }, [zones, cellsByUnitId]);
@@ -560,7 +563,8 @@ export function VenueSectionSeatPicker({
                   <span className="font-bold tabular-nums text-foreground">
                     {seatCategoryPriceLabel({
                       price: c.price,
-                      allowsZeroPrice: c.allowsZeroPrice
+                      allowsZeroPrice: c.allowsZeroPrice,
+                      soldOut: c.soldOut
                     })}
                   </span>
                 </button>
@@ -844,7 +848,8 @@ export function VenueSectionSeatPicker({
                         <span className="shrink-0 font-bold tabular-nums text-foreground">
                           {seatCategoryPriceLabel({
                             price: c.price,
-                            allowsZeroPrice: c.allowsZeroPrice
+                            allowsZeroPrice: c.allowsZeroPrice,
+                            soldOut: c.soldOut
                           })}
                         </span>
                       </button>

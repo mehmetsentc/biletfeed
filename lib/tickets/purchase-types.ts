@@ -19,6 +19,8 @@ export type CheckoutTicketType = {
   /** Tek satın alımda üretilecek QR / kişi sayısı */
   seatsPerUnit: number;
   showLowStockBadge: boolean;
+  /** active | paused | sold_out — sold_out canlıda Tükendi */
+  status: 'active' | 'paused' | 'sold_out';
   /**
    * Etkinlik ücretsizse price=0 satın alınabilir.
    * Ücretli etkinlikte price=0 = satış dışı (VIP kaldırma vb.) — “Ücretsiz” değil.
@@ -53,6 +55,7 @@ export function findTicketType(
 }
 
 export function ticketTypeAvailable(type: CheckoutTicketType): boolean {
+  if (type.status !== 'active') return false;
   if (type.capacity - type.sold <= 0) return false;
   // Ücretli etkinlikte 0₺ = satış kaldırıldı; ücretsiz etkinlik hariç
   if (type.price <= 0 && !type.allowsZeroPrice) return false;
@@ -60,6 +63,7 @@ export function ticketTypeAvailable(type: CheckoutTicketType): boolean {
 }
 
 export function ticketTypeRemaining(type: CheckoutTicketType): number {
+  if (type.status !== 'active') return 0;
   if (type.price <= 0 && !type.allowsZeroPrice) return 0;
   return Math.max(0, type.capacity - type.sold);
 }
@@ -69,6 +73,7 @@ export function ticketTypeAvailabilityLabel(
   type: CheckoutTicketType,
   labels: { free: string; unavailable: string; soldOut: string }
 ): string | null {
+  if (type.status === 'sold_out' || type.status === 'paused') return labels.soldOut;
   if (type.price <= 0 && !type.allowsZeroPrice) return labels.unavailable;
   if (type.capacity - type.sold <= 0) return labels.soldOut;
   if (type.price <= 0) return labels.free;
