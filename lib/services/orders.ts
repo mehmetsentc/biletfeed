@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import {
   buildTicketQrPayload,
@@ -677,28 +678,41 @@ async function fulfillFreeOrder(params: {
     return created;
   });
 
-  void import('@/lib/accounting/fulfillment')
-    .then(({ processOrderAccounting }) => processOrderAccounting(order.id))
-    .catch((err) => {
+  // Sipariş sonrası işler (fatura, mail, bildirim) — Vercel serverless HTTP
+  // cevabı döner dönmez fonksiyonu dondurabildiği için `void promise` yerine
+  // `after()` kullanılıyor: cevap gönderildikten sonra da fonksiyon bu iş
+  // bitene kadar canlı tutulur (aksi halde fatura kesimi sessizce yarıda kesilebiliyordu).
+  after(async () => {
+    try {
+      const { processOrderAccounting } = await import('@/lib/accounting/fulfillment');
+      await processOrderAccounting(order.id);
+    } catch (err) {
       console.error('[accounting] free order', order.id, err);
-    });
+    }
 
-  void import('@/lib/email/send-ticket-purchase-email').then(({ sendTicketPurchaseEmail }) =>
-    sendTicketPurchaseEmail(order.id)
-  ).catch((err) => {
-    console.error('[email] free order confirmation', order.id, err);
+    try {
+      const { sendTicketPurchaseEmail } = await import(
+        '@/lib/email/send-ticket-purchase-email'
+      );
+      await sendTicketPurchaseEmail(order.id);
+    } catch (err) {
+      console.error('[email] free order confirmation', order.id, err);
+    }
+
+    if (params.couponId) {
+      await incrementCouponUsage(params.couponId).catch(() => {});
+    }
+
+    try {
+      const ev = await prisma.event.findUnique({
+        where: { id: params.eventId },
+        select: { title: true }
+      });
+      if (ev) await notifyTicketPurchase(params.userId, ev.title, order.id);
+    } catch {
+      /* bildirim best-effort */
+    }
   });
-
-  if (params.couponId) {
-    void incrementCouponUsage(params.couponId).catch(() => {});
-  }
-
-  void prisma.event
-    .findUnique({ where: { id: params.eventId }, select: { title: true } })
-    .then((ev) => {
-      if (ev) void notifyTicketPurchase(params.userId, ev.title, order.id);
-    })
-    .catch(() => {});
 
   return order.id;
 }
@@ -797,6 +811,25 @@ export async function fulfillPaidOrder(params: {
       }
     }
 
+    // Aynı İyzico paymentId ile zaten ödenmiş sipariş varsa tekrar charge/fulfill yok
+    if (params.providerPaymentId) {
+      const byPayment = await tx.order.findFirst({
+        where: {
+          paymentId: params.providerPaymentId,
+          status: 'paid',
+          deletedAt: null
+        },
+        include: { purchasedTickets: true }
+      });
+      if (byPayment) {
+        return {
+          orderId: byPayment.id,
+          ticketCount: byPayment.purchasedTickets.length,
+          alreadyFulfilled: true
+        };
+      }
+    }
+
     const order = await tx.order.findFirst({
       where: { id: resolvedOrderId, deletedAt: null },
       include: { items: true, purchasedTickets: true }
@@ -811,47 +844,45 @@ export async function fulfillPaidOrder(params: {
       };
     }
 
-    if (order.status !== 'pending') {
+    // PSP tahsil ettiyse cancelled/expired pending de tamamlanır (çift çekim önleme)
+    const recoverable =
+      order.status === 'pending' ||
+      (order.status === 'cancelled' && order.purchasedTickets.length === 0);
+    if (!recoverable) {
       throw new Error('Sipariş ödeme için uygun değil');
     }
 
-    if (order.expiresAt && order.expiresAt < new Date()) {
-      await tx.order.update({
-        where: { id: order.id },
-        data: { status: 'cancelled' }
+    let ticketCount = order.purchasedTickets.length;
+    if (ticketCount === 0) {
+      const seatTxn = await tx.transaction.findFirst({
+        where: { orderId: order.id, deletedAt: null },
+        orderBy: { createdAt: 'asc' }
       });
-      throw new Error('Sipariş süresi doldu');
-    }
+      const allSeats =
+        seatTxn?.providerRef?.startsWith('seats:')
+          ? seatTxn.providerRef.slice(6).split(',').map((s) => s.trim()).filter(Boolean)
+          : [];
+      let seatCursor = 0;
 
-    let ticketCount = 0;
-    const seatTxn = await tx.transaction.findFirst({
-      where: { orderId: order.id, deletedAt: null },
-      orderBy: { createdAt: 'asc' }
-    });
-    const allSeats =
-      seatTxn?.providerRef?.startsWith('seats:')
-        ? seatTxn.providerRef.slice(6).split(',').map((s) => s.trim()).filter(Boolean)
-        : [];
-    let seatCursor = 0;
-
-    for (const item of order.items) {
-      const seatUnitIds =
-        allSeats.length > 0
-          ? allSeats.slice(seatCursor, seatCursor + item.quantity)
-          : undefined;
-      seatCursor += item.quantity;
-      await issueTickets(tx, {
-        orderId: order.id,
-        userId: order.userId,
-        eventId: order.eventId,
-        ticketTypeId: item.ticketTypeId,
-        quantity: item.quantity,
-        attendeeName: order.attendeeName,
-        attendeeEmail: order.attendeeEmail,
-        attendeePhone: order.attendeePhone,
-        seatUnitIds
-      });
-      ticketCount += item.quantity;
+      for (const item of order.items) {
+        const seatUnitIds =
+          allSeats.length > 0
+            ? allSeats.slice(seatCursor, seatCursor + item.quantity)
+            : undefined;
+        seatCursor += item.quantity;
+        await issueTickets(tx, {
+          orderId: order.id,
+          userId: order.userId,
+          eventId: order.eventId,
+          ticketTypeId: item.ticketTypeId,
+          quantity: item.quantity,
+          attendeeName: order.attendeeName,
+          attendeeEmail: order.attendeeEmail,
+          attendeePhone: order.attendeePhone,
+          seatUnitIds
+        });
+        ticketCount += item.quantity;
+      }
     }
 
     await tx.order.update({
@@ -860,12 +891,14 @@ export async function fulfillPaidOrder(params: {
         status: 'paid',
         paymentProvider: params.provider,
         paymentId: params.providerPaymentId,
-        paidAt: new Date()
+        paidAt: new Date(),
+        // Callback gelene kadar süre dolmuş olabilir — ödeme alındıysa iptal etme
+        expiresAt: null
       }
     });
 
     await tx.transaction.updateMany({
-      where: { orderId: order.id, status: 'pending' },
+      where: { orderId: order.id, status: { in: ['pending', 'failed'] } },
       data: {
         status: 'completed',
         provider: params.provider,
@@ -876,32 +909,40 @@ export async function fulfillPaidOrder(params: {
     return { orderId: order.id, ticketCount, alreadyFulfilled: false };
   }).then(async (result) => {
     if (!result.alreadyFulfilled) {
-      const order = await prisma.order.findUnique({
-        where: { id: result.orderId },
-        select: { couponCode: true, userId: true, event: { select: { title: true } } }
-      });
-      if (order?.couponCode) {
-        const coupon = await prisma.coupon.findFirst({
-          where: { code: order.couponCode, deletedAt: null }
+      // Bkz. fulfillFreeOrder yorumu — `after()` fonksiyonu HTTP cevabından
+      // sonra da bu işler (özellikle Paraşüt fatura kesimi) bitene kadar canlı tutar.
+      after(async () => {
+        const order = await prisma.order.findUnique({
+          where: { id: result.orderId },
+          select: { couponCode: true, userId: true, event: { select: { title: true } } }
         });
-        if (coupon) void incrementCouponUsage(coupon.id).catch(() => {});
-      }
-      if (order) {
-        void notifyTicketPurchase(order.userId, order.event.title, result.orderId).catch(
-          () => {}
-        );
-      }
-      void import('@/lib/accounting/fulfillment')
-        .then(({ processOrderAccounting }) =>
-          processOrderAccounting(result.orderId)
-        )
-        .catch((err) => {
+        if (order?.couponCode) {
+          const coupon = await prisma.coupon.findFirst({
+            where: { code: order.couponCode, deletedAt: null }
+          });
+          if (coupon) await incrementCouponUsage(coupon.id).catch(() => {});
+        }
+        if (order) {
+          await notifyTicketPurchase(order.userId, order.event.title, result.orderId).catch(
+            () => {}
+          );
+        }
+
+        try {
+          const { processOrderAccounting } = await import('@/lib/accounting/fulfillment');
+          await processOrderAccounting(result.orderId);
+        } catch (err) {
           console.error('[accounting] paid order', result.orderId, err);
-        });
-      void import('@/lib/email/send-ticket-purchase-email').then(({ sendTicketPurchaseEmail }) =>
-        sendTicketPurchaseEmail(result.orderId)
-      ).catch((err) => {
-        console.error('[email] paid order confirmation', result.orderId, err);
+        }
+
+        try {
+          const { sendTicketPurchaseEmail } = await import(
+            '@/lib/email/send-ticket-purchase-email'
+          );
+          await sendTicketPurchaseEmail(result.orderId);
+        } catch (err) {
+          console.error('[email] paid order confirmation', result.orderId, err);
+        }
       });
     }
     return result;

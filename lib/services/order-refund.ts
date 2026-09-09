@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { ensureDbConnection, prisma } from '@/lib/db/prisma';
 import { getPaymentProvider } from '@/lib/payments/provider';
 import type { PaymentProviderName } from '@/lib/payments/types';
@@ -254,33 +255,33 @@ export async function processOrderRefund(
     }
   });
 
-  // Tam sipariş iadesinde muhasebe zinciri
-  if (!partial) {
-    void import('@/lib/accounting/refund')
-      .then(({ processOrderRefundAccounting }) =>
-        processOrderRefundAccounting(order.id)
-      )
-      .catch((err) => {
+  // Sipariş sonrası muhasebe/mail — `after()` ile HTTP cevabından sonra da
+  // fonksiyon bu iş bitene kadar canlı tutulur (bkz. lib/services/orders.ts).
+  after(async () => {
+    if (!partial) {
+      try {
+        const { processOrderRefundAccounting } = await import('@/lib/accounting/refund');
+        await processOrderRefundAccounting(order.id);
+      } catch (err) {
         console.error('[accounting] refund', order.id, err);
-      });
-  } else {
-    // Kısmi: credit note tutarı için metadata ile dene (tam zincir yerine fatura notu)
-    void import('@/lib/accounting/invoice')
-      .then(async ({ createCreditNoteForRefund }) => {
+      }
+    } else {
+      // Kısmi: credit note tutarı için metadata ile dene (tam zincir yerine fatura notu)
+      try {
+        const { createCreditNoteForRefund } = await import('@/lib/accounting/invoice');
         await createCreditNoteForRefund(order.id);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('[accounting] partial credit note', order.id, err);
-      });
-  }
+      }
+    }
 
-  void import('@/lib/email/send-refund-email')
-    .then(({ sendRefundNotificationEmail }) =>
-      sendRefundNotificationEmail(order.id, params.reason)
-    )
-    .catch((err) => {
+    try {
+      const { sendRefundNotificationEmail } = await import('@/lib/email/send-refund-email');
+      await sendRefundNotificationEmail(order.id, params.reason);
+    } catch (err) {
       console.error('[email] refund', order.id, err);
-    });
+    }
+  });
 
   const parts = [
     `${cancelTargets.length} bilet iade edildi`,
