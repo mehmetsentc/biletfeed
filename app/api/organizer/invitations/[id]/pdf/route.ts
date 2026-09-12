@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireOrganizerSession } from '@/lib/auth/organizer-api';
-import { generateOrganizerInvitationPdf } from '@/lib/services/invitation-pdf';
+import { generateOrganizerInvitationPdfs } from '@/lib/services/invitation-pdf';
+import {
+  bundleNamedPdfs,
+  buildInvitationZipFilename
+} from '@/lib/tickets/pdf/zip-pdfs';
 
 export const runtime = 'nodejs';
 
@@ -15,15 +19,19 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const pdf = await generateOrganizerInvitationPdf(id, ctx.organizer.id);
-  if (!pdf) {
+  const pdfs = await generateOrganizerInvitationPdfs(id, ctx.organizer.id);
+  const bundled = await bundleNamedPdfs(
+    pdfs.map((pdf) => ({ filename: pdf.filename, content: pdf.buffer })),
+    buildInvitationZipFilename(pdfs[0]?.eventTitle ?? 'davetiye')
+  );
+  if (!bundled) {
     return NextResponse.json({ error: 'Davetiye bulunamadı' }, { status: 404 });
   }
 
-  return new NextResponse(new Uint8Array(pdf.buffer), {
+  return new NextResponse(new Uint8Array(bundled.buffer), {
     headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${pdf.filename}"`,
+      'Content-Type': bundled.contentType,
+      'Content-Disposition': `attachment; filename="${bundled.filename}"`,
       'Cache-Control': 'private, no-store'
     }
   });

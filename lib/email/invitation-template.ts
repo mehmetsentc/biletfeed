@@ -12,6 +12,18 @@ import {
 } from '@/lib/email/email-shared';
 import { buildTicketReceiptEmailCard } from '@/lib/email/ticket-receipt-email';
 
+export type InvitationEmailTicketCard = {
+  eventTitle: string;
+  eventDate: string;
+  eventTime: string;
+  eventVenue: string;
+  eventCity: string;
+  ticketTypeName: string;
+  ticketCode: string;
+  qrDataUrl: string;
+  holderName?: string;
+};
+
 export function buildInvitationEmail(params: {
   guestName: string;
   eventTitle: string;
@@ -29,6 +41,7 @@ export function buildInvitationEmail(params: {
   organizerName?: string;
   categoryLabel?: string;
   sectorGate?: string;
+  ticketCards?: InvitationEmailTicketCard[];
 }): string {
   const {
     guestName,
@@ -46,10 +59,31 @@ export function buildInvitationEmail(params: {
     calendarUrl,
     organizerName,
     categoryLabel,
-    sectorGate
+    sectorGate,
+    ticketCards
   } = params;
 
-  const preheader = `${guestName}, ${eventTitle} için kişisel davetin hazır — ${eventDate}.`;
+  const cards =
+    ticketCards && ticketCards.length > 0
+      ? ticketCards
+      : [
+          {
+            eventTitle,
+            eventDate,
+            eventTime,
+            eventVenue,
+            eventCity,
+            ticketTypeName,
+            ticketCode,
+            qrDataUrl,
+            holderName: guestName
+          }
+        ];
+
+  const preheader =
+    cards.length > 1
+      ? `${guestName}, ${eventTitle} için ${cards.length} ayrı biletin hazır.`
+      : `${guestName}, ${eventTitle} için kişisel davetin hazır — ${eventDate}.`;
 
   const coverBlock = coverImage
     ? `
@@ -62,21 +96,25 @@ export function buildInvitationEmail(params: {
       </tr>`
     : '';
 
-  const receiptCard = buildTicketReceiptEmailCard({
-    kind: 'invitation',
-    eventTitle,
-    eventDate,
-    eventTime,
-    venue: eventVenue,
-    city: eventCity,
-    ticketTypeName,
-    holderName: guestName,
-    ticketCode,
-    qrDataUrl,
-    personalMessage,
-    categoryLabel,
-    sectorGate
-  });
+  const receiptCards = cards
+    .map((card, index) =>
+      buildTicketReceiptEmailCard({
+        kind: 'invitation',
+        eventTitle: card.eventTitle,
+        eventDate: card.eventDate,
+        eventTime: card.eventTime,
+        venue: card.eventVenue,
+        city: card.eventCity,
+        ticketTypeName: card.ticketTypeName,
+        holderName: card.holderName ?? guestName,
+        ticketCode: card.ticketCode,
+        qrDataUrl: card.qrDataUrl,
+        personalMessage: index === 0 ? personalMessage : undefined,
+        categoryLabel,
+        sectorGate
+      })
+    )
+    .join('');
 
   const content = `
     ${emailLogoBar()}
@@ -94,7 +132,11 @@ export function buildInvitationEmail(params: {
               : 'Seni '
           }
           <strong style="color:${EMAIL_BRAND.text};">${esc(eventTitle)}</strong> etkinliğine davet etti.
-          Girişte bu davetiyeyi göstermen yeterli.
+          ${
+            cards.length > 1
+              ? 'Kombine davetin her gün için ayrı bilet içerir — girişte o günün QR kodunu göster.'
+              : 'Girişte bu davetiyeyi göstermen yeterli.'
+          }
         </p>
 
         ${emailInfoGrid([
@@ -106,7 +148,7 @@ export function buildInvitationEmail(params: {
     </tr>
     <tr>
       <td style="padding:0 20px 28px;">
-        ${receiptCard}
+        ${receiptCards}
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td align="center" style="padding-bottom:12px;">
@@ -143,7 +185,13 @@ export function buildInvitationPlainText(params: {
   ticketCode: string;
   inviteUrl: string;
   organizerName?: string;
+  ticketLines?: Array<{ date: string; code: string }>;
 }): string {
+  const ticketLines =
+    params.ticketLines && params.ticketLines.length > 0
+      ? params.ticketLines.map((line) => `${line.date}: ${line.code}`)
+      : [`Bilet kodu: ${params.ticketCode}`];
+
   return [
     `Merhaba ${params.guestName},`,
     '',
@@ -154,11 +202,13 @@ export function buildInvitationPlainText(params: {
     `Tarih: ${params.eventDate}`,
     `Saat: ${params.eventTime}`,
     `Mekan: ${params.eventVenue}, ${params.eventCity}`,
-    `Bilet kodu: ${params.ticketCode}`,
+    ...ticketLines.map((line) => line),
     '',
     `Davetiyen: ${params.inviteUrl}`,
     '',
-    'Bu e-posta kişisel davetiyendir — girişte QR kodunu göster.',
+    params.ticketLines && params.ticketLines.length > 1
+      ? 'Kombine davetin her gün için ayrı bilettir — girişte o günün QR kodunu göster.'
+      : 'Bu e-posta kişisel davetiyendir — girişte QR kodunu göster.',
     '— BiletFeed'
   ].join('\n');
 }

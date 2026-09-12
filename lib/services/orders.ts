@@ -27,6 +27,12 @@ import {
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
+import { isComboTicketName } from '@/lib/tickets/purchase-types';
+import {
+  comboDayAttendeeLabel,
+  comboIssueTargets,
+  loadSeriesSessionTargets
+} from '@/lib/tickets/combo-sessions';
 import { effectiveTicketPrice, lineSubtotalForQuantity } from '@/lib/services/event-sale-discount';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import {
@@ -764,7 +770,6 @@ async function issueTickets(
 
   const units = Math.max(1, params.quantity);
   const seatsPerUnit = Math.max(1, ticketType.seatsPerUnit || 1);
-  const qrCount = units * seatsPerUnit;
 
   const reserved = await tx.ticketType.updateMany({
     where: {
@@ -777,46 +782,76 @@ async function issueTickets(
     throw new Error('Yeterli bilet kalmadı');
   }
 
+  const eventRow = await tx.event.findFirst({
+    where: { id: params.eventId, deletedAt: null },
+    select: { id: true, title: true, startDate: true }
+  });
+  const sessions = await loadSeriesSessionTargets(tx, params.eventId);
+  const fallback = {
+    eventId: params.eventId,
+    startDate: eventRow?.startDate ?? new Date(),
+    title: eventRow?.title ?? ''
+  };
+  const perUnitTargets = comboIssueTargets({
+    ticketTypeName: ticketType.name,
+    seatsPerUnit,
+    sessions,
+    fallback
+  });
+  const isComboSeries =
+    isComboTicketName(ticketType.name) && sessions.length >= 2;
+
   const seatUnitIdFromName = parseSectionSeatUnitId(ticketType.name);
   const seatIds = params.seatUnitIds ?? [];
 
-  for (let i = 0; i < qrCount; i++) {
-    const ticketId = newTicketId();
-    const seatFromList = seatIds[i] ?? seatIds[Math.floor(i / seatsPerUnit)];
-    const seatUnitId = seatFromList ?? seatUnitIdFromName;
-    if (seatUnitId) {
-      await assertSeatFreeInTx(tx, {
-        eventId: params.eventId,
-        seatUnitId,
-        orderId: params.orderId
+  for (let unitIndex = 0; unitIndex < units; unitIndex++) {
+    for (let dayIndex = 0; dayIndex < perUnitTargets.length; dayIndex++) {
+      const target = perUnitTargets[dayIndex]!;
+      const ticketId = newTicketId();
+      const personIndex = isComboSeries
+        ? unitIndex
+        : unitIndex * perUnitTargets.length + dayIndex;
+      const seatFromList = seatIds[personIndex] ?? seatIds[unitIndex];
+      const seatUnitId = seatFromList ?? seatUnitIdFromName;
+      if (seatUnitId) {
+        await assertSeatFreeInTx(tx, {
+          eventId: target.eventId,
+          seatUnitId,
+          orderId: params.orderId
+        });
+      }
+      const extra =
+        !isComboSeries && perUnitTargets.length > 1 && !seatUnitId
+          ? `(${dayIndex + 1}/${perUnitTargets.length})`
+          : seatUnitId
+            ? `· ${seatUnitId}`
+            : undefined;
+      await tx.purchasedTicket.create({
+        data: {
+          id: ticketId,
+          orderId: params.orderId,
+          ticketTypeId: params.ticketTypeId,
+          userId: params.userId,
+          eventId: target.eventId,
+          ticketCode: generateTicketCode(),
+          validationToken: generateValidationToken(ticketId, target.eventId),
+          status: 'VALID',
+          attendeeName: params.attendeeName
+            ? comboDayAttendeeLabel(
+                params.attendeeName,
+                target,
+                isComboSeries,
+                extra
+              )
+            : extra
+              ? extra.replace(/^·\s*/, '')
+              : null,
+          attendeeEmail: params.attendeeEmail ?? null,
+          attendeePhone: params.attendeePhone ?? null,
+          seatUnitId: seatUnitId ?? null
+        }
       });
     }
-    const seatLabel =
-      seatsPerUnit > 1 && !seatUnitId
-        ? ` (${i + 1}/${qrCount})`
-        : seatUnitId
-          ? ` · ${seatUnitId}`
-          : '';
-    await tx.purchasedTicket.create({
-      data: {
-        id: ticketId,
-        orderId: params.orderId,
-        ticketTypeId: params.ticketTypeId,
-        userId: params.userId,
-        eventId: params.eventId,
-        ticketCode: generateTicketCode(),
-        validationToken: generateValidationToken(ticketId, params.eventId),
-        status: 'VALID',
-        attendeeName: params.attendeeName
-          ? `${params.attendeeName}${seatLabel}`
-          : seatUnitId
-            ? seatUnitId
-            : null,
-        attendeeEmail: params.attendeeEmail ?? null,
-        attendeePhone: params.attendeePhone ?? null,
-        seatUnitId: seatUnitId ?? null
-      }
-    });
   }
 }
 

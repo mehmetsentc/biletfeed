@@ -14,7 +14,6 @@ import {
   buildInvitationPlainText
 } from '@/lib/email/invitation-template';
 import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
-import { generateOrganizerInvitationPdf } from '@/lib/services/invitation-pdf';
 import { findOrCreateGuestUser } from '@/lib/services/guest-user';
 import {
   formatTurkeyDateLong,
@@ -26,6 +25,13 @@ import {
   assertSeatAvailableForEvent,
   requiresSeatAssignment
 } from '@/lib/tickets/seat-inventory';
+import { isComboTicketName } from '@/lib/tickets/purchase-types';
+import {
+  comboDayAttendeeLabel,
+  comboIssueTargets,
+  loadSeriesSessionTargets
+} from '@/lib/tickets/combo-sessions';
+import { generateOrganizerInvitationPdfs } from '@/lib/services/invitation-pdf';
 
 function createInviteToken(): string {
   return randomBytes(16).toString('hex');
@@ -167,6 +173,37 @@ const invitationEmailInclude = {
   }
 } as const;
 
+const invitationTicketSelect = {
+  id: true,
+  ticketCode: true,
+  validationToken: true,
+  status: true,
+  seatUnitId: true,
+  event: {
+    select: {
+      title: true,
+      coverImage: true,
+      startDate: true,
+      endDate: true,
+      slug: true,
+      venue: { select: { name: true } },
+      city: { select: { name: true } }
+    }
+  }
+} as const;
+
+async function loadOrderInvitationTickets(orderId: string) {
+  return prisma.purchasedTicket.findMany({
+    where: {
+      orderId,
+      deletedAt: null,
+      status: { notIn: ['CANCELLED', 'REFUNDED'] }
+    },
+    select: invitationTicketSelect,
+    orderBy: { event: { startDate: 'asc' } }
+  });
+}
+
 /** Tek davetiye e-postası — PDF eki ile */
 export async function sendEventInvitationEmail(
   invitationId: string,
@@ -183,27 +220,76 @@ export async function sendEventInvitationEmail(
     return { status: 'skipped' };
   }
 
-  const eventDate = formatTurkeyDateLong(row.event.startDate);
-  const eventTime = formatTurkeyTime(row.event.startDate);
+  const orderTickets = await loadOrderInvitationTickets(row.purchasedTicket.orderId);
+  const tickets =
+    orderTickets.length > 0
+      ? orderTickets
+      : [
+          {
+            id: row.purchasedTicket.id,
+            ticketCode: row.purchasedTicket.ticketCode,
+            validationToken: row.purchasedTicket.validationToken,
+            status: 'VALID',
+            seatUnitId: null,
+            event: {
+              title: row.event.title,
+              coverImage: row.event.coverImage,
+              startDate: row.event.startDate,
+              endDate: row.event.endDate,
+              slug: '',
+              venue: row.event.venue ? { name: row.event.venue.name } : null,
+              city: { name: row.event.city.name }
+            }
+          }
+        ];
+
+  const eventDate = tickets
+    .map((ticket) => formatTurkeyDateLong(ticket.event.startDate))
+    .filter((value, index, all) => all.indexOf(value) === index)
+    .join(' · ');
+  const eventTime = formatTurkeyTime(tickets[0]!.event.startDate);
   const venueName = row.event.venue?.name ?? 'Online';
   const cityName = row.event.city.name;
   const inviteUrl = getSiteUrl(`/davetiye/${row.inviteToken}`);
   const calendarUrl = buildInvitationCalendarUrl({
     title: row.event.title,
-    startDate: row.event.startDate,
-    endDate: row.event.endDate,
+    startDate: tickets[0]!.event.startDate,
+    endDate: tickets[tickets.length - 1]!.event.endDate,
     venue: venueName,
     city: cityName,
     address: row.event.venue?.address,
     inviteUrl
   });
 
-  const qrDataUrl = await qrToDataUrl(inviteUrl);
-  const pdf = await generateOrganizerInvitationPdf(invitationId, organizerId);
+  const ticketCards = await Promise.all(
+    tickets.map(async (ticket) => {
+      const qrPayload = buildTicketQrPayload({
+        ticketId: ticket.id,
+        ticketCode: ticket.ticketCode,
+        validationToken: ticket.validationToken
+      });
+      return {
+        eventTitle: ticket.event.title,
+        eventDate: formatTurkeyDateLong(ticket.event.startDate),
+        eventTime: formatTurkeyTime(ticket.event.startDate),
+        eventVenue: ticket.event.venue?.name ?? venueName,
+        eventCity: ticket.event.city.name,
+        ticketTypeName: row.ticketType.name,
+        ticketCode: ticket.ticketCode,
+        qrDataUrl: await qrToDataUrl(qrPayload),
+        holderName: row.guestName
+      };
+    })
+  );
+
+  const pdfs = await generateOrganizerInvitationPdfs(invitationId, organizerId);
 
   const result = await queueEmail({
     to: row.guestEmail.trim(),
-    subject: `${row.guestName}, ${row.event.title} davetin hazır`,
+    subject:
+      tickets.length > 1
+        ? `${row.guestName}, ${row.event.title} — ${tickets.length} biletin hazır`
+        : `${row.guestName}, ${row.event.title} davetin hazır`,
     template: 'event_invitation',
     sender: 'invitation',
     fromDisplayName: row.event.organizer.name,
@@ -217,12 +303,13 @@ export async function sendEventInvitationEmail(
       eventCity: cityName,
       coverImage: row.event.coverImage ?? '',
       ticketTypeName: row.ticketType.name,
-      ticketCode: row.purchasedTicket.ticketCode,
-      qrDataUrl,
+      ticketCode: tickets[0]!.ticketCode,
+      qrDataUrl: ticketCards[0]!.qrDataUrl,
       personalMessage: row.personalMessage ?? undefined,
       inviteUrl,
       calendarUrl,
-      organizerName: row.event.organizer.name
+      organizerName: row.event.organizer.name,
+      ticketCards
     }),
     text: buildInvitationPlainText({
       guestName: row.guestName,
@@ -231,12 +318,16 @@ export async function sendEventInvitationEmail(
       eventTime,
       eventVenue: venueName,
       eventCity: cityName,
-      ticketCode: row.purchasedTicket.ticketCode,
+      ticketCode: tickets.map((ticket) => ticket.ticketCode).join(', '),
       inviteUrl,
-      organizerName: row.event.organizer.name
+      organizerName: row.event.organizer.name,
+      ticketLines: ticketCards.map((card) => ({
+        date: card.eventDate,
+        code: card.ticketCode
+      }))
     }),
     orderId: row.purchasedTicket.orderId,
-    attachments: pdf ? [{ filename: pdf.filename, content: pdf.buffer }] : undefined
+    attachments: pdfs.map((pdf) => ({ filename: pdf.filename, content: pdf.buffer }))
   });
 
   if (result.status !== 'sent') {
@@ -306,6 +397,19 @@ export async function createEventInvitation(params: {
   const guest = await findOrCreateGuestUser(params.guestName, params.guestEmail);
   const inviteToken = createInviteToken();
   const seatsPerUnit = Math.max(1, ticketType.seatsPerUnit || 1);
+  const sessions = await loadSeriesSessionTargets(prisma, params.eventId);
+  const fallback = {
+    eventId: event.id,
+    startDate: event.startDate,
+    title: event.title
+  };
+  const targets = comboIssueTargets({
+    ticketTypeName: ticketType.name,
+    seatsPerUnit,
+    sessions,
+    fallback
+  });
+  const isComboSeries = isComboTicketName(ticketType.name) && sessions.length >= 2;
 
   const { invitation } = await prisma.$transaction(async (tx) => {
     // Atomik rezervasyon — her oluşturmada full count yapmak timeout üretir
@@ -323,17 +427,19 @@ export async function createEventInvitation(params: {
     }
 
     if (resolvedSeatId) {
-      const clash = await tx.purchasedTicket.findFirst({
-        where: {
-          eventId: params.eventId,
-          status: { in: ['VALID', 'USED'] },
-          deletedAt: null,
-          seatUnitId: resolvedSeatId
-        },
-        select: { id: true }
-      });
-      if (clash) {
-        throw new Error(`Koltuk ${resolvedSeatId} az önce rezerve edildi`);
+      for (const target of targets) {
+        const clash = await tx.purchasedTicket.findFirst({
+          where: {
+            eventId: target.eventId,
+            status: { in: ['VALID', 'USED'] },
+            deletedAt: null,
+            seatUnitId: resolvedSeatId
+          },
+          select: { id: true }
+        });
+        if (clash) {
+          throw new Error(`Koltuk ${resolvedSeatId} az önce rezerve edildi`);
+        }
       }
     }
 
@@ -370,25 +476,31 @@ export async function createEventInvitation(params: {
     });
 
     let primaryTicketId = '';
-    for (let i = 0; i < seatsPerUnit; i++) {
+    for (let i = 0; i < targets.length; i++) {
+      const target = targets[i]!;
       const ticketId = newTicketId();
       if (i === 0) primaryTicketId = ticketId;
-      const seatLabel = resolvedSeatId
-        ? ` · ${resolvedSeatId}`
-        : seatsPerUnit > 1
-          ? ` (${i + 1}/${seatsPerUnit})`
-          : '';
+      const extra = resolvedSeatId
+        ? `· ${resolvedSeatId}`
+        : !isComboSeries && targets.length > 1
+          ? `(${i + 1}/${targets.length})`
+          : undefined;
       await tx.purchasedTicket.create({
         data: {
           id: ticketId,
           orderId: order.id,
           ticketTypeId: params.ticketTypeId,
           userId: guest.id,
-          eventId: params.eventId,
+          eventId: target.eventId,
           ticketCode: generateTicketCode(),
-          validationToken: generateValidationToken(ticketId, params.eventId),
+          validationToken: generateValidationToken(ticketId, target.eventId),
           status: 'VALID',
-          attendeeName: `${params.guestName.trim()}${seatLabel}`,
+          attendeeName: comboDayAttendeeLabel(
+            params.guestName,
+            target,
+            isComboSeries,
+            extra
+          ),
           attendeeEmail: params.guestEmail?.trim() || null,
           seatUnitId: resolvedSeatId
         }
@@ -538,7 +650,34 @@ export async function cancelEventInvitationsBulk(
   return { cancelled, errors };
 }
 
-export async function getPublicInvitation(token: string) {
+export type PublicInvitationTicket = {
+  ticketCode: string;
+  ticketStatus: string;
+  event: {
+    title: string;
+    coverImage: string;
+    startDate: string;
+    endDate: string;
+    slug: string;
+    venue: string;
+    city: string;
+  };
+  qrData: string;
+};
+
+export type PublicInvitation = {
+  guestName: string;
+  personalMessage: string | null;
+  ticketCode: string;
+  ticketStatus: string;
+  ticketTypeName: string;
+  event: PublicInvitationTicket['event'];
+  qrData: string;
+  inviteUrl: string;
+  tickets: PublicInvitationTicket[];
+};
+
+export async function getPublicInvitation(token: string): Promise<PublicInvitation | null> {
   await ensureDbConnection();
   const row = await prisma.eventInvitation.findFirst({
     where: { inviteToken: token, deletedAt: null, status: { not: 'cancelled' } },
@@ -548,7 +687,8 @@ export async function getPublicInvitation(token: string) {
           id: true,
           ticketCode: true,
           validationToken: true,
-          status: true
+          status: true,
+          orderId: true
         }
       },
       ticketType: { select: { name: true } },
@@ -575,27 +715,52 @@ export async function getPublicInvitation(token: string) {
     });
   }
 
+  const orderTickets = await loadOrderInvitationTickets(row.purchasedTicket.orderId);
+  const sourceTickets =
+    orderTickets.length > 0
+      ? orderTickets
+      : [
+          {
+            id: row.purchasedTicket.id,
+            ticketCode: row.purchasedTicket.ticketCode,
+            validationToken: row.purchasedTicket.validationToken,
+            status: row.purchasedTicket.status,
+            seatUnitId: null,
+            event: row.event
+          }
+        ];
+
+  const tickets: PublicInvitationTicket[] = sourceTickets.map((ticket) => ({
+    ticketCode: ticket.ticketCode,
+    ticketStatus: ticket.status,
+    event: {
+      title: ticket.event.title,
+      coverImage: ticket.event.coverImage,
+      startDate: ticket.event.startDate.toISOString(),
+      endDate: ticket.event.endDate.toISOString(),
+      slug: ticket.event.slug,
+      venue: ticket.event.venue?.name || 'Online',
+      city: ticket.event.city.name
+    },
+    qrData: buildTicketQrPayload({
+      ticketId: ticket.id,
+      ticketCode: ticket.ticketCode,
+      validationToken: ticket.validationToken
+    })
+  }));
+
+  const primary = tickets[0]!;
+
   return {
     guestName: row.guestName,
     personalMessage: row.personalMessage,
-    ticketCode: row.purchasedTicket.ticketCode,
-    ticketStatus: row.purchasedTicket.status,
+    ticketCode: primary.ticketCode,
+    ticketStatus: primary.ticketStatus,
     ticketTypeName: row.ticketType.name,
-    event: {
-      title: row.event.title,
-      coverImage: row.event.coverImage,
-      startDate: row.event.startDate.toISOString(),
-      endDate: row.event.endDate.toISOString(),
-      slug: row.event.slug,
-      venue: row.event.venue?.name || 'Online',
-      city: row.event.city.name
-    },
-    qrData: buildTicketQrPayload({
-      ticketId: row.purchasedTicket.id,
-      ticketCode: row.purchasedTicket.ticketCode,
-      validationToken: row.purchasedTicket.validationToken
-    }),
-    inviteUrl: getSiteUrl(`/davetiye/${row.inviteToken}`)
+    event: primary.event,
+    qrData: primary.qrData,
+    inviteUrl: getSiteUrl(`/davetiye/${row.inviteToken}`),
+    tickets
   };
 }
 

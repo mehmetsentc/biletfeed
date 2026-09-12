@@ -54,8 +54,21 @@ export async function sendTicketPurchaseEmail(
           validationToken: true,
           status: true,
           attendeeName: true,
-          ticketType: { select: { name: true } }
-        }
+          ticketType: { select: { name: true } },
+          event: {
+            select: {
+              title: true,
+              coverImage: true,
+              startDate: true,
+              endDate: true,
+              isOnline: true,
+              onlineUrl: true,
+              venue: { select: { name: true, address: true } },
+              city: { select: { name: true } }
+            }
+          }
+        },
+        orderBy: { event: { startDate: 'asc' } }
       },
       event: {
         select: {
@@ -113,20 +126,41 @@ export async function sendTicketPurchaseEmail(
 
   const currency = event.currency ?? 'TRY';
   const eventDt = formatEventDateTime(event.startDate, event.endDate);
+  const uniqueDates = order.purchasedTickets
+    .map((ticket) => formatTurkeyDateLong(ticket.event.startDate))
+    .filter((value, index, all) => all.indexOf(value) === index);
+  const combinedDate = uniqueDates.length > 1 ? uniqueDates.join(' · ') : eventDt.date;
 
-  const qrPayload =
-    firstTicket &&
-    buildTicketQrPayload({
-      ticketCode: firstTicket.ticketCode,
-      validationToken: firstTicket.validationToken,
-      ticketId: firstTicket.id
-    });
-  const qrDataUrl = qrPayload ? await qrToDataUrl(qrPayload, 96) : '';
+  const ticketCards = await Promise.all(
+    order.purchasedTickets.map(async (ticket) => {
+      const venueNameForTicket = ticket.event.isOnline
+        ? 'Online Etkinlik'
+        : ticket.event.venue?.name ?? venueName;
+      const cityNameForTicket = ticket.event.city?.name ?? cityName;
+      const dt = formatEventDateTime(ticket.event.startDate, ticket.event.endDate);
+      const qrPayload = buildTicketQrPayload({
+        ticketCode: ticket.ticketCode,
+        validationToken: ticket.validationToken,
+        ticketId: ticket.id
+      });
+      return {
+        eventTitle: ticket.event.title,
+        eventDate: dt.date,
+        eventTime: dt.time,
+        eventVenue: venueNameForTicket,
+        eventCity: cityNameForTicket,
+        ticketTypeName: ticket.ticketType.name,
+        holderName: ticket.attendeeName?.trim() || order.user.displayName?.trim() || 'Misafir',
+        ticketCode: ticket.ticketCode,
+        qrDataUrl: await qrToDataUrl(qrPayload, 96)
+      };
+    })
+  );
 
   const html = buildTicketPurchaseEmail({
     customerName: order.user.displayName?.trim() ?? '',
     eventTitle: event.title,
-    eventDate: eventDt.date,
+    eventDate: combinedDate,
     eventTime: eventDt.time,
     eventVenue: venueName,
     eventCity: cityName,
@@ -140,19 +174,20 @@ export async function sendTicketPurchaseEmail(
       unitPrice: formatMoney(item.unitPrice * item.quantity, currency)
     })),
     ticketCodes: order.purchasedTickets.map((t) => t.ticketCode),
-    qrDataUrl,
+    qrDataUrl: ticketCards[0]?.qrDataUrl ?? '',
     ticketsUrl: getSiteUrl('/biletlerim'),
     eventUrl: getSiteUrl(`/etkinlik/${event.slug}`),
     pdfDownloadUrl,
     calendarUrl,
     rules: event.rules?.trim() || undefined,
-    hasPdfAttachment: pdfAttachments.length > 0
+    hasPdfAttachment: pdfAttachments.length > 0,
+    ticketCards
   });
 
   const plainParams = {
     customerName: order.user.displayName?.trim() ?? '',
     eventTitle: event.title,
-    eventDate: eventDt.date,
+    eventDate: combinedDate,
     eventTime: eventDt.time,
     eventVenue: venueName,
     eventCity: cityName,
@@ -161,12 +196,19 @@ export async function sendTicketPurchaseEmail(
     ticketCodes: order.purchasedTickets.map((t) => t.ticketCode),
     ticketsUrl: getSiteUrl('/biletlerim'),
     pdfDownloadUrl,
-    hasPdfAttachment: pdfAttachments.length > 0
+    hasPdfAttachment: pdfAttachments.length > 0,
+    ticketLines: ticketCards.map((card) => ({
+      date: card.eventDate,
+      code: card.ticketCode
+    }))
   };
 
   await queueEmail({
     to: order.user.email,
-    subject: `BiletFeed — ${event.title} biletiniz`,
+    subject:
+      order.purchasedTickets.length > 1
+        ? `BiletFeed — ${event.title} biletleriniz`
+        : `BiletFeed — ${event.title} biletiniz`,
     template: 'ticket_purchase',
     html,
     text: buildTicketPurchasePlainText(plainParams),

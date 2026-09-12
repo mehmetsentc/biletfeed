@@ -10,7 +10,7 @@ import {
   sendEventInvitationEmail,
   type InvitationRow
 } from '@/lib/services/event-invitations';
-import { generateOrganizerInvitationPdf } from '@/lib/services/invitation-pdf';
+import { generateOrganizerInvitationPdfs } from '@/lib/services/invitation-pdf';
 import {
   formatTurkeyDateLong,
   formatTurkeyTime
@@ -306,9 +306,10 @@ export async function buildInvitationsZip(
   const zip = new JSZip();
 
   for (const id of invitationIds) {
-    const pdf = await generateOrganizerInvitationPdf(id, organizerId);
-    if (!pdf) continue;
-    zip.file(pdf.filename, pdf.buffer);
+    const pdfs = await generateOrganizerInvitationPdfs(id, organizerId);
+    for (const pdf of pdfs) {
+      zip.file(pdf.filename, pdf.buffer);
+    }
   }
 
   return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });

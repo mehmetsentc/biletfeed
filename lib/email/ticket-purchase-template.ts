@@ -32,6 +32,17 @@ export interface TicketPurchaseEmailParams {
   calendarUrl?: string;
   rules?: string;
   hasPdfAttachment?: boolean;
+  ticketCards?: Array<{
+    eventTitle: string;
+    eventDate: string;
+    eventTime: string;
+    eventVenue: string;
+    eventCity: string;
+    ticketTypeName: string;
+    holderName: string;
+    ticketCode: string;
+    qrDataUrl: string;
+  }>;
 }
 
 /** Gmail 102KB kırpma limiti için hafif bilet özeti — gömülü logo / kurallar yok */
@@ -125,10 +136,14 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
     pdfDownloadUrl,
     calendarUrl,
     rules,
-    hasPdfAttachment
+    hasPdfAttachment,
+    ticketCards
   } = params;
 
-  const preheader = `${eventTitle} — ${eventDate} ${eventTime}. Biletiniz ve QR kodunuz hazır.`;
+  const preheader =
+    (ticketCards?.length ?? ticketCodes.length) > 1
+      ? `${eventTitle} — ${ticketCards?.length ?? ticketCodes.length} ayrı biletiniz ve QR kodlarınız hazır.`
+      : `${eventTitle} — ${eventDate} ${eventTime}. Biletiniz ve QR kodunuz hazır.`;
 
   const ticketRows = ticketLines
     .map(
@@ -147,23 +162,28 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
   const primaryCode = ticketCodes[0] ?? '';
   const primaryType = ticketLines[0]?.name ?? 'Bilet';
 
-  const receiptCard = primaryCode
-    ? buildCompactPurchaseTicketBlock({
-        eventTitle,
-        eventDate,
-        eventTime,
-        eventVenue,
-        eventCity,
-        ticketTypeName: primaryType,
-        holderName: customerName || 'Misafir',
-        ticketCode: primaryCode,
-        qrDataUrl
-      })
-    : '';
+  const receiptCards =
+    ticketCards && ticketCards.length > 0
+      ? ticketCards.map((card) => buildCompactPurchaseTicketBlock(card)).join('')
+      : primaryCode
+        ? buildCompactPurchaseTicketBlock({
+            eventTitle,
+            eventDate,
+            eventTime,
+            eventVenue,
+            eventCity,
+            ticketTypeName: primaryType,
+            holderName: customerName || 'Misafir',
+            ticketCode: primaryCode,
+            qrDataUrl
+          })
+        : '';
 
   const extraCodes =
-    ticketCodes.length > 1
-      ? `
+    ticketCards && ticketCards.length > 0
+      ? ''
+      : ticketCodes.length > 1
+        ? `
         <div style="margin:0 0 20px;padding:14px 16px;background:${EMAIL_BRAND.pageBg};border-radius:10px;text-align:center;">
           <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:${EMAIL_BRAND.textMuted};text-transform:uppercase;letter-spacing:0.5px;">
             Diğer bilet kodları
@@ -176,7 +196,7 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
             )
             .join('')}
         </div>`
-      : '';
+        : '';
 
   const coverBlock = coverImage
     ? `
@@ -203,7 +223,11 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
         </h1>
         <p style="margin:0 0 20px;font-size:15px;color:${EMAIL_BRAND.textSecondary};line-height:1.65;">
           <strong style="color:${EMAIL_BRAND.text};">${esc(eventTitle)}</strong> için ödemeniz alındı.
-          Dijital biletiniz aşağıdadır — girişte QR kodu göstermeniz yeterli.
+          ${
+            (ticketCards?.length ?? 0) > 1
+              ? 'Kombine biletiniz her gün için ayrı QR içerir — girişte o günün kodunu gösterin.'
+              : 'Dijital biletiniz aşağıdadır — girişte QR kodu göstermeniz yeterli.'
+          }
         </p>
 
         <table width="100%" cellpadding="0" cellspacing="0"
@@ -228,7 +252,7 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
     </tr>
     <tr>
       <td style="padding:0 20px 28px;">
-        ${receiptCard}
+        ${receiptCards}
         ${extraCodes}
 
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:12px;">
@@ -292,7 +316,13 @@ export function buildTicketPurchasePlainText(params: {
   ticketsUrl: string;
   pdfDownloadUrl?: string;
   hasPdfAttachment?: boolean;
+  ticketLines?: Array<{ date: string; code: string }>;
 }): string {
+  const codeLines =
+    params.ticketLines && params.ticketLines.length > 0
+      ? params.ticketLines.map((line) => `${line.date}: ${line.code}`)
+      : [`Bilet kodu: ${params.ticketCodes.join(', ')}`];
+
   return [
     params.customerName ? `Merhaba ${params.customerName},` : 'Merhaba,',
     '',
@@ -303,7 +333,7 @@ export function buildTicketPurchasePlainText(params: {
     `Mekan: ${params.eventVenue}, ${params.eventCity}`,
     `Sipariş: ${params.orderNumber}`,
     `Toplam: ${params.totalLabel}`,
-    `Bilet kodu: ${params.ticketCodes.join(', ')}`,
+    ...codeLines,
     '',
     params.hasPdfAttachment ? 'PDF biletiniz e-posta ekinde gönderilmiştir.' : '',
     params.pdfDownloadUrl ? `PDF indir: ${params.pdfDownloadUrl}` : '',

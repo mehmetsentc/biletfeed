@@ -10,6 +10,7 @@ import {
   type EntryTicketKind
 } from '@/lib/tickets/entry-display';
 import { shouldRejectQrToken } from '@/lib/tickets/qr-token-policy';
+import { pickComboTicketForGate } from '@/lib/tickets/combo-sessions';
 import type { UserRole } from '@/types';
 import type { EntryPolicy, TicketTypeEnum } from '@prisma/client';
 
@@ -159,28 +160,60 @@ export async function validateTicketInput(input: {
       select: {
         status: true,
         purchasedTicket: {
-          select: { id: true, ticketCode: true, validationToken: true, status: true }
+          select: {
+            id: true,
+            ticketCode: true,
+            validationToken: true,
+            status: true,
+            orderId: true,
+            eventId: true
+          }
         }
       }
     });
     if (!invitation?.purchasedTicket) {
       return { status: 'INVALID', message: 'Davetiye bulunamadı veya iptal edilmiş' };
     }
-    if (
-      invitation.purchasedTicket.status === 'CANCELLED' ||
-      invitation.purchasedTicket.status === 'REFUNDED'
-    ) {
+
+    const orderTickets = await prisma.purchasedTicket.findMany({
+      where: {
+        orderId: invitation.purchasedTicket.orderId,
+        deletedAt: null
+      },
+      select: {
+        id: true,
+        ticketCode: true,
+        validationToken: true,
+        status: true,
+        eventId: true
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+    const scopedEventId = input.gateEventId || input.eventId;
+    const chosen = pickComboTicketForGate(
+      orderTickets.length > 0 ? orderTickets : [invitation.purchasedTicket],
+      scopedEventId
+    );
+    if (!chosen) {
       return {
-        status: invitation.purchasedTicket.status,
+        status: 'INVALID',
+        message: scopedEventId
+          ? 'Bu davetiye seçili günün kapısı için geçerli değil'
+          : 'Davetiye bileti bulunamadı'
+      };
+    }
+    if (chosen.status === 'CANCELLED' || chosen.status === 'REFUNDED') {
+      return {
+        status: chosen.status,
         message:
-          invitation.purchasedTicket.status === 'REFUNDED'
+          chosen.status === 'REFUNDED'
             ? 'Bilet iade edilmiş'
             : 'Bilet iptal edilmiş'
       };
     }
-    ticketId = invitation.purchasedTicket.id;
-    ticketCode = invitation.purchasedTicket.ticketCode;
-    validationToken = invitation.purchasedTicket.validationToken;
+    ticketId = chosen.id;
+    ticketCode = chosen.ticketCode;
+    validationToken = chosen.validationToken;
   }
 
   if (!ticketCode && !ticketId) {
