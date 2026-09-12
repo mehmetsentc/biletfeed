@@ -50,3 +50,7 @@ next-env.d.ts
 public/ticket-preview/*.html
 public/ticket-preview/reference-iticket.png
 biletfeed-*.json
+
+.tmp/
+RECOVERY-CODES*.txt
+simulatör_görsel/
