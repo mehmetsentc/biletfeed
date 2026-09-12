@@ -3,7 +3,7 @@ import { logPaymentAudit } from '@/lib/payments/payment-audit';
 
 const AMOUNT_TOLERANCE = 0.01;
 
-/** Callback sonrası ödenen tutarın sipariş toplamıyla eşleşmesini doğrular */
+/** Callback sonrası ödenen tutarın sipariş (veya sepet grubu) toplamıyla eşleşmesini doğrular */
 export async function verifyOrderPaymentAmount(params: {
   orderId: string;
   amount?: number;
@@ -19,7 +19,7 @@ export async function verifyOrderPaymentAmount(params: {
   await ensureDbConnection();
   const order = await prisma.order.findFirst({
     where: { id: params.orderId, deletedAt: null },
-    select: { total: true }
+    select: { total: true, cartGroupId: true }
   });
 
   if (!order) {
@@ -37,11 +37,21 @@ export async function verifyOrderPaymentAmount(params: {
     return { ok: false, reason: 'Para birimi uyuşmazlığı' };
   }
 
-  if (Math.abs(params.amount - order.total) > AMOUNT_TOLERANCE) {
+  let expected = order.total;
+  if (order.cartGroupId) {
+    const siblings = await prisma.order.findMany({
+      where: { cartGroupId: order.cartGroupId, deletedAt: null },
+      select: { total: true }
+    });
+    expected =
+      Math.round(siblings.reduce((sum, s) => sum + s.total, 0) * 100) / 100;
+  }
+
+  if (Math.abs(params.amount - expected) > AMOUNT_TOLERANCE) {
     logPaymentAudit('callback_amount_mismatch', {
       orderId: params.orderId,
       provider: params.provider,
-      expected: order.total,
+      expected,
       received: params.amount
     });
     return { ok: false, reason: 'Tutar uyuşmazlığı' };

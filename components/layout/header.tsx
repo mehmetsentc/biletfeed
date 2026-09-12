@@ -11,6 +11,7 @@ import { ProfileDropdown } from '@/components/layout/profile-dropdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
+import { CartNavButton } from '@/components/cart/cart-nav-button';
 import { getMainNavLinks } from '@/lib/layout/navigation';
 import { useTranslations } from '@/components/providers';
 
@@ -106,6 +107,7 @@ export function Header() {
               <span className="truncate">{city.cityName}</span>
             </button>
           ) : null}
+          <CartNavButton />
           <ThemeToggle />
           {!loading &&
             (user ? (
@@ -187,6 +189,7 @@ export function Header() {
               <span className="truncate">{city.cityName}</span>
             </button>
           ) : null}
+          <CartNavButton />
           <ThemeToggle />
           {!loading &&
             (user ? (

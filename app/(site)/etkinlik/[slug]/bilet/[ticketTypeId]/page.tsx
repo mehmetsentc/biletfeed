@@ -47,7 +47,17 @@ export default async function TicketQuantityPage({ params }: Props) {
     <div className="bg-background pb-10">
       <PurchaseEventBar event={ctx.event} backHref={backHref} />
       <div className="container mx-auto max-w-lg px-4 py-6 md:py-8">
-        <QuantityStep eventSlug={slug} ticketType={ticketType} />
+        <QuantityStep
+          eventSlug={slug}
+          ticketType={ticketType}
+          event={{
+            id: ctx.event.id,
+            slug: ctx.event.slug,
+            title: ctx.event.title,
+            startDate: ctx.event.startDate,
+            coverImage: ctx.event.coverImage
+          }}
+        />
       </div>
     </div>
   );

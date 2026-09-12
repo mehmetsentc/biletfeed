@@ -2,23 +2,44 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Info, Minus, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Info, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PurchasePriceBreakdown } from '@/components/tickets/purchase/purchase-price-breakdown';
 import { useTranslations } from '@/components/providers';
+import { useCart } from '@/components/providers/cart-provider';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
-import { ticketTypeRemaining, splitTicketDisplay } from '@/lib/tickets/purchase-types';
+import {
+  ticketTypeRemaining,
+  splitTicketDisplay
+} from '@/lib/tickets/purchase-types';
 import { SalePriceLabel } from '@/components/tickets/purchase/sale-price-label';
+
+export type QuantityStepEventInfo = {
+  id: string;
+  slug: string;
+  title: string;
+  startDate: string;
+  coverImage?: string | null;
+};
 
 interface QuantityStepProps {
   eventSlug: string;
   ticketType: CheckoutTicketType;
+  event?: QuantityStepEventInfo;
 }
 
-export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
+export function QuantityStep({
+  eventSlug,
+  ticketType,
+  event
+}: QuantityStepProps) {
   const t = useTranslations();
+  const router = useRouter();
+  const cart = useCart();
   const maxQty = Math.min(10, ticketTypeRemaining(ticketType));
   const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
   const { title, description } = splitTicketDisplay(
     ticketType.name,
     ticketType.description
@@ -30,6 +51,28 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
 
   function increment() {
     setQuantity((q) => Math.min(maxQty, q + 1));
+  }
+
+  function addToCart() {
+    if (!event) {
+      router.push(
+        `/etkinlik/${eventSlug}/bilet/${ticketType.id}/odeme?adet=${quantity}`
+      );
+      return;
+    }
+    cart.addLine({
+      eventId: event.id,
+      eventSlug: event.slug,
+      eventTitle: event.title,
+      eventStartAt: event.startDate,
+      eventCoverImage: event.coverImage,
+      ticketTypeId: ticketType.id,
+      ticketTypeName: title,
+      unitPrice: ticketType.price,
+      quantity,
+      isBogo: ticketType.isBogo
+    });
+    setAdded(true);
   }
 
   return (
@@ -88,11 +131,11 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
           </Button>
         </div>
 
-        {maxQty < 10 && (
+        {maxQty < 10 ? (
           <p className="mt-4 text-center text-xs text-muted-foreground">
             {t.purchase.maxTickets(maxQty)}
           </p>
-        )}
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-5 text-card-foreground md:p-6">
@@ -119,17 +162,43 @@ export function QuantityStep({ eventSlug, ticketType }: QuantityStepProps) {
         </section>
       ) : null}
 
-      <Button
-        asChild
-        size="lg"
-        className="h-14 w-full rounded-xl text-base font-bold"
-      >
-        <Link
-          href={`/etkinlik/${eventSlug}/bilet/${ticketType.id}/odeme?adet=${quantity}`}
-        >
-          {t.purchase.checkout}
-        </Link>
-      </Button>
+      {added ? (
+        <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 text-center">
+          <p className="font-semibold text-foreground">Sepete eklendi</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <Button asChild variant="outline" className="h-12 flex-1 rounded-xl font-bold">
+              <Link href="/etkinlikler">Başka etkinlik ekle</Link>
+            </Button>
+            <Button asChild className="h-12 flex-1 rounded-xl font-bold">
+              <Link href="/sepet">Sepete git</Link>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            className="h-14 w-full rounded-xl text-base font-bold"
+            onClick={addToCart}
+          >
+            <ShoppingBag className="size-4" />
+            Sepete Ekle
+          </Button>
+          <Button
+            asChild
+            size="lg"
+            className="h-14 w-full rounded-xl text-base font-bold"
+          >
+            <Link
+              href={`/etkinlik/${eventSlug}/bilet/${ticketType.id}/odeme?adet=${quantity}`}
+            >
+              {t.purchase.checkout}
+            </Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

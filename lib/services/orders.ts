@@ -1,4 +1,5 @@
 import { after } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import {
   buildTicketQrPayload,
@@ -39,11 +40,11 @@ export interface CheckoutResult {
   provider: PaymentProviderName;
 }
 
-function pendingExpiresAt(): Date {
+export function pendingExpiresAt(): Date {
   return new Date(Date.now() + PENDING_ORDER_TTL_MINUTES * 60 * 1000);
 }
 
-async function resolveCheckoutUser(params: {
+export async function resolveCheckoutUser(params: {
   firebaseUid?: string;
   attendeeName: string;
   attendeeEmail: string;
@@ -60,7 +61,7 @@ async function resolveCheckoutUser(params: {
   return findOrCreateGuestUser(params.attendeeName, params.attendeeEmail);
 }
 
-type CheckoutLineItem = {
+export type CheckoutLineItem = {
   ticketTypeId: string;
   name: string;
   unitPrice: number;
@@ -107,7 +108,7 @@ async function loadEventForCheckout(eventSlug: string) {
   };
 }
 
-async function loadCheckoutContext(params: {
+export async function loadCheckoutContext(params: {
   userId: string;
   eventSlug: string;
   quantity: number;
@@ -595,7 +596,7 @@ export async function createCheckout(params: {
   };
 }
 
-async function fulfillFreeOrder(params: {
+export async function fulfillFreeOrder(params: {
   userId: string;
   eventId: string;
   organizerId: string;
@@ -789,6 +790,98 @@ async function issueTickets(
   }
 }
 
+
+async function fulfillCartGroupSiblingsInTx(
+  tx: Tx,
+  params: {
+    cartGroupId: string;
+    provider: PaymentProviderName;
+    providerPaymentId: string;
+    skipOrderId: string;
+  }
+): Promise<number> {
+  const siblings = await tx.order.findMany({
+    where: {
+      cartGroupId: params.cartGroupId,
+      id: { not: params.skipOrderId },
+      deletedAt: null
+    },
+    include: { items: true, purchasedTickets: true }
+  });
+
+  let extraTickets = 0;
+  for (const sibling of siblings) {
+    if (sibling.status === 'paid') {
+      extraTickets += sibling.purchasedTickets.length;
+      continue;
+    }
+    const recoverable =
+      sibling.status === 'pending' ||
+      (sibling.status === 'cancelled' && sibling.purchasedTickets.length === 0);
+    if (!recoverable) continue;
+
+    let ticketCount = sibling.purchasedTickets.length;
+    if (ticketCount === 0) {
+      const seatTxn = await tx.transaction.findFirst({
+        where: { orderId: sibling.id, deletedAt: null },
+        orderBy: { createdAt: 'asc' }
+      });
+      const allSeats =
+        seatTxn?.providerRef?.startsWith('seats:')
+          ? seatTxn.providerRef
+              .slice(6)
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+      let seatCursor = 0;
+      for (const item of sibling.items) {
+        const seatUnitIds =
+          allSeats.length > 0
+            ? allSeats.slice(seatCursor, seatCursor + item.quantity)
+            : undefined;
+        seatCursor += item.quantity;
+        await issueTickets(tx, {
+          orderId: sibling.id,
+          userId: sibling.userId,
+          eventId: sibling.eventId,
+          ticketTypeId: item.ticketTypeId,
+          quantity: item.quantity,
+          attendeeName: sibling.attendeeName,
+          attendeeEmail: sibling.attendeeEmail,
+          attendeePhone: sibling.attendeePhone,
+          seatUnitIds
+        });
+        ticketCount += item.quantity;
+      }
+    }
+
+    await tx.order.update({
+      where: { id: sibling.id },
+      data: {
+        status: 'paid',
+        paymentProvider: params.provider,
+        paymentId: params.providerPaymentId,
+        paidAt: new Date(),
+        expiresAt: null
+      }
+    });
+
+    await tx.transaction.updateMany({
+      where: { orderId: sibling.id, status: { in: ['pending', 'failed'] } },
+      data: {
+        status: 'completed',
+        provider: params.provider,
+        providerRef: params.providerPaymentId
+      }
+    });
+
+    extraTickets += ticketCount;
+  }
+
+  return extraTickets;
+}
+
 export async function fulfillPaidOrder(params: {
   orderId: string;
   provider: PaymentProviderName;
@@ -822,6 +915,14 @@ export async function fulfillPaidOrder(params: {
         include: { purchasedTickets: true }
       });
       if (byPayment) {
+        if (byPayment.cartGroupId) {
+          await fulfillCartGroupSiblingsInTx(tx, {
+            cartGroupId: byPayment.cartGroupId,
+            provider: params.provider,
+            providerPaymentId: params.providerPaymentId,
+            skipOrderId: byPayment.id
+          });
+        }
         return {
           orderId: byPayment.id,
           ticketCount: byPayment.purchasedTickets.length,
@@ -906,6 +1007,16 @@ export async function fulfillPaidOrder(params: {
       }
     });
 
+    if (order.cartGroupId) {
+      const siblingTickets = await fulfillCartGroupSiblingsInTx(tx, {
+        cartGroupId: order.cartGroupId,
+        provider: params.provider,
+        providerPaymentId: params.providerPaymentId,
+        skipOrderId: order.id
+      });
+      ticketCount += siblingTickets;
+    }
+
     return { orderId: order.id, ticketCount, alreadyFulfilled: false };
   }).then(async (result) => {
     if (!result.alreadyFulfilled) {
@@ -914,7 +1025,12 @@ export async function fulfillPaidOrder(params: {
       after(async () => {
         const order = await prisma.order.findUnique({
           where: { id: result.orderId },
-          select: { couponCode: true, userId: true, event: { select: { title: true } } }
+          select: {
+            couponCode: true,
+            userId: true,
+            cartGroupId: true,
+            event: { select: { title: true } }
+          }
         });
         if (order?.couponCode) {
           const coupon = await prisma.coupon.findFirst({
@@ -942,6 +1058,45 @@ export async function fulfillPaidOrder(params: {
           await sendTicketPurchaseEmail(result.orderId);
         } catch (err) {
           console.error('[email] paid order confirmation', result.orderId, err);
+        }
+
+        if (order?.cartGroupId) {
+          const siblings = await prisma.order.findMany({
+            where: {
+              cartGroupId: order.cartGroupId,
+              id: { not: result.orderId },
+              status: 'paid',
+              deletedAt: null
+            },
+            select: {
+              id: true,
+              userId: true,
+              event: { select: { title: true } }
+            }
+          });
+          for (const sibling of siblings) {
+            try {
+              await notifyTicketPurchase(
+                sibling.userId,
+                sibling.event.title,
+                sibling.id
+              ).catch(() => {});
+              const { processOrderAccounting } = await import(
+                '@/lib/accounting/fulfillment'
+              );
+              await processOrderAccounting(sibling.id);
+            } catch (err) {
+              console.error('[accounting] cart sibling', sibling.id, err);
+            }
+            try {
+              const { sendTicketPurchaseEmail } = await import(
+                '@/lib/email/send-ticket-purchase-email'
+              );
+              await sendTicketPurchaseEmail(sibling.id);
+            } catch (err) {
+              console.error('[email] cart sibling', sibling.id, err);
+            }
+          }
         }
       });
     }
@@ -972,8 +1127,17 @@ export async function failPendingOrder(params: {
     const order = await tx.order.findUnique({ where: { id: resolvedOrderId } });
     if (!order || order.status !== 'pending') return;
 
-    await tx.order.update({
-      where: { id: order.id },
+    const orderIds = order.cartGroupId
+      ? (
+          await tx.order.findMany({
+            where: { cartGroupId: order.cartGroupId, status: 'pending', deletedAt: null },
+            select: { id: true }
+          })
+        ).map((o) => o.id)
+      : [order.id];
+
+    await tx.order.updateMany({
+      where: { id: { in: orderIds } },
       data: {
         status: 'cancelled',
         paymentId: params.providerPaymentId || order.paymentId
@@ -981,7 +1145,7 @@ export async function failPendingOrder(params: {
     });
 
     await tx.transaction.updateMany({
-      where: { orderId: order.id, status: 'pending' },
+      where: { orderId: { in: orderIds }, status: 'pending' },
       data: { status: 'failed', providerRef: params.providerPaymentId }
     });
   });

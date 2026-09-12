@@ -18,6 +18,7 @@ export const hideBottomNavPrefixes = [
   '/giris',
   '/kayit',
   '/odeme',
+  '/sepet',
   '/organizator-panel',
   '/eventjoy',
   '/profil/ilgi-alanlari',
@@ -35,7 +36,8 @@ export const hideSiteFooterPrefixes = [
   '/degerlendirmelerim',
   '/destek',
   '/bildirimler',
-  '/odeme'
+  '/odeme',
+  '/sepet'
 ];
 
 export function shouldHideBottomNav(pathname: string): boolean {
