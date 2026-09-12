@@ -16,7 +16,10 @@ export type CheckoutTicketType = {
   currency: string;
   capacity: number;
   sold: number;
-  /** Tek satın alımda üretilecek QR / kişi sayısı */
+  /**
+   * Tek satın alımda üretilecek QR sayısı.
+   * Masa/loca paketlerinde kişi; kombine (çok gün) biletlerde gün/QR adedi.
+   */
   seatsPerUnit: number;
   showLowStockBadge: boolean;
   /** active | paused | sold_out — sold_out canlıda Tükendi */
@@ -66,6 +69,43 @@ export function ticketTypeRemaining(type: CheckoutTicketType): number {
   if (type.status !== 'active') return 0;
   if (type.price <= 0 && !type.allowsZeroPrice) return 0;
   return Math.max(0, type.capacity - type.sold);
+}
+
+/** Adında kombine/combo geçen paket bilet (çok gün, tek satın alım → birden fazla QR) */
+export function isComboTicketName(name: string): boolean {
+  // tr-TR: ASCII "I" → "ı"; eşleşme için ı→i normalize et
+  const normalized = name
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/ı/g, 'i');
+  return (
+    normalized.includes('kombine') ||
+    normalized.includes('combo') ||
+    normalized.includes('combined')
+  );
+}
+
+/**
+ * seatsPerUnit > 1 rozeti:
+ * - Kombine → "Kombine bilet" (kişi değil)
+ * - Masa/loca → "X kişi / QR"
+ */
+export function seatsPerUnitBadgeLabel(
+  name: string,
+  seatsPerUnit: number
+): string | null {
+  const seats = Math.max(1, seatsPerUnit || 1);
+  if (seats <= 1) return null;
+  if (isComboTicketName(name)) {
+    return seats === 2 ? 'Kombine bilet' : `Kombine · ${seats} QR`;
+  }
+  return `${seats} kişi / QR`;
+}
+
+/** Checkout özet satırı — kombine vs kişi paketi */
+export function seatsPerUnitSummaryLabel(name: string): string {
+  return isComboTicketName(name) ? 'Kombine QR' : 'QR / kişi';
 }
 
 /** Kategori / sepet fiyat satırı — satış dışı ile gerçek ücretsizi ayır */

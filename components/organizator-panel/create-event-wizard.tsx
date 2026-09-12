@@ -1330,7 +1330,7 @@ export function CreateOrganizerEventWizard({
                       </div>
                       <div>
                         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                          Kişi / QR sayısı
+                          QR sayısı (kişi / kombine)
                         </label>
                         <Input
                           type="number"
@@ -1344,7 +1344,7 @@ export function CreateOrganizerEventWizard({
                           className="h-11 rounded-lg"
                         />
                         <p className="mt-1 text-[10px] text-muted-foreground">
-                          1 satın alımda kaç QR üretilecek (ör. Bistro=4)
+                          1 satın alımda kaç QR (masa kişi veya kombine gün)
                         </p>
                       </div>
                       <div className="sm:col-span-2">

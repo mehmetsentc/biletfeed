@@ -10,7 +10,8 @@ import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import {
   ticketTypeAvailable,
   ticketTypeRemaining,
-  splitTicketDisplay
+  splitTicketDisplay,
+  seatsPerUnitBadgeLabel
 } from '@/lib/tickets/purchase-types';
 import { formatTry } from '@/lib/tickets/purchase-pricing';
 import { parseSeatUnitCode } from '@/lib/tickets/seat-packages';
@@ -152,6 +153,7 @@ export function VenueTablePicker({ eventSlug, ticketTypes, seatPlan }: Props) {
             const available = ticketTypeAvailable(type);
             const seats = Math.max(1, type.seatsPerUnit || 1);
             const { title } = splitTicketDisplay(type.name, type.description);
+            const seatsBadge = seatsPerUnitBadgeLabel(type.name, seats);
             return (
               <article
                 key={type.id}
@@ -163,9 +165,11 @@ export function VenueTablePicker({ eventSlug, ticketTypes, seatPlan }: Props) {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-bold">{title}</h3>
-                    <Badge variant="secondary" className="rounded-full text-[10px]">
-                      {seats} kişi / QR
-                    </Badge>
+                    {seatsBadge ? (
+                      <Badge variant="secondary" className="rounded-full text-[10px]">
+                        {seatsBadge}
+                      </Badge>
+                    ) : null}
                     {!available && <Badge variant="secondary">Tükendi</Badge>}
                   </div>
                 </div>
