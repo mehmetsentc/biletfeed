@@ -14,7 +14,11 @@ export async function findOrCreateGuestUser(name: string, email?: string) {
     where: { email: normalizedEmail }
   });
   if (existing) {
-    if (displayName && existing.displayName !== displayName) {
+    if (
+      existing.firebaseUid.startsWith('guest-') &&
+      displayName &&
+      existing.displayName !== displayName
+    ) {
       return prisma.user.update({
         where: { id: existing.id },
         data: { displayName }

@@ -13,7 +13,10 @@ import {
   buildInvitationEmail,
   buildInvitationPlainText
 } from '@/lib/email/invitation-template';
-import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
+import {
+  buildPublicTicketPageUrl,
+  buildTicketQrImageUrl
+} from '@/lib/tickets/qr-image-url';
 import { findOrCreateGuestUser } from '@/lib/services/guest-user';
 import {
   formatTurkeyDateLong,
@@ -261,13 +264,12 @@ export async function sendEventInvitationEmail(
     inviteUrl
   });
 
-  const ticketCards = await Promise.all(
-    tickets.map(async (ticket) => {
-      const qrPayload = buildTicketQrPayload({
+  const ticketCards = tickets.map((ticket) => {
+      const ids = {
         ticketId: ticket.id,
         ticketCode: ticket.ticketCode,
         validationToken: ticket.validationToken
-      });
+      };
       return {
         eventTitle: ticket.event.title,
         eventDate: formatTurkeyDateLong(ticket.event.startDate),
@@ -276,11 +278,11 @@ export async function sendEventInvitationEmail(
         eventCity: ticket.event.city.name,
         ticketTypeName: row.ticketType.name,
         ticketCode: ticket.ticketCode,
-        qrDataUrl: await qrToDataUrl(qrPayload),
+        qrDataUrl: buildTicketQrImageUrl(ids),
+        qrHref: buildPublicTicketPageUrl(ids),
         holderName: row.guestName
       };
-    })
-  );
+    });
 
   const pdfs = await generateOrganizerInvitationPdfs(invitationId, organizerId);
 
@@ -501,7 +503,7 @@ export async function createEventInvitation(params: {
             isComboSeries,
             extra
           ),
-          attendeeEmail: params.guestEmail?.trim() || null,
+          attendeeEmail: params.guestEmail?.trim().toLowerCase() || null,
           seatUnitId: resolvedSeatId
         }
       });

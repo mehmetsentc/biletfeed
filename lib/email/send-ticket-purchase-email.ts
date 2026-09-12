@@ -4,8 +4,10 @@ import { queueEmail } from '@/lib/accounting/email';
 import { buildGoogleCalendarUrl } from '@/lib/email/calendar';
 import { buildOrderTicketPdfAttachments } from '@/lib/email/build-order-ticket-pdf-attachments';
 import { buildTicketPurchaseEmail, buildTicketPurchasePlainText } from '@/lib/email/ticket-purchase-template';
-import { qrToDataUrl } from '@/lib/tickets/design/qr-data-url';
-import { buildTicketQrPayload } from '@/lib/tickets/sign';
+import {
+  buildPublicTicketPageUrl,
+  buildTicketQrImageUrl
+} from '@/lib/tickets/qr-image-url';
 import {
   formatTurkeyDateLong,
   formatTurkeyTimeRange
@@ -131,18 +133,17 @@ export async function sendTicketPurchaseEmail(
     .filter((value, index, all) => all.indexOf(value) === index);
   const combinedDate = uniqueDates.length > 1 ? uniqueDates.join(' · ') : eventDt.date;
 
-  const ticketCards = await Promise.all(
-    order.purchasedTickets.map(async (ticket) => {
+  const ticketCards = order.purchasedTickets.map((ticket) => {
       const venueNameForTicket = ticket.event.isOnline
         ? 'Online Etkinlik'
         : ticket.event.venue?.name ?? venueName;
       const cityNameForTicket = ticket.event.city?.name ?? cityName;
       const dt = formatEventDateTime(ticket.event.startDate, ticket.event.endDate);
-      const qrPayload = buildTicketQrPayload({
+      const ids = {
         ticketCode: ticket.ticketCode,
         validationToken: ticket.validationToken,
         ticketId: ticket.id
-      });
+      };
       return {
         eventTitle: ticket.event.title,
         eventDate: dt.date,
@@ -152,10 +153,10 @@ export async function sendTicketPurchaseEmail(
         ticketTypeName: ticket.ticketType.name,
         holderName: ticket.attendeeName?.trim() || order.user.displayName?.trim() || 'Misafir',
         ticketCode: ticket.ticketCode,
-        qrDataUrl: await qrToDataUrl(qrPayload, 96)
+        qrDataUrl: buildTicketQrImageUrl(ids),
+        qrHref: buildPublicTicketPageUrl(ids)
       };
-    })
-  );
+    });
 
   const html = buildTicketPurchaseEmail({
     customerName: order.user.displayName?.trim() ?? '',

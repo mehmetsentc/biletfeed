@@ -22,11 +22,13 @@ export const hideBottomNavPrefixes = [
   '/organizator-panel',
   '/eventjoy',
   '/profil/ilgi-alanlari',
-  '/etkinlik'
+  '/etkinlik',
+  '/davetiye',
+  '/bilet'
 ];
 
 /** Site header / chrome’un tamamen gizleneceği rotalar (odaklanmış akış) */
-export const hideSiteHeaderPrefixes = ['/odeme'];
+export const hideSiteHeaderPrefixes = ['/odeme', '/davetiye', '/bilet'];
 
 /** Footer ve bülten şeridinin gizleneceği hesap / profil rotaları */
 export const hideSiteFooterPrefixes = [
@@ -37,7 +39,9 @@ export const hideSiteFooterPrefixes = [
   '/destek',
   '/bildirimler',
   '/odeme',
-  '/sepet'
+  '/sepet',
+  '/davetiye',
+  '/bilet'
 ];
 
 export function shouldHideBottomNav(pathname: string): boolean {

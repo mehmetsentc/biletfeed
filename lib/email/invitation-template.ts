@@ -21,6 +21,7 @@ export type InvitationEmailTicketCard = {
   ticketTypeName: string;
   ticketCode: string;
   qrDataUrl: string;
+  qrHref?: string;
   holderName?: string;
 };
 
@@ -109,6 +110,7 @@ export function buildInvitationEmail(params: {
         holderName: card.holderName ?? guestName,
         ticketCode: card.ticketCode,
         qrDataUrl: card.qrDataUrl,
+        qrHref: card.qrHref,
         personalMessage: index === 0 ? personalMessage : undefined,
         categoryLabel,
         sectorGate

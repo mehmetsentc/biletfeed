@@ -42,6 +42,7 @@ export interface TicketPurchaseEmailParams {
     holderName: string;
     ticketCode: string;
     qrDataUrl: string;
+    qrHref?: string;
   }>;
 }
 
@@ -56,8 +57,16 @@ function buildCompactPurchaseTicketBlock(params: {
   holderName: string;
   ticketCode: string;
   qrDataUrl: string;
+  qrHref?: string;
 }): string {
   const location = [params.eventVenue, params.eventCity].filter(Boolean).join(', ');
+  const qrImage = params.qrHref
+    ? `<a href="${esc(params.qrHref)}" style="display:block;line-height:0;">
+         <img src="${esc(params.qrDataUrl)}" alt="QR kod" width="96" height="96"
+              style="display:block;border:1px solid ${EMAIL_BRAND.border};border-radius:8px;" />
+       </a>`
+    : `<img src="${esc(params.qrDataUrl)}" alt="QR kod" width="96" height="96"
+            style="display:block;border:1px solid ${EMAIL_BRAND.border};border-radius:8px;" />`;
 
   return `
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
@@ -95,8 +104,7 @@ function buildCompactPurchaseTicketBlock(params: {
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td width="108" style="vertical-align:top;">
-                <img src="${params.qrDataUrl}" alt="QR kod" width="96" height="96"
-                     style="display:block;border:1px solid ${EMAIL_BRAND.border};border-radius:8px;" />
+                ${qrImage}
               </td>
               <td style="padding-left:14px;vertical-align:middle;">
                 <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;color:${EMAIL_BRAND.textMuted};">

@@ -26,6 +26,7 @@ function mapTicket(t: {
   ticketType: { name: string; price: number };
   user: { displayName: string };
   invitation?: { id: string } | null;
+  order?: { paymentProvider: string };
 }): MockPurchasedTicket {
   return {
     id: t.id,
@@ -43,7 +44,8 @@ function mapTicket(t: {
     status: t.status as MockPurchasedTicket['status'],
     attendeeName: t.attendeeName ?? undefined,
     seatUnitId: t.seatUnitId ?? undefined,
-    isInvitation: !!t.invitation,
+    isInvitation:
+      !!t.invitation || t.order?.paymentProvider === 'invitation',
     qrData: buildTicketQrPayload({
       ticketId: t.id,
       ticketCode: t.ticketCode,
@@ -154,7 +156,8 @@ export async function getPurchasedTicketsByUser(
         event: { include: { city: true, venue: true } },
         ticketType: true,
         user: { select: { displayName: true } },
-        invitation: { select: { id: true } }
+        invitation: { select: { id: true } },
+        order: { select: { paymentProvider: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -177,14 +180,19 @@ export async function getTicketById(
     include: {
       event: { include: { city: true, venue: true } },
       ticketType: true,
-      user: { select: { firebaseUid: true, displayName: true } }
+      user: { select: { firebaseUid: true, displayName: true } },
+      invitation: { select: { id: true } },
+      order: { select: { paymentProvider: true } }
     }
   });
 
   if (!ticket) return undefined;
   if (firebaseUid && ticket.user.firebaseUid !== firebaseUid) return undefined;
 
-  return mapTicket({ ...ticket, user: { displayName: ticket.user.displayName } });
+  return mapTicket({
+    ...ticket,
+    user: { displayName: ticket.user.displayName }
+  });
 }
 
 export { incrementTicketDownload } from '@/lib/services/ticket-validation';
@@ -255,7 +263,8 @@ export async function getPublicTicketByCode(
       user: { select: { displayName: true } },
       invitation: {
         select: { inviteToken: true }
-      }
+      },
+      order: { select: { paymentProvider: true } }
     }
   });
 
@@ -267,7 +276,7 @@ export async function getPublicTicketByCode(
     holderName: ticket.attendeeName?.trim() || ticket.user.displayName,
     ticketTypeName: ticket.ticketType.name,
     status: ticket.status,
-    isInvitation: !!ticket.invitation,
+    isInvitation: !!ticket.invitation || ticket.order?.paymentProvider === 'invitation',
     inviteToken: ticket.invitation?.inviteToken ?? null,
     event: {
       title: ticket.event.title,

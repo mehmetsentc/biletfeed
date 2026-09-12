@@ -26,11 +26,6 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
   const ticket = await getPublicTicketByCode(ticketCode, validationToken, ticketId);
   if (!ticket) notFound();
 
-  if (ticket.isInvitation && ticket.inviteToken) {
-    const { redirect } = await import('next/navigation');
-    redirect(`/davetiye/${ticket.inviteToken}`);
-  }
-
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-bf-orange-500 via-bf-orange-400 to-bf-orange-600 px-4 py-8">
       <div
@@ -46,13 +41,19 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
 
       <div className="relative mx-auto max-w-lg">
         <div className="no-print mb-6 flex items-center justify-between">
-          <Link
-            href="/biletlerim"
-            className="inline-flex items-center gap-2 rounded-full bg-black/15 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/25"
-          >
-            <ArrowLeft className="size-4" />
-            Biletlerim
-          </Link>
+          {ticket.isInvitation ? (
+            <span className="inline-flex items-center gap-2 rounded-full bg-black/15 px-4 py-2 text-sm font-medium text-white/80 backdrop-blur-sm">
+              Davetiye
+            </span>
+          ) : (
+            <Link
+              href="/biletlerim"
+              className="inline-flex items-center gap-2 rounded-full bg-black/15 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/25"
+            >
+              <ArrowLeft className="size-4" />
+              Biletlerim
+            </Link>
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={brandAssetUrl(brandLogos.forDarkSurface)}
@@ -68,7 +69,7 @@ export default async function PublicTicketPage({ params, searchParams }: Props) 
         <TicketWebView
           surface="light"
           data={{
-            kind: 'ticket',
+            kind: ticket.isInvitation ? 'invitation' : 'ticket',
             brand: 'biletfeed',
             eventTitle: ticket.event.title,
             coverImageUrl: ticket.event.coverImage,

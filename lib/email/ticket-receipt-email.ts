@@ -1,7 +1,7 @@
 import { brandTheme } from '@/lib/config/brand-theme';
-import { ticketHeaderLogoSrc } from '@/lib/brand/embed-logo';
-import { platformContact } from '@/lib/config/contact';
 import { EMAIL_BRAND, emailEsc as esc } from '@/lib/email/email-shared';
+import { emailHeaderLogoSrc } from '@/lib/brand/embed-logo';
+import { platformContact } from '@/lib/config/contact';
 import { admissionRulesTr, ticketKindLabels } from '@/lib/tickets/design/ticket-receipt-shared';
 import {
   ticketCompanyAddressLine,
@@ -19,6 +19,7 @@ export type TicketReceiptEmailParams = {
   holderName: string;
   ticketCode: string;
   qrDataUrl: string;
+  qrHref?: string;
   orderNumber?: string;
   categoryLabel?: string;
   sectorGate?: string;
@@ -39,6 +40,7 @@ export function buildTicketReceiptEmailCard(params: TicketReceiptEmailParams): s
     holderName,
     ticketCode,
     qrDataUrl,
+    qrHref,
     orderNumber,
     categoryLabel,
     personalMessage,
@@ -47,7 +49,12 @@ export function buildTicketReceiptEmailCard(params: TicketReceiptEmailParams): s
 
   const labels = ticketKindLabels(kind);
   const isValid = status === 'VALID';
-  const logoSrc = ticketHeaderLogoSrc();
+  const logoSrc = emailHeaderLogoSrc();
+  const qrImage = qrHref
+    ? `<a href="${esc(qrHref)}" style="display:block;line-height:0;">
+         <img src="${esc(qrDataUrl)}" alt="QR kod" width="104" height="104" style="display:block;border:0;" />
+       </a>`
+    : `<img src="${esc(qrDataUrl)}" alt="QR kod" width="104" height="104" style="display:block;border:0;" />`;
   const location = [venue, city].filter(Boolean).join(', ');
   const rules = admissionRulesTr(kind).slice(0, 3);
 
@@ -75,7 +82,7 @@ export function buildTicketReceiptEmailCard(params: TicketReceiptEmailParams): s
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td>
-                <img src="${logoSrc}" alt="BiletFeed" width="120" height="32"
+                <img src="${esc(logoSrc)}" alt="BiletFeed" width="120" height="32"
                      style="display:block;height:28px;width:auto;border:0;" />
               </td>
               <td align="right" style="vertical-align:middle;">
@@ -142,7 +149,7 @@ export function buildTicketReceiptEmailCard(params: TicketReceiptEmailParams): s
             <tr>
               <td width="120" style="vertical-align:middle;">
                 <div style="padding:8px;border:1px solid ${EMAIL_BRAND.border};border-radius:10px;background:#fff;display:inline-block;">
-                  <img src="${qrDataUrl}" alt="QR kod" width="104" height="104" style="display:block;" />
+                  ${qrImage}
                 </div>
               </td>
               <td style="padding-left:16px;vertical-align:middle;">
