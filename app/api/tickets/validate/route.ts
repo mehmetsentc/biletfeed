@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { resolveScannerContext } from '@/lib/auth/organizer-api';
 import { validateTicketInput } from '@/lib/services/ticket-validation';
-import { rateLimitOrNull, checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { checkRateLimitAsync, getClientIp } from '@/lib/security/rate-limit';
 
 const postSchema = z.object({
   ticketCode: z.string().optional(),
@@ -28,11 +28,11 @@ async function resolveScannerAuth() {
 }
 
 /** Organizer-scoped limit for venue scanning; IP fallback before auth resolves. */
-function ticketValidateRateLimit(
+async function ticketValidateRateLimit(
   request: NextRequest,
   organizerId?: string,
   uid?: string
-): ReturnType<typeof rateLimitOrNull> {
+): Promise<NextResponse | null> {
   const ip = getClientIp(request);
   const scopeKey = organizerId
     ? `ticket-validate:org:${organizerId}`
@@ -40,7 +40,11 @@ function ticketValidateRateLimit(
       ? `ticket-validate:uid:${uid}`
       : `ticket-validate:ip:${ip}`;
 
-  const scoped = checkRateLimit(scopeKey, organizerId ? 1800 : 300, 60_000);
+  const scoped = await checkRateLimitAsync(
+    scopeKey,
+    organizerId ? 1800 : 300,
+    60_000
+  );
   if (!scoped.ok) {
     return NextResponse.json(
       { error: 'Çok fazla istek. Lütfen kısa süre sonra tekrar deneyin.' },
@@ -51,10 +55,6 @@ function ticketValidateRateLimit(
     );
   }
 
-  if (!organizerId) {
-    return rateLimitOrNull(request, 'ticket-validate', 300, 60_000);
-  }
-
   return null;
 }
 
@@ -62,12 +62,12 @@ function ticketValidateRateLimit(
 export async function GET(request: NextRequest) {
   const auth = await resolveScannerAuth();
   if (!auth) {
-    const limited = ticketValidateRateLimit(request);
+    const limited = await ticketValidateRateLimit(request);
     if (limited) return limited;
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
   }
 
-  const limited = ticketValidateRateLimit(
+  const limited = await ticketValidateRateLimit(
     request,
     auth.scannerOrganizerId,
     auth.session.uid
@@ -100,12 +100,12 @@ export async function POST(request: NextRequest) {
 
   const auth = await resolveScannerAuth();
   if (!auth) {
-    const limited = ticketValidateRateLimit(request);
+    const limited = await ticketValidateRateLimit(request);
     if (limited) return limited;
     return NextResponse.json({ error: 'Yetkisiz' }, { status: 401 });
   }
 
-  const limited = ticketValidateRateLimit(
+  const limited = await ticketValidateRateLimit(
     request,
     auth.scannerOrganizerId,
     auth.session.uid

@@ -1,5 +1,4 @@
 import { after } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import {
   buildTicketQrPayload,
@@ -28,9 +27,20 @@ import {
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
-import { extractSeatUnitId } from '@/lib/tickets/seat-label';
 import { effectiveTicketPrice, lineSubtotalForQuantity } from '@/lib/services/event-sale-discount';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
+import {
+  asSeatPlan,
+  assertSeatAvailableForEvent,
+  requiresSeatAssignment
+} from '@/lib/tickets/seat-inventory';
+import {
+  assertSeatFreeInTx,
+  createSeatHoldsForOrder,
+  parseSeatsProviderRef,
+  releaseSeatHoldsForOrders,
+  getSoldAndHeldSeatUnitIds
+} from '@/lib/tickets/seat-hold';
 
 export interface CheckoutResult {
   orderId: string;
@@ -76,6 +86,7 @@ async function loadEventForCheckout(eventSlug: string) {
     where: { slug: eventSlug, status: 'published', deletedAt: null },
     include: {
       organizer: true,
+      venue: { select: { seatPlan: true } },
       ticketTypes: {
         where: { status: 'active', deletedAt: null },
         orderBy: { price: 'asc' }
@@ -142,34 +153,37 @@ export async function loadCheckoutContext(params: {
         throw new Error('Aynı koltuk birden fazla seçilemez');
       }
 
-      // Satılmış koltukları tekrar satma (seatUnitId + attendeeName)
-      const takenTickets = await prisma.purchasedTicket.findMany({
-        where: {
-          eventId: event.id,
-          status: { in: ['VALID', 'USED'] },
-          deletedAt: null,
-          OR: [
-            { seatUnitId: { in: uniqueSeats } },
-            ...uniqueSeats.map((seat) => ({
-              attendeeName: { contains: seat }
-            }))
-          ]
-        },
-        select: { seatUnitId: true, attendeeName: true },
-        take: 200
-      });
-      const taken = new Set<string>();
-      for (const t of takenTickets) {
-        const id = extractSeatUnitId({
-          seatUnitId: t.seatUnitId,
-          attendeeName: t.attendeeName
-        });
-        if (id && uniqueSeats.includes(id)) taken.add(id);
+      const seatPlan = asSeatPlan(event.venue?.seatPlan);
+      if (requiresSeatAssignment(seatPlan) && uniqueSeats.length === 0) {
+        throw new Error('Bu etkinlik için koltuk seçmelisiniz');
       }
-      if (taken.size > 0) {
-        throw new Error(
-          `Bu koltuk(lar) satılmış: ${[...taken].join(', ')}. Lütfen başka koltuk seçin.`
+
+      const soldSeats = await getSoldAndHeldSeatUnitIds(event.id);
+      if (requiresSeatAssignment(seatPlan) && seatPlan) {
+        for (let i = 0; i < seatUnitIds.length; i++) {
+          const tt = event.ticketTypes.find((t) => t.id === multiIds[i]);
+          if (!tt) throw new Error('Seçilen koltuklardan biri bulunamadı');
+          await assertSeatAvailableForEvent({
+            eventId: event.id,
+            seatUnitId: seatUnitIds[i]!,
+            ticketType: {
+              id: tt.id,
+              name: tt.name,
+              description: tt.description
+            },
+            seatPlan,
+            soldSeatIds: soldSeats
+          });
+        }
+      } else {
+        const taken = uniqueSeats.filter((seat) =>
+          soldSeats.includes(seat.toUpperCase())
         );
+        if (taken.length > 0) {
+          throw new Error(
+            `Bu koltuk(lar) satılmış: ${taken.join(', ')}. Lütfen başka koltuk seçin.`
+          );
+        }
       }
 
       const grouped = new Map<
@@ -515,7 +529,7 @@ export async function createCheckout(params: {
       }
     }
 
-    return tx.order.create({
+    const created = await tx.order.create({
       data: {
         userId: user.id,
         eventId: event.id,
@@ -541,17 +555,26 @@ export async function createCheckout(params: {
       },
       include: { items: true }
     });
-  });
 
-  await prisma.transaction.create({
-    data: {
-      orderId: order.id,
-      organizerId: event.organizerId,
-      amount: subtotal,
-      status: 'pending',
-      provider: providerName,
-      providerRef: seatsRef
-    }
+    await tx.transaction.create({
+      data: {
+        orderId: created.id,
+        organizerId: event.organizerId,
+        amount: subtotal,
+        status: 'pending',
+        provider: providerName,
+        providerRef: seatsRef
+      }
+    });
+
+    await createSeatHoldsForOrder(tx, {
+      eventId: event.id,
+      orderId: created.id,
+      seatUnitIds: flatSeatIds,
+      expiresAt: created.expiresAt ?? pendingExpiresAt()
+    });
+
+    return created;
   });
 
   const payment = await startPaymentCheckout({
@@ -761,6 +784,13 @@ async function issueTickets(
     const ticketId = newTicketId();
     const seatFromList = seatIds[i] ?? seatIds[Math.floor(i / seatsPerUnit)];
     const seatUnitId = seatFromList ?? seatUnitIdFromName;
+    if (seatUnitId) {
+      await assertSeatFreeInTx(tx, {
+        eventId: params.eventId,
+        seatUnitId,
+        orderId: params.orderId
+      });
+    }
     const seatLabel =
       seatsPerUnit > 1 && !seatUnitId
         ? ` (${i + 1}/${qrCount})`
@@ -826,14 +856,7 @@ async function fulfillCartGroupSiblingsInTx(
         where: { orderId: sibling.id, deletedAt: null },
         orderBy: { createdAt: 'asc' }
       });
-      const allSeats =
-        seatTxn?.providerRef?.startsWith('seats:')
-          ? seatTxn.providerRef
-              .slice(6)
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : [];
+      const allSeats = parseSeatsProviderRef(seatTxn?.providerRef);
       let seatCursor = 0;
       for (const item of sibling.items) {
         const seatUnitIds =
@@ -877,6 +900,7 @@ async function fulfillCartGroupSiblingsInTx(
     });
 
     extraTickets += ticketCount;
+    await releaseSeatHoldsForOrders(tx, [sibling.id]);
   }
 
   return extraTickets;
@@ -895,12 +919,17 @@ export async function fulfillPaidOrder(params: {
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let resolvedOrderId = params.orderId;
     if (!UUID_RE.test(params.orderId) && params.orderId.length <= 32) {
-      const rows = await tx.$queryRawUnsafe<Array<{ id: string }>>(
-        `SELECT id FROM orders WHERE REPLACE(id::text, '-', '') ILIKE $1 AND deleted_at IS NULL LIMIT 1`,
-        params.orderId.toLowerCase() + '%'
-      );
-      if ((rows as Array<{ id: string }>)[0]?.id) {
-        resolvedOrderId = (rows as Array<{ id: string }>)[0].id;
+      const prefix = params.orderId.toLowerCase().replace(/[^0-9a-f]/g, '').slice(0, 32);
+      if (prefix) {
+        const rows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT id FROM orders
+          WHERE REPLACE(id::text, '-', '') ILIKE ${prefix + '%'}
+            AND deleted_at IS NULL
+          LIMIT 1
+        `;
+        if (rows[0]?.id) {
+          resolvedOrderId = rows[0].id;
+        }
       }
     }
 
@@ -959,10 +988,7 @@ export async function fulfillPaidOrder(params: {
         where: { orderId: order.id, deletedAt: null },
         orderBy: { createdAt: 'asc' }
       });
-      const allSeats =
-        seatTxn?.providerRef?.startsWith('seats:')
-          ? seatTxn.providerRef.slice(6).split(',').map((s) => s.trim()).filter(Boolean)
-          : [];
+      const allSeats = parseSeatsProviderRef(seatTxn?.providerRef);
       let seatCursor = 0;
 
       for (const item of order.items) {
@@ -1016,6 +1042,8 @@ export async function fulfillPaidOrder(params: {
       });
       ticketCount += siblingTickets;
     }
+
+    await releaseSeatHoldsForOrders(tx, [order.id]);
 
     return { orderId: order.id, ticketCount, alreadyFulfilled: false };
   }).then(async (result) => {
@@ -1115,12 +1143,17 @@ export async function failPendingOrder(params: {
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let resolvedOrderId = params.orderId;
     if (!UUID_RE.test(params.orderId) && params.orderId.length <= 32) {
-      const rows = await tx.$queryRawUnsafe<Array<{ id: string }>>(
-        `SELECT id FROM orders WHERE REPLACE(id::text, '-', '') ILIKE $1 AND deleted_at IS NULL LIMIT 1`,
-        params.orderId.toLowerCase() + '%'
-      );
-      if ((rows as Array<{ id: string }>)[0]?.id) {
-        resolvedOrderId = (rows as Array<{ id: string }>)[0].id;
+      const prefix = params.orderId.toLowerCase().replace(/[^0-9a-f]/g, '').slice(0, 32);
+      if (prefix) {
+        const rows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT id FROM orders
+          WHERE REPLACE(id::text, '-', '') ILIKE ${prefix + '%'}
+            AND deleted_at IS NULL
+          LIMIT 1
+        `;
+        if (rows[0]?.id) {
+          resolvedOrderId = rows[0].id;
+        }
       }
     }
 
@@ -1148,6 +1181,8 @@ export async function failPendingOrder(params: {
       where: { orderId: { in: orderIds }, status: 'pending' },
       data: { status: 'failed', providerRef: params.providerPaymentId }
     });
+
+    await releaseSeatHoldsForOrders(tx, orderIds);
   });
 }
 
@@ -1238,13 +1273,18 @@ export async function expireStalePendingOrders(): Promise<number> {
   await ensureDbConnection();
   const now = new Date();
 
+  await prisma.seatHold.deleteMany({
+    where: { expiresAt: { lt: now } }
+  });
+
   const stale = await prisma.order.findMany({
     where: {
       status: 'pending',
       expiresAt: { lt: now },
       deletedAt: null
     },
-    select: { id: true, paymentProvider: true }
+    select: { id: true, paymentProvider: true },
+    take: 100
   });
 
   for (const order of stale) {

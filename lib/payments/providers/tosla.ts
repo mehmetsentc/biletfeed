@@ -134,7 +134,9 @@ export const toslaPaymentProvider: PaymentProvider = {
     });
 
     const responseText = await res.text();
-    console.log('[tosla] threeDPayment status:', res.status, 'body:', responseText.slice(0, 300));
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[tosla] threeDPayment status:', res.status, 'body:', responseText.slice(0, 300));
+    }
 
     if (!res.ok) {
       throw new Error(`Tosla API hatası: HTTP ${res.status} — ${responseText.slice(0, 200)}`);

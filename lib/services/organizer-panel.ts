@@ -116,7 +116,10 @@ export async function updateOrganizerVenue(
     where: {
       id: venueId,
       deletedAt: null,
-      OR: [{ organizerId }, { events: { some: { organizerId, deletedAt: null } } }]
+      OR: [
+        { organizerId },
+        { organizerId: null, events: { some: { organizerId, deletedAt: null } } }
+      ]
     }
   });
   if (!venue) throw new Error('Mekan bulunamadı');

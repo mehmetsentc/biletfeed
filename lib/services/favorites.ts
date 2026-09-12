@@ -1,4 +1,4 @@
-import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
 import type { MockEvent } from '@/lib/data/mock-events';
 import { eventInclude, toMockEvent } from '@/lib/mappers/event';
 
@@ -16,6 +16,7 @@ export {
 
 async function resolveUserId(firebaseUid: string): Promise<string | null> {
   if (!isDatabaseConfigured()) return null;
+  await ensureDbConnection();
   const user = await prisma.user.findFirst({
     where: { firebaseUid, deletedAt: null },
     select: { id: true }
@@ -33,17 +34,13 @@ export async function getFavoriteEventsByFirebaseUid(
     if (!userId) return [];
 
     const favorites = await prisma.favorite.findMany({
-      where: { userId },
+      where: { userId, event: { deletedAt: null, status: 'published' } },
       include: { event: { include: eventInclude } },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: 100
     });
 
-    return favorites
-      .filter(
-        (favorite) =>
-          favorite.event.deletedAt === null && favorite.event.status === 'published'
-      )
-      .map((favorite) => toMockEvent(favorite.event));
+    return favorites.map((favorite) => toMockEvent(favorite.event));
   } catch {
     return [];
   }

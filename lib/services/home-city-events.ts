@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { getCityNameOrDefault, isSupportedCitySlug } from '@/lib/location/cities';
 import type { MockEvent } from '@/lib/data/mock-events';
 import {
@@ -112,4 +113,15 @@ export async function getHomeCityEventsBundle(
     bestSellers: buildBestSellers(upcomingCity, trendingInCity),
     categorySections: buildCategorySections(upcomingCity, categories)
   };
+}
+
+export function getCachedHomeCityEventsBundle(
+  citySlugInput: string
+): Promise<HomeCityEventsBundle> {
+  const citySlug = resolveHomeCitySlug(citySlugInput);
+  return unstable_cache(
+    () => getHomeCityEventsBundle(citySlug),
+    ['home-city-events-v1', citySlug],
+    { revalidate: 60 }
+  )();
 }

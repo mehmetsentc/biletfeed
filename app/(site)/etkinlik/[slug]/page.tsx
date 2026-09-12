@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getAllEvents, getEventBySlugForViewer } from '@/lib/services/events';
+import { getRelatedEvents, getEventBySlugForViewer } from '@/lib/services/events';
 import { EventifyCard } from '@/components/events/eventify-card';
 import { getOrganizerBySlug } from '@/lib/services/organizers';
 import { verifySessionCookie } from '@/lib/auth/session';
@@ -75,10 +75,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const isFollowingOrganizer =
     organizer != null && followedOrganizerIds.has(organizer.id);
   const isFavorite = favoriteEventIds.has(event.id);
-  const allEvents = await getAllEvents();
-  const related = allEvents
-    .filter((e) => e.categorySlug === event.categorySlug && e.id !== event.id)
-    .slice(0, 3);
+  const related = await getRelatedEvents(event.categorySlug, event.id, 3);
 
   const isOnline = event.isOnline || event.citySlug === 'online';
   const eventUrl = `${siteConfig.url}/etkinlik/${event.slug}`;

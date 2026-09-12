@@ -60,7 +60,6 @@ function collectExpectedOrigins(host: string): Set<string> {
  * ionic://localhost veya https://localhost gönderir.
  */
 function isNativeShellOrigin(origin: string): boolean {
-  if (origin === 'null') return true;
   try {
     const url = new URL(origin);
     if (url.protocol === 'capacitor:' || url.protocol === 'ionic:') return true;
@@ -94,10 +93,10 @@ function isTrustedPlatformHost(host: string): boolean {
  * Tarayıcı kaynaklı POST/PATCH/DELETE için CSRF koruması.
  * Origin veya Referer zorunlu; ikisi de yoksa istek reddedilir.
  *
- * İstisna: modern tarayıcılar/WKWebView'lar `Sec-Fetch-Site` header'ını
- * (Fetch Metadata) gönderir — Origin eksikse buna güvenmek güvenlidir.
- * Capacitor native shell Origin'leri beklenen listede olmadığı için
- * hemen reddedilmez; Referer / Sec-Fetch-Site / güvenilir Host ile doğrulanır.
+ * İstisna: modern tarayıcılar `Sec-Fetch-Site: same-origin|same-site` gönderir.
+ * Capacitor native shell Origin'leri (capacitor:// / ionic://) beklenen listede
+ * olmadığı için güvenilir Host ile birlikte kabul edilir.
+ * `Origin: null` ve `Sec-Fetch-Site: none` tek başına yeterli değildir.
  */
 export function isSameOriginRequest(request: NextRequest): boolean {
   const host = request.headers.get('host');
@@ -124,12 +123,12 @@ export function isSameOriginRequest(request: NextRequest): boolean {
   }
 
   const secFetchSite = request.headers.get('sec-fetch-site');
-  if (secFetchSite === 'same-origin' || secFetchSite === 'none') {
+  if (secFetchSite === 'same-origin' || secFetchSite === 'same-site') {
     return true;
   }
 
-  // Origin yok veya native shell + Host bizim platformumuz
-  if ((!origin || isNativeShellOrigin(origin)) && isTrustedPlatformHost(host)) {
+  // Capacitor/Ionic: Origin capacitor://localhost + Host bizim domain
+  if (origin && isNativeShellOrigin(origin) && isTrustedPlatformHost(host)) {
     return true;
   }
 

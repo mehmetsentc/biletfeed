@@ -86,7 +86,7 @@ export function parseQrPayload(raw: string): {
       const urlStr = trimmed.startsWith('http')
         ? trimmed
         : trimmed.startsWith('/')
-          ? `https://biletfeed.com${trimmed}`
+          ? getSiteUrl(trimmed)
           : `https://${trimmed}`;
       const url = new URL(urlStr);
       const pathMatch = url.pathname.match(/\/bilet\/([^/?#]+)/i);

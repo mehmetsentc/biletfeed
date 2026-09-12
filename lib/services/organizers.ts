@@ -1,4 +1,4 @@
-import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
 import {
   mockOrganizers,
   type MockOrganizer,
@@ -33,6 +33,7 @@ function toMockOrganizer(row: {
 
 export async function getAllOrganizers(): Promise<MockOrganizer[]> {
   if (!isDatabaseConfigured()) return mockOrganizers;
+  await ensureDbConnection();
   const rows = await prisma.organizer.findMany({
     where: { deletedAt: null, status: 'approved' },
     include: { _count: { select: { events: true } } },
@@ -45,6 +46,7 @@ export async function getOrganizerBySlug(
   slug: string
 ): Promise<MockOrganizer | undefined> {
   if (!isDatabaseConfigured()) return getMockOrganizerBySlug(slug);
+  await ensureDbConnection();
   const row = await prisma.organizer.findFirst({
     where: { slug, deletedAt: null },
     include: { _count: { select: { events: true } } }

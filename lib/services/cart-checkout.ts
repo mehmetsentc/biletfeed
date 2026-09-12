@@ -19,6 +19,7 @@ import {
   type CheckoutLineItem,
   type CheckoutResult
 } from '@/lib/services/orders';
+import { createSeatHoldsForOrder } from '@/lib/tickets/seat-hold';
 
 export type CartCheckoutItemInput = {
   eventSlug: string;
@@ -244,6 +245,13 @@ export async function createCartCheckout(params: {
           provider: providerName,
           providerRef: p.seatsRef
         }
+      });
+
+      await createSeatHoldsForOrder(tx, {
+        eventId: p.event.id,
+        orderId: order.id,
+        seatUnitIds: p.lines.flatMap((l) => l.seatUnitIds ?? []),
+        expiresAt: order.expiresAt ?? pendingExpiresAt()
       });
 
       orders.push({

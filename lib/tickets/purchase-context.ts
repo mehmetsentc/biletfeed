@@ -4,31 +4,13 @@ import { isExternalListing } from '@/lib/events/ticket-url';
 import type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 import type { SeatPlan } from '@/lib/services/organizer-panel';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
-import { extractSeatUnitId } from '@/lib/tickets/seat-label';
+import { getSoldAndHeldSeatUnitIds } from '@/lib/tickets/seat-hold';
 
 export type { CheckoutTicketType } from '@/lib/tickets/purchase-types';
 
-/** VALID/USED biletlerden satılmış koltuk id listesi */
+/** VALID/USED biletler + süresi dolmamış checkout kilitleri */
 export async function getSoldSeatUnitIds(eventId: string): Promise<string[]> {
-  await ensureDbConnection();
-  const tickets = await prisma.purchasedTicket.findMany({
-    where: {
-      eventId,
-      status: { in: ['VALID', 'USED'] },
-      deletedAt: null
-    },
-    select: { attendeeName: true, seatUnitId: true },
-    take: 20000
-  });
-  const ids = new Set<string>();
-  for (const t of tickets) {
-    const id = extractSeatUnitId({
-      seatUnitId: t.seatUnitId,
-      attendeeName: t.attendeeName
-    });
-    if (id) ids.add(id);
-  }
-  return [...ids];
+  return getSoldAndHeldSeatUnitIds(eventId);
 }
 
 export async function getTicketPurchaseContext(eventSlug: string) {

@@ -60,6 +60,48 @@ export function rateLimitOrNull(
   );
 }
 
+/** Upstash Redis varsa dağıtık sayaç; yoksa bellek içi fallback. */
+export async function checkRateLimitAsync(
+  key: string,
+  limit: number,
+  windowMs: number
+): Promise<{ ok: true } | { ok: false; retryAfterSec: number }> {
+  const redis = getRedisClient();
+  const windowSec = Math.max(1, Math.ceil(windowMs / 1000));
+
+  if (redis) {
+    try {
+      const redisKey = `rl:${key}`;
+      const count = await redis.incr(redisKey);
+      if (count === 1) {
+        await redis.expire(redisKey, windowSec);
+      }
+      if (count > limit) {
+        const ttl = await redis.ttl(redisKey);
+        return {
+          ok: false,
+          retryAfterSec: Math.max(1, ttl > 0 ? ttl : windowSec)
+        };
+      }
+      return { ok: true };
+    } catch {
+      // Redis hatasında bellek içi fallback
+    }
+  }
+
+  return checkRateLimit(key, limit, windowMs);
+}
+
+function tooManyRequests(retryAfterSec: number): NextResponse {
+  return NextResponse.json(
+    { error: 'Çok fazla istek. Lütfen kısa süre sonra tekrar deneyin.' },
+    {
+      status: 429,
+      headers: { 'Retry-After': String(retryAfterSec) }
+    }
+  );
+}
+
 /** Upstash Redis varsa dağıtık rate limit; yoksa bellek içi fallback. */
 export async function rateLimitOrNullAsync(
   request: NextRequest,
@@ -80,13 +122,7 @@ export async function rateLimitOrNullAsync(
       }
       if (count > limit) {
         const ttl = await redis.ttl(key);
-        return NextResponse.json(
-          { error: 'Çok fazla istek. Lütfen kısa süre sonra tekrar deneyin.' },
-          {
-            status: 429,
-            headers: { 'Retry-After': String(Math.max(1, ttl)) }
-          }
-        );
+        return tooManyRequests(Math.max(1, ttl > 0 ? ttl : windowSec));
       }
       return null;
     } catch {

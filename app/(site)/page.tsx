@@ -9,7 +9,7 @@ import { HomeMobileEventRails } from '@/components/home/home-mobile-event-rails'
 import { CreateEventBanner } from '@/components/layout/create-event-banner';
 import { Button } from '@/components/ui/button';
 import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
-import { getHomeCityEventsBundle } from '@/lib/services/home-city-events';
+import { getCachedHomeCityEventsBundle } from '@/lib/services/home-city-events';
 import { getHomeHeroSlides } from '@/lib/services/home-hero-slides';
 import { getOnlineEvents, getCategories } from '@/lib/services/events';
 import { getServerTranslations } from '@/lib/i18n/server';
@@ -29,13 +29,13 @@ export const metadata = createPageMetadata({
   ]
 });
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export default async function HomePage() {
   const { t } = await getServerTranslations();
   const citySlug = await getPreferredCitySlug();
   const [cityBundle, online, heroSlides, categories] = await Promise.all([
-    getHomeCityEventsBundle(citySlug),
+    getCachedHomeCityEventsBundle(citySlug),
     getOnlineEvents(),
     getHomeHeroSlides(citySlug),
     getCategories()

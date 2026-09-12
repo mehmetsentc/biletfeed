@@ -1,4 +1,4 @@
-import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
 
 export const SUPPORT_SUBJECTS = {
   refund: {
@@ -14,6 +14,7 @@ export const SUPPORT_SUBJECTS = {
 export type SupportCategory = keyof typeof SUPPORT_SUBJECTS;
 
 async function resolveUserId(firebaseUid: string): Promise<string | null> {
+  await ensureDbConnection();
   const user = await prisma.user.findUnique({
     where: { firebaseUid },
     select: { id: true }

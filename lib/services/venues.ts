@@ -1,4 +1,4 @@
-import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
 import {
   mockVenues,
   getVenueBySlug as getMockVenueBySlug,
@@ -36,6 +36,7 @@ function toMockVenue(row: {
 
 export async function getAllVenues(): Promise<MockVenue[]> {
   if (!isDatabaseConfigured()) return mockVenues;
+  await ensureDbConnection();
   const rows = await prisma.venue.findMany({
     where: { deletedAt: null },
     include: { city: true },
@@ -48,6 +49,7 @@ export async function getVenueBySlug(
   slug: string
 ): Promise<MockVenue | undefined> {
   if (!isDatabaseConfigured()) return getMockVenueBySlug(slug);
+  await ensureDbConnection();
   const row = await prisma.venue.findFirst({
     where: { slug, deletedAt: null },
     include: { city: true }
