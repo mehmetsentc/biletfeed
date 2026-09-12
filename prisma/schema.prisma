@@ -619,6 +619,8 @@ model Order {
   paymentProvider String      @map("payment_provider")
   paymentId       String?     @map("payment_id")
   paymentSessionId String?    @map("payment_session_id")
+  /** Aynı ödeme ile tahsil edilen çoklu etkinlik siparişlerini bağlar */
+  cartGroupId     String?     @map("cart_group_id") @db.Uuid
   expiresAt       DateTime?   @map("expires_at")
   paidAt          DateTime?   @map("paid_at")
   couponCode      String?     @map("coupon_code")
@@ -647,6 +649,7 @@ model Order {
   @@index([eventId])
   @@index([status])
   @@index([deletedAt])
+  @@index([cartGroupId])
   @@map("orders")
 }
 

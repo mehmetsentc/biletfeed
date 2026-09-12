@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { ArrowLeft, LayoutDashboard, LogOut, MapPin, Plus, Search, Menu, X } from 'lucide-react';
+import { CartNavButton } from '@/components/cart/cart-nav-button';
 import { Logo } from '@/components/brand/logo';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTranslations } from '@/components/providers';
@@ -88,17 +89,20 @@ export function MobileHeader({ categories }: MobileHeaderProps) {
           <Logo variant="auto" className="pointer-events-auto" />
 
           {!readingMode && (
+            <div className="absolute right-3 flex items-center gap-0.5">
+              <CartNavButton className="size-9" />
             <button
               type="button"
               onClick={() => {
                 const input = document.getElementById('mobile-search-input');
                 input?.focus();
               }}
-              className="absolute right-3 flex size-9 items-center justify-center text-[var(--header-fg)]"
+              className="flex size-9 items-center justify-center text-[var(--header-fg)]"
               aria-label={t.common.search}
             >
               <Search className="size-5" />
             </button>
+            </div>
           )}
         </div>
 

@@ -7,6 +7,7 @@ import { ThemeProvider } from './theme-provider';
 import { LocaleProvider } from './locale-provider';
 import { AuthSessionSync } from '@/components/auth/auth-session-sync';
 import { NotificationPrefsSync } from '@/components/notifications/notification-prefs-sync';
+import { CartProvider } from '@/components/providers/cart-provider';
 import type { AppLocale } from '@/lib/i18n/locale';
 
 export function Providers({
@@ -22,8 +23,10 @@ export function Providers({
         <AuthProvider>
           <AuthSessionSync />
           <CookieConsentProvider>
-            <NotificationPrefsSync />
-            {children}
+            <CartProvider>
+              <NotificationPrefsSync />
+              {children}
+            </CartProvider>
           </CookieConsentProvider>
         </AuthProvider>
       </LocaleProvider>

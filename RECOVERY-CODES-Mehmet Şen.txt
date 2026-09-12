@@ -1,0 +1,30 @@
+Zoho - YEDEKLEME DOĞRULAMA KODLARI
+
+
+Dikkate alınacak hususlar
+-------------------------
+# Her kod yalnızca bir kez kullanılabilir.
+# Bu kodları kimseyle paylaşmayın.
+# Kodlarınızın tamamını kullandıysanız veya kaybettiyseniz, her zaman yeni bir kod dizisi oluşturabilirsiniz.
+# Yeni bir kod dizisi oluşturduğunuzda, kullanılmayan eski kodlar geçersiz hale gelir.
+
+
+Oluşturulan kodlar
+------------------
+Kullanıcı adı: admin@biletfeed.com
+Generated from: Europe DC - (https://accounts.zoho.eu)
+Oluşturma tarihi:: Eyl 9, 2026 16:53 (GMT +03:00)
+
+
+ 1. 7sq1 mzsg gd1n
+ 2. 9jxo 073k 0qe7
+ 3. vppg 4zn3 ynhm
+ 4. kzcm om52 vinz
+ 5. lnek 9zeo pvtp
+
+
+Yardım makalesi bağlantıları
+----------------------------
+
+# Bu kodları kullanarak hesabınızı kurtarma: https://zurl.to/mfa_banner_bvc_rec
+# Yeni kodlar oluşturma: https://zurl.to/mfa_banner_bvc_gen
