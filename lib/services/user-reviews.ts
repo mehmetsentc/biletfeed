@@ -1,4 +1,4 @@
-import { prisma, isDatabaseConfigured } from '@/lib/db/prisma';
+import { prisma, isDatabaseConfigured, ensureDbConnection } from '@/lib/db/prisma';
 import { mockPurchasedTickets } from '@/lib/data/mock-user';
 
 export type PendingReviewEvent = {
@@ -28,6 +28,7 @@ export type UserReviewItem = {
 };
 
 async function resolveUserId(firebaseUid: string): Promise<string | null> {
+  await ensureDbConnection();
   const user = await prisma.user.findUnique({
     where: { firebaseUid },
     select: { id: true }

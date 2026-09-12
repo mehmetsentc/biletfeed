@@ -9,6 +9,7 @@ import {
   type EntryCategory,
   type EntryTicketKind
 } from '@/lib/tickets/entry-display';
+import { shouldRejectQrToken } from '@/lib/tickets/qr-token-policy';
 import type { UserRole } from '@/types';
 import type { EntryPolicy, TicketTypeEnum } from '@prisma/client';
 
@@ -150,18 +151,36 @@ export async function validateTicketInput(input: {
 
   if (!ticketCode && !ticketId && parsed.inviteToken) {
     const invitation = await prisma.eventInvitation.findFirst({
-      where: { inviteToken: parsed.inviteToken, deletedAt: null },
+      where: {
+        inviteToken: parsed.inviteToken,
+        deletedAt: null,
+        status: { not: 'cancelled' }
+      },
       select: {
+        status: true,
         purchasedTicket: {
-          select: { id: true, ticketCode: true, validationToken: true }
+          select: { id: true, ticketCode: true, validationToken: true, status: true }
         }
       }
     });
-    if (invitation?.purchasedTicket) {
-      ticketId = invitation.purchasedTicket.id;
-      ticketCode = invitation.purchasedTicket.ticketCode;
-      validationToken = invitation.purchasedTicket.validationToken;
+    if (!invitation?.purchasedTicket) {
+      return { status: 'INVALID', message: 'Davetiye bulunamadı veya iptal edilmiş' };
     }
+    if (
+      invitation.purchasedTicket.status === 'CANCELLED' ||
+      invitation.purchasedTicket.status === 'REFUNDED'
+    ) {
+      return {
+        status: invitation.purchasedTicket.status,
+        message:
+          invitation.purchasedTicket.status === 'REFUNDED'
+            ? 'Bilet iade edilmiş'
+            : 'Bilet iptal edilmiş'
+      };
+    }
+    ticketId = invitation.purchasedTicket.id;
+    ticketCode = invitation.purchasedTicket.ticketCode;
+    validationToken = invitation.purchasedTicket.validationToken;
   }
 
   if (!ticketCode && !ticketId) {
@@ -264,19 +283,13 @@ export async function validateTicketInput(input: {
       validationToken,
       ticket.tokenNonce
     );
-    const codeFromQr =
-      ticketCode?.trim().toUpperCase() ?? ticket.ticketCode.toUpperCase();
-    const codeMatches = codeFromQr === ticket.ticketCode.toUpperCase();
-
-    // Kapı taraması: organizatör yetkisi doğrulandıysa ve bilet kodu eşleşiyorsa
-    // eski/rotasyon sonrası HMAC token'ı reddetme (manuel kod ile aynı güven seviyesi)
-    if (!tokenValid && !(codeMatches && canScan)) {
+    if (shouldRejectQrToken({ hasValidationToken: true, tokenValid })) {
       return { status: 'INVALID', message: 'Bilet doğrulanamadı' };
     }
   } else if (!ticketCode) {
     return { status: 'INVALID', message: 'Geçersiz QR kodu' };
   }
-  // Organizatör manuel BF kodu veya yetkili kapı QR taraması
+  // Manuel BF kodu (token yok) veya HMAC doğrulanmış QR
 
   const summary = toSummary(ticket);
   const policy = ticket.event.entryPolicy;
@@ -346,18 +359,52 @@ export async function validateTicketInput(input: {
   }
 
   const now = new Date();
-  const nextEntryCount = ticket.entryCount + 1;
   const markAsUsed = policy === 'single';
 
-  await prisma.purchasedTicket.update({
-    where: { id: ticket.id },
+  const claimed = await prisma.purchasedTicket.updateMany({
+    where: {
+      id: ticket.id,
+      deletedAt: null,
+      status: 'VALID',
+      ...(markAsUsed ? { entryCount: 0 } : {})
+    },
     data: {
-      entryCount: nextEntryCount,
+      entryCount: { increment: 1 },
       scannedAt: ticket.scannedAt ?? now,
       scannedBy: input.scannerUid,
       ...(markAsUsed ? { status: 'USED' } : {})
     }
   });
+
+  if (claimed.count === 0) {
+    const fresh = await prisma.purchasedTicket.findFirst({
+      where: { id: ticket.id },
+      select: { status: true, entryCount: true, scannedAt: true }
+    });
+    if (fresh && entryBlocked(policy, fresh.entryCount, fresh.status)) {
+      await logCheckIn({
+        ticketId: ticket.id,
+        eventId: ticket.eventId,
+        checkedBy: input.scannerUid,
+        result: 'USED',
+        device: input.device,
+        ipAddress: input.ipAddress,
+        scannerId: input.scannerId
+      });
+      return {
+        status: 'USED',
+        message: 'Bilet daha önce kullanılmış',
+        ticket: {
+          ...summary,
+          entryCount: fresh.entryCount,
+          scannedAt: fresh.scannedAt?.toISOString() ?? summary.scannedAt
+        }
+      };
+    }
+    return { status: 'INVALID', message: 'Bilet doğrulanamadı', ticket: summary };
+  }
+
+  const nextEntryCount = ticket.entryCount + 1;
 
   await logCheckIn({
     ticketId: ticket.id,

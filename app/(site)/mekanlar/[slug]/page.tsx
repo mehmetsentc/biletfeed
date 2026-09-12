@@ -5,7 +5,7 @@ import { PageHero } from '@/components/layout/page-hero';
 import { EventCard } from '@/components/events/event-card';
 import { EventGallerySection } from '@/components/events/event-gallery-section';
 import { getVenueBySlug } from '@/lib/services/venues';
-import { getAllEvents } from '@/lib/services/events';
+import { getEventsByVenueId } from '@/lib/services/events';
 import { verifySessionCookie } from '@/lib/auth/session';
 import { getFollowedVenueIds } from '@/lib/services/follows';
 import { VenueProfileActions } from '@/components/venues/venue-profile-actions';
@@ -30,10 +30,7 @@ export default async function VenueDetailPage({ params }: Props) {
   const venue = await getVenueBySlug(slug);
   if (!venue) notFound();
 
-  const allEvents = await getAllEvents();
-  const events = allEvents.filter(
-    (e) => e.venue.toLowerCase().includes(venue.name.split(' ')[0].toLowerCase())
-  );
+  const events = await getEventsByVenueId(venue.id);
   const session = await verifySessionCookie();
   const followedVenueIds = session
     ? await getFollowedVenueIds(session.uid)

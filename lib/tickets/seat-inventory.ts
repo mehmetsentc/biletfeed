@@ -2,7 +2,7 @@ import { ensureDbConnection, prisma } from '@/lib/db/prisma';
 import type { SeatPlan, SeatPlanUnit, SeatPlanZone } from '@/lib/services/organizer-panel';
 import { getSoldSeatUnitIds } from '@/lib/tickets/purchase-context';
 import { matchTicketTypeToSeatUnit } from '@/lib/tickets/seat-packages';
-import { extractSeatUnitId } from '@/lib/tickets/seat-label';
+import { normalizeSeatUnitId } from '@/lib/tickets/seat-hold';
 
 export type AvailableSeatOption = {
   id: string;
@@ -89,12 +89,13 @@ export async function assertSeatAvailableForEvent(params: {
   seatUnitId: string;
   ticketType: { id: string; name: string; description?: string | null };
   seatPlan: SeatPlan;
+  soldSeatIds?: string[];
 }): Promise<string> {
-  const seatId = params.seatUnitId.trim().toUpperCase();
+  const seatId = normalizeSeatUnitId(params.seatUnitId);
   if (!seatId) throw new Error('Koltuk seçilmedi');
 
   const found = listSeatUnits(params.seatPlan).find(
-    (x) => x.unit.id.toUpperCase() === seatId
+    (x) => normalizeSeatUnitId(x.unit.id) === seatId
   );
   if (!found) throw new Error('Seçilen koltuk bu etkinlikte yok');
 
@@ -107,34 +108,10 @@ export async function assertSeatAvailableForEvent(params: {
     throw new Error('Koltuk seçilen bilet türü ile uyuşmuyor');
   }
 
-  const sold = await getSoldSeatUnitIds(params.eventId);
-  if (sold.some((id) => id.toUpperCase() === seatId)) {
+  const sold =
+    params.soldSeatIds ?? (await getSoldSeatUnitIds(params.eventId));
+  if (sold.some((id) => normalizeSeatUnitId(id) === seatId)) {
     throw new Error(`Koltuk ${found.unit.label} satılmış / rezerve`);
-  }
-
-  // Transaction içinde yarış: aynı koltukta VALID ticket var mı
-  await ensureDbConnection();
-  const conflict = await prisma.purchasedTicket.findMany({
-    where: {
-      eventId: params.eventId,
-      status: { in: ['VALID', 'USED'] },
-      deletedAt: null,
-      OR: [
-        { seatUnitId: { equals: found.unit.id, mode: 'insensitive' } },
-        { attendeeName: { contains: found.unit.id } }
-      ]
-    },
-    select: { seatUnitId: true, attendeeName: true },
-    take: 20
-  });
-  for (const row of conflict) {
-    const id = extractSeatUnitId({
-      seatUnitId: row.seatUnitId,
-      attendeeName: row.attendeeName
-    });
-    if (id === seatId) {
-      throw new Error(`Koltuk ${found.unit.label} satılmış / rezerve`);
-    }
   }
 
   return found.unit.id;

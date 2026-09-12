@@ -540,6 +540,7 @@ model Event {
   ruleSet            EventRuleSet?
   announcements      EventAnnouncement[]
   artists            EventArtist[]
+  seatHolds          SeatHold[]
 
   @@index([status])
   @@index([organizerId])
@@ -553,6 +554,8 @@ model Event {
   @@index([lastScrapedAt])
   @@unique([externalPlatform, externalEventId])
   @@index([deletedAt])
+  @@index([status, deletedAt, startDate])
+  @@index([status, listingType, deletedAt, startDate])
   @@map("events")
 }
 
@@ -644,6 +647,7 @@ model Order {
   payouts          OrganizerPayout[]
   bankRefundRequests BankRefundRequest[]
   refundRequests     OrderRefundRequest[]
+  seatHolds          SeatHold[]
 
   @@index([userId])
   @@index([eventId])
@@ -651,6 +655,24 @@ model Order {
   @@index([deletedAt])
   @@index([cartGroupId])
   @@map("orders")
+}
+
+/** Ödeme beklerken koltuk kilidi — aynı koltuk iki pending siparişe verilemez */
+model SeatHold {
+  id         String   @id @default(uuid()) @db.Uuid
+  eventId    String   @map("event_id") @db.Uuid
+  orderId    String   @map("order_id") @db.Uuid
+  seatUnitId String   @map("seat_unit_id")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, seatUnitId])
+  @@index([orderId])
+  @@index([expiresAt])
+  @@map("seat_holds")
 }
 
 model OrderItem {
@@ -705,6 +727,7 @@ model PurchasedTicket {
   @@index([status])
   @@index([seatUnitId])
   @@index([deletedAt])
+  @@index([eventId, seatUnitId])
   @@map("purchased_tickets")
 }
 

@@ -3,6 +3,7 @@ import { ensureDbConnection, prisma } from '@/lib/db/prisma';
 import { getProviderConfig, isProviderReady } from '@/lib/ai/config';
 import type { SeatPlan, SeatPlanZone } from '@/lib/services/organizer-panel';
 import { seatPlanSchema } from '@/lib/api/seat-plan-schema';
+import { fetchAllowedImageAsBase64 } from '@/lib/security/safe-url';
 
 export type SeatPlanDraftMeta = {
   source: 'ai' | 'manual';
@@ -13,6 +14,27 @@ export type SeatPlanDraftMeta = {
   note?: string;
 };
 
+function venueMutationAccess(
+  venueId: string,
+  organizerId?: string
+): Prisma.VenueWhereInput {
+  return {
+    id: venueId,
+    deletedAt: null,
+    ...(organizerId
+      ? {
+          OR: [
+            { organizerId },
+            {
+              organizerId: null,
+              events: { some: { organizerId, deletedAt: null } }
+            }
+          ]
+        }
+      : {})
+  };
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -21,14 +43,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 async function fetchImageAsBase64(url: string): Promise<{ mime: string; data: string }> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Harita görseli indirilemedi');
-  const buf = Buffer.from(await res.arrayBuffer());
-  const mime = res.headers.get('content-type')?.split(';')[0]?.trim() || 'image/jpeg';
-  if (!mime.startsWith('image/')) {
-    throw new Error('AI için görsel (JPG/PNG/WebP) gerekli — PDF desteklenmez');
-  }
-  return { mime, data: buf.toString('base64') };
+  return fetchAllowedImageAsBase64(url);
 }
 
 async function geminiVisionJson(params: {
@@ -43,10 +58,13 @@ async function geminiVisionJson(params: {
     process.env.GEMINI_BASE_URL ||
     'https://generativelanguage.googleapis.com/v1beta'
   ).replace(/\/$/, '');
-  const url = `${base}/models/${params.model}:generateContent?key=${params.apiKey}`;
+  const url = `${base}/models/${params.model}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': params.apiKey
+    },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: params.system }] },
       contents: [
@@ -154,18 +172,7 @@ export async function generateVenueSeatPlanDraft(params: {
   }
 
   const venue = await prisma.venue.findFirst({
-    where: {
-      id: params.venueId,
-      deletedAt: null,
-      ...(params.organizerId
-        ? {
-            OR: [
-              { organizerId: params.organizerId },
-              { events: { some: { organizerId: params.organizerId, deletedAt: null } } }
-            ]
-          }
-        : {})
-    }
+    where: venueMutationAccess(params.venueId, params.organizerId)
   });
   if (!venue) throw new Error('Mekan bulunamadı');
 
@@ -246,18 +253,7 @@ export async function confirmVenueSeatPlanDraft(params: {
   await ensureDbConnection();
 
   const venue = await prisma.venue.findFirst({
-    where: {
-      id: params.venueId,
-      deletedAt: null,
-      ...(params.organizerId
-        ? {
-            OR: [
-              { organizerId: params.organizerId },
-              { events: { some: { organizerId: params.organizerId, deletedAt: null } } }
-            ]
-          }
-        : {})
-    }
+    where: venueMutationAccess(params.venueId, params.organizerId)
   });
   if (!venue) throw new Error('Mekan bulunamadı');
 

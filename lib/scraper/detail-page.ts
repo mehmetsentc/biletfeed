@@ -68,7 +68,9 @@ function extractJsonLdEvent(html: string): Record<string, unknown> | null {
   $('script[type="application/ld+json"]').each((_, el) => {
     if (found) return;
     try {
-      const json = JSON.parse($(el).html() || '');
+      const raw = $(el).html() || '';
+      if (raw.length > 100_000) return;
+      const json = JSON.parse(raw);
       const items = Array.isArray(json) ? json : [json];
       for (const item of items) {
         if (!item || typeof item !== 'object') continue;

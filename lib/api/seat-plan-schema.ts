@@ -29,6 +29,6 @@ export const seatPlanSchema = z.object({
       })
     )
     .optional(),
-  mapImageUrl: z.string().min(1).max(500).optional(),
+      mapImageUrl: z.string().min(1).max(500).optional(),
   notes: z.string().max(500).optional()
 });

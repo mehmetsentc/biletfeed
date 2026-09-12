@@ -193,7 +193,9 @@ function extractJsonLd(html: string): unknown[] {
   const items: unknown[] = [];
   $('script[type="application/ld+json"]').each((_, el) => {
     try {
-      const json = JSON.parse($(el).html() || '');
+      const raw = $(el).html() || '';
+      if (raw.length > 100_000) return;
+      const json = JSON.parse(raw);
       if (Array.isArray(json)) items.push(...json);
       else items.push(json);
     } catch {
@@ -219,13 +221,13 @@ async function scrapePlatformWithDetails(
   const stubMap = new Map<string, EventStub>();
   const aiEventByUrl = new Map<string, ScrapedEventRaw>();
 
-  // Kaç listing sayfası işlenecek (varsayılan: hepsi)
+  // Kaç listing sayfası işlenecek
   const pages = options?.maxListingPages
     ? listingUrls.slice(0, options.maxListingPages)
-    : listingUrls;
+    : listingUrls.slice(0, 24);
 
-  // Paralel fetch için batch boyutu (varsayılan: 8)
-  const CONCURRENCY = options?.concurrency ?? 8;
+  // Paralel fetch için batch boyutu
+  const CONCURRENCY = Math.min(8, Math.max(1, options?.concurrency ?? 4));
 
   async function processListingUrl(listingUrl: string) {
     try {
@@ -395,10 +397,9 @@ export const bubiletAdapter: ScraperAdapter = {
       bubiletListingUrls(),
       /bubilet\.com\.tr/i,
       {
-        // SCRAPER_MAX_PAGES yoksa tüm şehir/kategori sayfaları taranır (listing-urls.ts)
-        maxListingPages: envIntOptional('SCRAPER_MAX_PAGES'),
-        concurrency: 8,
-        maxDetails: envInt('SCRAPER_MAX_DETAILS', 600),
+        maxListingPages: envInt('SCRAPER_MAX_PAGES', 24),
+        concurrency: envInt('SCRAPER_CONCURRENCY', 4),
+        maxDetails: envInt('SCRAPER_MAX_DETAILS', 200),
         extractStubs: extractBubiletStubs
       }
     )

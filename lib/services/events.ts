@@ -62,7 +62,7 @@ export const internalPublishedFilter = {
 
 async function fetchPublishedEvents(
   where?: Prisma.EventWhereInput,
-  options?: { upcomingOnly?: boolean }
+  options?: { upcomingOnly?: boolean; take?: number }
 ) {
   if (!isDatabaseConfigured()) return [];
   await ensureDbConnection();
@@ -71,16 +71,36 @@ async function fetchPublishedEvents(
     options?.upcomingOnly !== false
       ? buildInternalPublicFilter(now)
       : internalPublishedFilter;
+  const take = options?.take ?? 120;
   const events = await prisma.event.findMany({
     where: { ...baseWhere, ...where },
     include: eventInclude,
-    orderBy: { startDate: 'asc' }
+    orderBy: { startDate: 'asc' },
+    take
   });
   return events.map(toMockEvent).filter((event) => isUpcomingEvent(event, now));
 }
 
 export async function getAllEvents(): Promise<MockEvent[]> {
-  return fetchPublishedEvents();
+  return fetchPublishedEvents(undefined, { take: 400 });
+}
+
+export async function getRelatedEvents(
+  categorySlug: string,
+  excludeId: string,
+  take = 3
+): Promise<MockEvent[]> {
+  return fetchPublishedEvents(
+    { category: { slug: categorySlug }, id: { not: excludeId } },
+    { take }
+  );
+}
+
+export async function getEventsByVenueId(
+  venueId: string,
+  take = 48
+): Promise<MockEvent[]> {
+  return fetchPublishedEvents({ venueId }, { take });
 }
 
 export async function getEventBySlug(
@@ -97,21 +117,24 @@ export async function getEventBySlug(
 }
 
 export async function getFeaturedEvents(): Promise<MockEvent[]> {
-  return fetchPublishedEvents({ isFeatured: true });
+  return fetchPublishedEvents({ isFeatured: true }, { take: 24 });
 }
 
 export async function getTrendingEvents(): Promise<MockEvent[]> {
-  return fetchPublishedEvents({ isTrending: true });
+  return fetchPublishedEvents({ isTrending: true }, { take: 24 });
 }
 
 export async function getDiscountedEvents(): Promise<MockEvent[]> {
-  return fetchPublishedEvents({ discountPercent: { gt: 0 } });
+  return fetchPublishedEvents({ discountPercent: { gt: 0 } }, { take: 48 });
 }
 
 export async function getOnlineEvents(): Promise<MockEvent[]> {
-  return fetchPublishedEvents({
-    OR: [{ isOnline: true }, { category: { slug: 'online' } }]
-  });
+  return fetchPublishedEvents(
+    {
+      OR: [{ isOnline: true }, { category: { slug: 'online' } }]
+    },
+    { take: 24 }
+  );
 }
 
 export async function getEventsByCategory(
@@ -173,7 +196,7 @@ export async function getHomepageCategoryStrips(
 }
 
 export async function getEventsByCity(citySlug: string): Promise<MockEvent[]> {
-  return fetchPublishedEvents({ city: { slug: citySlug } });
+  return fetchPublishedEvents({ city: { slug: citySlug } }, { take: 80 });
 }
 
 export async function getEventsByOrganizer(
@@ -217,7 +240,8 @@ export async function getEventsByOrganizerForProfile(
       ...(isOwner ? {} : buildUpcomingStartFilter(now))
     },
     include: eventInclude,
-    orderBy: { startDate: 'desc' }
+    orderBy: { startDate: 'desc' },
+    take: isOwner ? 80 : 48
   });
 
   return { events: events.map((event) => toMockEvent(event as EventWithRelations)), isOwner };
@@ -292,6 +316,7 @@ export async function getCategories() {
   if (!isDatabaseConfigured()) {
     return sortCategoriesByDisplayOrder(mockCategories).filter((c) => c.count > 0);
   }
+  await ensureDbConnection();
   const rows = await prisma.category.findMany({
     where: { deletedAt: null },
     orderBy: { name: 'asc' }
@@ -317,6 +342,7 @@ export async function getCategories() {
 
 export async function getCities() {
   if (!isDatabaseConfigured()) return mockCities;
+  await ensureDbConnection();
   const rows = await prisma.city.findMany({
     where: { deletedAt: null },
     orderBy: { name: 'asc' }
@@ -352,17 +378,15 @@ export async function getEventsByCityAndNearby(citySlug: string): Promise<MockEv
 
 export async function getFavoriteEvents(userId: string): Promise<MockEvent[]> {
   if (!isDatabaseConfigured()) return [];
+  await ensureDbConnection();
   const now = new Date();
   const favorites = await prisma.favorite.findMany({
-    where: { userId },
-    include: { event: { include: eventInclude } }
+    where: {
+      userId,
+      event: { deletedAt: null, status: 'published', startDate: { gte: now } }
+    },
+    include: { event: { include: eventInclude } },
+    take: 100
   });
-  return favorites
-    .filter(
-      (f) =>
-        f.event.deletedAt === null &&
-        f.event.status === 'published' &&
-        f.event.startDate >= now
-    )
-    .map((f) => toMockEvent(f.event));
+  return favorites.map((f) => toMockEvent(f.event));
 }
