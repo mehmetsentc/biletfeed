@@ -10,8 +10,8 @@ import { execSync } from 'child_process';
 
 config({ path: '.env.local' });
 
-// GitHub Actions: DATABASE_URL yok / gerçek DB yok → atla
-// Vercel: CI=1 gelir; migrate bilinçli çalışır (SKIP_MIGRATE ile kapatılabilir)
+// GitHub Actions: CI=true → atla (dummy DB / migrate gerekmez)
+// Vercel: CI=1 gelir; DATABASE_URL varsa migrate çalışır
 if (process.env.CI === 'true' || process.env.SKIP_MIGRATE === 'true') {
   console.log('[migrate] CI ortamı — migration atlandı');
   process.exit(0);
@@ -19,8 +19,12 @@ if (process.env.CI === 'true' || process.env.SKIP_MIGRATE === 'true') {
 
 const poolUrl = process.env.DATABASE_URL;
 if (!poolUrl) {
-  console.error('DATABASE_URL tanımlı değil (.env.local)');
-  process.exit(1);
+  // Preview’da env eksikse build’i düşürme — prisma generate + next build devam etsin.
+  // Production’da DATABASE_URL Vercel env’de tanımlı olmalı.
+  console.warn(
+    '[migrate] DATABASE_URL yok — migration atlandı (Vercel Preview env / .env.local kontrol et)'
+  );
+  process.exit(0);
 }
 
 function deriveDirectUrl(url: string): string {
