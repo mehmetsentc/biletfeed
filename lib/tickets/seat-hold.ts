@@ -34,6 +34,17 @@ export async function createSeatHoldsForOrder(
   ];
   if (seats.length === 0) return;
 
+  const now = new Date();
+  // Unique (eventId, seatUnitId) süreye bakmaz — dolmuş kilitleri önce sil,
+  // yoksa harita boş görünür ama checkout P2002 ile düşer.
+  await tx.seatHold.deleteMany({
+    where: {
+      eventId: params.eventId,
+      seatUnitId: { in: seats },
+      expiresAt: { lte: now }
+    }
+  });
+
   try {
     await tx.seatHold.createMany({
       data: seats.map((seatUnitId) => ({
