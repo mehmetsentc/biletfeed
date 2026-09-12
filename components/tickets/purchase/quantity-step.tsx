@@ -164,28 +164,18 @@ export function QuantityStep({
 
       {added ? (
         <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 text-center">
-          <p className="font-semibold text-foreground">Sepete eklendi</p>
+          <p className="font-semibold text-foreground">Bilet sepetine eklendi</p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Button asChild variant="outline" className="h-12 flex-1 rounded-xl font-bold">
               <Link href="/etkinlikler">Başka etkinlik ekle</Link>
             </Button>
             <Button asChild className="h-12 flex-1 rounded-xl font-bold">
-              <Link href="/sepet">Sepete git</Link>
+              <Link href="/sepet">Bilet Sepetine Git</Link>
             </Button>
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <Button
-            type="button"
-            size="lg"
-            variant="outline"
-            className="h-14 w-full rounded-xl text-base font-bold"
-            onClick={addToCart}
-          >
-            <ShoppingBag className="size-4" />
-            Sepete Ekle
-          </Button>
           <Button
             asChild
             size="lg"
@@ -196,6 +186,16 @@ export function QuantityStep({
             >
               {t.purchase.checkout}
             </Link>
+          </Button>
+          <Button
+            type="button"
+            size="lg"
+            variant="outline"
+            className="h-14 w-full rounded-xl text-base font-bold"
+            onClick={addToCart}
+          >
+            <ShoppingBag className="size-4" />
+            Sepete Ekle
           </Button>
         </div>
       )}

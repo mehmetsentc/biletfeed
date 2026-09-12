@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { CartPageClient } from '@/components/cart/cart-page-client';
 
 export const metadata: Metadata = {
-  title: 'Sepet',
+  title: 'Bilet Sepeti',
   robots: { index: false, follow: false }
 };
 

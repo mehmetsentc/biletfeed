@@ -5,6 +5,7 @@ import {
   Heart,
   LifeBuoy,
   Settings,
+  ShoppingBag,
   Star,
   Ticket,
   User
@@ -75,6 +76,12 @@ export function getAccountMenuGroups(t: TranslationKeys): AccountMenuGroup[] {
     {
       items: [
         {
+          href: '/sepet',
+          label: 'Bilet Sepeti',
+          icon: ShoppingBag,
+          isActive: (p) => p.startsWith('/sepet')
+        },
+        {
           href: '/biletlerim',
           label: t.account.myTickets,
           icon: Ticket,
@@ -110,6 +117,7 @@ export function getAccountYardimMenuItem(t: TranslationKeys): AccountMenuItem {
 export function isAccountAreaActive(pathname: string): boolean {
   return (
     pathname.startsWith('/profil') ||
+    pathname.startsWith('/sepet') ||
     pathname.startsWith('/biletlerim') ||
     pathname === '/favorilerim' ||
     pathname === '/degerlendirmelerim' ||

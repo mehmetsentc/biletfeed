@@ -61,21 +61,47 @@ export async function getPurchasedTicketsByUser(
   try {
     await ensureDbConnection();
     const normalizedEmail = email?.trim().toLowerCase() || undefined;
-    const user = await prisma.user.findFirst({
-      where: {
-        deletedAt: null,
-        OR: [
-          { firebaseUid },
-          ...(normalizedEmail ? [{ email: normalizedEmail }] : [])
-        ]
-      },
+
+    const byUid = await prisma.user.findFirst({
+      where: { firebaseUid, deletedAt: null },
       select: { id: true, displayName: true, firebaseUid: true }
     });
-    if (!user) return [];
+    const byEmail = normalizedEmail
+      ? await prisma.user.findFirst({
+          where: { email: normalizedEmail, deletedAt: null },
+          select: { id: true, displayName: true, firebaseUid: true }
+        })
+      : null;
 
-    // Misafir sipariş hesabı + gerçek giriş: uid'yi bağla (bir sonraki isteklerde de bulunsun)
+    // Gerçek hesap + aynı e-postadaki misafir hesap: biletleri birleştir
     if (
-      user.firebaseUid.startsWith('guest-') &&
+      byUid &&
+      byEmail &&
+      byUid.id !== byEmail.id &&
+      byEmail.firebaseUid.startsWith('guest-')
+    ) {
+      await prisma.$transaction([
+        prisma.purchasedTicket.updateMany({
+          where: { userId: byEmail.id, deletedAt: null },
+          data: { userId: byUid.id }
+        }),
+        prisma.order.updateMany({
+          where: { userId: byEmail.id, deletedAt: null },
+          data: { userId: byUid.id }
+        }),
+        prisma.user.update({
+          where: { id: byEmail.id },
+          data: {
+            deletedAt: new Date(),
+            email: `merged-guest-${byEmail.id}@biletfeed.local`,
+            firebaseUid: `merged-${byEmail.id}`
+          }
+        })
+      ]);
+    } else if (
+      byEmail &&
+      !byUid &&
+      byEmail.firebaseUid.startsWith('guest-') &&
       firebaseUid &&
       !firebaseUid.startsWith('guest-')
     ) {
@@ -83,20 +109,47 @@ export async function getPurchasedTicketsByUser(
         where: {
           firebaseUid,
           deletedAt: null,
-          NOT: { id: user.id }
+          NOT: { id: byEmail.id }
         },
         select: { id: true }
       });
       if (!conflict) {
         await prisma.user.update({
-          where: { id: user.id },
+          where: { id: byEmail.id },
           data: { firebaseUid }
         });
       }
     }
 
+    const user = byUid ?? byEmail;
+    if (!user) return [];
+
+    const userIds = Array.from(
+      new Set(
+        [byUid?.id, byEmail?.id, user.id].filter((id): id is string => Boolean(id))
+      )
+    );
+
+    // Katılımcı e-postası ile kalan sipariş biletlerini de bağla
+    if (normalizedEmail) {
+      await prisma.purchasedTicket.updateMany({
+        where: {
+          deletedAt: null,
+          userId: { notIn: userIds },
+          attendeeEmail: normalizedEmail
+        },
+        data: { userId: user.id }
+      });
+    }
+
     const tickets = await prisma.purchasedTicket.findMany({
-      where: { userId: user.id, deletedAt: null },
+      where: {
+        deletedAt: null,
+        OR: [
+          { userId: { in: userIds } },
+          ...(normalizedEmail ? [{ attendeeEmail: normalizedEmail }] : [])
+        ]
+      },
       include: {
         event: { include: { city: true, venue: true } },
         ticketType: true,

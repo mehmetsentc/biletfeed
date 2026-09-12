@@ -28,13 +28,18 @@ export function CartPageClient() {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-16 text-center">
         <ShoppingBag className="size-12 text-muted-foreground" aria-hidden />
-        <h1 className="mt-4 text-2xl font-bold">Sepetin boş</h1>
+        <h1 className="mt-4 text-2xl font-bold">Bilet sepetin boş</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Farklı günlerdeki etkinliklerden bilet ekleyip tek seferde ödeyebilirsin.
         </p>
-        <Button asChild className="mt-6 rounded-xl font-bold">
-          <Link href="/etkinlikler">Etkinlikleri Keşfet</Link>
-        </Button>
+        <div className="mt-6 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
+          <Button asChild className="rounded-xl font-bold">
+            <Link href="/etkinlikler">Etkinlikleri Keşfet</Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-xl font-bold">
+            <Link href="/biletlerim">Yapılan alışverişler</Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -46,7 +51,7 @@ export function CartPageClient() {
     <div className="mx-auto max-w-3xl px-4 py-8 md:py-10">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Sepet</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">Bilet Sepeti</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {ticketCount} bilet · {groups.length} etkinlik
           </p>

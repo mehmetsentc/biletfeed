@@ -22,7 +22,7 @@ export function CartNavButton({
         'relative inline-flex size-9 items-center justify-center rounded-lg text-[var(--header-fg)] transition-colors hover:bg-[var(--header-hover)] hover:text-[var(--bf-accent-ink)]',
         className
       )}
-      aria-label={count > 0 ? `Sepet (${count})` : 'Sepet'}
+      aria-label={count > 0 ? `Bilet Sepeti (${count})` : 'Bilet Sepeti'}
     >
       <ShoppingBag className={cn('size-5', iconClassName)} aria-hidden />
       {count > 0 ? (
