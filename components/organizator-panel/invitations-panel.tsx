@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatTurkeyDateLong } from '@/lib/datetime/istanbul';
 import { invitationFetchErrorMessage } from '@/lib/organizator/invitation-fetch-error';
+import { resolveSelectedTicketTypeId } from '@/lib/organizator/invitation-ticket-type';
 
 type OrganizerEvent = {
   id: string;
@@ -140,7 +141,9 @@ export function InvitationsPanel({
       setTicketTypes(booth.ticketTypes);
       setRequiresSeatSelection(Boolean(booth.requiresSeatSelection));
       setAvailableSeatsByTicketType(booth.availableSeatsByTicketType ?? {});
-      setTicketTypeId((prev) => prev || booth.ticketTypes[0]?.id || '');
+      setTicketTypeId((prev) =>
+        resolveSelectedTicketTypeId(prev, booth.ticketTypes)
+      );
       setSelectedSeatIds([]);
     }
 
@@ -171,6 +174,8 @@ export function InvitationsPanel({
   useEffect(() => {
     if (!eventId) return;
     setSelectedInviteIds([]);
+    setError(null);
+    setSuccess(null);
     void loadEventData(eventId).catch(() => setError('Davetiye verileri yüklenemedi'));
   }, [eventId, loadEventData]);
 
@@ -525,7 +530,7 @@ export function InvitationsPanel({
           ) : (
             events.map((event) => (
               <option key={event.id} value={event.id}>
-                {event.title}
+                {event.title} — {formatTurkeyDateLong(event.startDate)}
               </option>
             ))
           )}

@@ -52,11 +52,11 @@ export async function createBulkEventInvitations(params: {
   const ticketType = await prisma.ticketType.findFirst({
     where: {
       id: params.ticketTypeId,
-      eventId: params.eventId,
       deletedAt: null,
       event: { organizerId: params.organizerId, deletedAt: null }
     },
     select: {
+      eventId: true,
       capacity: true,
       sold: true,
       name: true,
@@ -74,6 +74,16 @@ export async function createBulkEventInvitations(params: {
       errors: params.guests.map((guest) => ({
         guestName: guest.guestName,
         error: 'Bilet türü bulunamadı'
+      }))
+    };
+  }
+  if (ticketType.eventId !== params.eventId) {
+    return {
+      created: [],
+      errors: params.guests.map((guest) => ({
+        guestName: guest.guestName,
+        error:
+          'Seçili bilet türü bu etkinlik gününe ait değil. Listeden bilet türünü yeniden seçin.'
       }))
     };
   }

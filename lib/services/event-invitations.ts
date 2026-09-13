@@ -364,9 +364,6 @@ export async function createEventInvitation(params: {
       deletedAt: null
     },
     include: {
-      ticketTypes: {
-        where: { id: params.ticketTypeId, deletedAt: null, status: 'active' }
-      },
       organizer: { select: { name: true } },
       venue: { select: { name: true, address: true, seatPlan: true } },
       city: { select: { name: true } }
@@ -374,8 +371,27 @@ export async function createEventInvitation(params: {
   });
 
   if (!event) throw new Error('Etkinlik bulunamadı');
-  const ticketType = event.ticketTypes[0];
-  if (!ticketType) throw new Error('Bilet türü bulunamadı');
+
+  const ticketType = await prisma.ticketType.findFirst({
+    where: {
+      id: params.ticketTypeId,
+      deletedAt: null,
+      event: { organizerId: params.organizerId, deletedAt: null }
+    }
+  });
+  if (!ticketType) {
+    throw new Error('Bilet türü bulunamadı');
+  }
+  if (ticketType.eventId !== params.eventId) {
+    throw new Error(
+      'Seçili bilet türü bu etkinlik gününe ait değil. Listeden bilet türünü yeniden seçin.'
+    );
+  }
+  if (ticketType.status !== 'active') {
+    throw new Error(
+      'Bu bilet türü şu an kapalı (duraklatılmış veya tükendi). Aktif bir tür seçin.'
+    );
+  }
 
   const seatPlan = asSeatPlan(event.venue?.seatPlan);
   const needsSeat = requiresSeatAssignment(seatPlan);
