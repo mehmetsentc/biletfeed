@@ -12,6 +12,7 @@ import { getPreferredCitySlug } from '@/lib/location/city-preference.server';
 import { getCachedHomeCityEventsBundle } from '@/lib/services/home-city-events';
 import { getHomeHeroSlides } from '@/lib/services/home-hero-slides';
 import { getOnlineEvents, getCategories } from '@/lib/services/events';
+import { excludeSoldOutHomeEvents } from '@/lib/events/sold-out';
 import { getServerTranslations } from '@/lib/i18n/server';
 
 export const metadata = createPageMetadata({
@@ -34,12 +35,13 @@ export const revalidate = 60;
 export default async function HomePage() {
   const { t } = await getServerTranslations();
   const citySlug = await getPreferredCitySlug();
-  const [cityBundle, online, heroSlides, categories] = await Promise.all([
+  const [cityBundle, onlineRaw, heroSlides, categories] = await Promise.all([
     getCachedHomeCityEventsBundle(citySlug),
     getOnlineEvents(),
     getHomeHeroSlides(citySlug),
     getCategories()
   ]);
+  const online = excludeSoldOutHomeEvents(onlineRaw);
 
   return (
     <>

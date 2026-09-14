@@ -57,12 +57,22 @@ export function findTicketType(
   return ticketTypes.find((t) => t.id === ticketTypeId);
 }
 
-export function ticketTypeAvailable(type: CheckoutTicketType): boolean {
+export function publicTicketInventoryAvailable(type: {
+  status: 'active' | 'paused' | 'sold_out';
+  capacity: number;
+  sold: number;
+  price: number;
+  allowsZeroPrice: boolean;
+}): boolean {
   if (type.status !== 'active') return false;
   if (type.capacity - type.sold <= 0) return false;
   // Ücretli etkinlikte 0₺ = satış kaldırıldı; ücretsiz etkinlik hariç
   if (type.price <= 0 && !type.allowsZeroPrice) return false;
   return true;
+}
+
+export function ticketTypeAvailable(type: CheckoutTicketType): boolean {
+  return publicTicketInventoryAvailable(type);
 }
 
 export function ticketTypeRemaining(type: CheckoutTicketType): number {

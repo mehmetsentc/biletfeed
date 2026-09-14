@@ -7,6 +7,7 @@ import {
   getCategories
 } from '@/lib/services/events';
 import { isUpcomingEvent } from '@/lib/events/upcoming';
+import { excludeSoldOutHomeEvents } from '@/lib/events/sold-out';
 
 export type HomeCategorySection = {
   slug: string;
@@ -99,8 +100,11 @@ export async function getHomeCityEventsBundle(
     getCategories()
   ]);
 
-  const upcomingCity = filterUpcomingInCity(cityEvents, citySlug);
-  const trendingInCity = trending.filter((event) => event.citySlug === citySlug);
+  const sellableCity = excludeSoldOutHomeEvents(cityEvents);
+  const sellableTrending = excludeSoldOutHomeEvents(trending);
+
+  const upcomingCity = filterUpcomingInCity(sellableCity, citySlug);
+  const trendingInCity = sellableTrending.filter((event) => event.citySlug === citySlug);
   const displayTrending =
     trendingInCity.length >= 3 ? trendingInCity : upcomingCity.slice(0, 6);
 
@@ -121,7 +125,7 @@ export function getCachedHomeCityEventsBundle(
   const citySlug = resolveHomeCitySlug(citySlugInput);
   return unstable_cache(
     () => getHomeCityEventsBundle(citySlug),
-    ['home-city-events-v1', citySlug],
+    ['home-city-events-v2', citySlug],
     { revalidate: 60 }
   )();
 }

@@ -13,6 +13,7 @@ import {
   isUpcomingEvent,
   upcomingStartFilter as buildUpcomingStartFilter
 } from '@/lib/events/upcoming';
+import { excludeSoldOutHomeEvents } from '@/lib/events/sold-out';
 
 export { isUpcomingEvent, upcomingStartFilter } from '@/lib/events/upcoming';
 
@@ -183,7 +184,9 @@ export async function getHomepageCategoryStrips(
     take: 200
   });
 
-  const mapped = events.map(toMockEvent).filter((event) => isUpcomingEvent(event, now));
+  const mapped = excludeSoldOutHomeEvents(
+    events.map(toMockEvent).filter((event) => isUpcomingEvent(event, now))
+  );
   const bySlug = new Map<string, MockEvent[]>();
   for (const cat of HOMEPAGE_CATEGORIES) bySlug.set(cat.slug, []);
   for (const ev of mapped) {

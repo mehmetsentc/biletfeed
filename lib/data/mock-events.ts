@@ -42,6 +42,8 @@ export interface MockEvent {
   favoriteCount?: number;
   /** internal = Bilet Feed checkout, external = kaynak siteye yönlendir */
   listingType?: 'internal' | 'external';
+  /** Kamuya satılacak bilet kalmadı (ana sayfada gizlenir) */
+  isSoldOut?: boolean;
   externalPlatform?: string;
   externalUrl?: string;
   /** Dahili etkinliklerde onay akışı durumu — profil/önizleme için */

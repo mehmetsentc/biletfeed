@@ -1,5 +1,6 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { isSupportedCitySlug } from '@/lib/location/cities';
+import { isEventPubliclySoldOut } from '@/lib/events/sold-out';
 
 export type HomeBannerRecord = {
   id: string;
@@ -11,6 +12,7 @@ export type HomeBannerRecord = {
   linkUrl: string | null;
   eventId: string | null;
   eventSlug: string | null;
+  eventSoldOut: boolean;
   citySlug: string | null;
   isPinned: boolean;
   sortOrder: number;
@@ -30,7 +32,16 @@ function mapBanner(row: {
   isPinned: boolean;
   sortOrder: number;
   isActive: boolean;
-  event?: { slug: string } | null;
+  event?: {
+    slug: string;
+    isFree: boolean;
+    ticketTypes: Array<{
+      price: number;
+      status: string | null;
+      sold: number;
+      capacity: number;
+    }>;
+  } | null;
 }): HomeBannerRecord {
   const eventSlug = row.event?.slug ?? null;
   return {
@@ -43,6 +54,7 @@ function mapBanner(row: {
     linkUrl: row.linkUrl ?? (eventSlug ? `/etkinlik/${eventSlug}` : null),
     eventId: row.eventId,
     eventSlug,
+    eventSoldOut: row.event ? isEventPubliclySoldOut(row.event) : false,
     citySlug: row.citySlug,
     isPinned: row.isPinned,
     sortOrder: row.sortOrder,
@@ -63,7 +75,16 @@ const bannerSelect = {
   isPinned: true,
   sortOrder: true,
   isActive: true,
-  event: { select: { slug: true } }
+  event: {
+    select: {
+      slug: true,
+      isFree: true,
+      ticketTypes: {
+        where: { deletedAt: null },
+        select: { price: true, status: true, sold: true, capacity: true }
+      }
+    }
+  }
 } as const;
 
 function normalizeCitySlug(citySlug: string | null | undefined): string | null {

@@ -3,6 +3,7 @@ import { resolveCategoryImage } from '@/lib/data/category-images';
 import { getExternalPlatformLabel } from '@/lib/events/ticket-url';
 import { parsePerformersFromSeo } from '@/lib/organizator/event-metadata';
 import { parseEventMediaAssets } from '@/lib/config/image-dimensions';
+import { isEventPubliclySoldOut } from '@/lib/events/sold-out';
 
 function resolveCoverImage(coverImage: string, categorySlug: string): string {
   const trimmed = coverImage?.trim() ?? '';
@@ -78,7 +79,12 @@ export type EventWithRelations = {
   venue: { name: string; address: string } | null;
   city: { name: string; slug: string };
   category: { name: string; slug: string };
-  ticketTypes: Array<{ price: number; status?: string | null }>;
+  ticketTypes: Array<{
+    price: number;
+    status?: string | null;
+    sold?: number | null;
+    capacity?: number | null;
+  }>;
   listingType?: string;
   externalPlatform?: string | null;
   externalUrl?: string | null;
@@ -126,6 +132,7 @@ export function toMockEvent(event: EventWithRelations): MockEvent {
     tags: event.tags,
     favoriteCount: parseFavoriteCount(event.stats),
     listingType: (event.listingType as MockEvent['listingType']) || 'internal',
+    isSoldOut: isEventPubliclySoldOut(event),
     externalPlatform: event.externalPlatform ?? undefined,
     externalUrl: event.externalUrl ?? undefined,
     status: event.status as MockEvent['status'],

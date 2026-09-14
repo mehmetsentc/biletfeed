@@ -3,6 +3,7 @@ import type { HeroBannerSlide } from '@/lib/banners/hero-slide-types';
 import { HERO_BANNER_LIMIT } from '@/lib/banners/hero-slide-types';
 import { buildEventPromoCopy } from '@/lib/banners/promo-copy';
 import { isUpcomingEvent } from '@/lib/events/upcoming';
+import { excludeSoldOutHomeEvents } from '@/lib/events/sold-out';
 import {
   getActiveHomeBanners,
   resolveBannersForCity,
@@ -57,7 +58,9 @@ function sortEventsForHero(events: MockEvent[], citySlug: string): MockEvent[] {
 }
 
 function pickAutoEvents(events: MockEvent[], citySlug: string, limit: number): MockEvent[] {
-  const upcoming = events.filter((event) => isUpcomingEvent(event));
+  const upcoming = excludeSoldOutHomeEvents(events).filter((event) =>
+    isUpcomingEvent(event)
+  );
   const sorted = sortEventsForHero(upcoming, citySlug);
   const seen = new Set<string>();
   const picked: MockEvent[] = [];
@@ -82,20 +85,21 @@ export async function getHomeHeroSlides(citySlug: string): Promise<HeroBannerSli
   ]);
 
   const { banners: scoped, pinned } = resolveBannersForCity(manualBanners, citySlug);
-  const slides: HeroBannerSlide[] = scoped
+  const sellableBanners = scoped.filter((banner) => !banner.eventSoldOut);
+  const slides: HeroBannerSlide[] = sellableBanners
     .slice(0, HERO_BANNER_LIMIT)
     .map(bannerToSlide);
 
-  // Sabit banner: carousel yok, otomatik etkinlik eklenmez
-  if (pinned) {
+  // Sabit banner: carousel yok, otomatik etkinlik eklenmez (tükendiyse otomatik slayta düş)
+  if (pinned && sellableBanners.length > 0) {
     return slides.slice(0, 1);
   }
 
   // Şehre özel admin banner yoksa varsayılan sabit etkinlik (ör. Antalya → BLOK3)
-  const hasCitySpecific = scoped.some((b) => b.citySlug === citySlug);
+  const hasCitySpecific = sellableBanners.some((b) => b.citySlug === citySlug);
   const defaultPinnedSlug = CITY_DEFAULT_PINNED_EVENT_SLUG[citySlug];
   if (!hasCitySpecific && defaultPinnedSlug) {
-    const pool = [...cityEvents, ...featured, ...trending];
+    const pool = excludeSoldOutHomeEvents([...cityEvents, ...featured, ...trending]);
     const pinnedEvent = pool.find(
       (e) => e.slug === defaultPinnedSlug && isUpcomingEvent(e)
     );
@@ -110,7 +114,7 @@ export async function getHomeHeroSlides(citySlug: string): Promise<HeroBannerSli
 
   const remaining = HERO_BANNER_LIMIT - slides.length;
   const usedEventIds = new Set(
-    scoped.map((b) => b.eventId).filter((id): id is string => Boolean(id))
+    sellableBanners.map((b) => b.eventId).filter((id): id is string => Boolean(id))
   );
 
   const pool = pickAutoEvents(
