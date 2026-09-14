@@ -21,13 +21,13 @@ export function EventGallerySection({
         {urls.map((src) => (
           <div
             key={src}
-            className="relative aspect-video overflow-hidden rounded-xl bg-muted"
+            className="relative aspect-video overflow-hidden rounded-xl bg-zinc-950"
           >
             <Image
               src={src}
               alt=""
               fill
-              className="object-cover object-center"
+              className="object-contain object-center"
               sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
