@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, MapPin } from 'lucide-react';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { formatEventDate } from '@/lib/data/mock-events';
 import type { MockEvent } from '@/lib/data/mock-events';
 
@@ -31,15 +31,12 @@ export function BfCheckoutContextBar({
           <ArrowLeft className="size-4" />
         </Link>
 
-        <div className="relative size-14 shrink-0 overflow-hidden rounded-xl border border-border sm:size-16">
-          <Image
-            src={event.coverImage}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="64px"
-          />
-        </div>
+        <EventCoverFrame
+          src={event.coverImage}
+          alt=""
+          className="size-14 shrink-0 rounded-xl border border-border sm:size-16"
+          sizes="64px"
+        />
 
         <div className="relative min-w-0 flex-1">
           <p className="truncate text-base font-bold sm:text-lg">{event.title}</p>

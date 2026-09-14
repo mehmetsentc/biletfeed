@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { FavoriteButton } from '@/components/events/favorite-button';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import {
   type MockEvent,
   formatEventDateLine,
@@ -22,18 +22,16 @@ export function EventMobileCard({ event }: EventMobileCardProps) {
         eventId={event.id}
       />
       <Link href={`/etkinlik/${event.slug}`} className="block">
-        <div className="relative aspect-video w-full overflow-hidden">
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className="object-cover"
-            sizes="100vw"
-          />
+        <EventCoverFrame
+          src={event.coverImage}
+          alt={event.title}
+          className="aspect-video w-full"
+          sizes="100vw"
+        >
           <span className="absolute bottom-3 left-3 rounded-md bg-primary px-2.5 py-1 text-[11px] font-bold uppercase text-primary-foreground">
             {event.category}
           </span>
-        </div>
+        </EventCoverFrame>
 
         <div className="p-4">
           <p className="text-xs font-semibold text-[var(--bf-accent-ink)]">

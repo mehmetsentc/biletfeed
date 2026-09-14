@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Suspense } from 'react';
 import { formatEventDate, formatEventTimeRange } from '@/lib/data/mock-events';
 import {
@@ -11,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EventFilters } from '@/components/admin/event-filters';
 import { CancelEventButton } from '@/components/admin/cancel-event-button';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { adminHref } from '@/lib/config/domain';
 
 export default async function AdminEventsPage({
@@ -78,17 +78,17 @@ export default async function AdminEventsPage({
                 <tr key={event.id} className="border-b last:border-0 hover:bg-muted/20">
                   <td className="p-3">
                     <div className="flex items-center gap-3">
-                      <div className="relative size-12 shrink-0 overflow-hidden rounded bg-muted">
-                        {event.coverImage && (
-                          <Image
-                            src={event.coverImage}
-                            alt=""
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        )}
-                      </div>
+                      {event.coverImage ? (
+                        <EventCoverFrame
+                          src={event.coverImage}
+                          alt=""
+                          className="size-12 shrink-0 rounded bg-muted"
+                          sizes="48px"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="size-12 shrink-0 rounded bg-muted" />
+                      )}
                       <div className="min-w-0">
                         <span className="font-medium line-clamp-2">{event.title}</span>
                         <a

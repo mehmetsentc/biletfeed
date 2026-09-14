@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { ToslaCardPaymentForm } from '@/components/payments/tosla-card-payment-form';
 import { ToslaHostedFallbackModal } from '@/components/payments/tosla-hosted-fallback-modal';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import type { PaymentPageContext } from '@/lib/services/payment-page';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 
@@ -28,16 +28,14 @@ export function ToslaPaymentPageClient({ context }: { context: PaymentPageContex
         </div>
 
         {context.coverImage && (
-          <div className="relative mb-6 h-36 overflow-hidden rounded-2xl">
-            <Image
-              src={context.coverImage}
-              alt={context.eventTitle}
-              fill
-              className="object-cover"
-              sizes="512px"
-            />
+          <EventCoverFrame
+            src={context.coverImage}
+            alt={context.eventTitle}
+            className="mb-6 h-36 rounded-2xl"
+            sizes="512px"
+          >
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          </div>
+          </EventCoverFrame>
         )}
 
         <ToslaCardPaymentForm

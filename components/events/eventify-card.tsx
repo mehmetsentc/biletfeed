@@ -1,9 +1,9 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Tag } from 'lucide-react';
 import { FavoriteButton } from '@/components/events/favorite-button';
 import { CategoryBadge } from '@/components/events/category-badge';
 import { SourceBadge } from '@/components/events/source-badge';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import {
   type MockEvent,
   formatEventMonthDay,
@@ -42,14 +42,12 @@ export function EventifyCard({
         initialActive={isFavorite}
       />
       <Link href={`/etkinlik/${event.slug}`} className="block">
-        <div className="relative aspect-video overflow-hidden rounded-t-[var(--radius-image)]">
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className="object-cover transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:scale-[1.03]"
-            sizes="(max-width:768px) 100vw, 33vw"
-          />
+        <EventCoverFrame
+          src={event.coverImage}
+          alt={event.title}
+          className="aspect-video rounded-t-[var(--radius-image)]"
+          sizes="(max-width:768px) 100vw, 33vw"
+        >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
           {countryBadge && (
             <span className="absolute left-3 top-3 z-10">
@@ -63,7 +61,7 @@ export function EventifyCard({
               variant="overlay"
             />
           </span>
-        </div>
+        </EventCoverFrame>
 
         <div className="flex gap-4 p-4 md:p-5">
           <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-2xl border border-border/60 bg-muted/30 px-2 py-2.5 text-center backdrop-blur-sm">

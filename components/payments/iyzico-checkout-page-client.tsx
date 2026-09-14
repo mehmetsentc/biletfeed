@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import type { IyzicoPaymentPageContext } from '@/lib/services/payment-page';
 import { brandAssetUrl, brandLogos } from '@/lib/config/brand-theme';
 
@@ -89,16 +90,13 @@ export function IyzicoCheckoutPageClient({
 
           <div className="mt-1 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 backdrop-blur-sm">
             {context.coverImage ? (
-              <div className="relative size-11 shrink-0 overflow-hidden rounded-xl ring-1 ring-white/15">
-                <Image
-                  src={context.coverImage}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="44px"
-                  priority
-                />
-              </div>
+              <EventCoverFrame
+                src={context.coverImage}
+                alt=""
+                className="size-11 shrink-0 rounded-xl ring-1 ring-white/15"
+                sizes="44px"
+                priority
+              />
             ) : (
               <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--bf-neon)]/10 ring-1 ring-[var(--bf-neon)]/25">
                 <Lock className="size-4 text-[var(--bf-neon)]" aria-hidden />

@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/components/providers/cart-provider';
@@ -75,15 +75,12 @@ export function CartPageClient() {
           >
             <div className="flex gap-3 border-b border-border p-4">
               {group.eventCoverImage ? (
-                <div className="relative size-16 shrink-0 overflow-hidden rounded-xl">
-                  <Image
-                    src={group.eventCoverImage}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    sizes="64px"
-                  />
-                </div>
+                <EventCoverFrame
+                  src={group.eventCoverImage}
+                  alt=""
+                  className="size-16 shrink-0 rounded-xl"
+                  sizes="64px"
+                />
               ) : null}
               <div className="min-w-0">
                 <Link

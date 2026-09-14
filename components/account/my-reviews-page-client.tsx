@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Calendar, MapPin, Star } from 'lucide-react';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { SubmitReviewDialog } from '@/components/account/submit-review-dialog';
 import { loadLocalReviews } from '@/lib/account/local-reviews';
 import { formatEventDate } from '@/lib/data/mock-events';
@@ -63,15 +63,13 @@ function PendingEventCard({
 }) {
   return (
     <article className="flex flex-col gap-4 rounded-xl border border-border bg-background p-4 sm:flex-row sm:items-center">
-      <div className="relative size-24 shrink-0 overflow-hidden rounded-lg">
-        <Image
-          src={event.coverImage}
-          alt={event.title}
-          fill
-          className="object-cover"
-          unoptimized
-        />
-      </div>
+      <EventCoverFrame
+        src={event.coverImage}
+        alt={event.title}
+        className="size-24 shrink-0 rounded-lg"
+        sizes="96px"
+        unoptimized
+      />
       <div className="min-w-0 flex-1">
         <Link
           href={`/etkinlik/${event.slug}`}
@@ -108,16 +106,13 @@ function ReviewCard({ review }: { review: UserReviewItem }) {
   return (
     <article className="flex gap-4 rounded-xl border border-border bg-background p-4">
       {review.event.coverImage && (
-        <div className="relative hidden size-20 shrink-0 overflow-hidden rounded-lg sm:block">
-          <Image
-            src={review.event.coverImage}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="80px"
-            unoptimized
-          />
-        </div>
+        <EventCoverFrame
+          src={review.event.coverImage}
+          alt=""
+          className="hidden size-20 shrink-0 rounded-lg sm:block"
+          sizes="80px"
+          unoptimized
+        />
       )}
       <div className="min-w-0 flex-1">
         <Link

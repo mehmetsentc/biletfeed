@@ -1,5 +1,7 @@
 import Image from 'next/image';
+import type { ReactNode } from 'react';
 import { IMAGE_SPECS } from '@/lib/config/image-dimensions';
+import { cn } from '@/lib/utils';
 
 type EventCoverMediaProps = {
   src: string;
@@ -31,6 +33,42 @@ export function EventCoverMedia({
         quality={85}
         priority={priority}
       />
+    </div>
+  );
+}
+
+type EventCoverFrameProps = {
+  src: string;
+  alt: string;
+  sizes: string;
+  className?: string;
+  priority?: boolean;
+  unoptimized?: boolean;
+  children?: ReactNode;
+};
+
+/** Kart / thumb: sabit çerçeve içinde afişin tamamı (object-contain, kırpma yok). */
+export function EventCoverFrame({
+  src,
+  alt,
+  sizes,
+  className,
+  priority,
+  unoptimized,
+  children
+}: EventCoverFrameProps) {
+  return (
+    <div className={cn('relative overflow-hidden bg-zinc-950', className)}>
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        className="pointer-events-none object-contain object-center"
+        sizes={sizes}
+        priority={priority}
+        unoptimized={unoptimized}
+      />
+      {children}
     </div>
   );
 }

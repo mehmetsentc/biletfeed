@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { formatEventDate } from '@/lib/data/mock-events';
 import { requireOrganizer } from '@/lib/auth/guards';
 import { getOrganizerForSession } from '@/lib/auth/organizer-api';
 import { getOrganizerEvents } from '@/lib/services/organizer-dashboard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { getServerTranslations } from '@/lib/i18n/server';
 
 export default async function DashboardEventsPage() {
@@ -45,12 +45,20 @@ export default async function DashboardEventsPage() {
             {events.map((event) => (
               <tr key={event.id} className="border-b last:border-0">
                 <td className="p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative size-10 shrink-0 overflow-hidden rounded bg-muted">
-                      <Image src={event.coverImage} alt="" fill className="object-cover" unoptimized />
+                    <div className="flex items-center gap-3">
+                      {event.coverImage ? (
+                        <EventCoverFrame
+                          src={event.coverImage}
+                          alt=""
+                          className="size-10 shrink-0 rounded"
+                          sizes="40px"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="size-10 shrink-0 rounded bg-muted" />
+                      )}
+                      <span className="font-medium line-clamp-1">{event.title}</span>
                     </div>
-                    <span className="font-medium line-clamp-1">{event.title}</span>
-                  </div>
                 </td>
                 <td className="p-3 whitespace-nowrap text-muted-foreground">
                   {formatEventDate(event.startDate.toISOString())}

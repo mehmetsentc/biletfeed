@@ -7,6 +7,7 @@ import { verifySessionCookie } from '@/lib/auth/session';
 import { isFollowingArtist } from '@/lib/services/artist';
 import { prisma } from '@/lib/db/prisma';
 import { ArtistFollowButton } from '@/components/artists/artist-follow-button';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { siteConfig } from '@/lib/config/site';
 
@@ -223,12 +224,11 @@ export default async function ArtistPage({ params }: Props) {
                 className="group flex gap-3 rounded-xl border p-3 hover:bg-muted/40 transition-colors"
               >
                 {event.coverImage && (
-                  <Image
+                  <EventCoverFrame
                     src={event.coverImage}
                     alt={event.title}
-                    width={80}
-                    height={80}
-                    className="size-20 rounded-lg object-cover shrink-0"
+                    className="size-20 shrink-0 rounded-lg"
+                    sizes="80px"
                   />
                 )}
                 <div className="min-w-0 space-y-1">
@@ -267,12 +267,11 @@ export default async function ArtistPage({ params }: Props) {
                 className="group flex gap-3 rounded-xl border p-3 hover:bg-muted/40 transition-colors"
               >
                 {event.coverImage && (
-                  <Image
+                  <EventCoverFrame
                     src={event.coverImage}
                     alt={event.title}
-                    width={64}
-                    height={64}
-                    className="size-16 rounded-lg object-cover shrink-0"
+                    className="size-16 shrink-0 rounded-lg"
+                    sizes="64px"
                   />
                 )}
                 <div className="min-w-0 space-y-1">

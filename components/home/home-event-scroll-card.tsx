@@ -1,10 +1,10 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import type { MockEvent } from '@/lib/data/mock-events';
 import {
   formatEventCountdown,
   formatMobileEventDateLine
 } from '@/lib/events/mobile-event-date';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { cn } from '@/lib/utils';
 
 type HomeEventScrollCardProps = {
@@ -26,16 +26,14 @@ export function HomeEventScrollCard({ event, className }: HomeEventScrollCardPro
         className
       )}
     >
-      <div className="relative aspect-video overflow-hidden bg-muted">
-        <Image
-          src={event.coverImage}
-          alt={event.title}
-          fill
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
-          sizes="168px"
-        />
+      <EventCoverFrame
+        src={event.coverImage}
+        alt={event.title}
+        className="aspect-video"
+        sizes="168px"
+      >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-      </div>
+      </EventCoverFrame>
 
       <div className="flex flex-1 flex-col gap-1 p-3">
         <h3 className="line-clamp-2 text-sm font-bold leading-snug text-foreground">

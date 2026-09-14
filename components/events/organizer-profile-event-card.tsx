@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, MapPin, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import {
   type MockEvent,
   formatEventDate,
@@ -52,16 +52,14 @@ export function OrganizerProfileEventCard({
         href={href}
         className="block overflow-hidden rounded-2xl border bg-card transition-all hover:shadow-lg"
       >
-        <div className="relative aspect-video overflow-hidden">
+        <EventCoverFrame
+          src={event.coverImage}
+          alt={event.title}
+          className="aspect-video"
+          sizes="(max-width:768px) 100vw, 33vw"
+        >
           {statusBadge(event.status)}
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-            sizes="(max-width:768px) 100vw, 33vw"
-          />
-        </div>
+        </EventCoverFrame>
         <div className="p-4">
           <Badge variant="secondary" className="mb-2 text-xs">
             {event.category}

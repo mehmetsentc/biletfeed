@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Calendar, MapPin, QrCode, Search } from 'lucide-react';
 import { AccountProfileTabs } from '@/components/account/account-profile-tabs';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { useTranslations } from '@/components/providers';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -97,15 +97,13 @@ function TicketCard({
       href={`/biletlerim/${ticket.id}`}
       className="flex gap-4 overflow-hidden rounded-xl border border-border bg-background p-4 transition-all hover:border-primary/30 hover:shadow-sm"
     >
-      <div className="relative size-24 shrink-0 overflow-hidden rounded-lg">
-        <Image
-          src={ticket.eventImage}
-          alt={ticket.eventTitle}
-          fill
-          className="object-cover"
-          unoptimized
-        />
-      </div>
+      <EventCoverFrame
+        src={ticket.eventImage}
+        alt={ticket.eventTitle}
+        className="size-24 shrink-0 rounded-lg"
+        sizes="96px"
+        unoptimized
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold leading-snug">{ticket.eventTitle}</h3>

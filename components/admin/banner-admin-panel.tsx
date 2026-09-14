@@ -289,7 +289,7 @@ export function BannerAdminPanel() {
                         <img
                           src={event.coverImage}
                           alt=""
-                          className="size-10 rounded object-cover"
+                          className="size-10 rounded bg-zinc-950 object-contain"
                         />
                       ) : null}
                       <span>{event.title}</span>

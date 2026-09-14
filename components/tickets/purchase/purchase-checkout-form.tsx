@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { ExternalLink, Lock, ShieldCheck } from 'lucide-react';
 import { PaymentCardLogos } from '@/components/checkout/payment-card-logos';
 import { CheckoutBillingSection } from '@/components/checkout/checkout-billing-section';
@@ -410,14 +410,12 @@ export function PurchaseCheckoutForm({
 
       <aside className="lg:col-span-2">
         <div className="sticky top-[5.5rem] space-y-4 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm">
-          <div className="relative mb-1 aspect-video overflow-hidden rounded-xl bg-muted">
-            <Image
-              src={event.coverImage}
-              alt={event.title}
-              fill
-              className="object-cover"
-            />
-          </div>
+          <EventCoverFrame
+            src={event.coverImage}
+            alt={event.title}
+            className="mb-1 aspect-video rounded-xl"
+            sizes="(max-width: 1024px) 100vw, 360px"
+          />
           <div>
             <h3 className="font-bold leading-snug">{event.title}</h3>
             <p className="mt-1 text-sm text-muted-foreground">

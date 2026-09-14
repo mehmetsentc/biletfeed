@@ -2,11 +2,11 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import type { MockEvent } from '@/lib/data/mock-events';
 import { adminHref } from '@/lib/config/domain';
 
@@ -143,13 +143,13 @@ export function EventEditorForm({ event }: EventEditorFormProps) {
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-start gap-6">
-        <div className="relative size-32 shrink-0 overflow-hidden rounded-lg border bg-muted">
+        <div className="relative size-32 shrink-0 overflow-hidden rounded-lg border bg-zinc-950">
           {form.coverImage ? (
-            <Image
+            <EventCoverFrame
               src={form.coverImage}
               alt={form.title}
-              fill
-              className="object-cover"
+              className="size-full"
+              sizes="128px"
               unoptimized
             />
           ) : (

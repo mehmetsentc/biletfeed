@@ -249,12 +249,12 @@ export default function CreateEventWizardPage() {
               )}
             >
               {previewImage ? (
-                <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-950">
                   <Image
                     src={previewImage}
                     alt="Kapak önizleme"
                     fill
-                    className="object-cover"
+                    className="object-contain object-center"
                   />
                 </div>
               ) : (
@@ -333,12 +333,12 @@ export default function CreateEventWizardPage() {
         <FormSection title="Önizleme">
           <div className="space-y-4 p-6">
             {previewImage && (
-              <div className="relative aspect-video overflow-hidden rounded-lg">
+              <div className="relative aspect-video overflow-hidden rounded-lg bg-zinc-950">
                 <Image
                   src={previewImage}
                   alt="Kapak"
                   fill
-                  className="object-cover"
+                  className="object-contain object-center"
                 />
               </div>
             )}

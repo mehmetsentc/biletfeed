@@ -1,10 +1,10 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FavoriteButton } from '@/components/events/favorite-button';
 import { CategoryBadge } from '@/components/events/category-badge';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import {
   type MockEvent,
   formatEventDate,
@@ -32,15 +32,12 @@ export function EventCard({
           className
         )}
       >
-        <div className="relative size-28 shrink-0 overflow-hidden rounded-xl">
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
-            sizes="112px"
-          />
-        </div>
+        <EventCoverFrame
+          src={event.coverImage}
+          alt={event.title}
+          className="size-28 shrink-0 rounded-xl"
+          sizes="112px"
+        />
         <div className="flex min-w-0 flex-1 flex-col justify-center">
           <CategoryBadge slug={event.categorySlug} label={event.category} className="mb-1 w-fit" />
           <h3 className="line-clamp-2 font-semibold leading-tight group-hover:text-[var(--bf-accent-ink)]">
@@ -73,14 +70,12 @@ export function EventCard({
           className
         )}
       >
-        <div className="relative aspect-video">
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width:768px) 100vw, 33vw"
-          />
+        <EventCoverFrame
+          src={event.coverImage}
+          alt={event.title}
+          className="aspect-video"
+          sizes="(max-width:768px) 100vw, 33vw"
+        >
           <div className="absolute inset-0 event-image-overlay" />
           <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
             <CategoryBadge
@@ -102,7 +97,7 @@ export function EventCard({
             </div>
             <p className="mt-3 text-lg font-bold">{formatPrice(event)}</p>
           </div>
-        </div>
+        </EventCoverFrame>
       </Link>
     );
   }
@@ -115,14 +110,12 @@ export function EventCard({
       )}
     >
       <Link href={`/etkinlik/${event.slug}`} className="block">
-        <div className="relative aspect-video overflow-hidden rounded-t-[var(--radius-image)]">
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className="object-cover transition-transform duration-[var(--duration-normal)] ease-[var(--ease-out)] group-hover:scale-[1.03]"
-            sizes="(max-width:768px) 100vw, (max-width:1200px) 50vw, 33vw"
-          />
+        <EventCoverFrame
+          src={event.coverImage}
+          alt={event.title}
+          className="aspect-video rounded-t-[var(--radius-image)]"
+          sizes="(max-width:768px) 100vw, (max-width:1200px) 50vw, 33vw"
+        >
           <div className="pointer-events-none absolute inset-0 event-image-overlay-subtle" />
           {event.discountPercent && event.discountPercent > 0 && (
             <Badge variant="discount" className="absolute left-3 top-3">
@@ -134,7 +127,7 @@ export function EventCard({
               Ücretsiz
             </Badge>
           )}
-        </div>
+        </EventCoverFrame>
         <div className="p-4 md:p-5">
           <div className="mb-2.5 flex items-center justify-between gap-2">
             <CategoryBadge slug={event.categorySlug} label={event.category} />

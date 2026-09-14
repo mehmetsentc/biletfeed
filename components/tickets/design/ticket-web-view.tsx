@@ -134,9 +134,13 @@ export function TicketWebView({
       </div>
 
       {coverImageUrl && (
-        <div className="relative h-44 sm:h-52">
+        <div className="relative h-44 bg-[#0c1017] sm:h-52">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={coverImageUrl} alt={eventTitle} className="h-full w-full object-cover" />
+          <img
+            src={coverImageUrl}
+            alt={eventTitle}
+            className="h-full w-full object-contain object-center"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-[#131920] via-transparent to-transparent" />
         </div>
       )}

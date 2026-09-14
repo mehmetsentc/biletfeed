@@ -1,8 +1,8 @@
-import Image from 'next/image';
 import { formatEventDate, formatEventTimeRange } from '@/lib/data/mock-events';
 import { enforceAdminPageAccess } from '@/lib/auth/admin-api';
 import { listPendingInternalEvents } from '@/lib/services/event-approvals';
 import { EventApprovalActions } from '@/components/admin/event-approval-actions';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { Badge } from '@/components/ui/badge';
 
 export default async function AdminEventApprovalPage() {
@@ -35,17 +35,17 @@ export default async function AdminEventApprovalPage() {
               <tr key={event.id} className="border-b last:border-0 hover:bg-muted/20">
                 <td className="p-3">
                   <div className="flex items-center gap-3">
-                    <div className="relative size-12 shrink-0 overflow-hidden rounded bg-muted">
-                      {event.coverImage && (
-                        <Image
-                          src={event.coverImage}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      )}
-                    </div>
+                    {event.coverImage ? (
+                      <EventCoverFrame
+                        src={event.coverImage}
+                        alt=""
+                        className="size-12 shrink-0 rounded bg-muted"
+                        sizes="48px"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="size-12 shrink-0 rounded bg-muted" />
+                    )}
                     <div>
                       <p className="font-medium line-clamp-2">{event.title}</p>
                       <a

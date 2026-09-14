@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Tag } from 'lucide-react';
 import { FavoriteButton } from '@/components/events/favorite-button';
+import { EventCoverFrame } from '@/components/events/event-cover-media';
 import {
   type MockEvent,
   formatEventDateLine,
@@ -36,18 +36,16 @@ export function EventifyHorizontalCard({
         href={`/etkinlik/${event.slug}`}
         className="flex flex-col sm:flex-row"
       >
-        <div className="relative aspect-video w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-[220px] md:w-[260px]">
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width:640px) 100vw, 260px"
-          />
+        <EventCoverFrame
+          src={event.coverImage}
+          alt={event.title}
+          className="aspect-video w-full shrink-0 sm:aspect-auto sm:min-h-[140px] sm:w-[220px] md:w-[260px]"
+          sizes="(max-width:640px) 100vw, 260px"
+        >
           <span className="absolute bottom-3 left-3 rounded bg-primary px-2 py-0.5 text-[10px] font-bold uppercase text-primary-foreground">
             {event.category}
           </span>
-        </div>
+        </EventCoverFrame>
 
         <div className="flex min-w-0 flex-1 flex-col justify-center p-4 sm:p-5">
           <h3 className="line-clamp-2 text-base font-bold leading-snug group-hover:text-[var(--bf-accent-ink)] md:text-lg">
