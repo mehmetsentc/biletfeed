@@ -158,7 +158,7 @@ export const tr = {
     turkey: 'Türkiye',
     almostGone: 'Tükenmek üzere',
     lastTickets: (n: number) => `Son ${n} bilet`,
-    noActiveTickets: 'Bu etkinlik için aktif bilet bulunamadı.',
+    noActiveTickets: 'Satın alınabilir bilet kalmadı.',
     buy: 'Satın Al',
     notFound: 'Etkinlik bulunamadı',
     adjustFilters: 'Filtreleri veya arama terimini değiştirmeyi deneyin',

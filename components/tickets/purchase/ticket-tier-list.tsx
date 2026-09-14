@@ -7,7 +7,8 @@ import {
   ticketTypeAvailable,
   ticketTypeRemaining,
   splitTicketDisplay,
-  seatsPerUnitBadgeLabel
+  seatsPerUnitBadgeLabel,
+  filterAvailableCheckoutTicketTypes
 } from '@/lib/tickets/purchase-types';
 import { SalePriceLabel } from '@/components/tickets/purchase/sale-price-label';
 import { getServerTranslations } from '@/lib/i18n/server';
@@ -32,8 +33,9 @@ export async function TicketTierList({
   className
 }: TicketTierListProps) {
   const { t } = await getServerTranslations();
+  const sellableTypes = filterAvailableCheckoutTicketTypes(ticketTypes);
 
-  if (ticketTypes.length === 0) {
+  if (sellableTypes.length === 0) {
     return (
       <div
         className={cn(
@@ -52,7 +54,7 @@ export async function TicketTierList({
   const useTablePicker =
     seatPlan?.layout === 'tables' &&
     hasZones &&
-    ticketTypes.some((tt) => (tt.seatsPerUnit ?? 1) > 1);
+    sellableTypes.some((tt) => (tt.seatsPerUnit ?? 1) > 1);
 
   const useSectionPicker = seatPlan?.layout === 'sections' && hasZones;
 
@@ -61,7 +63,7 @@ export async function TicketTierList({
       <div className={className}>
         <VenueTablePicker
           eventSlug={eventSlug}
-          ticketTypes={ticketTypes}
+          ticketTypes={sellableTypes}
           seatPlan={seatPlan}
         />
       </div>
@@ -73,7 +75,7 @@ export async function TicketTierList({
       <div className={className}>
         <VenueSectionSeatPicker
           eventSlug={eventSlug}
-          ticketTypes={ticketTypes}
+          ticketTypes={sellableTypes}
           seatPlan={seatPlan}
           soldSeatIds={soldSeatIds}
         />
@@ -83,7 +85,7 @@ export async function TicketTierList({
 
   return (
     <div className={cn('space-y-3', className)}>
-      {ticketTypes.map((type) => {
+      {sellableTypes.map((type) => {
         const available = ticketTypeAvailable(type);
         const remaining = ticketTypeRemaining(type);
         const seats = Math.max(1, type.seatsPerUnit || 1);

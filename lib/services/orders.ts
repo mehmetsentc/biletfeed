@@ -27,7 +27,7 @@ import {
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
-import { isComboTicketName } from '@/lib/tickets/purchase-types';
+import { isComboTicketName, filterAvailableCheckoutTicketTypes } from '@/lib/tickets/purchase-types';
 import {
   comboDayAttendeeLabel,
   comboIssueTargets,
@@ -354,7 +354,7 @@ export async function getCheckoutTicketTypes(
       saleDiscountActive: true,
       saleDiscountEndsAt: true,
       ticketTypes: {
-        where: { status: { in: ['active', 'sold_out'] }, deletedAt: null },
+        where: { status: 'active', deletedAt: null },
         orderBy: { price: 'asc' },
         select: {
           id: true,
@@ -410,29 +410,31 @@ export async function getCheckoutTicketTypes(
       )
   );
 
-  return event.ticketTypes
-    .filter((tt) => event.isFree || tt.price > 0)
-    .map((tt) => {
-    const eff = effectiveTicketPrice(saleFields, tt);
-    return {
-      id: tt.id,
-      name: tt.name,
-      description: tt.description ?? '',
-      type: tt.type,
-      price: eff.unitPrice,
-      listPrice: eff.listPrice,
-      isOnSale: eff.isOnSale,
-      discountPercent: eff.discountPercent,
-      isBogo: eff.isBogo,
-      currency: tt.currency,
-      capacity: tt.capacity,
-      sold: tt._count.purchasedTickets,
-      seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
-      showLowStockBadge: tt.showLowStockBadge,
-      status: tt.status === 'sold_out' ? 'sold_out' : 'active',
-      allowsZeroPrice: Boolean(event.isFree)
-    };
-  });
+  return filterAvailableCheckoutTicketTypes(
+    event.ticketTypes
+      .filter((tt) => event.isFree || tt.price > 0)
+      .map((tt) => {
+        const eff = effectiveTicketPrice(saleFields, tt);
+        return {
+          id: tt.id,
+          name: tt.name,
+          description: tt.description ?? '',
+          type: tt.type,
+          price: eff.unitPrice,
+          listPrice: eff.listPrice,
+          isOnSale: eff.isOnSale,
+          discountPercent: eff.discountPercent,
+          isBogo: eff.isBogo,
+          currency: tt.currency,
+          capacity: tt.capacity,
+          sold: tt._count.purchasedTickets,
+          seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
+          showLowStockBadge: tt.showLowStockBadge,
+          status: tt.status === 'sold_out' ? 'sold_out' : 'active',
+          allowsZeroPrice: Boolean(event.isFree)
+        };
+      })
+  );
 }
 
 export async function createCheckout(params: {

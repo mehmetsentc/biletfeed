@@ -158,7 +158,7 @@ export const en: TranslationKeys = {
     turkey: 'Turkey',
     almostGone: 'Almost gone',
     lastTickets: (n: number) => `Last ${n} tickets`,
-    noActiveTickets: 'No active tickets for this event.',
+    noActiveTickets: 'No tickets left for sale.',
     buy: 'Buy',
     notFound: 'No events found',
     adjustFilters: 'Try changing filters or your search term',

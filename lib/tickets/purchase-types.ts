@@ -22,7 +22,7 @@ export type CheckoutTicketType = {
    */
   seatsPerUnit: number;
   showLowStockBadge: boolean;
-  /** active | paused | sold_out — sold_out canlıda Tükendi */
+  /** active | paused | sold_out — tükendi / duraklatılanlar satın alma listesinde gizlenir */
   status: 'active' | 'paused' | 'sold_out';
   /**
    * Etkinlik ücretsizse price=0 satın alınabilir.
@@ -73,6 +73,12 @@ export function publicTicketInventoryAvailable(type: {
 
 export function ticketTypeAvailable(type: CheckoutTicketType): boolean {
   return publicTicketInventoryAvailable(type);
+}
+
+export function filterAvailableCheckoutTicketTypes(
+  ticketTypes: CheckoutTicketType[]
+): CheckoutTicketType[] {
+  return ticketTypes.filter(ticketTypeAvailable);
 }
 
 export function ticketTypeRemaining(type: CheckoutTicketType): number {
