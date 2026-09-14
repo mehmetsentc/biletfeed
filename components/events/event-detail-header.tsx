@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { CalendarDays, Clock3, MapPin, Tag } from 'lucide-react';
 import {
@@ -9,6 +8,7 @@ import { formatEventTimeDisplay } from '@/lib/datetime/istanbul';
 import { getEventPlatformTheme } from '@/lib/events/platform-theme';
 import { isExternalListing } from '@/lib/events/ticket-url';
 import { getServerTranslations } from '@/lib/i18n/server';
+import { EventCoverMedia } from '@/components/events/event-cover-media';
 import { EventDetailActions } from '@/components/events/event-detail-actions';
 import { EventPurchaseCard } from '@/components/events/event-purchase-card';
 import { cn } from '@/lib/utils';
@@ -46,17 +46,7 @@ export async function EventDetailHeader({
         } as React.CSSProperties
       }
     >
-      {/* Kapak: sabit 16:9 — cover + center ile oran korunur, kırpma ortalanır */}
-      <div className="relative aspect-video w-full overflow-hidden bg-muted">
-        <Image
-          src={event.coverImage}
-          alt={event.title}
-          fill
-          className="object-cover object-center"
-          priority
-          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1120px"
-        />
-      </div>
+      <EventCoverMedia src={event.coverImage} alt={event.title} priority />
 
       <div className="grid gap-0 xl:grid-cols-[1fr_300px]">
         <div className="flex flex-col justify-between gap-5 p-5 md:p-6 xl:pr-4">

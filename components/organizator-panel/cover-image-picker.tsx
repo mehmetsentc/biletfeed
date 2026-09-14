@@ -180,12 +180,12 @@ export function CoverImagePicker({
           )}
         >
           {previewUrl ? (
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-950">
               <Image
                 src={previewUrl}
                 alt="Kapak önizleme"
                 fill
-                className="object-cover"
+                className="object-contain object-center"
                 unoptimized={previewUrl.startsWith('blob:')}
               />
             </div>
@@ -198,7 +198,7 @@ export function CoverImagePicker({
                 Sürükleyip bırakın veya tıklayın
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Önerilen: 1920×1080 px · JPG, PNG veya WebP · max. 5 MB
+                Önerilen: 1920×1080 px (16:9). Farklı oranlar sayfada kırpılmaz. JPG, PNG veya WebP · max. 5 MB
               </p>
             </>
           )}
@@ -242,12 +242,12 @@ export function CoverImagePicker({
             Herkese açık bir görsel URL&apos;si yapıştırın. Kayıt sırasında bu adres kullanılır.
           </p>
           {previewUrl?.startsWith('http') && (
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border">
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-zinc-950">
               <Image
                 src={previewUrl}
                 alt="Kapak önizleme"
                 fill
-                className="object-cover"
+                className="object-contain object-center"
                 unoptimized
                 onError={() => setError('Görsel yüklenemedi. Linki kontrol edin.')}
               />
