@@ -7,10 +7,12 @@ import { buildPublicTicketPageUrl } from '@/lib/tickets/qr-image-url';
 import { buildTicketQrPayload } from '@/lib/tickets/sign';
 import { getSiteUrl } from '@/lib/config/domain';
 import { isComboTicketName, isSalesClosedTicketType } from '@/lib/tickets/purchase-types';
+import { buildSessionCookie } from '@/lib/auth/session';
 
 const BLOK3_SLUG = 'blok3-konseri';
 const COMBO_TYPE_NAME = 'TEST Kombine Davetiye';
 const CLOSED_TYPE_NAME = 'TEST Sistem Dışı Davetiye';
+const PRODUCTION_ORIGIN = 'https://biletfeed.com';
 
 export type LiveScanStep = {
   label: string;
@@ -28,6 +30,13 @@ export type LiveTestInvitationResult = {
   ticketUrl: string;
   qrPayload: string;
   scans: LiveScanStep[];
+};
+
+type Owner = {
+  id: string;
+  firebaseUid: string;
+  email: string | null;
+  role: string;
 };
 
 async function ensureInvitationTicketType(params: {
@@ -82,12 +91,94 @@ async function ensureInvitationTicketType(params: {
   return created.id;
 }
 
-async function scanQr(params: {
+function hasTicketSecret(): boolean {
+  return Boolean(process.env.TICKET_SECRET_KEY?.trim());
+}
+
+function productionHeaders(sessionToken: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${sessionToken}`,
+    Cookie: `panel_session=${sessionToken}; session=${sessionToken}`,
+    Origin: PRODUCTION_ORIGIN,
+    Referer: `${PRODUCTION_ORIGIN}/`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  };
+}
+
+async function createInviteOnProduction(params: {
+  sessionToken: string;
+  eventId: string;
+  ticketTypeId: string;
+  guestName: string;
+  guestEmail: string;
+}): Promise<{ ticketCode: string; inviteToken: string; qrData: string }> {
+  const response = await fetch(`${PRODUCTION_ORIGIN}/api/organizer/invitations`, {
+    method: 'POST',
+    headers: productionHeaders(params.sessionToken),
+    body: JSON.stringify({
+      eventId: params.eventId,
+      ticketTypeId: params.ticketTypeId,
+      guestName: params.guestName,
+      guestEmail: params.guestEmail
+    })
+  });
+  const payload = (await response.json()) as {
+    error?: string;
+    invitation?: {
+      ticketCode: string;
+      inviteToken: string;
+      qrData: string;
+    };
+  };
+  if (!response.ok || !payload.invitation) {
+    throw new Error(
+      `Production davetiye API: ${payload.error ?? response.status}`
+    );
+  }
+  return payload.invitation;
+}
+
+async function scanOnProduction(params: {
+  sessionToken: string;
+  qrRaw: string;
+  eventId: string;
+  markUsed: boolean;
+}): Promise<LiveScanStep> {
+  const response = await fetch(`${PRODUCTION_ORIGIN}/api/tickets/validate`, {
+    method: 'POST',
+    headers: productionHeaders(params.sessionToken),
+    body: JSON.stringify({
+      qrRaw: params.qrRaw,
+      eventId: params.eventId,
+      markUsed: params.markUsed
+    })
+  });
+  const payload = (await response.json()) as {
+    error?: string;
+    status?: string;
+    message?: string;
+  };
+  if (!response.ok) {
+    return {
+      label: '',
+      status: 'ERROR',
+      message: payload.error ?? `HTTP ${response.status}`
+    };
+  }
+  return {
+    label: '',
+    status: payload.status ?? 'UNKNOWN',
+    message: payload.message ?? ''
+  };
+}
+
+async function scanLocal(params: {
   qrRaw: string;
   gateEventId: string;
   markUsed: boolean;
   scannerUid: string;
-  scannerEmail: string;
+  scannerEmail?: string;
   scannerRole: UserRole;
   scannerUserId: string;
   scannerOrganizerId: string;
@@ -114,6 +205,7 @@ export async function runLiveInvitationQrTest(): Promise<{
   event: { id: string; title: string; slug: string };
   sibling: { id: string; title: string } | null;
   checkoutHidesNewTypes: boolean;
+  viaProductionApi: boolean;
   invitations: LiveTestInvitationResult[];
 }> {
   await ensureDbConnection();
@@ -146,7 +238,7 @@ export async function runLiveInvitationQrTest(): Promise<{
     throw new Error('BLOK3 etkinliği bulunamadı');
   }
 
-  const owner = event.organizer.owner;
+  const owner: Owner = event.organizer.owner;
   if (!owner?.firebaseUid) {
     throw new Error('BLOK3 organizatör sahibi bulunamadı');
   }
@@ -168,97 +260,139 @@ export async function runLiveInvitationQrTest(): Promise<{
     saleEndDate: event.endDate
   });
 
-  const stamp = Date.now();
-  const comboInvite = await createEventInvitation({
-    organizerId: event.organizerId,
-    eventId: event.id,
-    ticketTypeId: comboTypeId,
-    guestName: 'LIVE-TEST Kombine',
-    guestEmail: `live-test-kombine+${stamp}@biletfeed.local`,
-    skipEmail: true
-  });
-  const closedInvite = await createEventInvitation({
-    organizerId: event.organizerId,
-    eventId: event.id,
-    ticketTypeId: closedTypeId,
-    guestName: 'LIVE-TEST Sistem Dışı',
-    guestEmail: `live-test-sistem-disi+${stamp}@biletfeed.local`,
-    skipEmail: true
-  });
+  const viaProductionApi = !hasTicketSecret();
+  let sessionToken: string | null = null;
+  if (viaProductionApi) {
+    if (!process.env.NEXTAUTH_SECRET?.trim()) {
+      throw new Error(
+        'Preview TICKET_SECRET_KEY ve NEXTAUTH_SECRET yok; production HMAC/oturum kurulamadı'
+      );
+    }
+    sessionToken = buildSessionCookie(
+      owner.firebaseUid,
+      owner.email ?? '',
+      owner.role as UserRole
+    );
+  }
 
-  const scanner = {
-    scannerUid: owner.firebaseUid,
-    scannerEmail: owner.email ?? undefined,
-    scannerRole: owner.role as UserRole,
-    scannerUserId: owner.id,
-    scannerOrganizerId: event.organizerId
-  };
+  const stamp = Date.now();
+  const specs = [
+    {
+      kind: 'kombine' as const,
+      ticketTypeId: comboTypeId,
+      guestName: 'LIVE-TEST Kombine',
+      guestEmail: `live-test-kombine+${stamp}@biletfeed.local`,
+      expectedCombo: true
+    },
+    {
+      kind: 'sistem-disi' as const,
+      ticketTypeId: closedTypeId,
+      guestName: 'LIVE-TEST Sistem Dışı',
+      guestEmail: `live-test-sistem-disi+${stamp}@biletfeed.local`,
+      expectedCombo: false
+    }
+  ];
 
   const invitations: LiveTestInvitationResult[] = [];
 
-  for (const invite of [
-    { kind: 'kombine' as const, row: comboInvite, expectedCombo: true },
-    { kind: 'sistem-disi' as const, row: closedInvite, expectedCombo: false }
-  ]) {
+  for (const spec of specs) {
+    let ticketCode: string;
+    let inviteToken: string;
+    let qrRaw: string;
+
+    if (viaProductionApi && sessionToken) {
+      const created = await createInviteOnProduction({
+        sessionToken,
+        eventId: event.id,
+        ticketTypeId: spec.ticketTypeId,
+        guestName: spec.guestName,
+        guestEmail: spec.guestEmail
+      });
+      ticketCode = created.ticketCode;
+      inviteToken = created.inviteToken;
+      qrRaw = created.qrData;
+    } else {
+      const created = await createEventInvitation({
+        organizerId: event.organizerId,
+        eventId: event.id,
+        ticketTypeId: spec.ticketTypeId,
+        guestName: spec.guestName,
+        guestEmail: spec.guestEmail,
+        skipEmail: true
+      });
+      ticketCode = created.ticketCode;
+      inviteToken = created.inviteToken;
+      const ticket = await prisma.purchasedTicket.findFirst({
+        where: { ticketCode, deletedAt: null },
+        select: { id: true, validationToken: true }
+      });
+      if (!ticket) throw new Error(`Bilet bulunamadı: ${ticketCode}`);
+      qrRaw = buildTicketQrPayload({
+        ticketId: ticket.id,
+        ticketCode,
+        validationToken: ticket.validationToken
+      });
+    }
+
     const ticket = await prisma.purchasedTicket.findFirst({
-      where: { ticketCode: invite.row.ticketCode, deletedAt: null },
+      where: { ticketCode, deletedAt: null },
       include: { ticketType: { select: { name: true, invitationOnly: true, type: true } } }
     });
     if (!ticket) {
-      throw new Error(`Bilet bulunamadı: ${invite.row.ticketCode}`);
+      throw new Error(`Bilet kaydı yok: ${ticketCode}`);
     }
 
-    const qrRaw = buildTicketQrPayload({
-      ticketId: ticket.id,
-      ticketCode: ticket.ticketCode,
-      validationToken: ticket.validationToken
-    });
-    const scans: LiveScanStep[] = [];
-
-    const day1Preview = await scanQr({
-      ...scanner,
-      qrRaw,
-      gateEventId: event.id,
-      markUsed: false
-    });
-    scans.push({ ...day1Preview, label: 'BLOK3 önizleme (markUsed:false)' });
-
-    const day1Mark = await scanQr({
-      ...scanner,
-      qrRaw,
-      gateEventId: event.id,
-      markUsed: true
-    });
-    scans.push({ ...day1Mark, label: 'BLOK3 giriş (1. okutma)' });
-
-    const day1Replay = await scanQr({
-      ...scanner,
-      qrRaw,
-      gateEventId: event.id,
-      markUsed: true
-    });
-    scans.push({ ...day1Replay, label: 'BLOK3 tekrar (aynı gün)' });
-
-    if (sibling) {
-      const day2 = await scanQr({
-        ...scanner,
+    const scan = async (
+      gateEventId: string,
+      markUsed: boolean
+    ): Promise<LiveScanStep> => {
+      if (viaProductionApi && sessionToken) {
+        return scanOnProduction({
+          sessionToken,
+          qrRaw,
+          eventId: gateEventId,
+          markUsed
+        });
+      }
+      return scanLocal({
         qrRaw,
-        gateEventId: sibling.eventId,
-        markUsed: true
+        gateEventId,
+        markUsed,
+        scannerUid: owner.firebaseUid,
+        scannerEmail: owner.email ?? undefined,
+        scannerRole: owner.role as UserRole,
+        scannerUserId: owner.id,
+        scannerOrganizerId: event.organizerId
       });
+    };
+
+    const scans: LiveScanStep[] = [];
+    scans.push({
+      ...(await scan(event.id, false)),
+      label: 'BLOK3 önizleme (markUsed:false)'
+    });
+    scans.push({
+      ...(await scan(event.id, true)),
+      label: 'BLOK3 giriş (1. okutma)'
+    });
+    scans.push({
+      ...(await scan(event.id, true)),
+      label: 'BLOK3 tekrar (aynı gün)'
+    });
+    if (sibling) {
       scans.push({
-        ...day2,
+        ...(await scan(sibling.eventId, true)),
         label: `${sibling.title} kapısı`
       });
     }
 
     invitations.push({
-      kind: invite.kind,
-      guestName: invite.row.guestName,
+      kind: spec.kind,
+      guestName: spec.guestName,
       ticketTypeName: ticket.ticketType.name,
       invitationOnly: isSalesClosedTicketType(ticket.ticketType),
-      ticketCode: ticket.ticketCode,
-      inviteUrl: getSiteUrl(`/davetiye/${invite.row.inviteToken}`),
+      ticketCode,
+      inviteUrl: getSiteUrl(`/davetiye/${inviteToken}`),
       ticketUrl: buildPublicTicketPageUrl({
         ticketCode: ticket.ticketCode,
         validationToken: ticket.validationToken,
@@ -268,7 +402,7 @@ export async function runLiveInvitationQrTest(): Promise<{
       scans
     });
 
-    if (invite.expectedCombo && !isComboTicketName(ticket.ticketType.name)) {
+    if (spec.expectedCombo && !isComboTicketName(ticket.ticketType.name)) {
       throw new Error('Kombine test türü isComboTicketName eşleşmedi');
     }
   }
@@ -287,10 +421,9 @@ export async function runLiveInvitationQrTest(): Promise<{
 
   return {
     event: { id: event.id, title: event.title, slug: event.slug },
-    sibling: sibling
-      ? { id: sibling.eventId, title: sibling.title }
-      : null,
+    sibling: sibling ? { id: sibling.eventId, title: sibling.title } : null,
     checkoutHidesNewTypes,
+    viaProductionApi,
     invitations
   };
 }
