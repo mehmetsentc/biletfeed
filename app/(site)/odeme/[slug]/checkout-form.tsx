@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ChevronRight,
@@ -64,6 +64,7 @@ export function CheckoutForm({
     ticketTypes.length <= 1 ? 'qty' : 'pick'
   );
   const [loading, setLoading] = useState(false);
+  const submitLock = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedTypeId, setSelectedTypeId] = useState(ticketTypes[0]?.id ?? '');
@@ -152,6 +153,7 @@ export function CheckoutForm({
 
   async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
+    if (submitLock.current) return;
     setLoading(true);
     setError(null);
 
@@ -180,6 +182,7 @@ export function CheckoutForm({
       setBillingErrors({});
 
       try {
+        submitLock.current = true;
         const res = await fetch('/api/orders/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -212,14 +215,15 @@ export function CheckoutForm({
 
         throw new Error(t.purchase.paymentPageFailed);
       } catch (err) {
+        submitLock.current = false;
         setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
-      } finally {
         setLoading(false);
       }
       return;
     }
 
     try {
+      submitLock.current = true;
       const res = await fetch('/api/orders/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -251,8 +255,8 @@ export function CheckoutForm({
 
       throw new Error(t.purchase.paymentPageFailed);
     } catch (err) {
+      submitLock.current = false;
       setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
-    } finally {
       setLoading(false);
     }
   }

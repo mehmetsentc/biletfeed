@@ -178,7 +178,9 @@ export function buildIyzicoCheckoutRequest(
     basketId: input.orderId,
     paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
     callbackUrl: input.callbackUrl,
-    enabledInstallments: [1, 2, 3, 6, 9],
+    // Yalnızca peşin. [1,2,3,6,9] İyzico formunda aynı anda birden fazla
+    // “çekim / taksit” seçeneği açıyordu (tek çekim + 2/3/6/9 taksit).
+    enabledInstallments: [1],
     buyer: {
       id: input.buyer.id.slice(0, 64),
       name,

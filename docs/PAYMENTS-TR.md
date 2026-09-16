@@ -49,6 +49,8 @@ IYZICO_BASE_URL=https://api.iyzipay.com
 5. **Markalı ödeme sayfası:** checkout sonrası kullanıcı `/odeme/guvenli/[orderId]` BiletFeed kabuğuna gider; kart formu İyzico’da (iframe / responsive embed). Kart verisi BiletFeed’de toplanmaz.
 6. TCKN checkout’ta toplanmadığı için İyzico `identityNumber` placeholder (`11111111111`) kullanılır
 7. **iOS/Android Capacitor:** `mobile/capacitor.config.ts` → `server.allowNavigation: ['*']` — banka 3DS ACS WebView’da kalır
+8. **Peşin çekim:** Checkout Form `enabledInstallments: [1]` — taksit seçenekleri aynı anda birden fazla çekim adımı gibi görünmesin diye kapalı
+9. **Çift oturum:** Aynı kullanıcı + etkinlik + sepet için açık pending sipariş varsa yeni İyzico initialize atılmaz; mevcut forma yönlendirilir
 
 ## Paraşüt bağlantısı
 

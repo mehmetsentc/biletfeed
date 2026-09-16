@@ -32,6 +32,7 @@ describe('buildIyzicoCheckoutRequest', () => {
     expect(req.price).toBe('120.00');
     expect(req.paidPrice).toBe('120.00');
     expect(req.callbackUrl).toContain('/callback/iyzico');
+    expect(req.enabledInstallments).toEqual([1]);
     expect(req.buyer).toMatchObject({
       name: 'Ali',
       surname: 'Veli',

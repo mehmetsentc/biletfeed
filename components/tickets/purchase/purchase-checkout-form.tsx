@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { EventCoverFrame } from '@/components/events/event-cover-media';
 import { ExternalLink, Lock, ShieldCheck } from 'lucide-react';
@@ -58,6 +58,7 @@ export function PurchaseCheckoutForm({
   const t = useTranslations();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const submitLock = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [attendeeName, setAttendeeName] = useState('');
   const [attendeeEmail, setAttendeeEmail] = useState('');
@@ -163,6 +164,7 @@ export function PurchaseCheckoutForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitLock.current) return;
     setLoading(true);
     setError(null);
 
@@ -198,6 +200,7 @@ export function PurchaseCheckoutForm({
     }
 
     try {
+      submitLock.current = true;
       const res = await fetch('/api/orders/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -239,8 +242,8 @@ export function PurchaseCheckoutForm({
 
       throw new Error(t.purchase.paymentPageFailed);
     } catch (err) {
+      submitLock.current = false;
       setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
-    } finally {
       setLoading(false);
     }
   }

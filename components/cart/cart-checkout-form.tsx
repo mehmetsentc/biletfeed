@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, ShieldCheck } from 'lucide-react';
 import { CheckoutBillingSection } from '@/components/checkout/checkout-billing-section';
@@ -27,6 +27,7 @@ export function CartCheckoutForm() {
   const router = useRouter();
   const { lines, hydrated, clear } = useCart();
   const [loading, setLoading] = useState(false);
+  const submitLock = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [attendeeName, setAttendeeName] = useState('');
   const [attendeeEmail, setAttendeeEmail] = useState('');
@@ -47,6 +48,7 @@ export function CartCheckoutForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitLock.current) return;
     setError(null);
 
     const attendee = validateCheckoutAttendee({
@@ -75,6 +77,7 @@ export function CartCheckoutForm() {
 
     setLoading(true);
     try {
+      submitLock.current = true;
       const items = lines.map((line) => {
         if (line.seatUnitIds && line.seatUnitIds.length > 0) {
           return {
@@ -124,8 +127,8 @@ export function CartCheckoutForm() {
       }
       throw new Error('Ödeme yönlendirmesi alınamadı');
     } catch (err) {
+      submitLock.current = false;
       setError(err instanceof Error ? err.message : 'Bir hata oluştu');
-    } finally {
       setLoading(false);
     }
   }

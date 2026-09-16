@@ -12,6 +12,7 @@ import {
   PENDING_ORDER_TTL_MINUTES
 } from '@/lib/payments/config';
 import { startPaymentCheckout } from '@/lib/payments/process';
+import { checkoutBasketKey } from '@/lib/payments/checkout-basket';
 import { createPaymentAccessToken } from '@/lib/payments/payment-access-token';
 // Muhasebe/pdfkit — checkout serverless bundle'ına girmesin (Vercel ENOENT)
 // Email modülleri dynamic import — statik importlar webpack'i client bundle'a
@@ -58,6 +59,80 @@ export interface CheckoutResult {
 
 export function pendingExpiresAt(): Date {
   return new Date(Date.now() + PENDING_ORDER_TTL_MINUTES * 60 * 1000);
+}
+
+function paymentPageRedirectUrl(
+  orderId: string,
+  provider: PaymentProviderName
+): string {
+  const base = getAppBaseUrl();
+  const paymentToken = createPaymentAccessToken(orderId);
+  if (provider === 'tosla') {
+    return `${base}/odeme/kart/${orderId}?pt=${encodeURIComponent(paymentToken)}`;
+  }
+  if (provider === 'iyzico') {
+    return `${base}/odeme/guvenli/${orderId}?pt=${encodeURIComponent(paymentToken)}`;
+  }
+  return `${base}/odeme/islem/${orderId}`;
+}
+
+async function findReusablePendingCheckout(params: {
+  userId: string;
+  eventId: string;
+  total: number;
+  lines: CheckoutLineItem[];
+  provider: PaymentProviderName;
+}): Promise<{ id: string } | null> {
+  const wantedSeats = params.lines
+    .flatMap((line) => line.seatUnitIds ?? [])
+    .slice()
+    .sort()
+    .join(',');
+  const wanted = checkoutBasketKey(
+    params.total,
+    params.lines.map((line) => ({
+      ticketTypeId: line.ticketTypeId,
+      quantity: line.quantity
+    }))
+  );
+
+  const existing = await prisma.order.findMany({
+    where: {
+      userId: params.userId,
+      eventId: params.eventId,
+      status: 'pending',
+      paymentProvider: params.provider,
+      deletedAt: null,
+      paymentSessionId: { not: null },
+      cartGroupId: null,
+      expiresAt: { gt: new Date() }
+    },
+    include: {
+      items: true,
+      seatHolds: { select: { seatUnitId: true } }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 8
+  });
+
+  const match = existing.find((order) => {
+    const held = order.seatHolds
+      .map((hold) => hold.seatUnitId)
+      .slice()
+      .sort()
+      .join(',');
+    if (held !== wantedSeats) return false;
+    const key = checkoutBasketKey(
+      order.total,
+      order.items.map((item) => ({
+        ticketTypeId: item.ticketTypeId,
+        quantity: item.quantity
+      }))
+    );
+    return key === wanted;
+  });
+
+  return match ? { id: match.id } : null;
 }
 
 export async function resolveCheckoutUser(params: {
@@ -527,6 +602,22 @@ export async function createCheckout(params: {
   const providerName = getPaymentProviderName();
   const base = getAppBaseUrl();
 
+  const reusable = await findReusablePendingCheckout({
+    userId: user.id,
+    eventId: event.id,
+    total,
+    lines,
+    provider: providerName
+  });
+  if (reusable) {
+    return {
+      orderId: reusable.id,
+      status: 'pending',
+      redirectUrl: paymentPageRedirectUrl(reusable.id, providerName),
+      provider: providerName
+    };
+  }
+
   const order = await prisma.$transaction(async (tx) => {
     for (const line of lines) {
       const freshType = await tx.ticketType.findUnique({
@@ -611,18 +702,13 @@ export async function createCheckout(params: {
     data: { paymentSessionId: payment.sessionId }
   });
 
-  const paymentToken = createPaymentAccessToken(order.id);
-  const redirectBase =
-    payment.provider === 'tosla'
-      ? `${base}/odeme/kart/${order.id}?pt=${encodeURIComponent(paymentToken)}`
-      : payment.provider === 'iyzico'
-        ? `${base}/odeme/guvenli/${order.id}?pt=${encodeURIComponent(paymentToken)}`
-        : payment.checkoutUrl;
-
   return {
     orderId: order.id,
     status: 'pending',
-    redirectUrl: redirectBase,
+    redirectUrl:
+      payment.provider === 'iyzico' || payment.provider === 'tosla'
+        ? paymentPageRedirectUrl(order.id, payment.provider)
+        : payment.checkoutUrl,
     provider: payment.provider
   };
 }
@@ -1017,6 +1103,26 @@ export async function fulfillPaidOrder(params: {
       (order.status === 'cancelled' && order.purchasedTickets.length === 0);
     if (!recoverable) {
       throw new Error('Sipariş ödeme için uygun değil');
+    }
+
+    if (order.status === 'cancelled') {
+      const otherPaid = await tx.order.findFirst({
+        where: {
+          userId: order.userId,
+          eventId: order.eventId,
+          status: 'paid',
+          deletedAt: null,
+          id: { not: order.id }
+        },
+        include: { purchasedTickets: true }
+      });
+      if (otherPaid) {
+        return {
+          orderId: otherPaid.id,
+          ticketCount: otherPaid.purchasedTickets.length,
+          alreadyFulfilled: true
+        };
+      }
     }
 
     let ticketCount = order.purchasedTickets.length;
