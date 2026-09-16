@@ -9,7 +9,6 @@ import { getSiteUrl } from '@/lib/config/domain';
 import { isComboTicketName, isSalesClosedTicketType } from '@/lib/tickets/purchase-types';
 
 const BLOK3_SLUG = 'blok3-konseri';
-const ORGANIZER_EMAIL = 'mehmetsentc@gmail.com';
 const COMBO_TYPE_NAME = 'TEST Kombine Davetiye';
 const CLOSED_TYPE_NAME = 'TEST Sistem Dışı Davetiye';
 
@@ -127,19 +126,29 @@ export async function runLiveInvitationQrTest(): Promise<{
       title: true,
       organizerId: true,
       startDate: true,
-      endDate: true
+      endDate: true,
+      organizer: {
+        select: {
+          id: true,
+          owner: {
+            select: {
+              id: true,
+              firebaseUid: true,
+              email: true,
+              role: true
+            }
+          }
+        }
+      }
     }
   });
   if (!event) {
     throw new Error('BLOK3 etkinliği bulunamadı');
   }
 
-  const owner = await prisma.user.findFirst({
-    where: { email: ORGANIZER_EMAIL, deletedAt: null },
-    include: { ownedOrganizer: { select: { id: true } } }
-  });
-  if (!owner?.ownedOrganizer || owner.ownedOrganizer.id !== event.organizerId) {
-    throw new Error('Organizatör hesabı BLOK3 ile eşleşmedi');
+  const owner = event.organizer.owner;
+  if (!owner?.firebaseUid) {
+    throw new Error('BLOK3 organizatör sahibi bulunamadı');
   }
 
   const sessions = await loadSeriesSessionTargets(prisma, event.id);
@@ -179,7 +188,7 @@ export async function runLiveInvitationQrTest(): Promise<{
 
   const scanner = {
     scannerUid: owner.firebaseUid,
-    scannerEmail: owner.email ?? ORGANIZER_EMAIL,
+    scannerEmail: owner.email ?? undefined,
     scannerRole: owner.role as UserRole,
     scannerUserId: owner.id,
     scannerOrganizerId: event.organizerId
