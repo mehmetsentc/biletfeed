@@ -95,6 +95,54 @@ function hasTicketSecret(): boolean {
   return Boolean(process.env.TICKET_SECRET_KEY?.trim());
 }
 
+const ZEYNEP_SLUG = 'zeynep-bastik-emir-can-igrek-koseri';
+
+async function ensureAntalyaComboSeries(blok3Id: string, organizerId: string) {
+  const existing = await loadSeriesSessionTargets(prisma, blok3Id);
+  if (existing.length >= 2) return;
+
+  const zeynep = await prisma.event.findFirst({
+    where: { slug: ZEYNEP_SLUG, organizerId, deletedAt: null },
+    select: { id: true, seo: true, startDate: true }
+  });
+  const blok3 = await prisma.event.findFirst({
+    where: { id: blok3Id, deletedAt: null },
+    select: { id: true, seo: true, startDate: true }
+  });
+  if (!zeynep || !blok3) return;
+
+  const seriesId =
+    (typeof (blok3.seo as { seriesId?: unknown } | null)?.seriesId === 'string'
+      ? (blok3.seo as { seriesId: string }).seriesId
+      : null) ||
+    (typeof (zeynep.seo as { seriesId?: unknown } | null)?.seriesId === 'string'
+      ? (zeynep.seo as { seriesId: string }).seriesId
+      : null) ||
+    crypto.randomUUID();
+
+  const ordered = [blok3, zeynep].sort(
+    (a, b) => a.startDate.getTime() - b.startDate.getTime()
+  );
+  for (let i = 0; i < ordered.length; i++) {
+    const row = ordered[i]!;
+    const seo =
+      row.seo && typeof row.seo === 'object' && !Array.isArray(row.seo)
+        ? { ...(row.seo as Record<string, unknown>) }
+        : {};
+    await prisma.event.update({
+      where: { id: row.id },
+      data: {
+        seo: {
+          ...seo,
+          seriesId,
+          sessionIndex: i,
+          sessionCount: ordered.length
+        }
+      }
+    });
+  }
+}
+
 function productionHeaders(sessionToken: string): HeadersInit {
   return {
     Authorization: `Bearer ${sessionToken}`,
@@ -243,6 +291,7 @@ export async function runLiveInvitationQrTest(): Promise<{
     throw new Error('BLOK3 organizatör sahibi bulunamadı');
   }
 
+  await ensureAntalyaComboSeries(event.id, event.organizerId);
   const sessions = await loadSeriesSessionTargets(prisma, event.id);
   const sibling =
     sessions.find((session) => session.eventId !== event.id) ?? null;
