@@ -30,9 +30,16 @@ type SeriesEventDb = {
   };
 };
 
+export function isComboSeriesTicket(
+  ticketTypeName: string,
+  sessionCount: number
+): boolean {
+  return isComboTicketName(ticketTypeName) && sessionCount >= 2;
+}
+
 /**
- * Kombine + tekrarlayan seans: her gün ayrı bilet.
- * Masa/loca veya tek seans: seatsPerUnit kadar aynı etkinlik QR'ı.
+ * Satın alım başına QR: masa/loca kişi sayısı kadar aynı etkinlik.
+ * Kombine + çok seans: yine tek (veya kişi kadar) QR — günler check-in ile ayrılır.
  */
 export function comboIssueTargets(params: {
   ticketTypeName: string;
@@ -41,10 +48,30 @@ export function comboIssueTargets(params: {
   fallback: ComboDayTarget;
 }): ComboDayTarget[] {
   const seats = Math.max(1, params.seatsPerUnit);
-  if (isComboTicketName(params.ticketTypeName) && params.sessions.length >= 2) {
-    return params.sessions;
-  }
   return Array.from({ length: seats }, () => params.fallback);
+}
+
+export function comboAllowsGateEvent(params: {
+  ticketEventId: string;
+  gateEventId: string;
+  sessionEventIds: string[];
+  isComboSeries: boolean;
+  /** Eski kombine: siparişte her gün ayrı PurchasedTicket */
+  isLegacyPerDayTickets: boolean;
+}): boolean {
+  if (params.ticketEventId === params.gateEventId) return true;
+  if (!params.isComboSeries || params.isLegacyPerDayTickets) return false;
+  const ids = new Set(params.sessionEventIds);
+  return ids.has(params.ticketEventId) && ids.has(params.gateEventId);
+}
+
+export function comboTicketFullyUsed(params: {
+  sessionEventIds: string[];
+  validCheckInEventIds: string[];
+}): boolean {
+  if (params.sessionEventIds.length === 0) return false;
+  const used = new Set(params.validCheckInEventIds);
+  return params.sessionEventIds.every((id) => used.has(id));
 }
 
 export function comboDayAttendeeLabel(
@@ -60,17 +87,27 @@ export function comboDayAttendeeLabel(
 
 /**
  * Davetiye URL’si tarandığında hangi QR’ın işaretleneceği.
- * Kapı belirli bir güne kilitliyse o günün biletini döner (USED olsa bile),
- * böylece 4 Ekim bileti 3 Ekim kapısında tüketilmez.
+ * Eski kombine: kapı gününün biletini döner (USED olsa bile).
+ * Yeni kombine: siparişte tek bilet varsa onu kullanır (gün check-in ile ayrılır).
  */
 export function pickComboTicketForGate<
   T extends { eventId: string; status: string }
 >(tickets: T[], scopedEventId?: string): T | undefined {
   if (tickets.length === 0) return undefined;
   if (scopedEventId) {
-    return tickets.find((ticket) => ticket.eventId === scopedEventId);
+    const exact = tickets.find((ticket) => ticket.eventId === scopedEventId);
+    if (exact) return exact;
+    const uniqueEvents = new Set(tickets.map((ticket) => ticket.eventId));
+    if (uniqueEvents.size === 1) return tickets[0];
+    return undefined;
   }
   return tickets.find((ticket) => ticket.status === 'VALID') ?? tickets[0];
+}
+
+export function isLegacyPerDayComboTickets(
+  tickets: Array<{ eventId: string }>
+): boolean {
+  return new Set(tickets.map((ticket) => ticket.eventId)).size >= 2;
 }
 
 export async function loadSeriesSessionTargets(

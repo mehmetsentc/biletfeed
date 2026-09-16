@@ -51,6 +51,25 @@ describe('isEventPubliclySoldOut', () => {
     ).toBe(true);
   });
 
+  it('is true when remaining stock is invitation-only even if priced', () => {
+    expect(
+      isEventPubliclySoldOut({
+        isFree: false,
+        ticketTypes: [
+          {
+            price: 0,
+            status: 'active',
+            sold: 2,
+            capacity: 50,
+            invitationOnly: true,
+            type: 'invitation',
+            name: 'Davetiye'
+          }
+        ]
+      })
+    ).toBe(true);
+  });
+
   it('is false for a free event with remaining active stock', () => {
     expect(
       isEventPubliclySoldOut({

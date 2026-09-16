@@ -35,6 +35,7 @@ import {
   WizardTextarea
 } from '@/components/organizator-panel/wizard-form';
 import { categories } from '@/lib/data/mock-events';
+import { isInvitationTicketName } from '@/lib/tickets/purchase-types';
 import {
   SUPPORTED_CITIES,
   DEFAULT_CITY_SLUG,
@@ -87,6 +88,7 @@ interface TicketCategory {
   seatsPerUnit: string;
   sold: number;
   showLowStockBadge: boolean;
+  invitationOnly: boolean;
 }
 
 function newSession(): SessionRow {
@@ -108,7 +110,8 @@ function newTicketCategory(): TicketCategory {
     capacity: '',
     seatsPerUnit: '1',
     sold: 0,
-    showLowStockBadge: false
+    showLowStockBadge: false,
+    invitationOnly: false
   };
 }
 
@@ -286,7 +289,8 @@ function ticketCategoriesFromDraft(
         ? String(c.seatsPerUnit)
         : '1',
     sold: 0,
-    showLowStockBadge: c.showLowStockBadge ?? false
+    showLowStockBadge: c.showLowStockBadge ?? false,
+    invitationOnly: c.invitationOnly ?? isInvitationTicketName(c.name ?? '')
   }));
 }
 
@@ -300,7 +304,9 @@ function initialTicketCategory(data: EventWizardInitialData['ticketCategories'][
     capacity: data.capacity,
     seatsPerUnit: data.seatsPerUnit ?? '1',
     sold: data.sold,
-    showLowStockBadge: data.showLowStockBadge
+    showLowStockBadge: data.showLowStockBadge,
+    invitationOnly:
+      data.invitationOnly ?? isInvitationTicketName(data.name)
   };
 }
 
@@ -701,8 +707,11 @@ export function CreateOrganizerEventWizard({
         setError('En az bir bilet kategorisi ekleyin.');
         return;
       }
-      if (ticketType === 'paid' && valid.some((c) => !String(c.price ?? '').trim())) {
-        setError('Ücretli biletler için her kategoriye fiyat girin.');
+      if (
+        ticketType === 'paid' &&
+        valid.some((c) => !c.invitationOnly && !String(c.price ?? '').trim())
+      ) {
+        setError('Ücretli biletler için her satış kategorisine fiyat girin.');
         return;
       }
     }
@@ -773,8 +782,11 @@ export function CreateOrganizerEventWizard({
       setError('En az bir bilet kategorisi ekleyin.');
       return;
     }
-    if (ticketType === 'paid' && validCategories.some((c) => !String(c.price ?? '').trim())) {
-      setError('Ücretli biletler için her kategoriye fiyat girin.');
+    if (
+      ticketType === 'paid' &&
+      validCategories.some((c) => !c.invitationOnly && !String(c.price ?? '').trim())
+    ) {
+      setError('Ücretli biletler için her satış kategorisine fiyat girin.');
       return;
     }
     const belowSold = validCategories.find(
@@ -847,10 +859,12 @@ export function CreateOrganizerEventWizard({
           ...(c.ticketTypeId ? { id: c.ticketTypeId } : {}),
           name: c.name.trim(),
           description: c.description.trim(),
-          price: ticketType === 'free' ? 0 : Number(c.price),
+          price:
+            ticketType === 'free' || c.invitationOnly ? 0 : Number(c.price),
           capacity: Number(c.capacity),
           seatsPerUnit: Math.max(1, Number(c.seatsPerUnit) || 1),
-          showLowStockBadge: c.showLowStockBadge
+          showLowStockBadge: c.showLowStockBadge,
+          invitationOnly: c.invitationOnly
         })),
         ...(venueMapUrl ? { venueMapUrl } : {}),
         ...(targetStatus ? { status: targetStatus } : {}),
@@ -1249,7 +1263,7 @@ export function CreateOrganizerEventWizard({
 
             <WizardFormSection
               title="Bilet Kategorileri"
-              description="Her kategori için ad, fiyat, kontenjan ve açıklama belirleyin."
+              description="Her kategori için ad, fiyat, kontenjan ve açıklama belirleyin. Davetiye kontenjanı satışa kapalı kalır."
               icon={Ticket}
             >
               <WizardFormRow label="Bilet türü" required>
@@ -1293,13 +1307,27 @@ export function CreateOrganizerEventWizard({
                         </label>
                         <Input
                           value={cat.name}
-                          onChange={(e) => updateTicketCategory(cat.id, 'name', e.target.value)}
-                          placeholder="Örn: Sahne Önü, Backstage, VIP, Genel Giriş"
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            setTicketCategories((prev) =>
+                              prev.map((c) =>
+                                c.id === cat.id
+                                  ? {
+                                      ...c,
+                                      name,
+                                      invitationOnly:
+                                        c.invitationOnly || isInvitationTicketName(name)
+                                    }
+                                  : c
+                              )
+                            );
+                          }}
+                          placeholder="Örn: Sahne Önü, Backstage, VIP, Genel Giriş, Davetiye"
                           maxLength={200}
                           className="h-11 rounded-lg"
                         />
                       </div>
-                      {ticketType === 'paid' && (
+                      {ticketType === 'paid' && !cat.invitationOnly && (
                         <div>
                           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
                             Fiyat (₺)<span className="text-destructive">*</span>
@@ -1315,7 +1343,8 @@ export function CreateOrganizerEventWizard({
                       )}
                       <div>
                         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                          Satılabilir adet<span className="text-destructive">*</span>
+                          {cat.invitationOnly ? 'Davetiye kontenjanı' : 'Satılabilir adet'}
+                          <span className="text-destructive">*</span>
                         </label>
                         <Input
                           type="number"
@@ -1325,12 +1354,14 @@ export function CreateOrganizerEventWizard({
                           className="h-11 rounded-lg"
                         />
                         <p className="mt-1 text-[10px] text-muted-foreground">
-                          Masa/loca için genelde 1
+                          {cat.invitationOnly
+                            ? 'Yalnızca davetiye panelinden kullanılır, satışta görünmez'
+                            : 'Masa/loca için genelde 1'}
                         </p>
                       </div>
                       <div>
                         <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                          QR sayısı (kişi / kombine)
+                          QR sayısı (kişi)
                         </label>
                         <Input
                           type="number"
@@ -1344,7 +1375,7 @@ export function CreateOrganizerEventWizard({
                           className="h-11 rounded-lg"
                         />
                         <p className="mt-1 text-[10px] text-muted-foreground">
-                          1 satın alımda kaç QR (masa kişi veya kombine gün)
+                          Masa/loca kişi sayısı. Kombine bilette tek QR her konser gününde bir kez okutulur.
                         </p>
                       </div>
                       <div className="sm:col-span-2">
@@ -1368,6 +1399,23 @@ export function CreateOrganizerEventWizard({
                         <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">
                           <input
                             type="checkbox"
+                            checked={cat.invitationOnly}
+                            onChange={(e) =>
+                              updateTicketCategory(cat.id, 'invitationOnly', e.target.checked)
+                            }
+                            className="mt-0.5 size-4 shrink-0 rounded border-border"
+                          />
+                          <span>
+                            Satışa kapalı davetiye — checkout’ta görünmez, yalnızca davetiye
+                            panelinden gönderilir.
+                          </span>
+                        </label>
+                      </div>
+                      {!cat.invitationOnly && (
+                      <div className="sm:col-span-2">
+                        <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted-foreground">
+                          <input
+                            type="checkbox"
                             checked={cat.showLowStockBadge}
                             onChange={(e) =>
                               updateTicketCategory(cat.id, 'showLowStockBadge', e.target.checked)
@@ -1379,6 +1427,7 @@ export function CreateOrganizerEventWizard({
                           </span>
                         </label>
                       </div>
+                      )}
                     </div>
                   </div>
                 ))}

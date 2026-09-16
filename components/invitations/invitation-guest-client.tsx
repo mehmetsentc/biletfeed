@@ -6,6 +6,7 @@ import { Download } from 'lucide-react';
 import { TicketWebView } from '@/components/tickets/design/ticket-web-view';
 import { ticketWebPrintStyles } from '@/components/tickets/design/ticket-print-styles';
 import { formatTicketDate, formatTicketTime } from '@/lib/tickets/design/format';
+import { isComboTicketName } from '@/lib/tickets/purchase-types';
 
 type InvitationTicketCard = {
   ticketCode: string;
@@ -130,6 +131,12 @@ export function InvitationGuestClient({
             }
           />
         ))}
+
+        {isComboTicketName(invitation.ticketTypeName) && (
+          <p className="text-center text-sm text-white/50">
+            Kombine davetiye: aynı QR her konser gününde bir kez okutulur.
+          </p>
+        )}
 
         <p className="mt-2 text-center text-xs text-white/20 no-print">
           biletfeed.com · Güvenli etkinlik ve bilet platformu

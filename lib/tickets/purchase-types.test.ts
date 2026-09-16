@@ -21,6 +21,7 @@ function type(
     showLowStockBadge: false,
     status: 'active',
     allowsZeroPrice: false,
+    invitationOnly: false,
     ...overrides
   };
 }
@@ -42,5 +43,34 @@ describe('filterAvailableCheckoutTicketTypes', () => {
       type({ id: 'invite', price: 0, allowsZeroPrice: false })
     ]);
     expect(visible.map((t) => t.id)).toEqual(['paid']);
+  });
+
+  it('hides invitation-only types even when priced on a paid event', () => {
+    const visible = filterAvailableCheckoutTicketTypes([
+      type({ id: 'paid', price: 1500 }),
+      type({
+        id: 'invite',
+        name: 'Misafir',
+        type: 'invitation',
+        price: 2500,
+        invitationOnly: true
+      })
+    ]);
+    expect(visible.map((t) => t.id)).toEqual(['paid']);
+  });
+
+  it('hides invitation enum types on free events', () => {
+    const visible = filterAvailableCheckoutTicketTypes([
+      type({ id: 'free-ga', price: 0, allowsZeroPrice: true }),
+      type({
+        id: 'invite',
+        name: 'Davetiye',
+        type: 'invitation',
+        price: 0,
+        allowsZeroPrice: true,
+        invitationOnly: true
+      })
+    ]);
+    expect(visible.map((t) => t.id)).toEqual(['free-ga']);
   });
 });

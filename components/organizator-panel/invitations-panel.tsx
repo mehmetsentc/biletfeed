@@ -41,6 +41,8 @@ type TicketTypeOption = {
   price: number;
   capacity: number;
   sold: number;
+  invitationOnly?: boolean;
+  type?: string;
 };
 
 type SeatOption = {
@@ -598,6 +600,7 @@ export function InvitationsPanel({
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             Misafir adına QR kodlu PDF davetiye oluşturulur. E-posta ile PDF ekli gönderilir.
+            Satışa kapalı davetiye türleri checkout’ta görünmez.
           </p>
 
           <div className="mt-5 space-y-4">
@@ -615,7 +618,9 @@ export function InvitationsPanel({
                 ) : (
                   ticketTypes.map((type) => (
                     <option key={type.id} value={type.id}>
-                      {type.name} ({type.sold}/{type.capacity})
+                      {type.name}
+                      {type.invitationOnly ? ' · satışa kapalı' : ''} (
+                      {type.sold}/{type.capacity})
                     </option>
                   ))
                 )}

@@ -12,6 +12,8 @@ import {
   formatTurkeyDateLong,
   formatTurkeyTimeRange
 } from '@/lib/datetime/istanbul';
+import { isComboTicketName } from '@/lib/tickets/purchase-types';
+import { loadSeriesSessionTargets } from '@/lib/tickets/combo-sessions';
 
 function formatEventDateTime(start: Date, end: Date): { date: string; time: string; full: string } {
   const date = formatTurkeyDateLong(start);
@@ -128,10 +130,19 @@ export async function sendTicketPurchaseEmail(
 
   const currency = event.currency ?? 'TRY';
   const eventDt = formatEventDateTime(event.startDate, event.endDate);
-  const uniqueDates = order.purchasedTickets
-    .map((ticket) => formatTurkeyDateLong(ticket.event.startDate))
-    .filter((value, index, all) => all.indexOf(value) === index);
+  const comboName = order.items.some((item) => isComboTicketName(item.ticketType.name));
+  const sessions = comboName
+    ? await loadSeriesSessionTargets(prisma, event.id)
+    : [];
+  const uniqueDates = (
+    sessions.length >= 2
+      ? sessions.map((session) => formatTurkeyDateLong(session.startDate))
+      : order.purchasedTickets.map((ticket) =>
+          formatTurkeyDateLong(ticket.event.startDate)
+        )
+  ).filter((value, index, all) => all.indexOf(value) === index);
   const combinedDate = uniqueDates.length > 1 ? uniqueDates.join(' · ') : eventDt.date;
+  const isComboPass = comboName && sessions.length >= 2;
 
   const ticketCards = order.purchasedTickets.map((ticket) => {
       const venueNameForTicket = ticket.event.isOnline
@@ -182,7 +193,8 @@ export async function sendTicketPurchaseEmail(
     calendarUrl,
     rules: event.rules?.trim() || undefined,
     hasPdfAttachment: pdfAttachments.length > 0,
-    ticketCards
+    ticketCards,
+    isComboPass
   });
 
   const plainParams = {
@@ -201,7 +213,8 @@ export async function sendTicketPurchaseEmail(
     ticketLines: ticketCards.map((card) => ({
       date: card.eventDate,
       code: card.ticketCode
-    }))
+    })),
+    isComboPass
   };
 
   await queueEmail({

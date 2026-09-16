@@ -18,4 +18,13 @@ describe('resolveSelectedTicketTypeId', () => {
   it('tür yoksa boş string', () => {
     expect(resolveSelectedTicketTypeId('type-3ekim', [])).toBe('');
   });
+
+  it('yeni seçimde satışa kapalı davetiye türünü tercih eder', () => {
+    expect(
+      resolveSelectedTicketTypeId('', [
+        { id: 'ga' },
+        { id: 'invite', invitationOnly: true }
+      ])
+    ).toBe('invite');
+  });
 });
