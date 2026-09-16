@@ -44,6 +44,7 @@ export interface TicketPurchaseEmailParams {
     qrDataUrl: string;
     qrHref?: string;
   }>;
+  isComboPass?: boolean;
 }
 
 /** Gmail 102KB kırpma limiti için hafif bilet özeti — gömülü logo / kurallar yok */
@@ -145,11 +146,13 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
     calendarUrl,
     rules,
     hasPdfAttachment,
-    ticketCards
+    ticketCards,
+    isComboPass
   } = params;
 
-  const preheader =
-    (ticketCards?.length ?? ticketCodes.length) > 1
+  const preheader = isComboPass
+    ? `${eventTitle} — kombine biletiniz hazır. Aynı QR her konser gününde bir kez okutulur.`
+    : (ticketCards?.length ?? ticketCodes.length) > 1
       ? `${eventTitle} — ${ticketCards?.length ?? ticketCodes.length} ayrı biletiniz ve QR kodlarınız hazır.`
       : `${eventTitle} — ${eventDate} ${eventTime}. Biletiniz ve QR kodunuz hazır.`;
 
@@ -232,9 +235,11 @@ export function buildTicketPurchaseEmail(params: TicketPurchaseEmailParams): str
         <p style="margin:0 0 20px;font-size:15px;color:${EMAIL_BRAND.textSecondary};line-height:1.65;">
           <strong style="color:${EMAIL_BRAND.text};">${esc(eventTitle)}</strong> için ödemeniz alındı.
           ${
-            (ticketCards?.length ?? 0) > 1
-              ? 'Kombine biletiniz her gün için ayrı QR içerir — girişte o günün kodunu gösterin.'
-              : 'Dijital biletiniz aşağıdadır — girişte QR kodu göstermeniz yeterli.'
+            isComboPass
+              ? 'Kombine biletiniz tek QR içerir — her konser gününde aynı kod bir kez okutulur.'
+              : (ticketCards?.length ?? 0) > 1
+                ? 'Biletleriniz aşağıdadır — girişte ilgili QR kodu gösterin.'
+                : 'Dijital biletiniz aşağıdadır — girişte QR kodu göstermeniz yeterli.'
           }
         </p>
 
@@ -325,6 +330,7 @@ export function buildTicketPurchasePlainText(params: {
   pdfDownloadUrl?: string;
   hasPdfAttachment?: boolean;
   ticketLines?: Array<{ date: string; code: string }>;
+  isComboPass?: boolean;
 }): string {
   const codeLines =
     params.ticketLines && params.ticketLines.length > 0
@@ -348,6 +354,9 @@ export function buildTicketPurchasePlainText(params: {
     '',
     `Biletleriniz: ${params.ticketsUrl}`,
     '',
+    params.isComboPass
+      ? 'Kombine biletiniz tek QR’dır — her konser gününde aynı kod bir kez okutulur.'
+      : '',
     '— BiletFeed · biletfeed.com',
     'Bu e-posta satın alma onayınız için otomatik gönderilmiştir.'
   ]

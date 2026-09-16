@@ -28,7 +28,7 @@ import {
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
 import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
-import { isComboTicketName, filterAvailableCheckoutTicketTypes } from '@/lib/tickets/purchase-types';
+import { isComboTicketName, filterAvailableCheckoutTicketTypes, isSalesClosedTicketType } from '@/lib/tickets/purchase-types';
 import {
   comboDayAttendeeLabel,
   comboIssueTargets,
@@ -200,6 +200,23 @@ async function loadEventForCheckout(eventSlug: string) {
   };
 }
 
+function assertTicketTypeSellable(
+  ticketType: {
+    name: string;
+    type?: string | null;
+    invitationOnly?: boolean | null;
+    price: number;
+  },
+  isFree: boolean
+): void {
+  if (isSalesClosedTicketType(ticketType)) {
+    throw new Error(`"${ticketType.name}" satışa kapalıdır (yalnızca davetiye)`);
+  }
+  if (!isFree && ticketType.price <= 0) {
+    throw new Error(`"${ticketType.name}" şu an satışta değil`);
+  }
+}
+
 export async function loadCheckoutContext(params: {
   userId: string;
   eventSlug: string;
@@ -276,9 +293,7 @@ export async function loadCheckoutContext(params: {
         const seat = seatUnitIds[i]!;
         const tt = event.ticketTypes.find((t) => t.id === id);
         if (!tt) throw new Error('Seçilen koltuklardan biri bulunamadı');
-        if (!event.isFree && tt.price <= 0) {
-          throw new Error(`"${tt.name}" şu an satışta değil`);
-        }
+        assertTicketTypeSellable(tt, event.isFree);
         const g = grouped.get(id);
         if (g) {
           g.qty += 1;
@@ -337,6 +352,7 @@ export async function loadCheckoutContext(params: {
     for (const id of unique) {
       const tt = event.ticketTypes.find((t) => t.id === id);
       if (!tt) throw new Error('Seçilen koltuklardan biri bulunamadı');
+      assertTicketTypeSellable(tt, event.isFree);
       if (tt.sold + 1 > tt.capacity) {
         throw new Error(`"${tt.name}" koltuğu artık müsait değil`);
       }
@@ -390,9 +406,11 @@ export async function loadCheckoutContext(params: {
   const ticketType =
     (params.ticketTypeId
       ? event.ticketTypes.find((t) => t.id === params.ticketTypeId)
-      : undefined) ?? event.ticketTypes[0];
+      : event.ticketTypes.find((t) => !isSalesClosedTicketType(t))) ??
+    event.ticketTypes[0];
 
   if (!ticketType) throw new Error('Aktif bilet türü bulunamadı');
+  assertTicketTypeSellable(ticketType, event.isFree);
 
   const qty = Math.min(Math.max(params.quantity, 1), 10);
   if (ticketType.sold + qty > ticketType.capacity) {
@@ -443,6 +461,7 @@ export async function getCheckoutTicketTypes(
           seatsPerUnit: true,
           showLowStockBadge: true,
           status: true,
+          invitationOnly: true,
           _count: {
             select: {
               purchasedTickets: {
@@ -506,7 +525,8 @@ export async function getCheckoutTicketTypes(
           seatsPerUnit: Math.max(1, tt.seatsPerUnit ?? 1),
           showLowStockBadge: tt.showLowStockBadge,
           status: tt.status === 'sold_out' ? 'sold_out' : 'active',
-          allowsZeroPrice: Boolean(event.isFree)
+          allowsZeroPrice: Boolean(event.isFree),
+          invitationOnly: tt.invitationOnly
         };
       })
   );
@@ -888,6 +908,9 @@ async function issueTickets(
   });
   const isComboSeries =
     isComboTicketName(ticketType.name) && sessions.length >= 2;
+  const seatEventIds = isComboSeries
+    ? sessions.map((session) => session.eventId)
+    : [];
 
   const seatUnitIdFromName = parseSectionSeatUnitId(ticketType.name);
   const seatIds = params.seatUnitIds ?? [];
@@ -902,11 +925,15 @@ async function issueTickets(
       const seatFromList = seatIds[personIndex] ?? seatIds[unitIndex];
       const seatUnitId = seatFromList ?? seatUnitIdFromName;
       if (seatUnitId) {
-        await assertSeatFreeInTx(tx, {
-          eventId: target.eventId,
-          seatUnitId,
-          orderId: params.orderId
-        });
+        const lockEventIds =
+          seatEventIds.length > 0 ? seatEventIds : [target.eventId];
+        for (const lockEventId of lockEventIds) {
+          await assertSeatFreeInTx(tx, {
+            eventId: lockEventId,
+            seatUnitId,
+            orderId: params.orderId
+          });
+        }
       }
       const extra =
         !isComboSeries && perUnitTargets.length > 1 && !seatUnitId
@@ -928,7 +955,7 @@ async function issueTickets(
             ? comboDayAttendeeLabel(
                 params.attendeeName,
                 target,
-                isComboSeries,
+                false,
                 extra
               )
             : extra

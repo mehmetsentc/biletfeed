@@ -18,7 +18,7 @@ export type CheckoutTicketType = {
   sold: number;
   /**
    * Tek satın alımda üretilecek QR sayısı.
-   * Masa/loca paketlerinde kişi; kombine (çok gün) biletlerde gün/QR adedi.
+   * Masa/loca paketlerinde kişi sayısı. Kombine bilette günler aynı QR ile check-in olur.
    */
   seatsPerUnit: number;
   showLowStockBadge: boolean;
@@ -29,6 +29,8 @@ export type CheckoutTicketType = {
    * Ücretli etkinlikte price=0 = satış dışı (VIP kaldırma vb.) — “Ücretsiz” değil.
    */
   allowsZeroPrice: boolean;
+  /** Satışa kapalı davetiye kontenjanı */
+  invitationOnly?: boolean;
 };
 
 /**
@@ -57,13 +59,42 @@ export function findTicketType(
   return ticketTypes.find((t) => t.id === ticketTypeId);
 }
 
+export function isInvitationTicketName(name: string): boolean {
+  const normalized = name
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/ı/g, 'i');
+  return (
+    normalized.includes('davetiye') ||
+    normalized.includes('invitation') ||
+    normalized.includes('invite')
+  );
+}
+
+/** Checkout’ta asla satılmaz — davetiye paneli kontenjanı */
+export function isSalesClosedTicketType(type: {
+  invitationOnly?: boolean | null;
+  type?: string | null;
+  name?: string | null;
+}): boolean {
+  if (type.invitationOnly) return true;
+  if (type.type === 'invitation') return true;
+  if (type.name && isInvitationTicketName(type.name)) return true;
+  return false;
+}
+
 export function publicTicketInventoryAvailable(type: {
   status: 'active' | 'paused' | 'sold_out';
   capacity: number;
   sold: number;
   price: number;
   allowsZeroPrice: boolean;
+  invitationOnly?: boolean | null;
+  type?: string | null;
+  name?: string | null;
 }): boolean {
+  if (isSalesClosedTicketType(type)) return false;
   if (type.status !== 'active') return false;
   if (type.capacity - type.sold <= 0) return false;
   // Ücretli etkinlikte 0₺ = satış kaldırıldı; ücretsiz etkinlik hariç
@@ -87,7 +118,7 @@ export function ticketTypeRemaining(type: CheckoutTicketType): number {
   return Math.max(0, type.capacity - type.sold);
 }
 
-/** Adında kombine/combo geçen paket bilet (çok gün, tek satın alım → birden fazla QR) */
+/** Adında kombine/combo geçen paket bilet (çok gün, tek QR, gün bazlı check-in) */
 export function isComboTicketName(name: string): boolean {
   // tr-TR: ASCII "I" → "ı"; eşleşme için ı→i normalize et
   const normalized = name
@@ -112,16 +143,16 @@ export function seatsPerUnitBadgeLabel(
   seatsPerUnit: number
 ): string | null {
   const seats = Math.max(1, seatsPerUnit || 1);
-  if (seats <= 1) return null;
   if (isComboTicketName(name)) {
-    return seats === 2 ? 'Kombine bilet' : `Kombine · ${seats} QR`;
+    return seats <= 1 ? 'Kombine bilet' : `Kombine · ${seats} kişi`;
   }
+  if (seats <= 1) return null;
   return `${seats} kişi / QR`;
 }
 
 /** Checkout özet satırı — kombine vs kişi paketi */
 export function seatsPerUnitSummaryLabel(name: string): string {
-  return isComboTicketName(name) ? 'Kombine QR' : 'QR / kişi';
+  return isComboTicketName(name) ? 'Kombine (tek QR)' : 'QR / kişi';
 }
 
 /** Kategori / sepet fiyat satırı — satış dışı ile gerçek ücretsizi ayır */
@@ -129,6 +160,7 @@ export function ticketTypeAvailabilityLabel(
   type: CheckoutTicketType,
   labels: { free: string; unavailable: string; soldOut: string }
 ): string | null {
+  if (isSalesClosedTicketType(type)) return labels.unavailable;
   if (type.status === 'sold_out' || type.status === 'paused') return labels.soldOut;
   if (type.price <= 0 && !type.allowsZeroPrice) return labels.unavailable;
   if (type.capacity - type.sold <= 0) return labels.soldOut;

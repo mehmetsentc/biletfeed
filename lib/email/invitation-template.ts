@@ -43,6 +43,8 @@ export function buildInvitationEmail(params: {
   categoryLabel?: string;
   sectorGate?: string;
   ticketCards?: InvitationEmailTicketCard[];
+  /** Kombine: tek QR, her konser gününde bir kez */
+  isComboPass?: boolean;
 }): string {
   const {
     guestName,
@@ -61,7 +63,8 @@ export function buildInvitationEmail(params: {
     organizerName,
     categoryLabel,
     sectorGate,
-    ticketCards
+    ticketCards,
+    isComboPass
   } = params;
 
   const cards =
@@ -81,8 +84,9 @@ export function buildInvitationEmail(params: {
           }
         ];
 
-  const preheader =
-    cards.length > 1
+  const preheader = isComboPass
+    ? `${guestName}, ${eventTitle} kombine davetin hazır — aynı QR her gün bir kez okutulur.`
+    : cards.length > 1
       ? `${guestName}, ${eventTitle} için ${cards.length} ayrı biletin hazır.`
       : `${guestName}, ${eventTitle} için kişisel davetin hazır — ${eventDate}.`;
 
@@ -135,9 +139,11 @@ export function buildInvitationEmail(params: {
           }
           <strong style="color:${EMAIL_BRAND.text};">${esc(eventTitle)}</strong> etkinliğine davet etti.
           ${
-            cards.length > 1
-              ? 'Kombine davetin her gün için ayrı bilet içerir — girişte o günün QR kodunu göster.'
-              : 'Girişte bu davetiyeyi göstermen yeterli.'
+            isComboPass
+              ? 'Kombine davetin tek QR içerir — her konser gününde aynı kod bir kez okutulur.'
+              : cards.length > 1
+                ? 'Her bilet için ayrı QR aşağıdadır — girişte ilgili kodu göster.'
+                : 'Girişte bu davetiyeyi göstermen yeterli.'
           }
         </p>
 
@@ -188,6 +194,7 @@ export function buildInvitationPlainText(params: {
   inviteUrl: string;
   organizerName?: string;
   ticketLines?: Array<{ date: string; code: string }>;
+  isComboPass?: boolean;
 }): string {
   const ticketLines =
     params.ticketLines && params.ticketLines.length > 0
@@ -208,9 +215,11 @@ export function buildInvitationPlainText(params: {
     '',
     `Davetiyen: ${params.inviteUrl}`,
     '',
-    params.ticketLines && params.ticketLines.length > 1
-      ? 'Kombine davetin her gün için ayrı bilettir — girişte o günün QR kodunu göster.'
-      : 'Bu e-posta kişisel davetiyendir — girişte QR kodunu göster.',
+    params.isComboPass
+      ? 'Kombine davetin tek QR’dır — her konser gününde aynı kod bir kez okutulur.'
+      : params.ticketLines && params.ticketLines.length > 1
+        ? 'Her bilet için ayrı kod aşağıdadır — girişte ilgili QR’ı göster.'
+        : 'Bu e-posta kişisel davetiyendir — girişte QR kodunu göster.',
     '— BiletFeed'
   ].join('\n');
 }

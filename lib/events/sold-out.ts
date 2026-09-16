@@ -5,6 +5,9 @@ export type PublicTicketInventory = {
   status?: string | null;
   sold?: number | null;
   capacity?: number | null;
+  invitationOnly?: boolean | null;
+  type?: string | null;
+  name?: string | null;
 };
 
 function normalizeTicketStatus(
@@ -23,7 +26,10 @@ export function isPublicTicketTypeAvailable(
     capacity: type.capacity ?? 0,
     sold: type.sold ?? 0,
     price: type.price,
-    allowsZeroPrice: isFree
+    allowsZeroPrice: isFree,
+    invitationOnly: type.invitationOnly,
+    type: type.type,
+    name: type.name
   });
 }
 

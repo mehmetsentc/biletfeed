@@ -40,6 +40,9 @@ function mapBanner(row: {
       status: string | null;
       sold: number;
       capacity: number;
+      invitationOnly?: boolean;
+      type?: string;
+      name?: string;
     }>;
   } | null;
 }): HomeBannerRecord {
@@ -81,7 +84,15 @@ const bannerSelect = {
       isFree: true,
       ticketTypes: {
         where: { deletedAt: null },
-        select: { price: true, status: true, sold: true, capacity: true }
+        select: {
+          price: true,
+          status: true,
+          sold: true,
+          capacity: true,
+          invitationOnly: true,
+          type: true,
+          name: true
+        }
       }
     }
   }

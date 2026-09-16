@@ -36,6 +36,7 @@ export type EventWizardDraft = {
     capacity: string;
     seatsPerUnit?: string;
     showLowStockBadge?: boolean;
+    invitationOnly?: boolean;
   }>;
   attendeeQuestions: AttendeeQuestionRow[];
   preventQuestionCopy: boolean;
