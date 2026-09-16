@@ -132,7 +132,7 @@ export async function sendTicketPurchaseEmail(
   const eventDt = formatEventDateTime(event.startDate, event.endDate);
   const comboName = order.items.some((item) => isComboTicketName(item.ticketType.name));
   const sessions = comboName
-    ? await loadSeriesSessionTargets(prisma, event.id)
+    ? await loadSeriesSessionTargets(prisma, order.eventId)
     : [];
   const uniqueDates = (
     sessions.length >= 2
