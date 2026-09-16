@@ -18,9 +18,8 @@ import {
   loadSeriesSessionTargets,
   pickComboTicketForGate
 } from '@/lib/tickets/combo-sessions';
-import { Prisma } from '@prisma/client';
+import { Prisma, type EntryPolicy, type TicketTypeEnum } from '@prisma/client';
 import type { UserRole } from '@/types';
-import type { EntryPolicy, TicketTypeEnum } from '@prisma/client';
 
 export type TicketValidationStatus =
   | 'VALID'
