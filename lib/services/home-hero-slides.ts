@@ -10,15 +10,40 @@ import {
   type HomeBannerRecord
 } from '@/lib/services/home-banners';
 import {
+  getEventBySlug,
   getFeaturedEvents,
   getTrendingEvents,
   getEventsByCity
 } from '@/lib/services/events';
 
-/** Admin’de şehir banner’ı yokken kullanılan varsayılan sabit etkinlik slug’ları */
-const CITY_DEFAULT_PINNED_EVENT_SLUG: Record<string, string> = {
-  antalya: 'blok3-konseri'
-};
+/** Admin sabit banner yokken ana sayfa hero — BLOK3 (3 Ekim) + Zeynep (4 Ekim) */
+export const DEFAULT_HERO_EVENT_SLUGS = [
+  'blok3-konseri',
+  'zeynep-bastik-emir-can-igrek-koseri'
+] as const;
+
+export function pickDefaultHeroEvents<T extends { slug: string; isSoldOut?: boolean }>(
+  events: T[],
+  slugs: readonly string[] = DEFAULT_HERO_EVENT_SLUGS
+): T[] {
+  const bySlug = new Map(events.map((event) => [event.slug, event]));
+  const picked: T[] = [];
+  for (const slug of slugs) {
+    const event = bySlug.get(slug);
+    if (!event || event.isSoldOut) continue;
+    picked.push(event);
+  }
+  return picked;
+}
+
+async function loadDefaultHeroEvents(): Promise<MockEvent[]> {
+  const found = await Promise.all(
+    DEFAULT_HERO_EVENT_SLUGS.map((slug) => getEventBySlug(slug))
+  );
+  return pickDefaultHeroEvents(
+    found.filter((event): event is MockEvent => Boolean(event))
+  );
+}
 
 function bannerToSlide(banner: HomeBannerRecord): HeroBannerSlide {
   return {
@@ -77,12 +102,14 @@ function pickAutoEvents(events: MockEvent[], citySlug: string, limit: number): M
 
 /** Ana sayfa hero — admin banner (şehir/sabit) + otomatik etkinlik slaytları */
 export async function getHomeHeroSlides(citySlug: string): Promise<HeroBannerSlide[]> {
-  const [manualBanners, featured, trending, cityEvents] = await Promise.all([
-    getActiveHomeBanners(),
-    getFeaturedEvents(),
-    getTrendingEvents(),
-    getEventsByCity(citySlug)
-  ]);
+  const [manualBanners, featured, trending, cityEvents, defaultHero] =
+    await Promise.all([
+      getActiveHomeBanners(),
+      getFeaturedEvents(),
+      getTrendingEvents(),
+      getEventsByCity(citySlug),
+      loadDefaultHeroEvents()
+    ]);
 
   const { banners: scoped, pinned } = resolveBannersForCity(manualBanners, citySlug);
   const sellableBanners = scoped.filter((banner) => !banner.eventSoldOut);
@@ -95,17 +122,10 @@ export async function getHomeHeroSlides(citySlug: string): Promise<HeroBannerSli
     return slides.slice(0, 1);
   }
 
-  // Şehre özel admin banner yoksa varsayılan sabit etkinlik (ör. Antalya → BLOK3)
+  // Admin şehre özel banner yoksa ana banner bu iki konser (tüm şehirler)
   const hasCitySpecific = sellableBanners.some((b) => b.citySlug === citySlug);
-  const defaultPinnedSlug = CITY_DEFAULT_PINNED_EVENT_SLUG[citySlug];
-  if (!hasCitySpecific && defaultPinnedSlug) {
-    const pool = excludeSoldOutHomeEvents([...cityEvents, ...featured, ...trending]);
-    const pinnedEvent = pool.find(
-      (e) => e.slug === defaultPinnedSlug && isUpcomingEvent(e)
-    );
-    if (pinnedEvent) {
-      return [eventToSlide(pinnedEvent)];
-    }
+  if (!hasCitySpecific && defaultHero.length > 0) {
+    return defaultHero.map(eventToSlide);
   }
 
   if (slides.length >= HERO_BANNER_LIMIT) {

@@ -246,9 +246,10 @@ export function BannerAdminPanel() {
           görselleri otomatik doldurabilirsiniz.
         </p>
         <p className="mt-2">
-          <strong>Şehir:</strong> yalnızca o şehir seçildiğinde görünür (ör.
-          Antalya → BLOK3). <strong>Sabit:</strong> o şehirde carousel dönmez,
-          yalnızca bu banner kalır.
+          <strong>Şehir:</strong> yalnızca o şehir seçildiğinde görünür.
+          Şehir banner’ı yoksa ana sayfada BLOK3 ve Zeynep Bastık konserleri
+          döner. <strong>Sabit:</strong> o şehirde carousel dönmez, yalnızca bu
+          banner kalır.
         </p>
       </div>
 
