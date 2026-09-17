@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 import { extractSeatUnitId } from '@/lib/tickets/seat-label';
+import { isComboTicketName } from '@/lib/tickets/purchase-types';
+import { loadSeriesSessionTargets } from '@/lib/tickets/combo-sessions';
 
 export function normalizeSeatUnitId(id: string): string {
   return id.trim().toUpperCase();
@@ -88,20 +90,31 @@ export async function getHeldSeatUnitIds(eventId: string): Promise<string[]> {
 
 export async function getSoldAndHeldSeatUnitIds(eventId: string): Promise<string[]> {
   await ensureDbConnection();
+  const sessions = await loadSeriesSessionTargets(prisma, eventId);
+  const sessionIds =
+    sessions.length >= 2 ? sessions.map((session) => session.eventId) : [eventId];
   const [tickets, held] = await Promise.all([
     prisma.purchasedTicket.findMany({
       where: {
-        eventId,
+        eventId: { in: sessionIds },
         status: { in: ['VALID', 'USED'] },
         deletedAt: null
       },
-      select: { attendeeName: true, seatUnitId: true },
+      select: {
+        eventId: true,
+        attendeeName: true,
+        seatUnitId: true,
+        ticketType: { select: { name: true } }
+      },
       take: 20000
     }),
     getHeldSeatUnitIds(eventId)
   ]);
   const ids = new Set<string>(held);
   for (const t of tickets) {
+    if (t.eventId !== eventId && !isComboTicketName(t.ticketType.name)) {
+      continue;
+    }
     const id = extractSeatUnitId({
       seatUnitId: t.seatUnitId,
       attendeeName: t.attendeeName

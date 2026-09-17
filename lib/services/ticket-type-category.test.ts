@@ -40,7 +40,8 @@ describe('inferTicketTypeEnum', () => {
     expect(inferTicketTypeEnum('Standart')).toBe('general');
     expect(inferTicketTypeEnum('Bistro')).toBe('general');
     expect(inferTicketTypeEnum('VIP')).toBe('vip');
-    expect(inferTicketTypeEnum('Loca')).toBe('vip');
+    expect(inferTicketTypeEnum('Davetiye')).toBe('invitation');
+    expect(inferTicketTypeEnum('VIP Davetiye')).toBe('invitation');
   });
 });
 

@@ -246,8 +246,14 @@ export async function sendEventInvitationEmail(
           }
         ];
 
-  const eventDate = tickets
-    .map((ticket) => formatTurkeyDateLong(ticket.event.startDate))
+  const sessions = isComboTicketName(row.ticketType.name)
+    ? await loadSeriesSessionTargets(prisma, row.eventId)
+    : [];
+  const eventDate = (
+    sessions.length >= 2
+      ? sessions.map((session) => formatTurkeyDateLong(session.startDate))
+      : tickets.map((ticket) => formatTurkeyDateLong(ticket.event.startDate))
+  )
     .filter((value, index, all) => all.indexOf(value) === index)
     .join(' · ');
   const eventTime = formatTurkeyTime(tickets[0]!.event.startDate);
@@ -311,7 +317,8 @@ export async function sendEventInvitationEmail(
       inviteUrl,
       calendarUrl,
       organizerName: row.event.organizer.name,
-      ticketCards
+      ticketCards,
+      isComboPass: isComboTicketName(row.ticketType.name) && sessions.length >= 2
     }),
     text: buildInvitationPlainText({
       guestName: row.guestName,
@@ -326,7 +333,8 @@ export async function sendEventInvitationEmail(
       ticketLines: ticketCards.map((card) => ({
         date: card.eventDate,
         code: card.ticketCode
-      }))
+      })),
+      isComboPass: isComboTicketName(row.ticketType.name) && sessions.length >= 2
     }),
     orderId: row.purchasedTicket.orderId,
     attachments: pdfs.map((pdf) => ({ filename: pdf.filename, content: pdf.buffer }))
@@ -428,6 +436,11 @@ export async function createEventInvitation(params: {
     fallback
   });
   const isComboSeries = isComboTicketName(ticketType.name) && sessions.length >= 2;
+  const seatEventIds = isComboSeries
+    ? targets.length > 0
+      ? sessions.map((session) => session.eventId)
+      : [event.id]
+    : [];
 
   const { invitation } = await prisma.$transaction(async (tx) => {
     // Atomik rezervasyon — her oluşturmada full count yapmak timeout üretir
@@ -445,10 +458,14 @@ export async function createEventInvitation(params: {
     }
 
     if (resolvedSeatId) {
-      for (const target of targets) {
+      const lockEventIds =
+        seatEventIds.length > 0
+          ? seatEventIds
+          : targets.map((target) => target.eventId);
+      for (const lockEventId of [...new Set(lockEventIds)]) {
         const clash = await tx.purchasedTicket.findFirst({
           where: {
-            eventId: target.eventId,
+            eventId: lockEventId,
             status: { in: ['VALID', 'USED'] },
             deletedAt: null,
             seatUnitId: resolvedSeatId
@@ -516,7 +533,7 @@ export async function createEventInvitation(params: {
           attendeeName: comboDayAttendeeLabel(
             params.guestName,
             target,
-            isComboSeries,
+            false,
             extra
           ),
           attendeeEmail: params.guestEmail?.trim().toLowerCase() || null,
@@ -818,6 +835,8 @@ export async function getEventTicketTypes(eventId: string, organizerId: string) 
       price: true,
       capacity: true,
       sold: true,
+      invitationOnly: true,
+      type: true,
       _count: {
         select: {
           purchasedTickets: {
@@ -826,7 +845,7 @@ export async function getEventTicketTypes(eventId: string, organizerId: string) 
         }
       }
     },
-    orderBy: { price: 'asc' }
+    orderBy: [{ invitationOnly: 'desc' }, { price: 'asc' }]
   });
 
   // UI'da gerçek satılan sayıyı göster; kaymış sayaç varsa düzelt
@@ -846,6 +865,8 @@ export async function getEventTicketTypes(eventId: string, organizerId: string) 
     name: row.name,
     price: row.price,
     capacity: row.capacity,
-    sold: row._count.purchasedTickets
+    sold: row._count.purchasedTickets,
+    invitationOnly: row.invitationOnly,
+    type: row.type
   }));
 }

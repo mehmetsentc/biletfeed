@@ -8,6 +8,8 @@ import {
 } from '@/lib/organizator/event-metadata';
 import { parseEventSeriesMeta, sessionSlugDateSuffix } from '@/lib/organizator/event-series-meta';
 import { inferTicketTypeEnum } from '@/lib/services/ticket-type-category';
+import { isInvitationTicketName } from '@/lib/tickets/purchase-types';
+import type { TicketTypeEnum } from '@prisma/client';
 
 async function eventHasPriorApproval(eventId: string): Promise<boolean> {
   try {
@@ -29,6 +31,22 @@ export interface TicketCategoryInput {
   /** Tek satın alımda QR / kişi sayısı (masa/loca) */
   seatsPerUnit?: number;
   showLowStockBadge?: boolean;
+  /** Satışa kapalı davetiye kontenjanı */
+  invitationOnly?: boolean;
+}
+
+function resolveTicketTypeCreateFields(cat: TicketCategoryInput): {
+  type: TicketTypeEnum;
+  invitationOnly: boolean;
+  price: number;
+} {
+  const invitationOnly =
+    Boolean(cat.invitationOnly) || isInvitationTicketName(cat.name);
+  return {
+    type: invitationOnly ? 'invitation' : inferTicketTypeEnum(cat.name),
+    invitationOnly,
+    price: invitationOnly ? 0 : cat.price
+  };
 }
 
 /** Eski kayıtlarda `ad — açıklama` birleşik olabilir; alanları ayırır. */
@@ -289,11 +307,13 @@ async function createEventRecord(
         create: (params.ticketCategories && params.ticketCategories.length > 0
           ? params.ticketCategories.map((cat) => {
               const { name, description } = normalizeTicketCategoryFields(cat);
+              const fields = resolveTicketTypeCreateFields({ ...cat, name });
               return {
                 name,
                 description,
-                type: inferTicketTypeEnum(name),
-                price: params.isFree ? 0 : cat.price,
+                type: fields.type,
+                invitationOnly: fields.invitationOnly,
+                price: params.isFree || fields.invitationOnly ? 0 : fields.price,
                 currency: 'TRY',
                 quantity: cat.capacity,
                 sold: 0,
@@ -563,7 +583,9 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
       for (const cat of input.ticketCategories) {
         const { name: ticketName, description: ticketDescription } =
           normalizeTicketCategoryFields(cat);
-        const price = input.isFree ?? event.isFree ? 0 : cat.price;
+        const fields = resolveTicketTypeCreateFields({ ...cat, name: ticketName });
+        const price =
+          (input.isFree ?? event.isFree) || fields.invitationOnly ? 0 : fields.price;
 
         if (cat.id) {
           const existing = event.ticketTypes.find((t) => t.id === cat.id);
@@ -584,7 +606,8 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
               capacity: cat.capacity,
               quantity: cat.capacity,
               seatsPerUnit: Math.max(1, cat.seatsPerUnit ?? 1),
-              type: inferTicketTypeEnum(ticketName),
+              type: fields.type,
+              invitationOnly: fields.invitationOnly,
               showLowStockBadge: cat.showLowStockBadge ?? false
             }
           });
@@ -595,7 +618,8 @@ export async function updateOrganizerEvent(input: UpdateOrganizerEventInput) {
               eventId: input.eventId,
               name: ticketName,
               description: ticketDescription,
-              type: inferTicketTypeEnum(ticketName),
+              type: fields.type,
+              invitationOnly: fields.invitationOnly,
               price,
               currency: 'TRY',
               quantity: cat.capacity,

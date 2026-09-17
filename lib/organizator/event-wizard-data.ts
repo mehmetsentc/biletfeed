@@ -47,6 +47,7 @@ export interface EventWizardInitialData {
     seatsPerUnit?: string;
     sold: number;
     showLowStockBadge: boolean;
+    invitationOnly?: boolean;
   }>;
   tags: string[];
   performers: Array<{
@@ -157,7 +158,8 @@ export function mapEventToWizardInitialData(
         capacity: String(ticket.capacity || ticket.quantity),
         seatsPerUnit: String(ticket.seatsPerUnit ?? 1),
         sold: ticket.sold,
-        showLowStockBadge: ticket.showLowStockBadge
+        showLowStockBadge: ticket.showLowStockBadge,
+        invitationOnly: ticket.invitationOnly
       };
     }),
     tags: event.tags ?? [],

@@ -10,9 +10,16 @@ import {
   type EntryTicketKind
 } from '@/lib/tickets/entry-display';
 import { shouldRejectQrToken } from '@/lib/tickets/qr-token-policy';
-import { pickComboTicketForGate } from '@/lib/tickets/combo-sessions';
+import {
+  comboAllowsGateEvent,
+  comboTicketFullyUsed,
+  isComboSeriesTicket,
+  isLegacyPerDayComboTickets,
+  loadSeriesSessionTargets,
+  pickComboTicketForGate
+} from '@/lib/tickets/combo-sessions';
+import { Prisma, type EntryPolicy, type TicketTypeEnum } from '@prisma/client';
 import type { UserRole } from '@/types';
-import type { EntryPolicy, TicketTypeEnum } from '@prisma/client';
 
 export type TicketValidationStatus =
   | 'VALID'
@@ -255,7 +262,32 @@ export async function validateTicketInput(input: {
     return { status: 'INVALID', message: 'Bilet bulunamadı' };
   }
 
-  if (input.gateEventId && ticket.eventId !== input.gateEventId) {
+  const sessions = await loadSeriesSessionTargets(prisma, ticket.eventId);
+  const isComboSeries = isComboSeriesTicket(ticket.ticketType.name, sessions.length);
+  const sessionEventIds = sessions.map((session) => session.eventId);
+  const orderSiblings = isComboSeries
+    ? await prisma.purchasedTicket.findMany({
+        where: {
+          orderId: ticket.orderId,
+          ticketTypeId: ticket.ticketTypeId,
+          deletedAt: null
+        },
+        select: { eventId: true }
+      })
+    : [{ eventId: ticket.eventId }];
+  const isLegacyPerDayTickets = isLegacyPerDayComboTickets(orderSiblings);
+  const checkInEventId = input.gateEventId || input.eventId || ticket.eventId;
+
+  if (
+    input.gateEventId &&
+    !comboAllowsGateEvent({
+      ticketEventId: ticket.eventId,
+      gateEventId: input.gateEventId,
+      sessionEventIds,
+      isComboSeries,
+      isLegacyPerDayTickets
+    })
+  ) {
     return {
       status: 'INVALID',
       message: 'Bu kapı kodu yalnızca tanımlı etkinlik için geçerlidir',
@@ -263,7 +295,16 @@ export async function validateTicketInput(input: {
     };
   }
 
-  if (input.eventId && ticket.eventId !== input.eventId) {
+  if (
+    input.eventId &&
+    !comboAllowsGateEvent({
+      ticketEventId: ticket.eventId,
+      gateEventId: input.eventId,
+      sessionEventIds,
+      isComboSeries,
+      isLegacyPerDayTickets
+    })
+  ) {
     return {
       status: 'INVALID',
       message: 'Bu bilet seçili etkinliğe ait değil',
@@ -326,11 +367,24 @@ export async function validateTicketInput(input: {
 
   const summary = toSummary(ticket);
   const policy = ticket.event.entryPolicy;
+  const useDayScopedCombo =
+    isComboSeries && !isLegacyPerDayTickets && policy === 'single';
+
+  const gateEvent =
+    checkInEventId === ticket.eventId
+      ? ticket.event
+      : await prisma.event.findFirst({
+          where: { id: checkInEventId, deletedAt: null },
+          select: { endDate: true, title: true }
+        });
+  if (!gateEvent) {
+    return { status: 'INVALID', message: 'Kapı etkinliği bulunamadı', ticket: summary };
+  }
 
   if (ticket.status === 'REFUNDED') {
     await logCheckIn({
       ticketId: ticket.id,
-      eventId: ticket.eventId,
+      eventId: checkInEventId,
       checkedBy: input.scannerUid,
       result: 'REFUNDED',
       device: input.device,
@@ -343,7 +397,7 @@ export async function validateTicketInput(input: {
   if (ticket.status === 'CANCELLED') {
     await logCheckIn({
       ticketId: ticket.id,
-      eventId: ticket.eventId,
+      eventId: checkInEventId,
       checkedBy: input.scannerUid,
       result: 'CANCELLED',
       device: input.device,
@@ -353,10 +407,10 @@ export async function validateTicketInput(input: {
     return { status: 'CANCELLED', message: 'Bilet iptal edilmiş', ticket: summary };
   }
 
-  if (isEventExpired(ticket.event.endDate) && policy !== 'unlimited') {
+  if (isEventExpired(gateEvent.endDate) && policy !== 'unlimited') {
     await logCheckIn({
       ticketId: ticket.id,
-      eventId: ticket.eventId,
+      eventId: checkInEventId,
       checkedBy: input.scannerUid,
       result: 'EXPIRED',
       device: input.device,
@@ -366,10 +420,23 @@ export async function validateTicketInput(input: {
     return { status: 'EXPIRED', message: 'Etkinlik süresi dolmuş', ticket: summary };
   }
 
-  if (entryBlocked(policy, ticket.entryCount, ticket.status)) {
+  const dayAlreadyUsed = useDayScopedCombo
+    ? Boolean(
+        await prisma.ticketCheckIn.findFirst({
+          where: {
+            ticketId: ticket.id,
+            eventId: checkInEventId,
+            result: 'VALID'
+          },
+          select: { id: true }
+        })
+      )
+    : entryBlocked(policy, ticket.entryCount, ticket.status);
+
+  if (dayAlreadyUsed) {
     await logCheckIn({
       ticketId: ticket.id,
-      eventId: ticket.eventId,
+      eventId: checkInEventId,
       checkedBy: input.scannerUid,
       result: 'USED',
       device: input.device,
@@ -378,7 +445,9 @@ export async function validateTicketInput(input: {
     });
     return {
       status: 'USED',
-      message: 'Bilet daha önce kullanılmış',
+      message: useDayScopedCombo
+        ? 'Bu kombine bilet bu gün için zaten kullanılmış'
+        : 'Bilet daha önce kullanılmış',
       ticket: summary
     };
   }
@@ -392,6 +461,105 @@ export async function validateTicketInput(input: {
   }
 
   const now = new Date();
+
+  if (useDayScopedCombo) {
+    try {
+      const claimed = await prisma.$transaction(async (tx) => {
+        await tx.purchasedTicket.update({
+          where: { id: ticket.id },
+          data: {
+            scannedAt: ticket.scannedAt ?? now,
+            scannedBy: input.scannerUid
+          }
+        });
+
+        const existingDay = await tx.ticketCheckIn.findFirst({
+          where: {
+            ticketId: ticket.id,
+            eventId: checkInEventId,
+            result: 'VALID'
+          },
+          select: { id: true }
+        });
+        if (existingDay) {
+          return { duplicate: true as const, nextEntryCount: ticket.entryCount };
+        }
+
+        await tx.ticketCheckIn.create({
+          data: {
+            ticketId: ticket.id,
+            eventId: checkInEventId,
+            checkedBy: input.scannerUid,
+            device: input.device ?? null,
+            ipAddress: input.ipAddress ?? null,
+            scannerId: input.scannerId ?? null,
+            result: 'VALID'
+          }
+        });
+
+        const validDays = await tx.ticketCheckIn.findMany({
+          where: { ticketId: ticket.id, result: 'VALID' },
+          select: { eventId: true }
+        });
+        const allDaysUsed = comboTicketFullyUsed({
+          sessionEventIds,
+          validCheckInEventIds: validDays.map((row) => row.eventId)
+        });
+
+        await tx.purchasedTicket.update({
+          where: { id: ticket.id },
+          data: {
+            entryCount: { increment: 1 },
+            ...(allDaysUsed ? { status: 'USED' } : {})
+          }
+        });
+
+        return {
+          duplicate: false as const,
+          nextEntryCount: ticket.entryCount + 1,
+          allDaysUsed
+        };
+      });
+
+      if (claimed.duplicate) {
+        return {
+          status: 'USED',
+          message: 'Bu kombine bilet bu gün için zaten kullanılmış',
+          ticket: summary
+        };
+      }
+
+      const remaining = sessionEventIds.length - claimed.nextEntryCount;
+      const entryLabel = claimed.allDaysUsed
+        ? 'Giriş onaylandı'
+        : remaining > 0
+          ? `Giriş onaylandı (${claimed.nextEntryCount}. gün). Kalan konser günü: ${remaining}`
+          : 'Giriş onaylandı';
+
+      return {
+        status: 'VALID',
+        ticket: {
+          ...summary,
+          entryCount: claimed.nextEntryCount,
+          scannedAt: now.toISOString()
+        },
+        message: entryLabel
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        return {
+          status: 'USED',
+          message: 'Bu kombine bilet bu gün için zaten kullanılmış',
+          ticket: summary
+        };
+      }
+      throw err;
+    }
+  }
+
   const markAsUsed = policy === 'single';
 
   const claimed = await prisma.purchasedTicket.updateMany({
@@ -417,7 +585,7 @@ export async function validateTicketInput(input: {
     if (fresh && entryBlocked(policy, fresh.entryCount, fresh.status)) {
       await logCheckIn({
         ticketId: ticket.id,
-        eventId: ticket.eventId,
+        eventId: checkInEventId,
         checkedBy: input.scannerUid,
         result: 'USED',
         device: input.device,
@@ -441,7 +609,7 @@ export async function validateTicketInput(input: {
 
   await logCheckIn({
     ticketId: ticket.id,
-    eventId: ticket.eventId,
+    eventId: checkInEventId,
     checkedBy: input.scannerUid,
     result: 'VALID',
     device: input.device,

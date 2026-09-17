@@ -25,7 +25,8 @@ const ticketCategorySchema = z.object({
   price: z.number().min(0).default(0),
   capacity: z.number().int().min(1),
   seatsPerUnit: z.number().int().min(1).max(50).optional().default(1),
-  showLowStockBadge: z.boolean().optional().default(false)
+  showLowStockBadge: z.boolean().optional().default(false),
+  invitationOnly: z.boolean().optional().default(false)
 });
 
 const performerSchema = z.object({
