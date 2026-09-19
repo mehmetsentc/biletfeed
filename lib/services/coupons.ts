@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
 export type CouponDiscount = {
@@ -6,6 +7,36 @@ export type CouponDiscount = {
   discount: number;
   type: 'percent' | 'fixed';
 };
+
+const couponEventSelect = {
+  id: true,
+  title: true,
+  startDate: true
+} as const;
+
+/** Etkinliğe özel kupon varsa onu kullan; yoksa tüm etkinliklere açık kupon. */
+export function pickCouponForEvent<T extends { eventId: string | null }>(
+  coupons: T[],
+  eventId: string
+): T | undefined {
+  return (
+    coupons.find((coupon) => coupon.eventId === eventId) ??
+    coupons.find((coupon) => coupon.eventId === null)
+  );
+}
+
+export async function listOrganizerCouponEventOptions(organizerId: string) {
+  await ensureDbConnection();
+  return prisma.event.findMany({
+    where: {
+      organizerId,
+      deletedAt: null,
+      status: { in: ['draft', 'published'] }
+    },
+    select: { id: true, title: true, startDate: true, status: true },
+    orderBy: { startDate: 'asc' }
+  });
+}
 
 export async function validateCoupon(params: {
   code: string;
@@ -18,17 +49,18 @@ export async function validateCoupon(params: {
   if (!code) throw new Error('Kupon kodu gerekli');
 
   const now = new Date();
-  const coupon = await prisma.coupon.findFirst({
+  const matches = await prisma.coupon.findMany({
     where: {
       code,
       active: true,
       deletedAt: null,
       validFrom: { lte: now },
       validUntil: { gte: now },
-      OR: [{ eventId: params.eventId }, { eventId: null }],
-      organizerId: params.organizerId
+      organizerId: params.organizerId,
+      OR: [{ eventId: params.eventId }, { eventId: null }]
     }
   });
+  const coupon = pickCouponForEvent(matches, params.eventId);
 
   if (!coupon) throw new Error('Geçersiz veya süresi dolmuş kupon');
   if (coupon.maxUses != null && coupon.usedCount >= coupon.maxUses) {
@@ -71,6 +103,7 @@ export async function listOrganizerCoupons(organizerId: string, eventId?: string
       deletedAt: null,
       ...(eventId ? { OR: [{ eventId }, { eventId: null }] } : {})
     },
+    include: { event: { select: couponEventSelect } },
     orderBy: { createdAt: 'desc' }
   });
 }
@@ -127,20 +160,31 @@ export async function createOrganizerCoupon(params: {
     if (!event) throw new Error('Etkinlik bulunamadı');
   }
 
-  return prisma.coupon.create({
-    data: {
-      code,
-      assignedLabel,
-      organizerId: params.organizerId,
-      eventId: params.eventId ?? null,
-      type: params.type,
-      value: params.value,
-      maxUses: params.maxUses,
-      minOrder: params.minOrder ?? null,
-      validFrom: params.validFrom,
-      validUntil: params.validUntil
+  try {
+    return await prisma.coupon.create({
+      data: {
+        code,
+        assignedLabel,
+        organizerId: params.organizerId,
+        eventId: params.eventId ?? null,
+        type: params.type,
+        value: params.value,
+        maxUses: params.maxUses,
+        minOrder: params.minOrder ?? null,
+        validFrom: params.validFrom,
+        validUntil: params.validUntil
+      },
+      include: { event: { select: couponEventSelect } }
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002'
+    ) {
+      throw new Error('Bu kod bu etkinlik için zaten tanımlı');
     }
-  });
+    throw err;
+  }
 }
 
 export async function deactivateCoupon(couponId: string, organizerId: string): Promise<void> {

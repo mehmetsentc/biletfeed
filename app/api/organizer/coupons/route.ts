@@ -11,7 +11,7 @@ import {
 const createSchema = z.object({
   code: z.string().min(2).max(30),
   assignedLabel: z.string().max(100).optional(),
-  eventId: z.string().uuid().optional(),
+  eventId: z.string().uuid().nullish(),
   type: z.enum(['percent', 'fixed']),
   value: z.number().positive(),
   maxUses: z.number().int().positive(),
@@ -46,7 +46,13 @@ export async function POST(request: NextRequest) {
   try {
     const coupon = await createOrganizerCoupon({
       organizerId: ctx.organizer.id,
-      ...parsed.data,
+      code: parsed.data.code,
+      assignedLabel: parsed.data.assignedLabel,
+      eventId: parsed.data.eventId ?? undefined,
+      type: parsed.data.type,
+      value: parsed.data.value,
+      maxUses: parsed.data.maxUses,
+      minOrder: parsed.data.minOrder,
       validFrom: new Date(parsed.data.validFrom),
       validUntil: new Date(parsed.data.validUntil)
     });
