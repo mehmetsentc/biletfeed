@@ -1,5 +1,5 @@
 import { after } from 'next/server';
-import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { prisma, ensureDbConnection, withDbRetry } from '@/lib/db/prisma';
 import {
   buildTicketQrPayload,
   generateTicketCode,
@@ -27,6 +27,7 @@ import {
 } from '@/lib/services/commission';
 import type { UserBillingInput } from '@/lib/services/user-billing';
 import type { PaymentProviderName } from '@/lib/payments/types';
+import type { Prisma } from '@prisma/client';
 import { parseSectionSeatUnitId } from '@/lib/tickets/seat-packages';
 import { isComboTicketName, filterAvailableCheckoutTicketTypes, isSalesClosedTicketType } from '@/lib/tickets/purchase-types';
 import {
@@ -82,7 +83,7 @@ async function findReusablePendingCheckout(params: {
   total: number;
   lines: CheckoutLineItem[];
   provider: PaymentProviderName;
-}): Promise<{ id: string } | null> {
+}): Promise<{ id: string; paymentSessionId: string | null } | null> {
   const wantedSeats = params.lines
     .flatMap((line) => line.seatUnitIds ?? [])
     .slice()
@@ -103,7 +104,6 @@ async function findReusablePendingCheckout(params: {
       status: 'pending',
       paymentProvider: params.provider,
       deletedAt: null,
-      paymentSessionId: { not: null },
       cartGroupId: null,
       expiresAt: { gt: new Date() }
     },
@@ -132,7 +132,9 @@ async function findReusablePendingCheckout(params: {
     return key === wanted;
   });
 
-  return match ? { id: match.id } : null;
+  return match
+    ? { id: match.id, paymentSessionId: match.paymentSessionId }
+    : null;
 }
 
 export async function resolveCheckoutUser(params: {
@@ -629,7 +631,7 @@ export async function createCheckout(params: {
     lines,
     provider: providerName
   });
-  if (reusable) {
+  if (reusable?.paymentSessionId) {
     return {
       orderId: reusable.id,
       status: 'pending',
@@ -638,63 +640,67 @@ export async function createCheckout(params: {
     };
   }
 
-  const order = await prisma.$transaction(async (tx) => {
-    for (const line of lines) {
-      const freshType = await tx.ticketType.findUnique({
-        where: { id: line.ticketTypeId }
-      });
-      if (!freshType || freshType.sold + line.quantity > freshType.capacity) {
-        throw new Error(`"${line.name}" için yeterli bilet kalmadı`);
-      }
-    }
+  const order = reusable
+    ? { id: reusable.id }
+    : await withDbRetry(() =>
+        prisma.$transaction(async (tx) => {
+          for (const line of lines) {
+            const freshType = await tx.ticketType.findUnique({
+              where: { id: line.ticketTypeId }
+            });
+            if (!freshType || freshType.sold + line.quantity > freshType.capacity) {
+              throw new Error(`"${line.name}" için yeterli bilet kalmadı`);
+            }
+          }
 
-    const created = await tx.order.create({
-      data: {
-        userId: user.id,
-        eventId: event.id,
-        organizerId: event.organizerId,
-        subtotal,
-        discount,
-        commission,
-        total,
-        status: 'pending',
-        paymentProvider: providerName,
-        expiresAt: pendingExpiresAt(),
-        couponCode: appliedCouponCode ?? null,
-        attendeeName,
-        attendeeEmail,
-        attendeePhone,
-        items: {
-          create: lines.map((line) => ({
-            ticketTypeId: line.ticketTypeId,
-            quantity: line.quantity,
-            unitPrice: line.unitPrice
-          }))
-        }
-      },
-      include: { items: true }
-    });
+          const created = await tx.order.create({
+            data: {
+              userId: user.id,
+              eventId: event.id,
+              organizerId: event.organizerId,
+              subtotal,
+              discount,
+              commission,
+              total,
+              status: 'pending',
+              paymentProvider: providerName,
+              expiresAt: pendingExpiresAt(),
+              couponCode: appliedCouponCode ?? null,
+              attendeeName,
+              attendeeEmail,
+              attendeePhone,
+              items: {
+                create: lines.map((line) => ({
+                  ticketTypeId: line.ticketTypeId,
+                  quantity: line.quantity,
+                  unitPrice: line.unitPrice
+                }))
+              }
+            },
+            include: { items: true }
+          });
 
-    await tx.transaction.create({
-      data: {
-        orderId: created.id,
-        organizerId: event.organizerId,
-        amount: subtotal,
-        status: 'pending',
-        provider: providerName,
-        providerRef: seatsRef
-      }
-    });
+          await tx.transaction.create({
+            data: {
+              orderId: created.id,
+              organizerId: event.organizerId,
+              amount: subtotal,
+              status: 'pending',
+              provider: providerName,
+              providerRef: seatsRef
+            }
+          });
 
-    await createSeatHoldsForOrder(tx, {
-      eventId: event.id,
-      orderId: created.id,
-      seatUnitIds: flatSeatIds,
-      expiresAt: created.expiresAt ?? pendingExpiresAt()
-    });
+          await createSeatHoldsForOrder(tx, {
+            eventId: event.id,
+            orderId: created.id,
+            seatUnitIds: flatSeatIds,
+            expiresAt: created.expiresAt ?? pendingExpiresAt()
+          });
 
-    return created;
-  });
+          return created;
+        })
+      );
 
   const payment = await startPaymentCheckout({
     orderId: order.id,
@@ -717,10 +723,12 @@ export async function createCheckout(params: {
     callbackUrl: `${base}/api/payments/callback/${providerName}`
   });
 
-  await prisma.order.update({
-    where: { id: order.id },
-    data: { paymentSessionId: payment.sessionId }
-  });
+  await withDbRetry(() =>
+    prisma.order.update({
+      where: { id: order.id },
+      data: { paymentSessionId: payment.sessionId }
+    })
+  );
 
   return {
     orderId: order.id,
@@ -1144,6 +1152,14 @@ export async function fulfillPaidOrder(params: {
         include: { purchasedTickets: true }
       });
       if (otherPaid) {
+        console.error(
+          '[checkout] duplicate payment callback after another order already paid',
+          {
+            cancelledOrderId: order.id,
+            paidOrderId: otherPaid.id,
+            providerPaymentId: params.providerPaymentId
+          }
+        );
         return {
           orderId: otherPaid.id,
           ticketCount: otherPaid.purchasedTickets.length,
@@ -1214,6 +1230,12 @@ export async function fulfillPaidOrder(params: {
     }
 
     await releaseSeatHoldsForOrders(tx, [order.id]);
+
+    await cancelOtherPendingCheckoutsInTx(tx, {
+      userId: order.userId,
+      eventId: order.eventId,
+      skipOrderId: order.id
+    });
 
     return { orderId: order.id, ticketCount, alreadyFulfilled: false };
   }).then(async (result) => {
@@ -1354,6 +1376,36 @@ export async function failPendingOrder(params: {
 
     await releaseSeatHoldsForOrders(tx, orderIds);
   });
+}
+
+/** Aynı kişi+etkinlik için açık kalan checkout denemelerini kapatır (çift tahsilat penceresi). */
+async function cancelOtherPendingCheckoutsInTx(
+  tx: Prisma.TransactionClient,
+  params: { userId: string; eventId: string; skipOrderId: string }
+): Promise<void> {
+  const others = await tx.order.findMany({
+    where: {
+      userId: params.userId,
+      eventId: params.eventId,
+      status: 'pending',
+      id: { not: params.skipOrderId },
+      deletedAt: null,
+      cartGroupId: null
+    },
+    select: { id: true }
+  });
+  if (others.length === 0) return;
+
+  const ids = others.map((row) => row.id);
+  await tx.order.updateMany({
+    where: { id: { in: ids } },
+    data: { status: 'cancelled' }
+  });
+  await tx.transaction.updateMany({
+    where: { orderId: { in: ids }, status: 'pending' },
+    data: { status: 'failed' }
+  });
+  await releaseSeatHoldsForOrders(tx, ids);
 }
 
 export async function getOrderForUser(params: {

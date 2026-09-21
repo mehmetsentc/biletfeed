@@ -387,6 +387,7 @@ export const en: TranslationKeys = {
     orderCreateFailed: 'Could not create order',
     paymentPageFailed: 'Could not open payment page',
     transactionFailed: 'Transaction failed',
+    connectionLost: 'Connection lost. Please wait a few seconds and try again.',
     invalidCoupon: 'Invalid coupon',
     couponApplyFailed: 'Could not apply coupon',
     ticketTypeLabel: 'Ticket type',

@@ -22,6 +22,7 @@ import {
   type CheckoutBillingInput
 } from '@/lib/validation/checkout-billing';
 import { sanitizePhoneInput } from '@/lib/validation/phone';
+import { publicApiErrorMessage } from '@/lib/http/public-error';
 
 export function CartCheckoutForm() {
   const router = useRouter();
@@ -105,12 +106,19 @@ export function CartCheckoutForm() {
           ...(billingPayload ? { billing: billingPayload } : {})
         })
       });
-      const data = (await res.json()) as {
+      let data: {
         error?: string;
         status?: string;
         orderId?: string;
         redirectUrl?: string;
       };
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        throw new Error(
+          'Bağlantı kesildi. Lütfen birkaç saniye sonra tekrar deneyin.'
+        );
+      }
       if (!res.ok) {
         throw new Error(data.error || 'Ödeme başlatılamadı');
       }
@@ -128,7 +136,7 @@ export function CartCheckoutForm() {
       throw new Error('Ödeme yönlendirmesi alınamadı');
     } catch (err) {
       submitLock.current = false;
-      setError(err instanceof Error ? err.message : 'Bir hata oluştu');
+      setError(publicApiErrorMessage(err, 'Bağlantı kesildi. Lütfen birkaç saniye sonra tekrar deneyin.'));
       setLoading(false);
     }
   }

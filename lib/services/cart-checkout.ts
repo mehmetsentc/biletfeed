@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { prisma, ensureDbConnection, withDbRetry } from '@/lib/db/prisma';
 import {
   getAppBaseUrl,
   getPaymentProviderName
@@ -191,7 +191,7 @@ export async function createCartCheckout(params: {
   const providerName = getPaymentProviderName();
   const base = getAppBaseUrl();
 
-  const createdOrders = await prisma.$transaction(async (tx) => {
+  const createdOrders = await withDbRetry(() => prisma.$transaction(async (tx) => {
     const orders: Array<{
       id: string;
       total: number;
@@ -263,7 +263,7 @@ export async function createCartCheckout(params: {
     }
 
     return orders;
-  });
+  }));
 
   const primary = createdOrders[0]!;
   const paymentAmount =
@@ -299,10 +299,12 @@ export async function createCartCheckout(params: {
     callbackUrl: `${base}/api/payments/callback/${providerName}`
   });
 
-  await prisma.order.updateMany({
-    where: { cartGroupId },
-    data: { paymentSessionId: payment.sessionId }
-  });
+  await withDbRetry(() =>
+    prisma.order.updateMany({
+      where: { cartGroupId },
+      data: { paymentSessionId: payment.sessionId }
+    })
+  );
 
   const paymentToken = createPaymentAccessToken(primary.id);
   const redirectBase =

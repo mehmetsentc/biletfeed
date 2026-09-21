@@ -387,6 +387,7 @@ export const ru: TranslationKeys = {
     orderCreateFailed: 'Не удалось создать заказ',
     paymentPageFailed: 'Не удалось открыть страницу оплаты',
     transactionFailed: 'Операция не удалась',
+    connectionLost: 'Соединение прервано. Подождите несколько секунд и попробуйте снова.',
     invalidCoupon: 'Недействительный промокод',
     couponApplyFailed: 'Не удалось применить промокод',
     ticketTypeLabel: 'Тип билета',

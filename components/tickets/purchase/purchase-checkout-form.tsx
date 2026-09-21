@@ -35,6 +35,7 @@ import {
 } from '@/lib/validation/checkout-billing';
 import { useTranslations } from '@/components/providers';
 import { sanitizePhoneInput } from '@/lib/validation/phone';
+import { publicApiErrorMessage } from '@/lib/http/public-error';
 
 interface PurchaseCheckoutFormProps {
   event: MockEvent;
@@ -151,14 +152,14 @@ export function PurchaseCheckoutForm({
           ticketTypeId: isMultiSeat ? seatLines[0]?.id : ticketType.id
         })
       });
-      const data = await res.json();
+      const data = (await res.json()) as { error?: string; discount?: number };
       if (!res.ok) throw new Error(data.error || t.purchase.invalidCoupon);
-      setCouponDiscount(data.discount);
+      setCouponDiscount(data.discount ?? 0);
       setCouponApplied(true);
     } catch (e) {
       setCouponApplied(false);
       setCouponDiscount(0);
-      setCouponError(e instanceof Error ? e.message : t.purchase.couponApplyFailed);
+      setCouponError(publicApiErrorMessage(e, t.purchase.couponApplyFailed));
     }
   }
 
@@ -222,7 +223,17 @@ export function PurchaseCheckoutForm({
           ...(billingPayload ? { billing: billingPayload } : {})
         })
       });
-      const data = await res.json();
+      let data: {
+        error?: string;
+        status?: string;
+        orderId?: string;
+        redirectUrl?: string;
+      };
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        throw new Error(t.purchase.connectionLost);
+      }
 
       if (!res.ok) {
         throw new Error(data.error || t.purchase.orderCreateFailed);
@@ -243,7 +254,7 @@ export function PurchaseCheckoutForm({
       throw new Error(t.purchase.paymentPageFailed);
     } catch (err) {
       submitLock.current = false;
-      setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
+      setError(publicApiErrorMessage(err, t.purchase.connectionLost));
       setLoading(false);
     }
   }

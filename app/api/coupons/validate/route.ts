@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
+import { publicApiErrorMessage } from '@/lib/http/public-error';
 import { validateCoupon } from '@/lib/services/coupons';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
 
@@ -61,7 +62,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (e) {
     return NextResponse.json(
-      { valid: false, error: e instanceof Error ? e.message : 'Geçersiz kupon' },
+      {
+        valid: false,
+        error: publicApiErrorMessage(e, 'Geçersiz kupon')
+      },
       { status: 400 }
     );
   }

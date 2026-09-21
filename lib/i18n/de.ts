@@ -390,6 +390,7 @@ export const de: TranslationKeys = {
     orderCreateFailed: 'Bestellung konnte nicht erstellt werden',
     paymentPageFailed: 'Zahlungsseite konnte nicht geöffnet werden',
     transactionFailed: 'Transaktion fehlgeschlagen',
+    connectionLost: 'Verbindung unterbrochen. Bitte in ein paar Sekunden erneut versuchen.',
     invalidCoupon: 'Ungültiger Gutschein',
     couponApplyFailed: 'Gutschein konnte nicht angewendet werden',
     ticketTypeLabel: 'Tickettyp',

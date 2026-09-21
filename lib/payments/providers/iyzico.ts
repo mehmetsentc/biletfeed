@@ -58,19 +58,49 @@ function normalizePhone(phone: string | undefined): string {
   return DEFAULT_PHONE;
 }
 
+const IYZICO_REQUEST_TIMEOUT_MS = 12_000;
+
+function timeoutError(label: string): Error {
+  const err = new Error(`${label} zaman aşımı`);
+  (err as Error & { code: string }).code = 'ETIMEDOUT';
+  return err;
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(timeoutError(label)), ms);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function promisifyCreate(
   client: IyzipayClient,
   request: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    client.checkoutFormInitialize.create(
-      request as never,
-      ((err: Error, result: unknown) => {
-        if (err) reject(err);
-        else resolve((result ?? {}) as Record<string, unknown>);
-      }) as never
-    );
-  });
+  return withTimeout(
+    new Promise((resolve, reject) => {
+      client.checkoutFormInitialize.create(
+        request as never,
+        ((err: Error, result: unknown) => {
+          if (err) reject(err);
+          else resolve((result ?? {}) as Record<string, unknown>);
+        }) as never
+      );
+    }),
+    IYZICO_REQUEST_TIMEOUT_MS,
+    'İyzico'
+  );
 }
 
 function promisifyRetrieve(

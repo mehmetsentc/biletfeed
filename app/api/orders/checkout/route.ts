@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { verifySessionCookie } from '@/lib/auth/session';
+import {
+  isTransientNetworkError,
+  publicApiErrorMessage
+} from '@/lib/http/public-error';
 import { createCheckout } from '@/lib/services/orders';
 import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 import { checkoutAttendeeSchema } from '@/lib/validation/checkout-attendee';
@@ -56,8 +60,11 @@ export async function POST(request: NextRequest) {
     // harici domain olabilir, same-origin kontrolü yapılmaz.
     return NextResponse.json({ success: true, ...result });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Sipariş oluşturulamadı';
+    const message = publicApiErrorMessage(err, 'Sipariş oluşturulamadı');
     console.error('[checkout] error:', message, err);
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json(
+      { error: message },
+      { status: isTransientNetworkError(err) ? 503 : 400 }
+    );
   }
 }

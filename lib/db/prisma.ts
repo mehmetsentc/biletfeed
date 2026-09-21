@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { isTransientNetworkError } from '@/lib/http/public-error';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -21,14 +22,9 @@ export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL);
 }
 
-function isStaleConnectionError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    message.includes('kind: Closed') ||
-    message.includes('Connection terminated') ||
-    message.includes('ECONNRESET') ||
-    message.includes('connection closed')
-  );
+async function reconnectPrisma(): Promise<void> {
+  await prisma.$disconnect().catch(() => {});
+  await prisma.$connect();
 }
 
 /** Neon idle timeout sonrası kopan bağlantıyı yeniler. */
@@ -37,9 +33,28 @@ export async function ensureDbConnection(): Promise<void> {
 
   try {
     await prisma.$queryRaw`SELECT 1`;
+    return;
   } catch (error) {
-    if (!isStaleConnectionError(error)) throw error;
-    await prisma.$disconnect().catch(() => {});
-    await prisma.$connect();
+    if (!isTransientNetworkError(error)) throw error;
+  }
+
+  await reconnectPrisma();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch (error) {
+    if (!isTransientNetworkError(error)) throw error;
+    await reconnectPrisma();
+    await prisma.$queryRaw`SELECT 1`;
+  }
+}
+
+/** Kopuk Neon/Prisma bağlantısında işlemi bir kez daha dener. */
+export async function withDbRetry<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isTransientNetworkError(error)) throw error;
+    await reconnectPrisma();
+    return operation();
   }
 }

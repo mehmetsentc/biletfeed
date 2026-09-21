@@ -1,3 +1,4 @@
+import { withTransientRetry } from '@/lib/http/public-error';
 import { getPaymentProvider } from '@/lib/payments/provider';
 import type {
   PaymentInitInput,
@@ -18,7 +19,10 @@ export async function startPaymentCheckout(
       `${provider.name} ödeme sağlayıcısı yapılandırılmamış. Ortam değişkenlerini kontrol edin.`
     );
   }
-  return provider.createCheckoutSession(input);
+  return withTransientRetry(() => provider.createCheckoutSession(input), {
+    retries: 2,
+    delayMs: 400
+  });
 }
 
 export async function verifyPaymentCallback(

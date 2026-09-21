@@ -35,6 +35,7 @@ import {
 } from '@/lib/validation/checkout-billing';
 import { useTranslations } from '@/components/providers';
 import { sanitizePhoneInput } from '@/lib/validation/phone';
+import { publicApiErrorMessage } from '@/lib/http/public-error';
 
 type TicketTypeRow = {
   id: string;
@@ -147,7 +148,7 @@ export function CheckoutForm({
     } catch (e) {
       setCouponApplied(false);
       setCouponDiscount(0);
-      setCouponError(e instanceof Error ? e.message : t.purchase.couponApplyFailed);
+      setCouponError(publicApiErrorMessage(e, t.purchase.couponApplyFailed));
     }
   }
 
@@ -216,7 +217,7 @@ export function CheckoutForm({
         throw new Error(t.purchase.paymentPageFailed);
       } catch (err) {
         submitLock.current = false;
-        setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
+        setError(publicApiErrorMessage(err, t.purchase.connectionLost));
         setLoading(false);
       }
       return;
@@ -256,7 +257,7 @@ export function CheckoutForm({
       throw new Error(t.purchase.paymentPageFailed);
     } catch (err) {
       submitLock.current = false;
-      setError(err instanceof Error ? err.message : t.purchase.transactionFailed);
+      setError(publicApiErrorMessage(err, t.purchase.connectionLost));
       setLoading(false);
     }
   }
