@@ -200,6 +200,30 @@ function drawTicketFrame(doc: PdfDoc, x: number, y: number, w: number, h: number
   doc.restore();
 }
 
+const COUPON_W = 86;
+const RIGHT_W = 112;
+
+function drawWordmark(
+  doc: PdfDoc,
+  logo: string | null,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) {
+  if (logo) {
+    doc.image(logo, x, y, { fit: [width, height], align: 'center' });
+    return;
+  }
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(11);
+  doc.text('biletfeed', x, y + 2, {
+    width,
+    align: 'center',
+    lineBreak: false,
+    height
+  });
+}
+
 function drawFront(
   doc: PdfDoc,
   origin: { x: number; y: number },
@@ -210,101 +234,117 @@ function drawFront(
 ) {
   const { x, y } = origin;
   const { ticketW: w, ticketH: h, stubW } = geo;
-  const rightW = 98;
-  const bodyX = x + stubW + 12;
-  const bodyW = w - stubW - rightW - 24;
-  const rightX = x + w - rightW;
+  const perf = x + stubW + COUPON_W;
+  const rightX = x + w - RIGHT_W;
+  const bodyX = perf + 10;
+  const bodyW = rightX - bodyX - 8;
 
   doc.save();
   doc.rect(x, y, w, h).clip();
   doc.rect(x, y, w, h).fill('#FFFFFF');
   drawBrandStub(doc, x, y, stubW, h, ticket.sequenceLabel);
 
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(14);
-  doc.text(ticket.eventTitle, bodyX, y + 12, {
-    width: bodyW,
-    height: 34,
+  const couponQr = 52;
+  const couponX = x + stubW;
+  const couponQrX = couponX + (COUPON_W - couponQr) / 2;
+  const couponQrY = y + 36;
+  drawBitmapQr(doc, ticket.qrData, couponQrX, couponQrY, couponQr);
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(6.5);
+  doc.text('KOÇAN', couponX + 3, couponQrY + couponQr + 4, {
+    width: COUPON_W - 6,
+    align: 'center',
+    lineBreak: false,
+    height: 8
+  });
+  doc.fillColor('#444444').font(pdfFont()).fontSize(5.5);
+  doc.text(ticket.ticketCode, couponX + 3, y + h - 16, {
+    width: COUPON_W - 8,
+    align: 'center',
+    lineBreak: false,
+    height: 8,
     ellipsis: true
   });
-  doc.rect(bodyX, y + 48, 28, 2.5).fill(LIME);
 
-  doc.fillColor('#3A3A3A').font(pdfFont(true)).fontSize(9);
-  doc.text(ticket.ticketTypeName, bodyX, y + 56, {
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(13);
+  doc.text(ticket.eventTitle, bodyX, y + 12, {
+    width: bodyW,
+    height: 32,
+    ellipsis: true
+  });
+  doc.rect(bodyX, y + 46, 26, 2.5).fill(LIME);
+
+  doc.fillColor('#3A3A3A').font(pdfFont(true)).fontSize(8.5);
+  doc.text(ticket.ticketTypeName, bodyX, y + 54, {
     width: bodyW,
     height: 12,
     ellipsis: true,
     lineBreak: false
   });
 
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(11);
-  doc.text(ticket.dateTimeLabel, bodyX, y + 72, {
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(10);
+  doc.text(ticket.dateTimeLabel, bodyX, y + 70, {
     width: bodyW,
-    height: 14,
+    height: 13,
     ellipsis: true,
     lineBreak: false
   });
 
-  doc.font(pdfFont(true)).fontSize(9);
-  doc.text(ticket.venueName, bodyX, y + 90, {
+  doc.font(pdfFont(true)).fontSize(8.5);
+  doc.text(ticket.venueName, bodyX, y + 86, {
     width: bodyW,
     height: 12,
     ellipsis: true,
     lineBreak: false
   });
 
-  doc.fillColor('#555555').font(pdfFont()).fontSize(7.5);
-  doc.text(ticket.addressLine, bodyX, y + 106, {
+  doc.fillColor('#555555').font(pdfFont()).fontSize(7);
+  doc.text(ticket.addressLine, bodyX, y + 100, {
     width: bodyW,
-    height: 26,
+    height: 22,
     ellipsis: true
   });
 
   doc.strokeColor('#E4E4E4').lineWidth(0.6);
-  doc.moveTo(bodyX, y + h - 40).lineTo(bodyX + bodyW, y + h - 40).stroke();
-
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(9);
-  doc.text(ticket.ticketCode, bodyX, y + h - 32, {
+  doc.moveTo(bodyX, y + h - 36).lineTo(bodyX + bodyW, y + h - 36).stroke();
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(8);
+  doc.text(ticket.ticketCode, bodyX, y + h - 30, {
     width: bodyW,
-    height: 12,
+    height: 11,
     lineBreak: false,
     ellipsis: true
   });
-  doc.fillColor('#666666').font(pdfFont()).fontSize(7.5);
-  doc.text(ticket.serial, bodyX, y + h - 18, {
+  doc.fillColor('#666666').font(pdfFont()).fontSize(7);
+  doc.text(ticket.serial, bodyX, y + h - 17, {
     width: bodyW,
     height: 10,
     lineBreak: false
   });
 
-  const qrSize = 58;
-  const stackH = 16 + 8 + qrSize + 16;
-  const stackTop = y + Math.max(10, (h - stackH) / 2);
-  if (logo) {
-    doc.image(logo, rightX + 6, stackTop, { fit: [rightW - 16, 14], align: 'center' });
-  } else {
-    doc.fillColor(INK).font(pdfFont(true)).fontSize(8);
-    doc.text('biletfeed', rightX + 4, stackTop, {
-      width: rightW - 12,
-      align: 'center',
-      lineBreak: false,
-      height: 12
-    });
-  }
+  doc.strokeColor('#E4E4E4').lineWidth(0.7);
+  doc.moveTo(rightX, y + 8).lineTo(rightX, y + h - 8).stroke();
+  drawWordmark(doc, logo, rightX + 8, y + 8, RIGHT_W - 16, 20);
 
-  const qrTop = stackTop + 20;
-  const qrX = rightX + (rightW - qrSize) / 2;
-  drawBitmapQr(doc, ticket.qrData, qrX, qrTop, qrSize);
-
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(6.5);
-  doc.text('biletfeed.com', rightX + 4, qrTop + qrSize + 3, {
-    width: rightW - 12,
+  const mainQr = 56;
+  const mainQrX = rightX + (RIGHT_W - mainQr) / 2;
+  const mainQrY = y + 32;
+  drawBitmapQr(doc, ticket.qrData, mainQrX, mainQrY, mainQr);
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(8);
+  doc.text('biletfeed', rightX + 4, mainQrY + mainQr + 3, {
+    width: RIGHT_W - 8,
     align: 'center',
     lineBreak: false,
-    height: 9
+    height: 10
+  });
+  doc.fillColor('#444444').font(pdfFont()).fontSize(6.5);
+  doc.text(ticket.ticketTypeName, rightX + 6, mainQrY + mainQr + 14, {
+    width: RIGHT_W - 12,
+    align: 'center',
+    height: 16,
+    ellipsis: true
   });
 
   doc.restore();
-  drawPerforation(doc, x + stubW, y, h);
+  drawPerforation(doc, perf, y, h);
   drawTicketFrame(doc, x, y, w, h);
   if (cropMarks) drawCropMarks(doc, x, y, w, h);
 }
@@ -314,73 +354,116 @@ function drawBack(
   origin: { x: number; y: number },
   geo: PrintSheetGeometry,
   ticket: PrintSheetTicket,
+  logo: string | null,
   cropMarks = true
 ) {
   const { x, y } = origin;
   const { ticketW: w, ticketH: h, stubW } = geo;
-  const textX = x + stubW + 10;
-  const textW = w - stubW - 20;
+  const perf = x + stubW + COUPON_W;
+  const rightX = x + w - RIGHT_W;
+  const textX = perf + 10;
+  const textW = rightX - textX - 8;
 
   doc.save();
   doc.rect(x, y, w, h).clip();
   doc.rect(x, y, w, h).fill('#FFFFFF');
   drawBrandStub(doc, x, y, stubW, h, ticket.sequenceLabel);
 
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(8);
+  doc.text('biletfeed', x + stubW + 4, y + h / 2 - 18, {
+    width: COUPON_W - 8,
+    align: 'center',
+    lineBreak: false,
+    height: 12
+  });
+  doc.fillColor('#666666').font(pdfFont()).fontSize(6.5);
+  doc.text('KOÇAN', x + stubW + 4, y + h / 2 - 4, {
+    width: COUPON_W - 8,
+    align: 'center',
+    lineBreak: false,
+    height: 9
+  });
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(7);
+  doc.text(ticket.sequenceLabel, x + stubW + 3, y + h - 18, {
+    width: COUPON_W - 6,
+    align: 'center',
+    lineBreak: false,
+    height: 10
+  });
+
   doc.save();
-  doc.rect(x + stubW + 1, y + 1, w - stubW - 2, h - 2).clip();
-  doc.fillColor('#F3F3F3').font(pdfFont(true)).fontSize(42);
-  doc.text('biletfeed', textX, y + h / 2 - 22, {
+  doc.rect(textX, y + 1, textW, h - 2).clip();
+  doc.fillColor('#F3F3F3').font(pdfFont(true)).fontSize(28);
+  doc.text('biletfeed', textX, y + h / 2 - 16, {
     width: textW,
     align: 'center',
     lineBreak: false,
-    height: 48
+    height: 34
   });
   doc.restore();
 
   const barY = y + 10;
-  const barH = 18;
+  const barH = 16;
   doc.rect(textX, barY, textW, barH).fill(INK);
   doc.rect(textX, barY, 3.5, barH).fill(LIME);
-  doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(7.5);
-  doc.text(PRINT_TICKET_NON_REFUNDABLE, textX + 10, barY + 4.5, {
-    width: textW - 16,
-    height: 11,
-    ellipsis: true,
-    lineBreak: false
-  });
-
-  doc.fillColor('#666666').font(pdfFont(true)).fontSize(7);
-  doc.text('Açıklamalar', textX, y + 36, {
-    width: textW,
+  doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(6.5);
+  doc.text(PRINT_TICKET_NON_REFUNDABLE, textX + 8, barY + 4, {
+    width: textW - 12,
     height: 10,
+    ellipsis: true,
     lineBreak: false
   });
 
-  doc.fillColor('#222222').font(pdfFont()).fontSize(7);
-  doc.text(PRINT_TICKET_TERMS, textX, y + 50, {
+  doc.fillColor('#666666').font(pdfFont(true)).fontSize(6.5);
+  doc.text('Açıklamalar', textX, y + 32, {
     width: textW,
-    height: 78,
+    height: 9,
+    lineBreak: false
+  });
+
+  doc.fillColor('#222222').font(pdfFont()).fontSize(6.5);
+  doc.text(PRINT_TICKET_TERMS, textX, y + 44, {
+    width: textW,
+    height: 92,
     ellipsis: true,
-    lineGap: 1.4
+    lineGap: 1.2
   });
 
   doc.fillColor('#666666').font(pdfFont()).fontSize(6);
-  doc.text(`BiletFeed · biletfeed.com · ${ticket.ticketCode}`, textX, y + h - 34, {
-    width: textW * 0.62,
-    height: 18,
+  doc.text(ticket.ticketCode, textX, y + h - 16, {
+    width: textW,
+    height: 9,
+    lineBreak: false,
     ellipsis: true
   });
 
-  doc.fillColor('#111111').font(pdfFont(true)).fontSize(9);
-  doc.text(`Sıra No: ${ticket.sequenceLabel}`, textX, y + h - 28, {
-    width: textW,
-    align: 'right',
+  doc.strokeColor('#E4E4E4').lineWidth(0.7);
+  doc.moveTo(rightX, y + 8).lineTo(rightX, y + h - 8).stroke();
+  drawWordmark(doc, logo, rightX + 8, y + 18, RIGHT_W - 16, 22);
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(8);
+  doc.text('biletfeed', rightX + 4, y + 48, {
+    width: RIGHT_W - 8,
+    align: 'center',
     lineBreak: false,
-    height: 12
+    height: 11
+  });
+  doc.fillColor('#666666').font(pdfFont()).fontSize(7);
+  doc.text('Sıra No', rightX + 4, y + 78, {
+    width: RIGHT_W - 8,
+    align: 'center',
+    lineBreak: false,
+    height: 10
+  });
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(12);
+  doc.text(ticket.sequenceLabel, rightX + 4, y + 92, {
+    width: RIGHT_W - 8,
+    align: 'center',
+    lineBreak: false,
+    height: 16
   });
 
   doc.restore();
-  drawPerforation(doc, x + stubW, y, h);
+  drawPerforation(doc, perf, y, h);
   drawTicketFrame(doc, x, y, w, h);
   if (cropMarks) drawCropMarks(doc, x, y, w, h);
 }
@@ -411,7 +494,7 @@ export async function generateTicketFacePdf(
     doc.rect(0, 0, geo.ticketW + pad * 2, geo.ticketH + pad * 2).fill('#F4F4F4');
     const origin = { x: pad, y: pad };
     if (side === 'front') drawFront(doc, origin, geo, ticket, logo, false);
-    else drawBack(doc, origin, geo, ticket, false);
+    else drawBack(doc, origin, geo, ticket, logo, false);
     doc.end();
   });
 }
@@ -492,7 +575,7 @@ export async function generatePrintSheetPdf(tickets: PrintSheetTicket[]): Promis
       sheet.forEach((item, row) => {
         const origin = geo.origins[row];
         if (!origin) return;
-        drawBack(doc, origin, geo, item);
+        drawBack(doc, origin, geo, item, logo);
         doc.fillColor('#111111').font(pdfFont()).fontSize(7);
         doc.text(String(row + 1), 8, origin.y + geo.ticketH / 2 - 4, {
           width: 14,
