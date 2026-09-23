@@ -14,12 +14,10 @@ type PdfDoc = InstanceType<typeof PDFDocument>;
 
 const MM = 72 / 25.4;
 const LOGO_ON_LIGHT = path.join(process.cwd(), 'public/brand/logo-dark.png');
-const LOGO_ON_DARK = path.join(process.cwd(), 'public/brand/logo-light.png');
-const LOGO_ICON = path.join(process.cwd(), 'public/brand/favicon.png');
-const LIME = '#DFFF00';
 const INK = '#111111';
+const PAPER = '#FFFFFF';
 
-type BrandLogos = { onLight: string | null; onDark: string | null; icon: string | null };
+type BrandLogos = { onLight: string | null };
 
 export type PrintSheetTicket = {
   eventTitle: string;
@@ -49,7 +47,7 @@ export function printSheetGeometry(): PrintSheetGeometry {
   const ticketW = 190 * MM;
   const ticketH = 68 * MM;
   const gap = 8 * MM;
-  const stubW = 16 * MM;
+  const stubW = 48 * MM;
   const marginTop = 42;
   const marginBottom = 34;
   const blockH = PRINT_TICKETS_PER_SHEET * ticketH + (PRINT_TICKETS_PER_SHEET - 1) * gap;
@@ -73,33 +71,17 @@ function existingLogo(filePath: string): string | null {
 }
 
 function brandLogos(): BrandLogos {
-  return {
-    onLight: existingLogo(LOGO_ON_LIGHT),
-    onDark: existingLogo(LOGO_ON_DARK),
-    icon: existingLogo(LOGO_ICON)
-  };
+  return { onLight: existingLogo(LOGO_ON_LIGHT) };
 }
 
-function drawIcon(
-  doc: PdfDoc,
-  icon: string | null,
-  x: number,
-  y: number,
-  size: number,
-  opacity?: number
-) {
-  if (!icon) return;
-  const options: PDFKit.Mixins.ImageOption = {
-    fit: [size, size],
-    align: 'center',
-    valign: 'center'
-  };
-  doc.image(
-    icon,
-    x,
-    y,
-    opacity != null ? ({ ...options, opacity } as PDFKit.Mixins.ImageOption) : options
-  );
+function upper(value: string): string {
+  return value.toLocaleUpperCase('tr-TR');
+}
+
+function splitDateTime(label: string): { date: string; time: string } {
+  const match = label.trim().match(/^(.*)\s+(\d{1,2}:\d{2})$/);
+  if (!match?.[1] || !match[2]) return { date: label, time: '' };
+  return { date: match[1], time: match[2] };
 }
 
 /**
@@ -175,73 +157,22 @@ function drawCropMarks(doc: PdfDoc, x: number, y: number, w: number, h: number) 
   doc.restore();
 }
 
-function drawBrandStub(
-  doc: PdfDoc,
-  x: number,
-  y: number,
-  stubW: number,
-  h: number,
-  sequenceLabel: string,
-  icon: string | null
-) {
+function drawPerforation(doc: PdfDoc, x: number, y: number, h: number, paper: string) {
   doc.save();
-  doc.rect(x, y, stubW, h).fill(INK);
-  doc.rect(x + stubW - 3.5, y, 3.5, h).fill(LIME);
-  const blackW = stubW - 3.5;
-  const iconSize = 13;
-  const iconTop = 7;
-  drawIcon(doc, icon, x + (blackW - iconSize) / 2, y + iconTop, iconSize);
-
-  doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(7.5);
-  const label = 'biletfeed';
-  const labelW = doc.widthOfString(label);
-  const step = labelW + 14;
-  const seqBand = 16;
-  const topReserve = icon ? iconTop + iconSize + 6 : 10;
-  const span = h - topReserve - seqBand;
-  const count = Math.max(1, Math.floor(span / step));
-  doc.save();
-  doc.translate(x + blackW / 2, y + topReserve + span / 2);
-  doc.rotate(-90);
-  const total = count * step - 14;
-  const start = -total / 2;
-  for (let i = 0; i < count; i += 1) {
-    doc.text(label, start + i * step, -4, {
-      lineBreak: false,
-      width: labelW + 1,
-      height: 11
-    });
-  }
-  doc.restore();
-  doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(6.5);
-  doc.text(sequenceLabel, x + 1, y + h - 13, {
-    width: blackW - 2,
-    align: 'center',
-    lineBreak: false,
-    height: 9
-  });
-  doc.restore();
-}
-
-function drawPerforation(doc: PdfDoc, x: number, y: number, h: number) {
-  doc.save();
-  doc.strokeColor('#C8C8C8').lineWidth(0.7).dash(1.6, { space: 1.8 });
-  doc.moveTo(x, y + 7).lineTo(x, y + h - 7).stroke();
+  doc.strokeColor(INK).lineWidth(0.9).dash(1.2, { space: 2.2 });
+  doc.moveTo(x, y + 8).lineTo(x, y + h - 8).stroke();
   doc.undash();
-  doc.fillColor('#FFFFFF');
-  doc.circle(x, y, 4.5).fill();
-  doc.circle(x, y + h, 4.5).fill();
+  doc.fillColor(paper);
+  doc.circle(x, y, 5).fill();
+  doc.circle(x, y + h, 5).fill();
   doc.restore();
 }
 
 function drawTicketFrame(doc: PdfDoc, x: number, y: number, w: number, h: number) {
   doc.save();
-  doc.lineWidth(0.9).strokeColor('#111111').rect(x, y, w, h).stroke();
+  doc.lineWidth(1.35).strokeColor(INK).roundedRect(x, y, w, h, 8).stroke();
   doc.restore();
 }
-
-const COUPON_W = 86;
-const RIGHT_W = 112;
 
 function drawWordmark(
   doc: PdfDoc,
@@ -249,32 +180,17 @@ function drawWordmark(
   x: number,
   y: number,
   width: number,
-  height: number,
-  color: string
+  height: number
 ) {
   if (logo) {
-    doc.image(logo, x, y, { fit: [width, height], align: 'center', valign: 'center' });
+    doc.image(logo, x, y, { fit: [width, height], valign: 'center' });
     return;
   }
-  doc.fillColor(color).font(pdfFont(true)).fontSize(11);
-  doc.text('biletfeed', x, y + Math.max(0, (height - 12) / 2), {
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(13);
+  doc.text('biletfeed', x, y + Math.max(0, (height - 14) / 2), {
     width,
-    align: 'center',
     lineBreak: false,
     height
-  });
-}
-
-function drawTypeChip(doc: PdfDoc, label: string, x: number, y: number, maxWidth: number) {
-  doc.font(pdfFont(true)).fontSize(7.5);
-  const textWidth = doc.widthOfString(label);
-  const chipW = Math.min(maxWidth, textWidth + 12);
-  doc.roundedRect(x, y, chipW, 14, 2).fill(LIME);
-  doc.fillColor(INK).text(label, x + 6, y + 3, {
-    width: chipW - 12,
-    height: 10,
-    lineBreak: false,
-    ellipsis: true
   });
 }
 
@@ -284,132 +200,137 @@ function drawFront(
   geo: PrintSheetGeometry,
   ticket: PrintSheetTicket,
   logos: BrandLogos,
-  cropMarks = true
+  cropMarks = true,
+  paper = PAPER
 ) {
   const { x, y } = origin;
   const { ticketW: w, ticketH: h, stubW } = geo;
-  const perf = x + stubW + COUPON_W;
-  const rightX = x + w - RIGHT_W;
-  const bodyX = perf + 10;
-  const bodyW = rightX - bodyX - 8;
+  const perf = x + w - stubW;
+  const left = x + 16;
+  const when = splitDateTime(ticket.dateTimeLabel);
+  const dateColW = 96;
+  const dateX = perf - 12 - dateColW;
+  const titleW = dateX - left - 8;
 
   doc.save();
-  doc.rect(x, y, w, h).clip();
-  doc.rect(x, y, w, h).fill('#FFFFFF');
-  drawBrandStub(doc, x, y, stubW, h, ticket.sequenceLabel, logos.icon);
+  doc.roundedRect(x, y, w, h, 8).clip();
+  doc.rect(x, y, w, h).fill(PAPER);
 
-  const couponX = x + stubW;
-  drawWordmark(doc, logos.onLight, couponX + 6, y + 8, COUPON_W - 12, 12, INK);
-  const couponQr = 48;
-  const couponQrX = couponX + (COUPON_W - couponQr) / 2;
-  const couponQrY = y + 28;
-  drawBitmapQr(doc, ticket.qrData, couponQrX, couponQrY, couponQr);
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(6.5);
-  doc.text('KOÇAN', couponX + 3, couponQrY + couponQr + 4, {
-    width: COUPON_W - 6,
-    align: 'center',
-    lineBreak: false,
-    height: 8
-  });
-  doc.fillColor('#444444').font(pdfFont()).fontSize(5.5);
-  doc.text(ticket.ticketCode, couponX + 3, y + h - 15, {
-    width: COUPON_W - 8,
-    align: 'center',
-    lineBreak: false,
-    height: 8,
-    ellipsis: true
-  });
+  drawWordmark(doc, logos.onLight, left, y + 12, 150, 26);
 
-  drawWordmark(doc, logos.onLight, bodyX, y + 10, Math.min(bodyW, 118), 16, INK);
-  const mark = 8;
-  drawIcon(doc, logos.icon, bodyX, y + 29, mark);
-  doc.fillColor('#777777').font(pdfFont(true)).fontSize(6.5);
-  doc.text('ETKİNLİK BİLETİ', bodyX + (logos.icon ? mark + 4 : 0), y + 30, {
-    width: bodyW - (logos.icon ? mark + 4 : 0),
-    height: 9,
-    lineBreak: false
-  });
-
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(15);
-  doc.text(ticket.eventTitle, bodyX, y + 42, {
-    width: bodyW,
-    height: 36,
-    ellipsis: true
-  });
-
-  drawTypeChip(doc, ticket.ticketTypeName, bodyX, y + 82, bodyW);
-
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(10);
-  doc.text(ticket.dateTimeLabel, bodyX, y + 102, {
-    width: bodyW,
-    height: 13,
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(22);
+  doc.text(upper(ticket.eventTitle), left, y + 44, {
+    width: titleW,
+    height: 28,
     ellipsis: true,
     lineBreak: false
   });
-  doc.font(pdfFont(true)).fontSize(8.5);
-  doc.text(ticket.venueName, bodyX, y + 118, {
-    width: bodyW,
+  doc.font(pdfFont(true)).fontSize(13);
+  doc.text(upper(ticket.venueName), left, y + 76, {
+    width: titleW,
+    height: 16,
+    ellipsis: true,
+    lineBreak: false
+  });
+  doc.fillColor('#444444').font(pdfFont()).fontSize(8);
+  doc.text(ticket.addressLine, left, y + 94, {
+    width: Math.min(titleW, dateX - left),
     height: 12,
     ellipsis: true,
     lineBreak: false
   });
-  doc.fillColor('#555555').font(pdfFont()).fontSize(7);
-  doc.text(ticket.addressLine, bodyX, y + 132, {
-    width: bodyW,
-    height: 20,
-    ellipsis: true
-  });
 
-  doc.strokeColor('#E4E4E4').lineWidth(0.6);
-  doc.moveTo(bodyX, y + h - 34).lineTo(bodyX + bodyW, y + h - 34).stroke();
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(8);
-  doc.text(ticket.ticketCode, bodyX, y + h - 28, {
-    width: bodyW,
-    height: 11,
-    lineBreak: false,
-    ellipsis: true
-  });
-  doc.fillColor('#666666').font(pdfFont()).fontSize(7);
-  doc.text(ticket.serial, bodyX, y + h - 16, {
-    width: bodyW,
-    height: 10,
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(11);
+  doc.text(upper(when.date), dateX, y + 44, {
+    width: dateColW,
+    height: 14,
+    ellipsis: true,
     lineBreak: false
   });
+  if (when.time) {
+    doc.fontSize(16);
+    doc.text(when.time, dateX, y + 60, {
+      width: dateColW,
+      height: 18,
+      lineBreak: false
+    });
+  }
 
-  doc.rect(rightX, y, RIGHT_W, h).fill(INK);
-  const seal = 16;
-  drawIcon(doc, logos.icon, rightX + (RIGHT_W - seal) / 2, y + 8, seal);
-  drawWordmark(doc, logos.onDark, rightX + 8, y + 26, RIGHT_W - 16, 13, '#FFFFFF');
-  const mainQr = 50;
-  const mainQrX = rightX + (RIGHT_W - mainQr) / 2;
-  const mainQrY = y + 44;
-  doc.rect(mainQrX - 3, mainQrY - 3, mainQr + 6, mainQr + 6).fill('#FFFFFF');
-  drawBitmapQr(doc, ticket.qrData, mainQrX, mainQrY, mainQr);
-  doc.fillColor(LIME).font(pdfFont(true)).fontSize(8);
-  doc.text('GİRİŞ', rightX + 4, mainQrY + mainQr + 6, {
-    width: RIGHT_W - 8,
-    align: 'center',
+  const qr = 48;
+  const qrX = left;
+  const qrY = y + h - 16 - qr;
+  doc.fillColor('#555555').font(pdfFont()).fontSize(7);
+  doc.text(ticket.ticketCode, qrX, qrY - 12, {
+    width: qr + 8,
+    height: 10,
     lineBreak: false,
-    height: 10
-  });
-  doc.fillColor('#FFFFFF').font(pdfFont()).fontSize(7);
-  doc.text(ticket.ticketTypeName, rightX + 8, mainQrY + mainQr + 18, {
-    width: RIGHT_W - 16,
-    align: 'center',
-    height: 18,
     ellipsis: true
   });
-  doc.fillColor('#8D8D8D').font(pdfFont()).fontSize(6);
-  doc.text('biletfeed.com', rightX + 4, y + h - 14, {
-    width: RIGHT_W - 8,
-    align: 'center',
+  drawBitmapQr(doc, ticket.qrData, qrX, qrY, qr);
+
+  const metaX = qrX + qr + 16;
+  const metaW = dateX + dateColW - metaX;
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(13);
+  doc.text(upper(ticket.ticketTypeName), metaX, qrY + 8, {
+    width: metaW,
+    height: 18,
+    ellipsis: true,
+    lineBreak: false
+  });
+  doc.fillColor('#444444').font(pdfFont()).fontSize(9);
+  doc.text(ticket.serial, metaX, qrY + 28, {
+    width: metaW,
+    height: 12,
     lineBreak: false,
-    height: 8
+    ellipsis: true
   });
 
+  const stubX = perf + 12;
+  const stubWText = stubW - 24;
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(9);
+  doc.text(upper(ticket.eventTitle), stubX, y + 16, {
+    width: stubWText,
+    height: 22,
+    ellipsis: true
+  });
+  doc.strokeColor(INK).lineWidth(0.8);
+  doc.moveTo(stubX, y + 42).lineTo(stubX + stubWText, y + 42).stroke();
+  doc.font(pdfFont()).fontSize(8);
+  doc.text(upper(ticket.venueName), stubX, y + 48, {
+    width: stubWText,
+    height: 12,
+    ellipsis: true,
+    lineBreak: false
+  });
+  doc.font(pdfFont(true)).fontSize(8);
+  doc.text(upper(when.date), stubX, y + 62, {
+    width: stubWText,
+    height: 11,
+    ellipsis: true,
+    lineBreak: false
+  });
+  if (when.time) {
+    doc.text(when.time, stubX, y + 74, {
+      width: stubWText,
+      height: 11,
+      lineBreak: false
+    });
+  }
+  doc.font(pdfFont()).fontSize(8);
+  doc.text(upper(ticket.ticketTypeName), stubX, y + 90, {
+    width: stubWText,
+    height: 12,
+    ellipsis: true,
+    lineBreak: false
+  });
+  const stubQr = 46;
+  const stubQrX = perf + (stubW - stubQr) / 2;
+  const stubQrY = y + h - 14 - stubQr;
+  drawBitmapQr(doc, ticket.qrData, stubQrX, stubQrY, stubQr);
+
   doc.restore();
-  drawPerforation(doc, perf, y, h);
   drawTicketFrame(doc, x, y, w, h);
+  drawPerforation(doc, perf, y, h, paper);
   if (cropMarks) drawCropMarks(doc, x, y, w, h);
 }
 
@@ -419,105 +340,82 @@ function drawBack(
   geo: PrintSheetGeometry,
   ticket: PrintSheetTicket,
   logos: BrandLogos,
-  cropMarks = true
+  cropMarks = true,
+  paper = PAPER
 ) {
   const { x, y } = origin;
   const { ticketW: w, ticketH: h, stubW } = geo;
-  const perf = x + stubW + COUPON_W;
-  const rightX = x + w - RIGHT_W;
-  const textX = perf + 10;
-  const textW = rightX - textX - 8;
+  const perf = x + w - stubW;
+  const left = x + 16;
+  const textW = perf - left - 14;
 
   doc.save();
-  doc.rect(x, y, w, h).clip();
-  doc.rect(x, y, w, h).fill('#FFFFFF');
-  drawBrandStub(doc, x, y, stubW, h, ticket.sequenceLabel, logos.icon);
-  drawIcon(doc, logos.icon, x + stubW + (COUPON_W - 14) / 2, y + 10, 14);
-  drawWordmark(doc, logos.onLight, x + stubW + 6, y + 26, COUPON_W - 12, 12, INK);
-  doc.fillColor('#666666').font(pdfFont()).fontSize(6.5);
-  doc.text('KOÇAN', x + stubW + 4, y + h / 2 - 4, {
-    width: COUPON_W - 8,
-    align: 'center',
-    lineBreak: false,
-    height: 9
-  });
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(7);
-  doc.text(ticket.sequenceLabel, x + stubW + 3, y + h - 18, {
-    width: COUPON_W - 6,
-    align: 'center',
-    lineBreak: false,
-    height: 10
-  });
+  doc.roundedRect(x, y, w, h, 8).clip();
+  doc.rect(x, y, w, h).fill(PAPER);
 
-  if (logos.icon) {
-    const seal = 78;
-    drawIcon(doc, logos.icon, textX + (textW - seal) / 2, y + (h - seal) / 2, seal, 0.34);
-  }
+  drawWordmark(doc, logos.onLight, left, y + 14, 140, 24);
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(9);
+  doc.text(upper(PRINT_TICKET_NON_REFUNDABLE), left, y + 46, {
+    width: textW,
+    height: 12,
+    ellipsis: true,
+    lineBreak: false
+  });
+  doc.strokeColor(INK).lineWidth(0.7);
+  doc.moveTo(left, y + 62).lineTo(left + 120, y + 62).stroke();
 
-  const barY = y + 10;
-  const barH = 16;
-  doc.rect(textX, barY, textW, barH).fill(INK);
-  doc.rect(textX, barY, 3.5, barH).fill(LIME);
-  doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(6.5);
-  doc.text(PRINT_TICKET_NON_REFUNDABLE, textX + 8, barY + 4, {
-    width: textW - 12,
+  doc.fillColor('#666666').font(pdfFont(true)).fontSize(7);
+  doc.text('AÇIKLAMALAR', left, y + 70, {
+    width: textW,
     height: 10,
-    ellipsis: true,
     lineBreak: false
   });
-
-  doc.fillColor('#666666').font(pdfFont(true)).fontSize(6.5);
-  doc.text('Açıklamalar', textX, y + 32, {
+  doc.fillColor('#222222').font(pdfFont()).fontSize(7.5);
+  doc.text(PRINT_TICKET_TERMS, left, y + 84, {
     width: textW,
-    height: 9,
-    lineBreak: false
-  });
-
-  doc.fillColor('#222222').font(pdfFont()).fontSize(6.5);
-  doc.text(PRINT_TICKET_TERMS, textX, y + 44, {
-    width: textW,
-    height: 92,
+    height: 78,
     ellipsis: true,
-    lineGap: 1.2
+    lineGap: 1.4
   });
-
-  doc.fillColor('#666666').font(pdfFont()).fontSize(6);
-  doc.text(ticket.ticketCode, textX, y + h - 16, {
+  doc.fillColor('#555555').font(pdfFont()).fontSize(7);
+  doc.text(ticket.ticketCode, left, y + h - 18, {
     width: textW,
-    height: 9,
+    height: 10,
     lineBreak: false,
     ellipsis: true
   });
 
-  doc.rect(rightX, y, RIGHT_W, h).fill(INK);
-  const seal = 22;
-  drawIcon(doc, logos.icon, rightX + (RIGHT_W - seal) / 2, y + 16, seal);
-  drawWordmark(doc, logos.onDark, rightX + 8, y + 42, RIGHT_W - 16, 14, '#FFFFFF');
-  doc.fillColor(LIME).font(pdfFont(true)).fontSize(7);
-  doc.text('SIRA', rightX + 4, y + 66, {
-    width: RIGHT_W - 8,
+  const stubX = perf + 12;
+  const stubTextW = stubW - 24;
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(8);
+  doc.text('SIRA', stubX, y + 18, {
+    width: stubTextW,
     align: 'center',
     lineBreak: false,
     height: 10
   });
-  doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(14);
-  doc.text(ticket.sequenceLabel, rightX + 4, y + 80, {
-    width: RIGHT_W - 8,
+  doc.fontSize(16);
+  doc.text(ticket.sequenceLabel, stubX, y + 32, {
+    width: stubTextW,
     align: 'center',
     lineBreak: false,
-    height: 18
+    height: 20
   });
-  doc.fillColor('#8D8D8D').font(pdfFont()).fontSize(6);
-  doc.text('biletfeed.com', rightX + 4, y + h - 16, {
-    width: RIGHT_W - 8,
+  doc.font(pdfFont()).fontSize(7.5);
+  doc.text(upper(ticket.eventTitle), stubX, y + 56, {
+    width: stubTextW,
     align: 'center',
-    lineBreak: false,
-    height: 8
+    height: 20,
+    ellipsis: true
   });
+  const stubQr = 52;
+  const stubQrX = perf + (stubW - stubQr) / 2;
+  const stubQrY = y + h - 16 - stubQr;
+  drawBitmapQr(doc, ticket.qrData, stubQrX, stubQrY, stubQr);
 
   doc.restore();
-  drawPerforation(doc, perf, y, h);
   drawTicketFrame(doc, x, y, w, h);
+  drawPerforation(doc, perf, y, h, paper);
   if (cropMarks) drawCropMarks(doc, x, y, w, h);
 }
 
@@ -544,10 +442,11 @@ export async function generateTicketFacePdf(
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
     registerPdfFonts(doc);
-    doc.rect(0, 0, geo.ticketW + pad * 2, geo.ticketH + pad * 2).fill('#F4F4F4');
+    const paper = '#E4E7EC';
+    doc.rect(0, 0, geo.ticketW + pad * 2, geo.ticketH + pad * 2).fill(paper);
     const origin = { x: pad, y: pad };
-    if (side === 'front') drawFront(doc, origin, geo, ticket, logos, false);
-    else drawBack(doc, origin, geo, ticket, logos, false);
+    if (side === 'front') drawFront(doc, origin, geo, ticket, logos, false, paper);
+    else drawBack(doc, origin, geo, ticket, logos, false, paper);
     doc.end();
   });
 }
