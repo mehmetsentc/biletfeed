@@ -368,8 +368,6 @@ function drawFront(
   const qrY = y + h - 10 - stripH - stripGap - qr;
   if (partners.length > 0) {
     const stripY = y + h - 8 - stripH;
-    doc.strokeColor('#E6E6E6').lineWidth(0.6);
-    doc.moveTo(left, stripY - 4).lineTo(left + titleW, stripY - 4).stroke();
     drawPartnerStrip(doc, partners, left, stripY, titleW, stripH);
   }
   doc.fillColor('#555555').font(pdfFont()).fontSize(7);
