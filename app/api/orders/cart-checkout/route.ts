@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { isSameOriginRequest } from '@/lib/auth/csrf';
 import { verifySessionCookie } from '@/lib/auth/session';
+import {
+  isTransientNetworkError,
+  publicApiErrorMessage
+} from '@/lib/http/public-error';
 import { createCartCheckout } from '@/lib/services/cart-checkout';
 import { rateLimitOrNullAsync } from '@/lib/security/rate-limit';
 import { checkoutAttendeeSchema } from '@/lib/validation/checkout-attendee';
@@ -65,9 +69,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, ...result });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : 'Sepet ödemesi oluşturulamadı';
+    const message = publicApiErrorMessage(err, 'Sepet ödemesi oluşturulamadı');
     console.error('[cart-checkout] error:', message, err);
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json(
+      { error: message },
+      { status: isTransientNetworkError(err) ? 503 : 400 }
+    );
   }
 }

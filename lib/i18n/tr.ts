@@ -388,6 +388,7 @@ export const tr = {
     orderCreateFailed: 'Sipariş oluşturulamadı',
     paymentPageFailed: 'Ödeme sayfası alınamadı',
     transactionFailed: 'İşlem başarısız',
+    connectionLost: 'Bağlantı kesildi. Lütfen birkaç saniye sonra tekrar deneyin.',
     invalidCoupon: 'Geçersiz kupon',
     couponApplyFailed: 'Kupon uygulanamadı',
     ticketTypeLabel: 'Bilet türü',
