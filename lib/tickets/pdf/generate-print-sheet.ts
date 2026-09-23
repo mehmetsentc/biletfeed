@@ -89,6 +89,42 @@ function splitDateTime(label: string): { date: string; time: string } {
   return { date: match[1], time: match[2] };
 }
 
+/** Metni kutuya sığdırır. Sanatçı adı kesilmez; punto küçülür, satır kırılır. */
+function drawFittedText(
+  doc: PdfDoc,
+  text: string,
+  x: number,
+  y: number,
+  width: number,
+  maxHeight: number,
+  options: {
+    maxSize: number;
+    minSize: number;
+    bold?: boolean;
+    color?: string;
+    align?: 'left' | 'center';
+  }
+) {
+  const bold = options.bold !== false;
+  const align = options.align ?? 'left';
+  let size = options.maxSize;
+  doc.font(pdfFont(bold));
+  while (size > options.minSize) {
+    doc.fontSize(size);
+    const height = doc.heightOfString(text, { width, align, lineGap: 1 });
+    if (height <= maxHeight) break;
+    size -= 0.5;
+  }
+  doc.fillColor(options.color ?? INK).font(pdfFont(bold)).fontSize(size);
+  doc.text(text, x, y, {
+    width,
+    height: maxHeight,
+    align,
+    lineGap: 1,
+    ellipsis: false
+  });
+}
+
 /**
  * 1 bit QR görseli. Interpolate kapalı olduğu için baskıda keskin kalır
  * ve 500 biletlik dosyayı şişirmez.
@@ -235,7 +271,7 @@ function drawFront(
   const when = splitDateTime(ticket.dateTimeLabel);
   const dateColW = 96;
   const dateX = perf - 12 - dateColW;
-  const titleW = dateX - left - 8;
+  const titleW = perf - 12 - left;
 
   doc.save();
   doc.roundedRect(x, y, w, h, 8).clip();
@@ -243,45 +279,44 @@ function drawFront(
   doc.rect(x, y, 5, h).fill(LIME);
   doc.rect(perf, y, x + w - perf, h).fill(INK);
 
-  drawWordmark(doc, logos.onLight, left, y + 12, 150, 26);
+  drawWordmark(doc, logos.onLight, left, y + 10, 148, 22);
 
-  doc.fillColor(INK).font(pdfFont(true)).fontSize(22);
-  doc.text(upper(ticket.eventTitle), left, y + 44, {
-    width: titleW,
-    height: 28,
-    ellipsis: true,
-    lineBreak: false
-  });
-  doc.font(pdfFont(true)).fontSize(13);
-  doc.text(upper(ticket.venueName), left, y + 76, {
-    width: titleW,
-    height: 16,
-    ellipsis: true,
-    lineBreak: false
-  });
-  doc.fillColor('#444444').font(pdfFont()).fontSize(8);
-  doc.text(ticket.addressLine, left, y + 94, {
-    width: Math.min(titleW, dateX - left),
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(10);
+  doc.text(upper(when.date), dateX, y + 10, {
+    width: dateColW,
     height: 12,
     ellipsis: true,
     lineBreak: false
   });
+  if (when.time) {
+    doc.fontSize(14);
+    doc.text(when.time, dateX, y + 22, {
+      width: dateColW,
+      height: 16,
+      lineBreak: false
+    });
+  }
 
+  const title = upper(ticket.eventTitle);
+  drawFittedText(doc, title, left, y + 40, titleW, 40, {
+    maxSize: 18,
+    minSize: 11,
+    bold: true
+  });
   doc.fillColor(INK).font(pdfFont(true)).fontSize(11);
-  doc.text(upper(when.date), dateX, y + 44, {
-    width: dateColW,
+  doc.text(upper(ticket.venueName), left, y + 82, {
+    width: titleW,
     height: 14,
     ellipsis: true,
     lineBreak: false
   });
-  if (when.time) {
-    doc.fontSize(16);
-    doc.text(when.time, dateX, y + 60, {
-      width: dateColW,
-      height: 18,
-      lineBreak: false
-    });
-  }
+  doc.fillColor('#444444').font(pdfFont()).fontSize(8);
+  doc.text(ticket.addressLine, left, y + 98, {
+    width: titleW,
+    height: 11,
+    ellipsis: true,
+    lineBreak: false
+  });
 
   const qr = 48;
   const qrX = left;
@@ -308,28 +343,28 @@ function drawFront(
 
   const stubX = perf + 10;
   const stubTextW = stubW - 20;
-  drawWordmark(doc, logos.onDark, stubX, y + 10, stubTextW, 16, 'center', '#FFFFFF');
-  doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(9);
-  doc.text(upper(ticket.eventTitle), stubX, y + 30, {
-    width: stubTextW,
-    align: 'center',
-    height: 20,
-    ellipsis: true
+  drawWordmark(doc, logos.onDark, stubX, y + 8, stubTextW, 14, 'center', '#FFFFFF');
+  drawFittedText(doc, upper(ticket.eventTitle), stubX, y + 26, stubTextW, 36, {
+    maxSize: 8.5,
+    minSize: 6.5,
+    bold: true,
+    color: '#FFFFFF',
+    align: 'center'
   });
-  doc.font(pdfFont()).fontSize(7.5);
-  doc.text(upper(when.date), stubX, y + 52, {
+  doc.fillColor('#FFFFFF').font(pdfFont()).fontSize(7);
+  doc.text(upper(when.date), stubX, y + 64, {
     width: stubTextW,
     align: 'center',
-    height: 10,
+    height: 9,
     ellipsis: true,
     lineBreak: false
   });
   if (when.time) {
-    doc.font(pdfFont(true)).fontSize(10);
-    doc.text(when.time, stubX, y + 64, {
+    doc.font(pdfFont(true)).fontSize(9);
+    doc.text(when.time, stubX, y + 74, {
       width: stubTextW,
       align: 'center',
-      height: 12,
+      height: 11,
       lineBreak: false
     });
   }
@@ -430,12 +465,12 @@ function drawBack(
     lineBreak: false,
     height: 18
   });
-  doc.font(pdfFont()).fontSize(7.5);
-  doc.text(upper(ticket.eventTitle), stubX, y + 72, {
-    width: stubTextW,
-    align: 'center',
-    height: 18,
-    ellipsis: true
+  drawFittedText(doc, upper(ticket.eventTitle), stubX, y + 70, stubTextW, 28, {
+    maxSize: 7.5,
+    minSize: 6,
+    bold: false,
+    color: '#FFFFFF',
+    align: 'center'
   });
   const stubQr = 50;
   const stubQrX = perf + (stubW - stubQr) / 2;
