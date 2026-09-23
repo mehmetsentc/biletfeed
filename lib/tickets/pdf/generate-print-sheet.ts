@@ -14,6 +14,8 @@ type PdfDoc = InstanceType<typeof PDFDocument>;
 
 const MM = 72 / 25.4;
 const LOGO_PATH = path.join(process.cwd(), 'public/brand/logo-dark.png');
+const LIME = '#DFFF00';
+const INK = '#111111';
 
 export type PrintSheetTicket = {
   eventTitle: string;
@@ -148,16 +150,18 @@ function drawBrandStub(
   sequenceLabel: string
 ) {
   doc.save();
-  doc.rect(x, y, stubW, h).fill('#111111');
+  doc.rect(x, y, stubW, h).fill(INK);
+  doc.rect(x + stubW - 3.5, y, 3.5, h).fill(LIME);
   doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(8);
   const label = 'biletfeed';
   const labelW = doc.widthOfString(label);
   const step = labelW + 16;
   const seqBand = 18;
+  const blackW = stubW - 3.5;
   const span = h - 20 - seqBand;
   const count = Math.max(1, Math.floor(span / step));
   doc.save();
-  doc.translate(x + stubW / 2, y + (h - seqBand) / 2);
+  doc.translate(x + blackW / 2, y + (h - seqBand) / 2);
   doc.rotate(-90);
   const total = count * step - 16;
   const start = -total / 2;
@@ -171,7 +175,7 @@ function drawBrandStub(
   doc.restore();
   doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(7);
   doc.text(sequenceLabel, x + 1, y + h - 14, {
-    width: stubW - 2,
+    width: blackW - 2,
     align: 'center',
     lineBreak: false,
     height: 10
@@ -201,37 +205,39 @@ function drawFront(
   origin: { x: number; y: number },
   geo: PrintSheetGeometry,
   ticket: PrintSheetTicket,
-  logo: string | null
+  logo: string | null,
+  cropMarks = true
 ) {
   const { x, y } = origin;
   const { ticketW: w, ticketH: h, stubW } = geo;
-  const rightW = 86;
-  const bodyX = x + stubW + 8;
-  const bodyW = w - stubW - rightW - 22;
-  const rightX = x + w - rightW - 6;
+  const rightW = 98;
+  const bodyX = x + stubW + 12;
+  const bodyW = w - stubW - rightW - 24;
+  const rightX = x + w - rightW;
 
   doc.save();
   doc.rect(x, y, w, h).clip();
   doc.rect(x, y, w, h).fill('#FFFFFF');
   drawBrandStub(doc, x, y, stubW, h, ticket.sequenceLabel);
 
-  doc.fillColor('#111111').font(pdfFont(true)).fontSize(13);
-  doc.text(ticket.eventTitle, bodyX, y + 10, {
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(14);
+  doc.text(ticket.eventTitle, bodyX, y + 12, {
     width: bodyW,
     height: 34,
     ellipsis: true
   });
+  doc.rect(bodyX, y + 48, 28, 2.5).fill(LIME);
 
-  doc.fillColor('#444444').font(pdfFont()).fontSize(8);
-  doc.text(ticket.ticketTypeName, bodyX, y + 46, {
+  doc.fillColor('#3A3A3A').font(pdfFont(true)).fontSize(9);
+  doc.text(ticket.ticketTypeName, bodyX, y + 56, {
     width: bodyW,
     height: 12,
     ellipsis: true,
     lineBreak: false
   });
 
-  doc.fillColor('#111111').font(pdfFont(true)).fontSize(10);
-  doc.text(ticket.dateTimeLabel, bodyX, y + 62, {
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(11);
+  doc.text(ticket.dateTimeLabel, bodyX, y + 72, {
     width: bodyW,
     height: 14,
     ellipsis: true,
@@ -239,79 +245,76 @@ function drawFront(
   });
 
   doc.font(pdfFont(true)).fontSize(9);
-  doc.text(ticket.venueName, bodyX, y + 80, {
+  doc.text(ticket.venueName, bodyX, y + 90, {
     width: bodyW,
-    height: 13,
+    height: 12,
     ellipsis: true,
     lineBreak: false
   });
 
   doc.fillColor('#555555').font(pdfFont()).fontSize(7.5);
-  doc.text(ticket.addressLine, bodyX, y + 96, {
+  doc.text(ticket.addressLine, bodyX, y + 106, {
     width: bodyW,
-    height: 28,
+    height: 26,
     ellipsis: true
   });
 
-  doc.fillColor('#111111').font(pdfFont(true)).fontSize(9);
-  doc.text(ticket.ticketCode, bodyX, y + h - 36, {
+  doc.strokeColor('#E4E4E4').lineWidth(0.6);
+  doc.moveTo(bodyX, y + h - 40).lineTo(bodyX + bodyW, y + h - 40).stroke();
+
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(9);
+  doc.text(ticket.ticketCode, bodyX, y + h - 32, {
     width: bodyW,
     height: 12,
     lineBreak: false,
     ellipsis: true
   });
   doc.fillColor('#666666').font(pdfFont()).fontSize(7.5);
-  doc.text(ticket.serial, bodyX, y + h - 22, {
+  doc.text(ticket.serial, bodyX, y + h - 18, {
     width: bodyW,
     height: 10,
     lineBreak: false
   });
 
+  const qrSize = 58;
+  const stackH = 16 + 8 + qrSize + 16;
+  const stackTop = y + Math.max(10, (h - stackH) / 2);
   if (logo) {
-    // Yol string'i pdfkit önbelleğine girer; her bilette logo yeniden gömülmez.
-    doc.image(logo, rightX, y + 8, { fit: [rightW - 8, 14], align: 'center' });
+    doc.image(logo, rightX + 6, stackTop, { fit: [rightW - 16, 14], align: 'center' });
   } else {
-    doc.fillColor('#111111').font(pdfFont(true)).fontSize(8);
-    doc.text('biletfeed', rightX, y + 8, {
-      width: rightW - 8,
+    doc.fillColor(INK).font(pdfFont(true)).fontSize(8);
+    doc.text('biletfeed', rightX + 4, stackTop, {
+      width: rightW - 12,
       align: 'center',
       lineBreak: false,
       height: 12
     });
   }
 
-  const qrSize = 56;
-  const qrTop = y + 26;
-  const qrX = rightX + (rightW - 8 - qrSize) / 2;
+  const qrTop = stackTop + 20;
+  const qrX = rightX + (rightW - qrSize) / 2;
   drawBitmapQr(doc, ticket.qrData, qrX, qrTop, qrSize);
 
-  const underQr = qrTop + qrSize + 6;
-  doc.fillColor('#111111').font(pdfFont(true)).fontSize(6.5);
-  doc.text('biletfeed.com', rightX, underQr, {
-    width: rightW - 8,
+  doc.fillColor(INK).font(pdfFont(true)).fontSize(6.5);
+  doc.text('biletfeed.com', rightX + 4, qrTop + qrSize + 3, {
+    width: rightW - 12,
     align: 'center',
     lineBreak: false,
     height: 9
-  });
-  doc.fillColor('#444444').font(pdfFont()).fontSize(6.5);
-  doc.text(ticket.ticketTypeName, rightX, underQr + 11, {
-    width: rightW - 8,
-    align: 'center',
-    height: 20,
-    ellipsis: true
   });
 
   doc.restore();
   drawPerforation(doc, x + stubW, y, h);
   drawTicketFrame(doc, x, y, w, h);
-  drawCropMarks(doc, x, y, w, h);
+  if (cropMarks) drawCropMarks(doc, x, y, w, h);
 }
 
 function drawBack(
   doc: PdfDoc,
   origin: { x: number; y: number },
   geo: PrintSheetGeometry,
-  ticket: PrintSheetTicket
+  ticket: PrintSheetTicket,
+  cropMarks = true
 ) {
   const { x, y } = origin;
   const { ticketW: w, ticketH: h, stubW } = geo;
@@ -334,26 +337,31 @@ function drawBack(
   });
   doc.restore();
 
-  doc.fillColor('#111111').font(pdfFont(true)).fontSize(8);
-  doc.text(PRINT_TICKET_NON_REFUNDABLE, textX, y + 10, {
-    width: textW,
-    height: 22,
-    ellipsis: true
+  const barY = y + 10;
+  const barH = 18;
+  doc.rect(textX, barY, textW, barH).fill(INK);
+  doc.rect(textX, barY, 3.5, barH).fill(LIME);
+  doc.fillColor('#FFFFFF').font(pdfFont(true)).fontSize(7.5);
+  doc.text(PRINT_TICKET_NON_REFUNDABLE, textX + 10, barY + 4.5, {
+    width: textW - 16,
+    height: 11,
+    ellipsis: true,
+    lineBreak: false
   });
 
   doc.fillColor('#666666').font(pdfFont(true)).fontSize(7);
-  doc.text('Açıklamalar', textX, y + 34, {
+  doc.text('Açıklamalar', textX, y + 36, {
     width: textW,
     height: 10,
     lineBreak: false
   });
 
-  doc.fillColor('#222222').font(pdfFont()).fontSize(6.5);
-  doc.text(PRINT_TICKET_TERMS, textX, y + 46, {
+  doc.fillColor('#222222').font(pdfFont()).fontSize(7);
+  doc.text(PRINT_TICKET_TERMS, textX, y + 50, {
     width: textW,
     height: 78,
     ellipsis: true,
-    lineGap: 1
+    lineGap: 1.4
   });
 
   doc.fillColor('#666666').font(pdfFont()).fontSize(6);
@@ -374,7 +382,38 @@ function drawBack(
   doc.restore();
   drawPerforation(doc, x + stubW, y, h);
   drawTicketFrame(doc, x, y, w, h);
-  drawCropMarks(doc, x, y, w, h);
+  if (cropMarks) drawCropMarks(doc, x, y, w, h);
+}
+
+/** Tek biletin ön veya arka yüzü — sunum ve prova. */
+export async function generateTicketFacePdf(
+  ticket: PrintSheetTicket,
+  side: 'front' | 'back'
+): Promise<Buffer> {
+  const geo = printSheetGeometry();
+  const pad = 12;
+  const logo = logoPath();
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({
+      size: [geo.ticketW + pad * 2, geo.ticketH + pad * 2],
+      margin: 0,
+      info: {
+        Title: side === 'front' ? 'BiletFeed bilet ön yüz' : 'BiletFeed bilet arka yüz',
+        Author: 'BiletFeed'
+      }
+    });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    registerPdfFonts(doc);
+    doc.rect(0, 0, geo.ticketW + pad * 2, geo.ticketH + pad * 2).fill('#F4F4F4');
+    const origin = { x: pad, y: pad };
+    if (side === 'front') drawFront(doc, origin, geo, ticket, logo, false);
+    else drawBack(doc, origin, geo, ticket, false);
+    doc.end();
+  });
 }
 
 function drawSheetLabel(
