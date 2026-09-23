@@ -18,6 +18,7 @@ import {
   sequenceFromPrintAttendee
 } from '@/lib/tickets/print/constants';
 import type { PrintSheetTicket } from '@/lib/tickets/pdf/generate-print-sheet';
+import { partnerMarksForEventTitle } from '@/lib/tickets/print/partner-marks';
 
 export class PrintTicketError extends Error {
   constructor(message: string) {
@@ -292,6 +293,7 @@ export async function loadPrintSheetForOrder(
         ticketCode: ticket.ticketCode,
         serial: formatPrintSerial(order.id, sequence),
         sequenceLabel: formatPrintSequence(sequence),
+        partners: partnerMarksForEventTitle(order.event.title) ?? undefined,
         qrData: buildTicketQrPayload({
           ticketId: ticket.id,
           ticketCode: ticket.ticketCode,

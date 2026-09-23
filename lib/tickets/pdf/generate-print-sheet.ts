@@ -21,6 +21,11 @@ const LIME = '#DFFF00';
 
 type BrandLogos = { onLight: string | null; onDark: string | null };
 
+export type PrintPartnerMark = {
+  name: string;
+  logoPath: string | null;
+};
+
 export type PrintSheetTicket = {
   eventTitle: string;
   ticketTypeName: string;
@@ -31,6 +36,8 @@ export type PrintSheetTicket = {
   serial: string;
   sequenceLabel: string;
   qrData: string;
+  /** Yalnızca Blok3 ve Zeynep Bastık biletlerinde dolu. */
+  partners?: PrintPartnerMark[];
 };
 
 export type PrintSheetGeometry = {
@@ -255,6 +262,46 @@ function drawTypeChip(doc: PdfDoc, label: string, x: number, y: number, maxWidth
   });
 }
 
+function drawPartnerStrip(
+  doc: PdfDoc,
+  partners: PrintPartnerMark[],
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) {
+  const gap = 8;
+  const cell = (width - gap * (partners.length - 1)) / partners.length;
+  partners.forEach((partner, index) => {
+    const cellX = x + index * (cell + gap);
+    if (partner.logoPath) {
+      const logoH = Math.max(12, height - 9);
+      doc.image(partner.logoPath, cellX, y, {
+        fit: [cell, logoH],
+        align: 'center',
+        valign: 'center'
+      });
+      doc.fillColor('#333333').font(pdfFont(true)).fontSize(5.5);
+      doc.text(upper(partner.name), cellX, y + logoH + 1, {
+        width: cell,
+        align: 'center',
+        height: 7,
+        lineBreak: false,
+        ellipsis: true
+      });
+      return;
+    }
+    doc.fillColor(INK).font(pdfFont(true)).fontSize(7);
+    doc.text(upper(partner.name), cellX, y + Math.max(0, (height - 9) / 2), {
+      width: cell,
+      align: 'center',
+      height: 10,
+      lineBreak: false,
+      ellipsis: true
+    });
+  });
+}
+
 function drawFront(
   doc: PdfDoc,
   origin: { x: number; y: number },
@@ -297,30 +344,40 @@ function drawFront(
     });
   }
 
+  const partners = ticket.partners ?? [];
+  const hasPartnerLogo = partners.some((partner) => partner.logoPath);
   const title = upper(ticket.eventTitle);
-  drawFittedText(doc, title, left, y + 40, titleW, 40, {
-    maxSize: 18,
+  drawFittedText(doc, title, left, y + 38, titleW, partners.length > 0 ? 32 : 40, {
+    maxSize: partners.length > 0 ? 16 : 18,
     minSize: 11,
     bold: true
   });
+  const venueY = partners.length > 0 ? y + 72 : y + 82;
   doc.fillColor(INK).font(pdfFont(true)).fontSize(11);
-  doc.text(upper(ticket.venueName), left, y + 82, {
+  doc.text(upper(ticket.venueName), left, venueY, {
     width: titleW,
     height: 14,
     ellipsis: true,
     lineBreak: false
   });
+  const stripH = partners.length === 0 ? 0 : hasPartnerLogo ? 24 : 14;
+  const addressY = partners.length === 0 ? y + 98 : y + 86;
+
   doc.fillColor('#444444').font(pdfFont()).fontSize(8);
-  doc.text(ticket.addressLine, left, y + 98, {
+  doc.text(ticket.addressLine, left, addressY, {
     width: titleW,
     height: 11,
     ellipsis: true,
     lineBreak: false
   });
 
-  const qr = 48;
+  if (partners.length > 0) {
+    drawPartnerStrip(doc, partners, left, addressY + 14, titleW, stripH);
+  }
+
+  const qr = partners.length === 0 ? 48 : hasPartnerLogo ? 36 : 42;
   const qrX = left;
-  const qrY = y + h - 16 - qr;
+  const qrY = y + h - 14 - qr;
   doc.fillColor('#555555').font(pdfFont()).fontSize(7);
   doc.text(ticket.ticketCode, qrX, qrY - 12, {
     width: qr + 8,
