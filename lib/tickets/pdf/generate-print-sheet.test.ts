@@ -51,7 +51,9 @@ describe('baskı PDF', () => {
   });
 
   it('logo her bilette yeniden gömülmez', async () => {
-    const pdf = await generatePrintSheetPdf(sample(30));
-    expect(pdf.length).toBeLessThan(250_000);
+    const few = await generatePrintSheetPdf(sample(2));
+    const many = await generatePrintSheetPdf(sample(30));
+    const perExtra = (many.length - few.length) / 28;
+    expect(perExtra).toBeLessThan(8_000);
   });
 });
