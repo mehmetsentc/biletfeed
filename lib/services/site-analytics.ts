@@ -1,5 +1,6 @@
 import type { AnalyticsReferrerChannel, AnalyticsDeviceType } from '@prisma/client';
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { excludeNonSaleProviders } from '@/lib/tickets/print/constants';
 import {
   averageScrollDepth,
   countActiveSessions,
@@ -324,7 +325,7 @@ export async function getTrafficAnalyticsBundle(
       where: {
         status: 'paid',
         deletedAt: null,
-        paymentProvider: { not: 'invitation' },
+        paymentProvider: excludeNonSaleProviders(),
         createdAt: { gte: from, lte: to }
       }
     }),
@@ -332,7 +333,7 @@ export async function getTrafficAnalyticsBundle(
       where: {
         status: 'paid',
         deletedAt: null,
-        paymentProvider: { not: 'invitation' },
+        paymentProvider: excludeNonSaleProviders(),
         createdAt: { gte: from, lte: to }
       },
       _avg: { total: true },
@@ -396,7 +397,7 @@ export async function getTrafficAnalyticsBundle(
       where: {
         status: 'paid',
         deletedAt: null,
-        paymentProvider: { not: 'invitation' },
+        paymentProvider: excludeNonSaleProviders(),
         createdAt: { gte: from, lte: to },
         event: { deletedAt: null }
       },

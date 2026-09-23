@@ -1,4 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { excludeNonSaleProviders } from '@/lib/tickets/print/constants';
 import { ROLES } from '@/lib/auth/roles';
 import { publishedFilter, buildUpcomingFilter } from '@/lib/services/events';
 
@@ -41,7 +42,7 @@ export async function getAdminEventsSalesOverview(): Promise<AdminEventSalesRow[
       eventId: { in: eventIds },
       status: 'paid',
       deletedAt: null,
-      paymentProvider: { not: 'invitation' }
+      paymentProvider: excludeNonSaleProviders()
     },
     select: {
       eventId: true,

@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { OrganizerCsvDownloadButton } from '@/components/organizator-panel/organizer-csv-download-button';
 import { EventSaleDiscountPanel } from '@/components/organizator-panel/event-sale-discount-panel';
+import { PrintTicketBatchPanel } from '@/components/organizator-panel/print-ticket-batch-panel';
 import { turkeyCalendarDayDiff } from '@/lib/datetime/istanbul';
 import { girisHref } from '@/lib/config/domain';
 import { cn } from '@/lib/utils';
@@ -984,6 +985,17 @@ export function EventDetailDashboard({
           </p>
         )}
       </section>
+
+      <PrintTicketBatchPanel
+        eventId={event.id}
+        cancelled={status === 'cancelled'}
+        categories={categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          capacity: category.capacity,
+          sold: category.sold
+        }))}
+      />
 
       {/* Kategori tablosu */}
       <section className="overflow-hidden rounded-[var(--radius-card)] border border-border bg-card shadow-[var(--shadow-sm)]">

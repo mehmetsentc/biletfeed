@@ -1,4 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { excludeNonSaleProviders } from '@/lib/tickets/print/constants';
 import { buildUpcomingFilter } from '@/lib/services/events';
 import {
   matchesSalesCategory,
@@ -85,7 +86,7 @@ export async function getOrganizerEventSummary(
         ...eventFilter,
         deletedAt: null,
         status: { in: ['VALID', 'USED'] },
-        order: { paymentProvider: { not: 'invitation' } }
+        order: { paymentProvider: excludeNonSaleProviders() }
       }
     }),
     // Davetiye biletleri
@@ -113,7 +114,7 @@ export async function getOrganizerEventSummary(
         deletedAt: null,
         status: { in: ['VALID', 'USED'] },
         entryCount: 0,
-        order: { paymentProvider: { not: 'invitation' } }
+        order: { paymentProvider: excludeNonSaleProviders() }
       }
     }),
     // Davetiye gönderilip giriş yapılmayanlar
@@ -141,7 +142,7 @@ export async function getOrganizerOrders(
     where: {
       organizerId,
       deletedAt: null,
-      paymentProvider: { not: 'invitation' },
+      paymentProvider: excludeNonSaleProviders(),
       ...(category === 'all' ? {} : { status: 'paid' as const }),
       ...(eventId ? { eventId } : {})
     },
@@ -185,7 +186,7 @@ export async function getOrganizerTickets(
     event: { organizerId: string; id?: string };
     deletedAt: null;
     ticketTypeId?: { in: string[] };
-    order?: { paymentProvider: 'invitation' | { not: 'invitation' } };
+    order?: { paymentProvider: 'invitation' | ReturnType<typeof excludeNonSaleProviders> };
   } = {
     event: {
       organizerId,
@@ -196,7 +197,7 @@ export async function getOrganizerTickets(
 
   if (typeof filter === 'string') {
     if (filter !== 'all') {
-      where.order = { paymentProvider: { not: 'invitation' } };
+      where.order = { paymentProvider: excludeNonSaleProviders() };
     }
   } else if (filter.kind === 'invitation') {
     where.order = { paymentProvider: 'invitation' };

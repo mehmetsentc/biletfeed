@@ -1,4 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { excludeNonSaleProviders } from '@/lib/tickets/print/constants';
 
 export async function getOrganizerEventDetail(
   organizerId: string,
@@ -31,7 +32,12 @@ export async function getOrganizerEventDetail(
     invitationCount
   ] = await Promise.all([
     prisma.order.findMany({
-      where: { eventId, status: 'paid', deletedAt: null },
+      where: {
+        eventId,
+        status: 'paid',
+        deletedAt: null,
+        paymentProvider: excludeNonSaleProviders()
+      },
       orderBy: { paidAt: 'desc' },
       take: 8,
       include: {
@@ -42,11 +48,21 @@ export async function getOrganizerEventDetail(
       }
     }),
     prisma.order.aggregate({
-      where: { eventId, status: 'paid', deletedAt: null },
+      where: {
+        eventId,
+        status: 'paid',
+        deletedAt: null,
+        paymentProvider: excludeNonSaleProviders()
+      },
       _sum: { total: true, subtotal: true, commission: true }
     }),
     prisma.order.count({
-      where: { eventId, status: 'paid', deletedAt: null }
+      where: {
+        eventId,
+        status: 'paid',
+        deletedAt: null,
+        paymentProvider: excludeNonSaleProviders()
+      }
     }),
     prisma.purchasedTicket.findMany({
       where: { eventId, deletedAt: null, status: { in: ['VALID', 'USED'] } },

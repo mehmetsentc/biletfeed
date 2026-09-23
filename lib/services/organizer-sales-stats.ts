@@ -1,4 +1,5 @@
 import { prisma, ensureDbConnection } from '@/lib/db/prisma';
+import { excludeNonSaleProviders } from '@/lib/tickets/print/constants';
 import { isLocaTicketType } from '@/lib/services/ticket-type-category';
 
 export type OrganizerSalesStats = {
@@ -25,7 +26,7 @@ export async function getOrganizerSalesStats(
         order: {
           organizerId,
           status: 'paid',
-          paymentProvider: { not: 'invitation' },
+          paymentProvider: excludeNonSaleProviders(),
           deletedAt: null,
           ...eventFilter
         }
