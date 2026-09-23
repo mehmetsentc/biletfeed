@@ -270,14 +270,15 @@ function drawPartnerStrip(
   width: number,
   height: number
 ) {
-  const gap = 14;
-  const cell = (width - gap * (partners.length - 1)) / partners.length;
+  const gap = 6;
+  const cell = 52;
+  const rowW = partners.length * cell + (partners.length - 1) * gap;
+  const start = x + Math.max(0, (width - rowW) / 2);
   partners.forEach((partner, index) => {
-    const cellX = x + index * (cell + gap);
-    const logoW = cell - 4;
+    const cellX = start + index * (cell + gap);
     if (partner.logoPath) {
-      doc.image(partner.logoPath, cellX + 2, y, {
-        fit: [logoW, height],
+      doc.image(partner.logoPath, cellX, y, {
+        fit: [cell, height],
         align: 'center',
         valign: 'center'
       });
@@ -337,8 +338,8 @@ function drawFront(
   }
 
   const partners = ticket.partners ?? [];
-  const stripH = partners.length > 0 ? 13 : 0;
-  const stripGap = partners.length > 0 ? 8 : 0;
+  const stripH = partners.length > 0 ? 10 : 0;
+  const stripGap = partners.length > 0 ? 4 : 0;
   const title = upper(ticket.eventTitle);
   drawFittedText(doc, title, left, y + 38, titleW, partners.length > 0 ? 34 : 40, {
     maxSize: partners.length > 0 ? 17 : 18,
@@ -367,7 +368,7 @@ function drawFront(
   const qrX = left;
   const qrY = y + h - 10 - stripH - stripGap - qr;
   if (partners.length > 0) {
-    const stripY = y + h - 8 - stripH;
+    const stripY = y + h - 6 - stripH;
     drawPartnerStrip(doc, partners, left, stripY, titleW, stripH);
   }
   doc.fillColor('#555555').font(pdfFont()).fontSize(7);
