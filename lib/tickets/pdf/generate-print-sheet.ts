@@ -270,32 +270,24 @@ function drawPartnerStrip(
   width: number,
   height: number
 ) {
-  const gap = 8;
+  const gap = 14;
   const cell = (width - gap * (partners.length - 1)) / partners.length;
   partners.forEach((partner, index) => {
     const cellX = x + index * (cell + gap);
+    const logoW = cell - 4;
     if (partner.logoPath) {
-      const logoH = Math.max(12, height - 9);
-      doc.image(partner.logoPath, cellX, y, {
-        fit: [cell, logoH],
+      doc.image(partner.logoPath, cellX + 2, y, {
+        fit: [logoW, height],
         align: 'center',
         valign: 'center'
       });
-      doc.fillColor('#333333').font(pdfFont(true)).fontSize(5.5);
-      doc.text(upper(partner.name), cellX, y + logoH + 1, {
-        width: cell,
-        align: 'center',
-        height: 7,
-        lineBreak: false,
-        ellipsis: true
-      });
       return;
     }
-    doc.fillColor(INK).font(pdfFont(true)).fontSize(7);
-    doc.text(upper(partner.name), cellX, y + Math.max(0, (height - 9) / 2), {
+    doc.fillColor(INK).font(pdfFont(true)).fontSize(6.5);
+    doc.text(upper(partner.name), cellX, y + Math.max(0, (height - 8) / 2), {
       width: cell,
       align: 'center',
-      height: 10,
+      height: 9,
       lineBreak: false,
       ellipsis: true
     });
@@ -345,14 +337,15 @@ function drawFront(
   }
 
   const partners = ticket.partners ?? [];
-  const hasPartnerLogo = partners.some((partner) => partner.logoPath);
+  const stripH = partners.length > 0 ? 13 : 0;
+  const stripGap = partners.length > 0 ? 8 : 0;
   const title = upper(ticket.eventTitle);
-  drawFittedText(doc, title, left, y + 38, titleW, partners.length > 0 ? 32 : 40, {
-    maxSize: partners.length > 0 ? 16 : 18,
+  drawFittedText(doc, title, left, y + 38, titleW, partners.length > 0 ? 34 : 40, {
+    maxSize: partners.length > 0 ? 17 : 18,
     minSize: 11,
     bold: true
   });
-  const venueY = partners.length > 0 ? y + 72 : y + 82;
+  const venueY = partners.length > 0 ? y + 74 : y + 82;
   doc.fillColor(INK).font(pdfFont(true)).fontSize(11);
   doc.text(upper(ticket.venueName), left, venueY, {
     width: titleW,
@@ -360,8 +353,7 @@ function drawFront(
     ellipsis: true,
     lineBreak: false
   });
-  const stripH = partners.length === 0 ? 0 : hasPartnerLogo ? 24 : 14;
-  const addressY = partners.length === 0 ? y + 98 : y + 86;
+  const addressY = partners.length === 0 ? y + 98 : y + 90;
 
   doc.fillColor('#444444').font(pdfFont()).fontSize(8);
   doc.text(ticket.addressLine, left, addressY, {
@@ -371,13 +363,15 @@ function drawFront(
     lineBreak: false
   });
 
-  if (partners.length > 0) {
-    drawPartnerStrip(doc, partners, left, addressY + 14, titleW, stripH);
-  }
-
-  const qr = partners.length === 0 ? 48 : hasPartnerLogo ? 36 : 42;
+  const qr = partners.length === 0 ? 48 : 42;
   const qrX = left;
-  const qrY = y + h - 14 - qr;
+  const qrY = y + h - 10 - stripH - stripGap - qr;
+  if (partners.length > 0) {
+    const stripY = y + h - 8 - stripH;
+    doc.strokeColor('#E6E6E6').lineWidth(0.6);
+    doc.moveTo(left, stripY - 4).lineTo(left + titleW, stripY - 4).stroke();
+    drawPartnerStrip(doc, partners, left, stripY, titleW, stripH);
+  }
   doc.fillColor('#555555').font(pdfFont()).fontSize(7);
   doc.text(ticket.ticketCode, qrX, qrY - 12, {
     width: qr + 8,

@@ -4,7 +4,7 @@ import { partnerMarksForEventTitle } from '@/lib/tickets/print/partner-marks';
 describe('organizatör şeridi', () => {
   it('Blok3 biletine dört organizatör koyar', () => {
     const marks = partnerMarksForEventTitle('BLOK3');
-    expect(marks?.map((mark) => mark.name)).toEqual(['Major', 'PowerTürk', 'Let Us', 'On Stage']);
+    expect(marks?.map((mark) => mark.name)).toEqual(['Let Us', 'Major', 'PowerTürk', 'On Stage']);
   });
 
   it('Zeynep Bastık biletine aynı şeridi koyar', () => {

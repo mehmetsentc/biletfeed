@@ -4,11 +4,11 @@ import type { PrintPartnerMark } from '@/lib/tickets/pdf/generate-print-sheet';
 
 const PARTNER_DIR = path.join(process.cwd(), 'public/brand/partners');
 
-/** Kullanıcının verdiği logo dosyaları: Major, PowerTürk, Let Us, On Stage. */
+/** Let Us önde; ardından Major, PowerTürk ve On Stage. */
 const PARTNERS: Array<{ name: string; file: string }> = [
+  { name: 'Let Us', file: 'letus.png' },
   { name: 'Major', file: 'major.png' },
   { name: 'PowerTürk', file: 'powerturk.png' },
-  { name: 'Let Us', file: 'letus.png' },
   { name: 'On Stage', file: 'on-stage.png' }
 ];
 
